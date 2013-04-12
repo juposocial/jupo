@@ -1,6 +1,10 @@
 #! coding: utf-8
 # pylint: disable-msg=W0311, E0611, E1101
 # @PydevCodeAnalysisIgnore
+
+from gevent import monkey
+monkey.patch_socket()
+
 import os
 import re
 import sys
@@ -42,7 +46,7 @@ from gridfs import GridFS, NoFile
 from bson.binary import Binary
 from bson.objectid import ObjectId
 from gevent import spawn, joinall
-from pymongo import Connection as MongoDB
+from pymongo import MongoClient as MongoDB
 from pymongo.son_manipulator import SON
 
 from redis import Redis, StrictRedis
@@ -80,7 +84,7 @@ reload(sys)
 sys.setdefaultencoding("utf-8") #@UndefinedVariable
 
 
-DATABASE = MongoDB(settings.MONGOD_SERVERS)
+DATABASE = MongoDB(settings.MONGOD_SERVERS, use_greenlets=True)
 
 PUBSUB = StrictRedis(host=settings.REDIS_SERVER.split(':')[0], 
                      port=int(settings.REDIS_SERVER.split(':')[1]), db=0)
@@ -98,7 +102,7 @@ goose = Goose()
 dmp = diff_match_patch()
 
 if settings.AWS_KEY and settings.S3_BUCKET_NAME:
-  s3_conn = S3Connection(settings.AWS_KEY, settings.AWS_SECRET, is_secure=True)
+  s3_conn = S3Connection(settings.AWS_KEY, settings.AWS_SECRET, is_secure=False)
   BUCKET = s3_conn.get_bucket(settings.S3_BUCKET_NAME)
 else:
   BUCKET = None
@@ -522,14 +526,21 @@ def get_url_description(url, bypass_cache=False):
 #          break
 #  return None
 
+  
 
 def get_friend_suggestions(user_info):
   user_id = user_info['_id']
+  
+  key = '%s:friends_suggestion' % user_id
+  users = cache.get(key)
+  if users:
+    return users
+  
   facebook_friend_ids = user_info.get('facebook_friend_ids', [])
   google_contacts = user_info.get('google_contacts', [])
   
   contact_ids = user_info.get('contacts', [])
-
+    
   user_ids = set()
   
   checklist = facebook_friend_ids
@@ -555,10 +566,11 @@ def get_friend_suggestions(user_info):
       users.append(user)
       if len(users) >= 5:
         break
+      
+  cache.set(key, users, 86400)
   
-    
   return users
-  
+
   
 
 def get_user_id(session_id=None, facebook_id=None, email=None):
@@ -1423,7 +1435,7 @@ def get_user_info(user_id=None, facebook_id=None, email=None):
   if not user_id:
     user_id = get_user_id(facebook_id=facebook_id, email=email)
   
-  key = '%s:info' % user_id
+  key = '%s:%s:%s:info' % (user_id, facebook_id, email)
   info = cache.get(key)
   if not info:  
     if facebook_id:
@@ -4258,6 +4270,9 @@ def add_to_contacts(session_id, user_id):
   key = '%s:info' % uid
   cache.delete(key)
   
+  key = '%s:friends_suggestion' % uid
+  cache.delete(key)
+  
   return True
 
 def remove_from_contacts(session_id, user_id):
@@ -4274,6 +4289,9 @@ def remove_from_contacts(session_id, user_id):
   
   
   key = '%s:info' % uid
+  cache.delete(key)
+  
+  key = '%s:friends_suggestion' % uid
   cache.delete(key)
   
   return True

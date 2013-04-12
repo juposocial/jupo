@@ -1587,15 +1587,7 @@ def group(group_id=None, view='group', page=1):
   owner = api.get_user_info(user_id)
   
   hashtag = request.args.get('hashtag')
-  
-  # 5works stats
-  if group_id in [
-    340918405215289345,   # 5works Dev Team group_id 
-    340918693007458305   # 5works group_id 
-   ]:
-    _5works_stats = api._jupo_stats()
-  else:
-    _5works_stats = None
+
     
   if request.path.startswith('/everyone'):
     group_id = 'public'
@@ -1627,7 +1619,8 @@ def group(group_id=None, view='group', page=1):
               members.add(uid)
 
       group_id = api.new_group(session_id, 
-                               name, privacy, members, about=about, email_addrs=email_addrs)
+                               name, privacy, members, 
+                               about=about, email_addrs=email_addrs)
 
       return str(group_id)
     
@@ -1817,7 +1810,6 @@ def group(group_id=None, view='group', page=1):
                                         group=group,
                                         owner=owner,
 #                                        upcoming_events=upcoming_events,
-                                        _5works_stats=_5works_stats,
                                         view=view)}
         
         app.logger.info('render: %.2f' % (api.utctime() - t0))
@@ -1844,7 +1836,7 @@ def group(group_id=None, view='group', page=1):
                              view=view, 
                              group=group,
 #                             upcoming_events=upcoming_events,
-                             _5works_stats=_5works_stats)    
+                            )    
 #      resp.set_cookie('last_g%s' % group_id, api.utctime())
       return resp
 
@@ -2023,7 +2015,7 @@ def news_feed(page=1):
   
   app.logger.info('query: %.2f' % (api.utctime() - t0))
     
-  notification_count = api.get_unread_notifications_count(session_id)
+#  notification_count = api.get_unread_notifications_count(session_id)
   owner = api.get_owner_info(session_id)
   suggested_friends = api.get_friend_suggestions(owner.to_dict())
 
@@ -2056,7 +2048,7 @@ def news_feed(page=1):
 #      owner.recent_notes = api.get_notes(session_id, limit=3)
 #      owner.recent_files = api.get_files(session_id, limit=3)
       
-      email_addrs = api.get_email_addresses(session_id)
+      email_addrs = [] # api.get_email_addresses(session_id)
       
       body = render_template('news_feed.html', 
                              owner=owner,
@@ -2834,13 +2826,20 @@ if __name__ == "__main__":
     
     
   except (IndexError, TypeError): # dev only
-#    f = open('/var/log/jupo/profiler.log', 'w')
-#    stream = MergeStream(sys.stdout, f)
-#    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, stream)
+    f = open('/var/log/jupo/profiler.log', 'w')
+    stream = MergeStream(sys.stdout, f)
+    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, stream)
     
     @werkzeug.serving.run_with_reloader
     def gevent_auto_reloader():  
       app.debug = True
+      
+#      from cherrypy import wsgiserver
+#      server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+#      try:
+#        server.start()
+#      except KeyboardInterrupt:
+#        server.stop()
       
       server = WSGIServer(('0.0.0.0', 8888), app)
       try:
