@@ -1,0 +1,9 @@
+
+
+{% for user in users %}
+    <li class='status {{ user.status}}' id='user-{{ user.id }}'>
+        <a href='/user/{{ user.id }}' title='{{ user.name }} ({{ user.last_online | friendly_format(owner.utcoffset, short=True) }})' class='async'>
+          <img src="{{ user.avatar }}" class='micro-avatar'> {{ user.name }} <i class="{{ user.status }} rfloat"></i>
+        </a>
+    </li>
+{% endfor %}

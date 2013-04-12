@@ -1,0 +1,95 @@
+<div id="page-header">
+        <div class='search-stats'>
+          {% if not hits %}
+            0 results for "{{ query }}" 
+          {% elif hits | length == 1 %}
+            1 result for "{{ query }}"
+          {% else %}
+            {{ total }} results 
+              {% if not type %}
+                ({% for i in counters %}
+                  <a href='/search?query={{ query }}&type={{ i.term }}' class='overlay'>
+                    {{ i.count }} {{ i.term }}{% if i.count != 1 %}s{% endif %}</a>{% if loop.index < counters | length %}, {% endif %}
+                 {% endfor %}) 
+              {% endif %}
+              for "{{ query }}" {% if type %}in {{ type }}{% endif %}.
+          {% endif %}  
+          
+          {# ({{ due }} seconds). #}
+           
+          {% if type %}
+            <a href='/search?query={{ query }}' class='overlay'>Show All</a>
+          {% endif %}
+          
+          {% if not type and spelling_suggestion %}
+            Did you mean: <a href='#!/search?query={{ spelling_suggestion.text }}' class='overlay'>{% autoescape on %}{{ spelling_suggestion.html }}{% endautoescape %}</a>
+          {% endif %}
+        </div>
+</div>
+
+<ul id="stream">
+  {% if not hits %}
+    <span class="empty">No Results</span>
+  {% else %}
+    {% for feed in hits %}
+       {# {% include 'feed.html' %} #}
+       {% autoescape on %}
+          {{ feed | render("feed", owner, view) }}
+       {% endautoescape %}
+    {% endfor %}
+    <li class="more">
+      <section>
+      
+        <a href="/search?query={{ query }}{% if type %}&type={{ type }}{% endif %}{% if user %}&user={{ user }}{% endif %}&page=2" class="next">
+          <span class="loading"></span>
+          <span class="text">More...</span>
+        </a> 
+        
+      </section>
+    </li>
+        
+    
+  {% endif %}
+</ul>
+
+{% if owner.id and coworkers %}
+<div id="right-sidebar">
+    <div class="box">
+      <div class="header">
+        <div class="title">In conversation with:</div>
+      </div>
+      <div class="body">
+        <ul>
+          
+          {#
+            <li {% if user == 'public' %}class='current'{% endif %}>
+              <a href='/search?query={{ query }}{% if type %}&type={{ type }}{% endif %}&user=public' class='overlay'>
+              <img class='small-avatar lfloat' src='http://Jupo.s3.amazonaws.com/images/user2.png' />
+                <strong>Public</strong><br>
+                &nbsp;
+              </a>
+            </li>
+            #}
+        {% for u in coworkers[:10] %}
+          {% if u.id != owner.id %}
+            <li {% if "%s" | format(u.id) == user %}class='current'{% endif %}>
+              <a href='/search?query={{ query }}{% if type %}&type={{ type }}{% endif %}&user={{ u.id }}' class='overlay'>
+              <img class='small-avatar lfloat' src='{{ u.avatar }}' />
+                {{ u.name }}<br>
+                &nbsp;
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+        </ul>
+      </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+$('document').ready(function(e) {
+    $('div#overlay article').highlight('{{ query }}');
+    $('div#overlay li.comment').highlight('{{ query }}');
+})
+</script>

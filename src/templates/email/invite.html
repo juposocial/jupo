@@ -1,0 +1,61 @@
+
+
+<table style="border:none;padding:5px">
+  <tbody>
+    <tr>
+      <td>
+        <div style="font-size:12px;line-height:20px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color: #222;margin-bottom: 20px">
+    
+    
+    
+    
+<p>
+You've been invited to {% if group %} <a href="http://www.jupo.com/group/{{ group.id }}" style="text-decoration: none;color: #222">{{ group.name }}</a> group on{% endif %} <a href="http://www.jupo.com/" style="text-decoration: none;color: #222">Jupo</a>.
+</p>
+
+{% if not group %}
+<p>To getting started, click the link below or copy and paste it into your browser:</p>
+  <span class="url" style="margin-left: 25px">
+    <a href="http://www.jupo.com/?code={{ code }}" style="text-decoration: none;color: #348">http://www.jupo.com/?code={{ code }}</a>
+  </span>
+
+{% else %}
+<p><a href="http://www.jupo.com/user/{{ user.id }}" style="text-decoration: none;color: #222">{{ user.name }}</a> and others are using <a href="http://www.jupo.com/group/{{ group.id }}" style="text-decoration: none;color: #222">{{ group.name }}</a> group to discuss and collaborate. Join them today!</p>
+  <span class="url" style="margin-left: 25px">
+    {% if is_new_user %}
+    <a href="http://www.jupo.com/?code={{ code }}" style="text-decoration: none;color: #348">http://www.jupo.com/?code={{ code }}</a>
+    {% else %}
+    <a href="http://www.jupo.com/group/{{ group.id }}" style="text-decoration: none;color: #348">http://www.jupo.com/group/{{ group.id }}</a>
+    {% endif %}
+  </span>
+{% endif %}
+
+    
+
+
+
+       
+        </div>
+      </td>
+    </tr>
+    
+    <tr>
+      <td style="padding:7px 0 0;border-top:1px solid #eaeaea">
+        <div style="font-size:10px;color:#999;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; line-height: 14px;">
+
+          
+<p style="margin: 3px 0">
+  This email was sent by <a href="http://www.jupo.com/" style="text-decoration: none;color: #999">Jupo</a>. <a href="http://www.jupo.com/" style="text-decoration: none;color: #999">Jupo</a> keeps your discussions, files, notes and team together.
+</p> 
+<p style="margin: 3px 0">
+  If you have any questions or suggestions for us, please don't hesitate to <a href="mailto:hi@jupo.comm" style="text-decoration: none;color: #999">reply</a> directly to this mail, we'd love to hear about it.
+</p>
+
+
+
+
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>

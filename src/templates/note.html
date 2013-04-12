@@ -1,0 +1,229 @@
+<li id="post-{{ note.id }}" class="note feed {% if note.is_official() %}official{% endif %} {% if request.path.startswith('/u') %}single{% endif %}"> 
+
+
+    <a href='/user/{{ note.last_action.owner.id }}' class='async'>
+      <img src='{{ note.last_action.owner.avatar }}' class="medium-avatar">
+    </a>
+
+    
+<i class='spine-pointer'></i>
+<section>
+    <header>      
+      {% if owner.id %}
+      <div class='rfloat options'>       
+        
+        
+        <a class='settings-icon dropdown-menu-icon'></a>
+        <ul class='dropdown-menu hidden'>
+          <div class="arrow-top-border"></div>
+          <div class="arrow-top"></div>
+          {% if mode != 'view' %}
+          <li><a href="/note/{{ note.id }}" class="async">View details</a></li>
+          {% endif %}
+          
+          
+          <li><a href='/u/{{ note.id }}' class='share' target='_blank' title='Anyone who has this link can access. No sign-in required.'>Get link</a></li>
+          
+          {% if group and group.id %}
+            {% if note.id in group.highlight_ids %}
+              <li><a href='/group/{{ group.id }}/unhighlight?note_id={{ note.id }}' class='toggle' data-href='/group/{{ group.id }}/highlight?note_id={{ note.id }}' data-name='Highlight'>Unhighlight</a></li>
+            {% else %}
+              <li><a href='/group/{{ group.id }}/highlight?note_id={{ note.id }}' class='toggle' data-href='/group/{{ group.id }}/unhighlight?note_id={{ note.id }}' data-name='Unhighlight'>Highlight</a></li>
+            {% endif %}
+          {% endif %}
+
+{#          
+          {% if note.is_official() %}
+            <li><a class='toggle' href='/note/{{ note.id }}/mark_unofficial' data-href='/note/{{ note.id }}/mark_official' data-name='Mark Official'>Mark Unofficial</a></li>
+          {% else %}
+            <li><a class='toggle' href='/note/{{ note.id }}/mark_official' data-href='/note/{{ note.id }}/mark_unofficial' data-name='Mark Unofficial'>Mark Official</a></li>
+          {% endif %}
+#}        
+
+{#  
+          <li><a href='/feed/{{ note.id }}/reshare' class='forward'>Forward...</a></li>
+#}
+          
+          {% if not note.read_receipt_ids and not note.is_official() %}
+          <li><a href="/feed/{{ note.id }}/remove" class="remove confirm">Remove this note</a></li>
+          {% endif %}
+        </ul>
+        
+        
+      </div>
+              
+      {% endif %}
+
+      
+      <div class="title">
+        <a {% if owner.id %}class="async" href="/note/{{ note.id }}"{% endif %}>
+          {% autoescape on %}{{ note.title }}{% endautoescape %}
+        </a>
+        <br>
+        <a href='/note/{{ note.id }}' class='async time'>
+          <span class='saved'>Saved</span> <time class='timeago' title='{{ note.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ note.timestamp | isoformat(owner.utcoffset) }}'>{{ note.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+        </a>
+        
+        
+        
+       
+        {% set viewers = note.viewers | exclude(note.last_action.owner.id) %}      
+
+        {% if owner %}
+          {% if not viewers %}
+             <span class='viewers' title="Shared with: No one">
+               <i class="lock-icon"></i>
+             </span>
+          {% elif note.is_public() %}
+             <span class='viewers' title="Shared with: Public">
+              <i class="public-icon"></i>
+             </span>
+          {% else %}
+             <span class='viewers' title="Shared with: {% for user in viewers %}{{ user.name }}{% if loop.index != viewers | length %}, {% endif %}{% endfor %}">
+              <i class="friends-icon"></i>
+             </span>
+          {% endif %}
+        {% else %}       
+             <span class='viewers' title="Shared with: Public">
+              <i class="public-icon"></i>
+             </span>
+        {% endif %}
+        
+        
+      </div>
+      
+      {% if owner.id and request.path.startswith('/u') %}
+      <div class='subtitle'>
+        <input type='text' readonly  onclick="this.select()" value="http://{{ request.headers.host }}/{{ note.key }}" title='Anyone who has this link can access. No sign-in required.'>
+      </div>
+      {% endif %}
+      
+    </header>
+    <article class='note'>
+         
+      {% if mode != 'view' %}
+          
+        {% set content = note.content | autoemoticon | sanitize %}
+        {% set summary = content | lines_truncate | fix_unclosed_tags | nl2br %}
+        
+        {{ summary | safe }}
+        
+        {% if note.attachments %}
+          <br> 
+          {% for file in note.attachments %}
+            <i class='attach-icon'></i>
+            <a href='/attachment/{{ file.id }}?rel={{ note.id }}' target='_blank' title="{{ file.name }}">{{ file.name | truncate(50, True)}}</a>
+            <br>  
+          {% endfor %}
+        {% endif %}
+        
+        {% if note.content and content | length > summary | length %}
+        <a class="async read-more" href="/note/{{ note.id }}">Continue Reading...</a>
+        {% endif %}
+        
+      {% else %}
+        {% autoescape on %}
+          {% if action == 'compare' %}
+           {{ note.content | sanitize | nl2br | fix_unclosed_tags }}
+          {% else %}
+           {{ note.content | autoemoticon | nl2br | fix_unclosed_tags | nl2br }}
+          {% endif %}
+        {% endautoescape %}        
+        
+
+        
+        {% if note.attachments %}
+          <br> 
+          {% for file in note.attachments %}
+            <i class='attach-icon'></i>
+            <a href='/attachment/{{ file.id }}?rel={{ note.id }}' target='_blank' title="{{ file.name }}">{{ file.name | truncate(50, True)}}</a>
+            <br>  
+          {% endfor %}
+        {% endif %}
+        
+        
+        
+      {% endif %}
+    </article>
+    <footer>              
+      
+      <div class='actions'>
+        <div class='rfloat'>
+          
+          {% if owner.id %}
+            {% if note.comments_count != 0 or note.read_receipt_ids | length != 0 %}
+             <a class="quick-stats async" href='/note/{{ note.id }}#comments'>
+              {% if note.comments_count != 0 %}
+                <i class="comment-icon"></i>
+                <span class='comment-count'>{{ note.comments_count }}</span>
+              {% endif %}
+              {% if note.read_receipt_ids | length != 0 %}
+                <i class="receipt-icon"></i>
+                <span class='read-receipts-count'>{{ note.read_receipt_ids | length }}</span>
+              {% endif %}
+              </a>
+            {% endif %}
+          {% endif %}
+        </div>
+        
+        <div class='lfloat'>  
+{#
+{% if mode != 'view' %}          
+          <a href='/note/{{ note.id }}' class='async'>View Full Note</a> · 
+{% endif %}   
+
+#}     
+        {% if owner.id %}
+        
+         
+          
+          <a href="#!/note/{{ note.id }}/edit" class="overlay">Edit Note</a>
+           
+          {% if not note.is_official() %}
+           {% set diff = note.diff %}
+               · <a href="/note/{{ note.id }}/last_changes" class='async' title="{{ diff['additions'] }} additions & {{ diff['deletions'] }} deletions">See Last Changes</a>
+              {#  
+              <span class='diffstat-bar' title="{{ diff['additions'] }} additions & {{ diff['deletions'] }} deletions">
+                {% for i in range(diff['+']) %}
+                <span class='plus'>■</span>
+                {% endfor %}
+                
+                {% for i in range(diff['-']) %}
+                <span class='minus'>■</span>
+                {% endfor %}
+                
+                {% for i in range(diff['.']) %}
+                <span class='gray'>■</span>
+                {% endfor %}
+                
+              </span>
+              
+              #}
+           
+           {% else %}
+           · <span class='green'> ✔ Official</span>
+           {% endif %}
+
+
+          · <a href='/feed/{{ note.id }}/reshare' class='forward'>Share</a>
+          {% if mode == 'view' %}  
+             · <a class="reply" rel="#{{ note.id }}-comments">Comment</a>
+          {% else %}
+             · <a class="async" href='/note/{{ note.id }}#comments'>Comment</a>
+          {% endif %}      
+        {% else %}
+          {% if mode == 'view' %}  
+                     · <a class="overlay" href='#!/sign_in'>Comment</a>
+          {% endif %}      
+        {% endif %}
+        </div>
+        
+      </div>
+
+{% if mode == 'view' %}     
+      {% set item = note %}
+      {% include 'comments.html' %}
+{% endif %}      
+    </footer>
+  </section>
+</li>

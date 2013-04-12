@@ -1,0 +1,116 @@
+@font-face {
+    font-family: "PT Serif";
+    font-style: normal;
+    font-weight: normal;
+    src: local("PT Serif"), local("PTSerif-Regular"), url("/public/fonts/ptserif.woff") format("woff");
+}
+
+header {
+  position: absolute;
+top: 0;
+}
+
+
+div#body {
+  border: 0 !important;
+  padding-left: 200px;
+}
+
+div#welcome {
+width: 981px;
+height: 500px;
+border: 0;
+position: absolute;
+border-radius: 4px;
+background-image: url('/public/images/_bg.jpg');
+color: white;
+top: 50%;
+background-size: 100%;
+text-shadow: 0 1px 5px #333;
+margin-top: -275px;
+}
+
+div#welcome .text {
+  position: absolute;
+bottom: 0;
+left: 0;
+padding: 20px;
+font-weight: 300;
+line-height: 22px;
+color: #EEE;
+text-align: left;
+text-shadow: black 0 1px 2px;
+font-family: helvetica;
+}
+
+div#content {
+  width: 525px;
+  text-align: justify;
+  text-shadow: 0 1px 1px #EEE;
+  font: 13px/1.75 "PT Serif", "Lucida Grande", Geneva, Arial, Verdana, sans-serif;
+  padding-bottom: 50px;
+}
+
+div#content ul {
+  list-style-type:circle;
+  margin: 10px 25px;
+}
+
+div.more {
+  display: none;
+  margin-left: 15px;
+}
+
+div#content h1 {
+  margin-top: 0;
+  margin-bottom: 1.15em;
+  font: 215%;
+  font-weight: normal;
+  color: black;
+}
+
+div#content h2 {
+  margin-top: 1.75em;
+  font-size: 150%;
+  font-weight: normal;
+  color: #3C4C6C;
+  border-bottom: 1px solid #8391A8;
+  font-family: "PT Serif", "Lucida Grande", Geneva, Arial, Verdana, sans-serif;
+}
+
+div#content h3 {
+  margin-top: 1em;
+  margin-bottom: .25em;
+  font-size: 145%;
+  font-weight: normal;
+  color: black;
+  font-family: "PT Serif", "Lucida Grande", Geneva, Arial, Verdana, sans-serif;
+}
+
+div#content h4 {
+  margin-bottom: .5em;
+  font-size: 125%;
+  font-weight: normal;
+  color: black;
+  font-family: "PT Serif", "Lucida Grande", Geneva, Arial, Verdana, sans-serif;
+}
+
+div#content p {
+  margin: 10px 0;
+  text-align: justify;
+  font-family: "PT Serif", "Lucida Grande", Geneva, Arial, Verdana, sans-serif;
+}
+
+div#content a {
+  color: #08C;
+  text-decoration: none;
+  font-family: "PT Serif", "Lucida Grande", Geneva, Arial, Verdana, sans-serif;
+}
+
+div#content a:hover {
+  text-decoration: underline;
+}
+
+div#content a:active {
+  opacity: 0.9;
+}

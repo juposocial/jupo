@@ -1,0 +1,474 @@
+{% if mode == 'search' %}
+      <li>
+        {% if user.is_registered() %}
+          {% if group_id %}
+          <a class='button add-member' href='/group/{{ group_id }}/add_member?user_id={{ user.id }}'>Add to Group</a>
+          {% else %}
+            {% if user.id in user.contact_ids %}
+            <a class='button unfollow' href='/user/{{ user.id }}/unfollow'>Remove from Contacts</a>
+            {% else %}
+            <a class='button follow' href='/user/{{ user.id }}/follow'>Add to Contacts</a>
+            {% endif %}
+          {% endif %}
+        {% else %}
+          <a class='rfloat button invite' href='/invite?email={{ user.email }}&group_id={{ group_id }}'>Send Invite</a>
+        {% endif %}
+        <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+        
+        {% if user.name != user.email %}
+          <a href='/user/{{ user.id }}' class='async user'>
+            {{ user.name }}
+          </a>
+          <br>
+          {% if user.is_registered() %}
+          <span class='gray'>{{ user.email }}</span>
+          {% else %}
+          &nbsp;
+          {% endif %}
+          
+        {% else %}
+          <strong>
+            {{ user.email_name }}
+          </strong>
+          <br>
+          
+          <span class='gray'>@{{ user.email_domain }}</span>
+        
+        {% endif %}
+        
+      </li>
+
+{% elif mode == 'change_password' %}
+  <div id="page-header" class='settings'>
+          <h2>Account Settings</h2>
+  </div>  
+  
+  <form id='settings' action='/user/{{ owner.id }}/update' method='post' class='settings' enctype='multipart/form-data'>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"> 
+
+    <h2>Change Password</h2>
+    <ul class="field-set">
+
+      {% if owner.has_password() %}
+      <li class="field field-password">
+        <label for="current_password">Current Password</label>
+        <input class="input-password" id="current_password" name="current_password" type="password" value="">
+
+      </li>
+      {% endif %}
+
+      <li class="field field-password">
+        <label for="new_password">New Password</label>
+        <input class="input-password" id="new_password" name="new_password" type="password" value="">
+
+      </li>
+
+      <li class="field field-password">
+        <label for="confirm_new_password">Confirm</label>
+        <input class="input-password" id="confirm_new_password" name="confirm_new_password" type="password" value="">
+
+      </li>
+
+    </ul>
+    
+    
+  <footer>
+    <input type='submit' value='Update Password' class='button'>
+  </footer>
+
+</form>
+
+
+{% elif mode in ['edit', 'update_profile'] %}
+  <div id="page-header" class='settings'>
+          <h2>Account Settings</h2>
+  </div>  
+  
+  <form id='settings' action='/user/{{ owner.id }}/update' method='post' class='settings' enctype='multipart/form-data'>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+  
+    <div class="rfloat">
+
+    </div>
+    
+    <h2>General</h2>
+    
+    <ul class="field-set">
+
+      <li class="field field-text">
+        <label for="name">Name</label>
+        <input class="input-text" id="name" name="name" type="text" value="{{ owner.name }}">
+      </li>
+
+      <li class="field field-text">
+        <label for="email">Email</label>
+        <input class="input-text" id="email" name="email" type="text" value="{{ owner.email }}">
+
+      </li>
+
+      <li class="field field-text">
+        <label for="phone">Phone</label>
+        <input class="input-text" id="phone" name="phone" type="text" value="{{ owner.phone }}">
+
+      </li>
+
+      <li class="field field-select">
+        <label for="gender">Gender</label>
+        <select class="input-select" id="gender" name="gender">
+          <option {% if owner.gender == "male" %}selected{% endif %} value="male">Male</option>
+          <option {% if owner.gender == "female" %}selected{% endif %}value="female">Female</option>
+          <option {% if not owner.gender %}selected{% endif %}value="">I'd rather not say</option>
+        </select>
+
+      </li>
+
+      <li class="field field-function">
+        <label for="birthday">Birthday</label>
+        <div class="date_field" id="birthday">
+          <select class="input-select date-select-month" id="birthday-month" name="birthday-month">
+            <option value="0" {% if owner.birthday.month == "0" %}selected{% endif %}></option>
+            <option value="1" {% if owner.birthday.month == "1" %}selected{% endif %}>January</option>
+            <option value="2" {% if owner.birthday.month == "2" %}selected{% endif %}>February</option>
+            <option value="3" {% if owner.birthday.month == "3" %}selected{% endif %}>March</option>
+            <option value="4" {% if owner.birthday.month == "4" %}selected{% endif %}>April</option>
+            <option value="5" {% if owner.birthday.month == "5" %}selected{% endif %}>May</option>
+            <option value="6" {% if owner.birthday.month == "6" %}selected{% endif %}>June</option>
+            <option value="7" {% if owner.birthday.month == "7" %}selected{% endif %}>July</option>
+            <option value="8" {% if owner.birthday.month == "8" %}selected{% endif %}>August</option>
+            <option value="9" {% if owner.birthday.month == "9" %}selected{% endif %}>September</option>
+            <option value="10" {% if owner.birthday.month == "10" %}selected{% endif %}>October</option>
+            <option value="11" {% if owner.birthday.month == "11" %}selected{% endif %}>November</option>
+            <option value="12" {% if owner.birthday.month == "12" %}selected{% endif %}>December</option>
+          </select>
+          <select class="input-select date-select-day" id="birthday-day" name="birthday-day">
+            <option value="0" {% if owner.birthday.day == "0" %}selected{% endif %}></option>
+            <option value="1" {% if owner.birthday.day == "1" %}selected{% endif %}>1</option>
+            <option value="2" {% if owner.birthday.day == "2" %}selected{% endif %}>2</option>
+            <option value="3" {% if owner.birthday.day == "3" %}selected{% endif %}>3</option>
+            <option value="4" {% if owner.birthday.day == "4" %}selected{% endif %}>4</option>
+            <option value="5" {% if owner.birthday.day == "5" %}selected{% endif %}>5</option>
+            <option value="6" {% if owner.birthday.day == "6" %}selected{% endif %}>6</option>
+            <option value="7" {% if owner.birthday.day == "7" %}selected{% endif %}>7</option>
+            <option value="8" {% if owner.birthday.day == "8" %}selected{% endif %}>8</option>
+            <option value="9" {% if owner.birthday.day == "9" %}selected{% endif %}>9</option>
+            <option value="10" {% if owner.birthday.day == "10" %}selected{% endif %}>10</option>
+            <option value="11" {% if owner.birthday.day == "11" %}selected{% endif %}>11</option>
+            <option value="12" {% if owner.birthday.day == "12" %}selected{% endif %}>12</option>
+            <option value="13" {% if owner.birthday.day == "13" %}selected{% endif %}>13</option>
+            <option value="14" {% if owner.birthday.day == "14" %}selected{% endif %}>14</option>
+            <option value="15" {% if owner.birthday.day == "15" %}selected{% endif %}>15</option>
+            <option value="16" {% if owner.birthday.day == "16" %}selected{% endif %}>16</option>
+            <option value="17" {% if owner.birthday.day == "17" %}selected{% endif %}>17</option>
+            <option value="18" {% if owner.birthday.day == "18" %}selected{% endif %}>18</option>
+            <option value="19" {% if owner.birthday.day == "19" %}selected{% endif %}>19</option>
+            <option value="20" {% if owner.birthday.day == "20" %}selected{% endif %}>20</option>
+            <option value="21" {% if owner.birthday.day == "21" %}selected{% endif %}>21</option>
+            <option value="22" {% if owner.birthday.day == "22" %}selected{% endif %}>22</option>
+            <option value="23" {% if owner.birthday.day == "23" %}selected{% endif %}>23</option>
+            <option value="24" {% if owner.birthday.day == "24" %}selected{% endif %}>24</option>
+            <option value="25" {% if owner.birthday.day == "25" %}selected{% endif %}>25</option>
+            <option value="26" {% if owner.birthday.day == "26" %}selected{% endif %}>26</option>
+            <option value="27" {% if owner.birthday.day == "27" %}selected{% endif %}>27</option>
+            <option value="28" {% if owner.birthday.day == "28" %}selected{% endif %}>28</option>
+            <option value="29" {% if owner.birthday.day == "29" %}selected{% endif %}>29</option>
+            <option value="30" {% if owner.birthday.day == "30" %}selected{% endif %}>30</option>
+            <option value="31" {% if owner.birthday.day == "31" %}selected{% endif %}>31</option>
+          </select>
+          <select class="input-select date-select-year" id="birthday-year" name="birthday-year">
+            <option value="0" {% if owner.birthday.year == "0" %}selected{% endif %}></option>
+            <option value="2012" {% if owner.birthday.year == "2012" %}selected{% endif %}>2012</option>
+            <option value="2011" {% if owner.birthday.year == "2011" %}selected{% endif %}>2011</option>
+            <option value="2010" {% if owner.birthday.year == "2010" %}selected{% endif %}>2010</option>
+            <option value="2009" {% if owner.birthday.year == "2009" %}selected{% endif %}>2009</option>
+            <option value="2008" {% if owner.birthday.year == "2008" %}selected{% endif %}>2008</option>
+            <option value="2007" {% if owner.birthday.year == "2007" %}selected{% endif %}>2007</option>
+            <option value="2006" {% if owner.birthday.year == "2006" %}selected{% endif %}>2006</option>
+            <option value="2005" {% if owner.birthday.year == "2005" %}selected{% endif %}>2005</option>
+            <option value="2004" {% if owner.birthday.year == "2004" %}selected{% endif %}>2004</option>
+            <option value="2003" {% if owner.birthday.year == "2003" %}selected{% endif %}>2003</option>
+            <option value="2002" {% if owner.birthday.year == "2002" %}selected{% endif %}>2002</option>
+            <option value="2001" {% if owner.birthday.year == "2001" %}selected{% endif %}>2001</option>
+            <option value="2000" {% if owner.birthday.year == "2000" %}selected{% endif %}>2000</option>
+            <option value="1999" {% if owner.birthday.year == "1999" %}selected{% endif %}>1999</option>
+            <option value="1998" {% if owner.birthday.year == "1998" %}selected{% endif %}>1998</option>
+            <option value="1997" {% if owner.birthday.year == "1997" %}selected{% endif %}>1997</option>
+            <option value="1996" {% if owner.birthday.year == "1996" %}selected{% endif %}>1996</option>
+            <option value="1995" {% if owner.birthday.year == "1995" %}selected{% endif %}>1995</option>
+            <option value="1994" {% if owner.birthday.year == "1994" %}selected{% endif %}>1994</option>
+            <option value="1993" {% if owner.birthday.year == "1993" %}selected{% endif %}>1993</option>
+            <option value="1992" {% if owner.birthday.year == "1992" %}selected{% endif %}>1992</option>
+            <option value="1991" {% if owner.birthday.year == "1991" %}selected{% endif %}>1991</option>
+            <option value="1990" {% if owner.birthday.year == "1990" %}selected{% endif %}>1990</option>
+            <option value="1989" {% if owner.birthday.year == "1989" %}selected{% endif %}>1989</option>
+            <option value="1988" {% if owner.birthday.year == "1988" %}selected{% endif %}>1988</option>
+            <option value="1987" {% if owner.birthday.year == "1987" %}selected{% endif %}>1987</option>
+            <option value="1986" {% if owner.birthday.year == "1986" %}selected{% endif %}>1986</option>
+            <option value="1985" {% if owner.birthday.year == "1985" %}selected{% endif %}>1985</option>
+            <option value="1984" {% if owner.birthday.year == "1984" %}selected{% endif %}>1984</option>
+            <option value="1983" {% if owner.birthday.year == "1983" %}selected{% endif %}>1983</option>
+            <option value="1982" {% if owner.birthday.year == "1982" %}selected{% endif %}>1982</option>
+            <option value="1981" {% if owner.birthday.year == "1981" %}selected{% endif %}>1981</option>
+            <option value="1980" {% if owner.birthday.year == "1980" %}selected{% endif %}>1980</option>
+            <option value="1979" {% if owner.birthday.year == "1979" %}selected{% endif %}>1979</option>
+            <option value="1978" {% if owner.birthday.year == "1978" %}selected{% endif %}>1978</option>
+            <option value="1977" {% if owner.birthday.year == "1977" %}selected{% endif %}>1977</option>
+            <option value="1976" {% if owner.birthday.year == "1976" %}selected{% endif %}>1976</option>
+            <option value="1975" {% if owner.birthday.year == "1975" %}selected{% endif %}>1975</option>
+            <option value="1974" {% if owner.birthday.year == "1974" %}selected{% endif %}>1974</option>
+            <option value="1973" {% if owner.birthday.year == "1973" %}selected{% endif %}>1973</option>
+            <option value="1972" {% if owner.birthday.year == "1972" %}selected{% endif %}>1972</option>
+            <option value="1971" {% if owner.birthday.year == "1971" %}selected{% endif %}>1971</option>
+            <option value="1970" {% if owner.birthday.year == "1970" %}selected{% endif %}>1970</option>
+            <option value="1969" {% if owner.birthday.year == "1969" %}selected{% endif %}>1969</option>
+            <option value="1968" {% if owner.birthday.year == "1968" %}selected{% endif %}>1968</option>
+            <option value="1967" {% if owner.birthday.year == "1967" %}selected{% endif %}>1967</option>
+            <option value="1966" {% if owner.birthday.year == "1966" %}selected{% endif %}>1966</option>
+            <option value="1965" {% if owner.birthday.year == "1965" %}selected{% endif %}>1965</option>
+            <option value="1964" {% if owner.birthday.year == "1964" %}selected{% endif %}>1964</option>
+            <option value="1963" {% if owner.birthday.year == "1963" %}selected{% endif %}>1963</option>
+            <option value="1962" {% if owner.birthday.year == "1962" %}selected{% endif %}>1962</option>
+            <option value="1961" {% if owner.birthday.year == "1961" %}selected{% endif %}>1961</option>
+            <option value="1960" {% if owner.birthday.year == "1960" %}selected{% endif %}>1960</option>
+            <option value="1959" {% if owner.birthday.year == "1959" %}selected{% endif %}>1959</option>
+            <option value="1958" {% if owner.birthday.year == "1958" %}selected{% endif %}>1958</option>
+            <option value="1957" {% if owner.birthday.year == "1957" %}selected{% endif %}>1957</option>
+            <option value="1956" {% if owner.birthday.year == "1956" %}selected{% endif %}>1956</option>
+            <option value="1955" {% if owner.birthday.year == "1955" %}selected{% endif %}>1955</option>
+            <option value="1954" {% if owner.birthday.year == "1954" %}selected{% endif %}>1954</option>
+            <option value="1953" {% if owner.birthday.year == "1953" %}selected{% endif %}>1953</option>
+            <option value="1952" {% if owner.birthday.year == "1952" %}selected{% endif %}>1952</option>
+            <option value="1951" {% if owner.birthday.year == "1951" %}selected{% endif %}>1951</option>
+            <option value="1950" {% if owner.birthday.year == "1950" %}selected{% endif %}>1950</option>
+            <option value="1949" {% if owner.birthday.year == "1949" %}selected{% endif %}>1949</option>
+            <option value="1948" {% if owner.birthday.year == "1948" %}selected{% endif %}>1948</option>
+            <option value="1947" {% if owner.birthday.year == "1947" %}selected{% endif %}>1947</option>
+            <option value="1946" {% if owner.birthday.year == "1946" %}selected{% endif %}>1946</option>
+            <option value="1945" {% if owner.birthday.year == "1945" %}selected{% endif %}>1945</option>
+            <option value="1944" {% if owner.birthday.year == "1944" %}selected{% endif %}>1944</option>
+            <option value="1943" {% if owner.birthday.year == "1943" %}selected{% endif %}>1943</option>
+            <option value="1942" {% if owner.birthday.year == "1942" %}selected{% endif %}>1942</option>
+            <option value="1941" {% if owner.birthday.year == "1941" %}selected{% endif %}>1941</option>
+            <option value="1940" {% if owner.birthday.year == "1940" %}selected{% endif %}>1940</option>
+            <option value="1939" {% if owner.birthday.year == "1939" %}selected{% endif %}>1939</option>
+            <option value="1938" {% if owner.birthday.year == "1938" %}selected{% endif %}>1938</option>
+            <option value="1937" {% if owner.birthday.year == "1937" %}selected{% endif %}>1937</option>
+            <option value="1936" {% if owner.birthday.year == "1936" %}selected{% endif %}>1936</option>
+            <option value="1935" {% if owner.birthday.year == "1935" %}selected{% endif %}>1935</option>
+            <option value="1934" {% if owner.birthday.year == "1934" %}selected{% endif %}>1934</option>
+            <option value="1933" {% if owner.birthday.year == "1933" %}selected{% endif %}>1933</option>
+            <option value="1932" {% if owner.birthday.year == "1932" %}selected{% endif %}>1932</option>
+            <option value="1931" {% if owner.birthday.year == "1931" %}selected{% endif %}>1931</option>
+            <option value="1930" {% if owner.birthday.year == "1930" %}selected{% endif %}>1930</option>
+            <option value="1929" {% if owner.birthday.year == "1929" %}selected{% endif %}>1929</option>
+            <option value="1928" {% if owner.birthday.year == "1928" %}selected{% endif %}>1928</option>
+            <option value="1927" {% if owner.birthday.year == "1927" %}selected{% endif %}>1927</option>
+            <option value="1926" {% if owner.birthday.year == "1926" %}selected{% endif %}>1926</option>
+            <option value="1925" {% if owner.birthday.year == "1925" %}selected{% endif %}>1925</option>
+            <option value="1924" {% if owner.birthday.year == "1924" %}selected{% endif %}>1924</option>
+            <option value="1923" {% if owner.birthday.year == "1923" %}selected{% endif %}>1923</option>
+            <option value="1922" {% if owner.birthday.year == "1922" %}selected{% endif %}>1922</option>
+            <option value="1921" {% if owner.birthday.year == "1921" %}selected{% endif %}>1921</option>
+            <option value="1920" {% if owner.birthday.year == "1920" %}selected{% endif %}>1920</option>
+            <option value="1919" {% if owner.birthday.year == "1919" %}selected{% endif %}>1919</option>
+            <option value="1918" {% if owner.birthday.year == "1918" %}selected{% endif %}>1918</option>
+            <option value="1917" {% if owner.birthday.year == "1917" %}selected{% endif %}>1917</option>
+            <option value="1916" {% if owner.birthday.year == "1916" %}selected{% endif %}>1916</option>
+            <option value="1915" {% if owner.birthday.year == "1915" %}selected{% endif %}>1915</option>
+            <option value="1914" {% if owner.birthday.year == "1914" %}selected{% endif %}>1914</option>
+            <option value="1913" {% if owner.birthday.year == "1913" %}selected{% endif %}>1913</option>
+          </select>
+        </div>
+
+      </li>
+
+    </ul>
+
+{#
+    <h2>Connected Accounts</h2>
+    <ul class="list">
+
+      <li>
+        Facebook
+        <input type="submit" name="facebook_reset" value="remove">
+      </li>
+
+    </ul>
+#}    
+
+
+    
+    
+  <footer>
+    <input type='submit' value='Save Changes' class='button'>
+  </footer>
+
+</form>
+
+{% else%}
+<div id="page-header">
+
+      
+        <a href='/user/{{ user.id }}' class='async'>
+          <img src='{{ user.avatar }}' class='lfloat medium-avatar'>
+        </a>
+
+        <div class='rfloat actions'>
+            {% if owner.id != user.id %}
+              {% if user.id in owner.contact_ids %}          
+              <a class='unfollow button' href='/user/{{ user.id }}/unfollow'>Remove from Contacts</a>
+              {% else %}
+              <a class='follow button' href='/user/{{ user.id }}/follow'>Add to Contacts</a>
+              {% endif %}
+            {% endif %}
+        </div>
+
+        <div class='title'>
+          <strong>{{ user.name }}</strong>
+        </div>     
+
+
+          
+
+        <div class='info subtitle'>
+          
+{#          
+          <div class='about'>{{ user.introduction | truncate(75) }}</div>
+#}
+          <div class='stats'>
+            
+            <a href='/user/{{ user.id }}/groups' class='async'>Member of {{ user.groups | length }} group{% if user.groups | length != 1 %}s{% endif %}</a>
+                     
+
+          </div>      
+        </div>
+</div>
+
+  {% if owner %}
+    {% include 'new.html' %}
+  {% endif %}
+  
+  <ul id="stream">
+    {% if feeds == [] %}
+      <span class="empty">Nothing here</span>
+    {% else %}
+    
+    
+      {% autoescape on %} 
+        {{ feeds | render("feed", owner, view) }}
+      {% endautoescape %}
+          
+    {% endif %}
+    
+    
+      {% if feeds | length == 5 %}
+        {% set more_url = '/user/%s/page2' % user.id %}
+        {% include 'more.html' %}
+      {% endif %}
+  </ul>
+  
+  <div id="right-sidebar" class='group-sidebar'>
+    
+          
+    <div class="box">
+      <div class="header">
+        {% if user.id == owner.id %}
+        <div class="actions rfloat"> <a href="/user/{{ owner.id }}/update_profile" class='popup'>Edit Profile</a></div>
+        {% endif %}
+        <div class="title">About</div>
+      </div>
+      <div class="body">
+        <div class='intro'>
+            Name: {{ user.name }}
+            <br>
+            Email: <a href='mailto:{{ user.email }}'>{{ user.email }}</a>
+            <br>
+          {% if user.birthday %}
+            Born: {{ user.birthday.year }}
+            <br>
+          {% endif %}
+          {% if user.gender %}
+            Sex: {{ user.gender }}
+            <br>
+          {% endif %}
+          {% if user.phone %}
+            Phone: {{ user.phone }}
+            <br>
+          {% endif %}
+          {% if user.locale %}
+            Locale: {{ user.locale }}
+            <br>
+          {% endif %}
+          {% if user.introduction %}
+            {{ user.introduction }}
+            <br>
+          {% endif %}
+          
+          <a href='/user/{{ user.id }}/groups' class='async'>Member of {{ user.groups | length }} group{% if user.groups | length != 1 %}s{% endif %}</a>
+
+          {% if user.id == owner.id %}
+            <br>
+            {% if owner.has_password() %}
+            <a href="/user/{{ owner.id }}/change_password" class='popup'>Change Account Password</a>
+            {% else %}
+            <a href="/user/{{ owner.id }}/change_password" class='popup'>Set Account Password</a>
+            {% endif %}
+          {% endif %}
+          
+        </div>
+      </div>
+    </div>
+      
+    {% if user.recent_notes %}
+    <div class="box">
+      <div class="header">
+        <div class="title">
+          Recent Notes
+        </div>
+      </div>
+      <div class="body" id='notes'>
+        <ul>
+          {% for doc in user.recent_notes %}
+          <li>
+            <a class='async' href='/note/{{ doc.uuid }}'>
+              <div class='title'>{{ doc.title | clean | truncate(75, True) }}</div>
+              <time class='timeago' title='{{ doc.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ doc.timestamp | isoformat(owner.utcoffset) }}'>{{ doc.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}  
+    
+    {% if user.recent_files %}
+    <div class="box">
+      <div class="header">
+        <div class="title">
+          Recent Files
+        </div>
+      </div>
+      <div class="body">
+        <ul class='attachments'>
+          {% for attachment in user.recent_files[:5] %}
+          <li class='attachment'>
+            <a href='/attachment/{{ attachment.id }}?rel={{ attachment.rel }}' target='_blank'> <img src='{{ attachment.icon }}' height=32 class='lfloat'/>
+            <div class="title">
+              {{ attachment.name | truncate(22, True) }}
+            </div>
+            <div class="info">
+              <time class='timeago' title='{{ attachment.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ attachment.timestamp | isoformat(owner.utcoffset) }}'>
+                {{ attachment.timestamp | friendly_format(owner.utcoffset, short=True) }}
+              </time>
+            </div> </a>
+    
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}       
+      
+ 
+  </div>
+  
+{% endif %}

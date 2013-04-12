@@ -1,0 +1,78 @@
+<!DOCTYPE HTML>
+<html lang="en" {% if background %}class='{{ background }}'{% endif %}>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+        <title>{% block title %}Jupo{% endblock %}</title>
+
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <meta name="title" content="Jupo" />
+        <meta name="description" content="Jupo keeps your discussions, documents, files, to-dos and team together." />
+        {% block meta %}{% endblock %}
+        
+        <link rel="image_src" type="image/jpeg" href="/public/images/bg11.jpg"/> <!-- for Facebook share -->
+        
+        {% block stylesheets %}{% endblock %}
+        {% block top_scripts %}{% endblock %}
+    </head>
+    <body {% if view %}class='animate fadeOut'{% endif %}>
+      
+        
+        {% block global %}
+        <div id="global">
+            {% block header %}
+            <div id="top-panel-bg"></div>
+            <header>
+                <div id="header-container">
+                  {% block logo %}{% endblock %}
+                  {% block notification %}{% endblock %}
+                  
+                  <nav>
+                      {% block search_box %}{% endblock %}
+                      {% block menu %}{% endblock %}  
+                  </nav>
+                  
+                </div>
+            </header>
+            {% endblock %}
+            
+            {% block welcome %}{% endblock %}
+            {% block main %}
+            <div id="main">
+              
+                {% block left_sidebar %}{% endblock %}
+                {% block body %}{% endblock %}
+                            
+            </div>
+            {% endblock %}
+            
+            {% block online_now %}
+            
+            
+            {% endblock %}
+            
+            <div class='loading-container'>
+              <div class="loading loading-bezel hidden">
+                <img alt="loading..." src="/public/images/spinner-small-white-758efcb59b4937fa666c6d72751c6c0a.png">
+              </div>
+            </div>
+            
+            <div id='progress' class='hidden'>
+              <span>Processing...</span>
+            </div>
+            
+              
+            <div id='error' class='hidden' onclick='$(this).hide();'>
+              <span>
+                <span class='fontsize-12px'>We're sorry. An unexpected error was encountered.</span><br>
+              Our engineers have been notified and will work quickly to resolve this.</span>
+            </div>
+            
+            <div id='message' class='hidden' onclick='$(this).hide();'></div>
+        </div>
+        {% endblock %}
+                  
+        {% block bottom_scripts %}{% endblock %}
+    </body>
+</html>

@@ -1,0 +1,524 @@
+<li id="post-{{ feed.id }}" class='feed {% if feed.is_note() or feed.is_system_message() %}hide-article{% endif %} {% if not owner.id %}public{% endif %} {% if hidden %}hidden{% endif %} {% if owner.id and owner.id != feed.last_action.owner.id and owner.id not in feed.read_receipt_ids and view != "discover" %}unread{% endif %} {% if owner.id in feed.pinned_by %}pinned{% endif %}'>
+
+{% if mode == 'view' or view == 'discover' %}
+  {% set viewers = feed.viewers | exclude(feed.owner.id) %}  
+  
+  <a href='/user/{{ feed.owner.id }}' class='async' data-user-id='{{ feed.owner.id }}'>
+    <img src='{{ feed.owner.avatar }}' class="medium-avatar">
+  </a>
+{% else %}
+  {% set viewers = feed.viewers | exclude(feed.last_action.owner.id) %}
+  
+  <a href='/user/{{ feed.last_action.owner.id }}' class='async' data-user-id='{{ feed.last_action.owner.id }}'>
+    <img src='{{ feed.last_action.owner.avatar }}' class="medium-avatar">
+  </a>
+{% endif %}
+
+<section>
+  <header>
+    {% if feed.is_system_message() %}
+      {% if feed.message.action == 'added' %}
+        <a href='/user/{{ feed.owner.id }}' class='async'>{{ feed.owner.name }}</a> 
+        added 
+        <a href='/user/{{ feed.message.user.id }}' class='async'>{{ feed.message.user.name }}</a> 
+        to 
+        {% if view == 'group' %}
+          this group.
+        {% else %}
+          <a href='/group/{{ feed.message.group.id }}' class='async'>{{ feed.message.group.name }}</a> group.
+        {% endif %}
+      {% elif feed.message.action == 'created' %}
+        <a href='/user/{{ feed.owner.id }}' class='async'>{{ feed.owner.name }}</a> 
+        created 
+        {% if view == 'group' %}
+          this group.
+        {% else %}
+          <a href='/group/{{ feed.message.group.id }}' class='async'>{{ feed.message.group.name }}</a> group.
+        {% endif %}
+      {% endif %} 
+    
+    {% elif view != 'discover' and feed.last_comments and feed.last_updated <= feed.last_comments[-1].timestamp and mode != 'view' %}
+          <a href="/user/{{ feed.last_comments[-1].owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.last_comments[-1].owner.email }}'{% endif %}>{{ feed.last_comments[-1].owner.name }}</a> 
+          {% if feed.is_email() %}
+            replied on
+          {% else %}
+            commented on
+          {% endif %} 
+          
+          {% if feed.owner.id == owner.id %}
+            your
+          {% elif feed.last_comments[-1].owner.id != feed.owner.id %}
+            <a href="/user/{{ feed.owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.owner.email }}'{% endif %}>{{ feed.owner.name }}</a>'s
+          {% else %}
+            {% if feed.last_comments[-1].owner.gender == 'male' %}his own{% elif feed.last_comments[-1].owner.gender == 'female' %}her own{% else %}a{% endif %}
+          {% endif %}
+          
+          {% if feed.is_email() %}
+            <a href='/feed/{{ feed.id }}/{{ feed.message_id }}' class='async'>email</a>
+          {% elif feed.is_task() %}
+            <a href='/focus/{{ feed.id }}' class='overlay'>task</a>
+          {% elif feed.is_note() %}
+            <a href='/note/{{ feed.id }}' class='async'>note</a>: "<a href='/note/{{ feed.id }}' class='async'>{{ feed.details.title }}</a>"
+          {% elif feed.is_file() %}
+            <a href='/file/{{ feed.id }}' class='async'>file</a>
+          {% else %}
+            <a href='/feed/{{ feed.id }}' class='async'>post</a>
+          {% endif %} 
+          
+    {% else %}
+          {% if mode == "view" or view == 'discover' %}
+            <a href="/user/{{ feed.owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.owner.email }}'{% endif %}>{{ feed.owner.name }}</a>
+          {% else %}
+            <a href="/user/{{ feed.last_action.owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.last_action.owner.email }}'{% endif %}>{{ feed.last_action.owner.name }}</a>
+          {% endif %}
+          
+          
+          {% if feed.is_note() %}
+              {{ feed.last_action.action }} 
+            
+              {% if feed.last_action.owner.id != feed.owner.id %}
+                <a href="/user/{{ feed.owner.id }}" class='async'>{{ feed.owner.name }}</a>'s
+              {% else %}
+                {% if feed.last_action.owner.gender == 'male' %}his own{% else %}her own{% endif %}
+              {% endif %}
+              
+              <a href='/note/{{ feed.id }}' class='async'>note</a>: "<a href='/note/{{ feed.id }}' class='async'>{{ feed.details.title }}</a>"
+            
+          {% elif feed.is_file() %}
+          
+            {% if feed.details.history | length == 1 %}
+              shared
+            {% else %}
+              {{ feed.last_action.action }} 
+            {% endif %}
+            a <a href='/file/{{ feed.id }}' class='overlay'>file</a>
+            
+            
+          {% elif feed.is_email() %}
+          {#
+            {% if viewers %}  
+              sent to 
+              {% for user in viewers %}
+                  {% if user.id == 'public' %}
+                  <a href='/user/{{ feed.owner.id }}/followers' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  {% elif user.is_group() %}
+                    <a href='/group/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  {% else %}
+                    <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  {% endif %}
+              {% endfor %}
+            {% endif %}
+            an <a href='/feed/{{ feed.id }}/{{ feed.message_id }}' class='async'>email</a>
+            #}
+                    
+          {% else %}
+          
+            {% if viewers %}  
+              &#x21e2;
+              {% for user in viewers %}
+                  {% if user.id == 'public' %}
+                  <a href='/user/{{ feed.owner.id }}/followers' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  {% elif user.is_group() %}
+                    <a href='/group/{{ user.id }}' class='overlay'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  {% else %}
+                    <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  {% endif %}
+              {% endfor %}
+            {% endif %}
+          {% endif %}
+          
+          {% if feed.is_email() %}
+            <span class='grey'>via gmail</span>
+          {% endif %}
+          
+         
+          
+    {% endif %}
+    
+    
+    
+    {# settings icon #}
+    
+    {% if owner %}
+    <div class='options rfloat'>
+    
+      
+        <a class='settings-icon dropdown-menu-icon'></a>
+        <ul class='dropdown-menu hidden'>
+          <div class="arrow-top-border"></div>
+          <div class="arrow-top"></div>
+        
+          
+          <li>
+            <a href='/post/{{ feed.id }}' target='_blank'>Permanent link</a>
+          </li>
+          
+          {% if feed.owner.id == owner.id %}
+          
+            <li>
+              <a href='/feed/{{ feed.id }}/viewers' class='forward'>Edit viewers</a>
+            </li>
+          {% endif %}
+          
+          {% if owner.id and view == 'news_feed' %}
+          <li>
+             {% if owner.id in feed.archived_by %}
+              <a class="toggle" href='/feed/{{ feed.id }}/unarchive' data-name='Archive' data-href='/feed/{{ feed.id }}/archive'>Unarchive</a>
+             {% else %}
+              <a class="archive" href='/feed/{{ feed.id }}/archive'>Archive</a>
+             {% endif %}
+          </li>
+          {% endif %}
+          
+          {% if view == 'news_feed' and owner.id not in feed.archived_by %}
+           <li>
+             {% if owner.id in feed.pinned_by %}
+              <a href='/feed/{{ feed.id }}/unpin' class='toggle' data-href='/feed/{{ feed.id }}/pin' data-name='Pin to Top'>Unpin</a>
+             {% else %}
+              <a href='/feed/{{ feed.id }}/pin' class='toggle' data-href='/feed/{{ feed.id }}/unpin' data-name='Unpin'>Pin to Top</a>
+             {% endif %}
+           </li>
+          {% endif %}
+          
+          
+          {#
+          <li><a href='/feed/{{ feed.id }}/reshare' class='forward'>Forward...</a></li>
+          #}
+          
+          {% if feed.owner.id == owner.id and not feed.last_read_receipt %}
+              <li><a href='/feed/{{ feed.id }}/remove' class='remove'>Remove this post</a></li>
+          {% endif %}
+          
+          {% if feed.owner.id != owner.id %}
+          <li><a href='/feed/{{ feed.id }}/unfollow' class='remove'>Unfollow post</a></li>
+          {% endif %}        
+
+        </ul>
+      </div>
+      {% endif %}
+    
+
+      <br>
+      <a href='/feed/{{ feed.id }}' class="async time">
+        <time class='timeago' title='{{ feed.timestamp | friendly_format(owner.utcoffset, short=False) }}' datetime='{{ feed.timestamp | isoformat(owner.utcoffset) }}'>{{ feed.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+      </a>
+            
+        {# sharing status icon #}
+            
+        {% if owner %}
+          {% if not viewers %}
+             <span class='viewers' title="Shared with: No one">
+               <i class="lock-icon"></i>
+             </span>
+          {% elif feed.is_public() %}
+             <span class='viewers' title="Shared with: Public">
+              <i class="public-icon"></i>
+             </span>
+          {% else %}
+             <span class='viewers' title="Shared with: {% for user in viewers %}{{ user.name }}{% if loop.index != viewers | length %}, {% endif %}{% endfor %}">
+              <i class="friends-icon"></i>
+             </span>
+          {% endif %}
+        {% else %}       
+             <span class='viewers' title="Shared with: Public">
+              <i class="public-icon"></i>
+             </span>
+        {% endif %}
+  </header>
+  
+  {% if not feed.is_system_message() %}
+  <article class="message {% if feed.is_email() %}email{% endif %}">  
+    
+      {% if feed.is_note() %}
+{#          <div class="file-attachment">
+            <div class="title">
+                  <a href='/note/{{ feed.id }}' class='async'>{{ feed.details.title }}</a>
+            </div>
+           
+            {% set content = feed.details.content | autoemoticon | nl2br | sanitize %}
+            {% set summary = content | lines_truncate | nl2br | fix_unclosed_tags %}
+            
+            <div class="info">
+              {{ summary | e }}
+            </div>
+            
+            {% if content | length > (summary | length + 3) %}
+            <a href="/note/{{ feed.details.id }}" class='async read-more'>Continue Reading...</a>
+            {% endif %}
+          </div>
+#}
+          
+      {% elif feed.is_email() %}
+          {% if '</html>' in feed.body or 'table' in feed.body %}
+            <div class='attachment'>
+              <div class='title'>
+                <a href='/feed/{{ feed.id }}/{{ feed.message_id }}' class='async'>{{ feed.message | fix_unicode_error }}</a>
+              </div> 
+              <div class='info'> 
+                {{ feed.body | description }}
+              </div>
+              <a href='/feed/{{ feed.id }}/{{ feed.message_id }}' class='read-more' class='async'>Continue Reading...</a>
+             </div>  
+          {% else %}
+            <div class='attachment'>
+              <div class='title'><a href='/feed/{{ feed.id }}/{{ feed.message_id }}' class='async'>{{ feed.message | fix_unicode_error }}</a></div>
+              <div class='expandable'>
+                {% set content = feed.body | sanitize | remove_signature | remove_empty_lines %}
+                {% set summary = content | lines_truncate | fix_unclosed_tags %}
+               
+                  {% autoescape on %}
+                    {{ summary | nl2br }}
+                    
+                    {% if summary | length < content | length %}
+                    <a class='see-more'>See more</a>
+                    <div class='hidden'>
+                      {{ content | nl2br }}
+                    </div>
+                    {% endif %}
+                  
+                  {% endautoescape %}
+              </div>
+            </div>
+          {% endif %}
+                  
+        
+      {% elif feed.is_file() %}
+          <div class='file-attachment'>
+            {% if 'image' in feed.details.mimetype %}
+              <a href='/attachment/{{ feed.details.attachment_id }}.jpg?rel={{ feed.id }}' rel='gallery' target="_blank">
+                <img src='/img/500_250/{{ feed.details.attachment_id }}.jpg?rel={{ feed.id }}' width="500" height="250" title="{{ feed.details.name }} ({{ feed.details.details.size }})"/>
+              </a>
+            {% else %}
+              <img src='{{ feed.details.icon }}' width=32 class='lfloat file-icon'/>
+            {% endif %}
+            
+            {% if 'image' in feed.details.mimetype %}
+            <div class='title image-name'>
+              <a href='{{ feed.details.details.download_url }}'>{{ feed.details.name }}</a> <span class='gray'>({{ feed.details.details.size }})</span>
+            </div>
+            {% else %}
+            <div class="title">
+                <a href='/attachment/{{ feed.details.attachment_id }}?rel={{ feed.id }}' target='_blank'>{{ feed.details.name }}</a>
+            </div>
+            
+            <div class='info'>
+              Size: {{ feed.details.size }} {% if feed.last_action.action == 'updated' and feed.details.diff %}({{ feed.details.diff }}){% endif %}
+            </div>
+            {% endif %}
+          </div>
+          
+      
+      {% elif feed.is_gitlab_commit() %}
+               
+        {% set info = feed.message | parse_json %}
+               
+        {% if info %}
+          {% if info.commits %}
+            {% autoescape on %}{{ info.commits[0].author.email | sanitize | autolink }}{% endautoescape %}
+          {% else %}
+            <a>{{ info.user_name }}</a>
+          {% endif %}
+             pushed to branch <a href="http://{{ info.repository.url }}/commits/?ref={{ info.ref | replace('refs/heads/', '') }}" target='_blank'>{{ info.ref | replace("refs/heads/", "") }}</a> at <a href="http://{{ info.repository.url }}" title="{{ info.repository.description }}" target='_blank'>{{ info.repository.name }}</a>. 
+          <a href="http://{{ info.repository.url }}/commits/compare?from={{ info.before }}&to={{ info.after }}" target='_blank'_>{{ info.before[:7] }}..{{ info.after[:7] }}</a>
+         
+          {% if info.commits %}         
+          <div class='attachment'>
+            <ul class='commits'>
+              {% if mode != 'view' %}
+                {% set commits = info.commits[::-1][:3] %}
+              {% else %}
+                {% set commits = info.commits[::-1] %}
+              {% endif %}
+              
+            {% for commit in commits %}
+              <li><a title="{{ commit.timestamp }}" href="{{ commit.url }}" target='_blank' class='id'>{{ commit.id[:7] }}</a>&nbsp; 
+                – {% autoescape on %}<span title="{{ commit.message }}"> {{ commit.message | autolink | autoemoticon | sanitize }}</span>{% endautoescape %}
+              </li>
+            {% endfor %}
+            {% if info.commits | length > 3 and mode != 'view' %}
+              ... and <a href="/feed/{{ feed.id }}" class="async">{{ info.commits | length - 3 }} more</a> commits
+            {% endif %}
+            </ul>
+          </div>
+          {% endif %}
+        {% endif %}  
+          
+      {% else %}
+        <div class='expandable'>
+            {% set content = feed.message | autolink | autoemoticon | sanitize %}
+            {% set summary = content | lines_truncate | fix_unclosed_tags %}
+            
+            {% if "</iframe>" in feed.message %}
+              {{ feed.message | sanitize | fix_unclosed_tags | safe }}
+            {% elif feed.last_comments and feed.timestamp < feed.last_comments[-1].timestamp %}
+                <div class='attachment'>
+                    {{ summary | nl2br | safe }}
+                </div>
+                {% if content | length > (summary | length + 3) %}  {# '...' = 3 characters #}
+                <a class='see-more'>See more</a>
+                <div class='attachment hidden'>
+                  {{ content | nl2br | safe }}
+                </div>
+                {% endif %}
+            {% else %}
+                  <div>
+                    {{ summary | nl2br | safe }}
+                  </div>
+                
+                  {% if content | length > summary | length + 3 %}
+                  <a class='see-more'>See more</a>
+                  <div class='hidden'>
+                    {{ content | nl2br | safe }}
+                  </div>
+                  {% endif %}
+            {% endif %}
+        </div>
+      {% endif %}
+        
+        
+      {% if feed.attachments %}
+        {% for file in feed.attachments %}
+          <div class="file-attachment {% if 'image' in file.mimetype %}image{% endif %}">
+            {% if 'image' in file.mimetype %}
+              {% if feed.attachments | length == 1 %}
+              <a href='/attachment/{{ file.id }}.png?rel={{ feed.id }}' target='_blank' rel='gallery' class="lfloat"><img src='/img/500_250/{{ file.id }}.png' width="500" height="250" alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
+              {% else %}
+              <a href='/attachment/{{ file.id }}.png?rel={{ feed.id }}' target='_blank' rel='gallery' class="lfloat"><img src='/img/{% if loop.index == 1 %}325_171{% else %}160_82{% endif %}/{{ file.id }}.png' {% if loop.index == 1 %}width="325" height="171"{% else %}width="160" height="82"{% endif %} alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
+              
+              {% endif %}
+            {% else %}
+           
+              <i class="attach-icon lfloat"></i>
+            {% endif %}
+            
+            {% if 'image' not in file.mimetype %}
+              <a href='/attachment/{{ file.id }}?rel={{ feed.id }}' target='_blank'>
+                  {{ file.name | truncate(40, True) }} 
+              </a>
+              <span class='gray'>({{ file.size }})</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+      
+      {% if feed.urls | length == 1 %}
+        {% set url = feed.urls[0] %}
+        
+        {% if url.is_image() %}
+          <div class="file-attachment">
+                <a href='{{ url.url }}' rel="gallery" target="_blank"><img src='{{ url.url }}' width="500" title='{{ url.basename }}'/></a>
+
+                <div class="title image-name">
+                  <a href='{{ url.url }}' target='_blank' title='{{ url.basename }}'>{{ url.basename  | truncate(60, True) }}</a> 
+                  {% if url.raw_size %}<span class='gray'>({{ url.size }})</span>{% endif %}
+                </div>
+          </div>
+        {% elif ('www.youtube.com/' in feed.message or 'youtu.be/' in feed.message) and '</iframe>' not in feed.message %}
+          <div class='embed-code'>
+            {% autoescape on %}
+              {{ url.url | to_embed_code(475, 267) }}
+            {% endautoescape %}
+          </div>
+{#          
+        {% elif url.title %}
+          <div class="url-attachment {% if url.img_src %}image{% else %}favicon{% endif %}">
+                <div class='{% if url.img_src %}crop{% endif %}'>
+                  <a href='http://{{ url.domain }}' target="_blank">
+                  {% if url.img_src %}
+                    <img src='{{ url.img_src }}' class='lfloat' width=120 title='{{ url.title }}'> 
+                  {% else %}
+                    <img src='{{ url.favicon }}' class='lfloat favicon' width=16 title='{{ url.title }}'> 
+                  {% endif %}
+                  </a>
+                </div>
+                <div class="title">
+                  <a href='{{ url.url }}' target='_blank' title='{{ url.title }}'>{{ url.title }}</a>
+                  
+                  (<a href='http://{{ url.domain }}' target='_blank' class='gray'>{{ url.domain }}</a>)
+                </div>
+                 
+                <div class="info">                  
+                  {% if url.description %}
+                    {{ url.description  | truncate(250) }}
+                  {% endif %}
+                </div>
+          </div>
+#}
+        {% endif %}
+      {% endif %}
+      
+  </article>
+  {% endif %}
+  
+  <footer>
+    <div class='actions'>
+       <div class='rfloat'>
+         
+         {% set read_receipts = feed.seen_by %}         
+         <a href='/{% if feed.is_note() %}note{% elif feed.is_file() %}file{% else %}feed{% endif %}/{{ feed.id }}#comments' class="quick-stats async" title='{% include "read_receipts.html" %}'>
+          {% if feed.comments_count != 0 or read_receipts | length != 0 or feed.liked_user_ids | length != 0 %}
+            
+            <span class='comments {% if feed.comments_count == 0 %}hidden{% endif %}'>
+              <i class="comment-icon"></i>
+              <span class='comment-count'>{{ feed.comments_count }}</span>
+            </span>
+            
+            <span class='read-receipts {% if read_receipts | length == 0 %}hidden{% endif %}'>
+              <i class="receipt-icon"></i>
+              <span class='read-receipts-count'>{{ read_receipts | length }}</span>
+            </span>
+            
+            
+            <span class='likes {% if feed.liked_user_ids | length == 0 %}hidden{% endif %}'>
+              <i class='like-icon'></i> 
+              <span class='likes-count'>{{ feed.liked_user_ids | length }}</span>
+            </span>
+          {% else %}
+            &nbsp;
+          {% endif %}
+          
+         </a>
+          
+          
+       </div>
+   
+       <div class='lfloat'>
+         
+         
+         
+        {% if owner.id %}
+         
+           {% if owner.id not in feed.liked_user_ids %}
+              <a class='toggle' href='/like/{{ feed.id }}' data-name='Unlike' data-href='/unlike/{{ feed.id }}'>Like</a> ·
+           {% else %}
+              <a class='toggle' href='/unlike/{{ feed.id }}' data-name='Like' data-href='/like/{{ feed.id }}'>Unlike</a> ·
+           {% endif %}
+           
+         
+           <a href='/feed/{{ feed.id }}/reshare' class='forward'>Share</a> ·
+           <a class="reply" rel="#{{ feed.id }}-comments">Comment</a>
+                    
+        {% else %}
+          <a href='/'>Login</a> or 
+          <a href='/'>sign up</a>
+          to post comments
+          
+        {% endif %}
+          
+          
+          
+      </div>
+  
+    </div> 
+  
+  
+  {% set item = feed.details %}
+  {% if not hide_comments %}
+      {% if feed.last_comments and feed.last_comments[-1].timestamp <= feed.timestamp %}
+        {% set hide_comments = True %}
+      {% endif %}
+  {% endif %}
+  {% include 'comments.html' %}
+  </footer>  
+</section>    
+</li>

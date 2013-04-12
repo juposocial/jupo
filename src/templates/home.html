@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  {% if unread_notification_count != 0 %}({{ unread_notification_count }}){% endif %}
+  {% if title %}{{ title }}{% else %}Jupo{% endif %}
+{% endblock %}
+
+
+{% block meta %}
+  <meta property="og:type" content="fire-works:post" />
+  <meta property="og:title" content="{{ title }}" />
+  <meta property="og:url" content="{{ request.url }}" />
+  {% if description %}
+    <meta property="og:description" content="{{ description }}" />
+  {% endif %}
+  {% if image %}
+    <meta property="og:image" content="{{ image }}" />
+  {% endif %}
+{% endblock %}
+
+
+
+{% block logo %}
+  <a id='menu-toggle' class='lfloat'>
+    <i class='menu-icon'></i>
+  </a>
+
+  <div id='logo' class='lfloat'>
+  {#  <a href='/welcome' class='async fire-icon logo' rel='welcome'>Jupo</a> #}
+  
+    <a href='{% if owner %}/news_feed{% else %}/{% endif %}' class='async' rel='{% if owner %}news-feed{% else %}discover{% endif %}'>
+      Jupo
+    </a>
+    
+  </div>
+{% endblock %}
+
+{% block search_box %}
+  {% if owner.id %}
+    {% include 'search_box.html' %}
+  {% endif %}
+{% endblock %}
+
+{% block menu %}
+  {% if owner %}
+    
+    <ul id="menu" class="rfloat"> 
+        {#
+        +<a href='/search?type=people' class='popup'>Add Contact</a>  · 
+        <a href='/group/new' class='popup'>New Group</a> 
+        
+        #}
+        
+        
+        
+        
+        
+           
+          
+          <a class='dropdown-menu user' data-owner-id='{{ owner.id }}'><img src='{{ owner.avatar }}' class='micro-avatar'> {{ owner.name }}</a>
+          <ul class='dropdown-menu hidden user'>
+            <div class='white-bg'></div>
+            <div class='arrow-top-border'></div>
+            <div class='arrow-top'></div>
+            <div class='account-info'>
+              <img class='small-avatar lfloat' src='{{ owner.avatar }}'>
+              <span class='username'>{{ owner.name}}</span>
+              <span>{{ owner.email}}</span>
+              {% if owner.last_login %}
+              <div class='history'>
+                <span>Last login:</span>
+                <span>
+                  <time class='timeago' datetime='{{ owner.last_login.timestamp | isoformat(owner.utcoffset) }}'>{{ owner.last_login.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+<!--                   from {{ owner.last_login.ip }} -->
+                  on {{ owner.last_login.os }}, {{ owner.last_login.browser }}
+                </span>
+              </div>
+              {% endif %}
+              
+            </div>
+            {% if owner.networks %}
+            <li class='networks'>
+              Networks
+              
+              <ul class='networks-list'>
+                {% for network in owner.networks %}
+                  <li>
+                    <a href='{{ network.url }}?session_id={{ owner.session_id }}' target='_blank'>
+                      <span class='unread  {% if network.unread_notifications == 0 %}grey{% endif %}'>{{ network.unread_notifications }}</span> {{ network.name }} 
+                    </a>
+                  </li>
+                {% endfor %}
+                
+                
+              </ul>
+              
+              
+            </li>
+            {% endif %}
+            <li><a href='/user/{{ owner.id }}' class='async profile'>View Profile</a></li>
+            <li>
+              <a id='pick-avatar'>Change Profile Picture</a>
+              
+              <div id="container">
+                <div id="filelist"></div>
+              </div>  
+            </li>
+{#
+            <li><a onclick="start_tour()">Take a Tour</a></li>
+#}
+<!--             <li><a href="/keyboard_shortcuts" class='overlay'>Keyboard shortcuts</a></li> -->
+            
+            <li><a href="/sign_out">Sign out</a></li> 
+          </ul>
+        
+        
+        
+        <a href='/news_feed' class='async'>Home</a>
+        <a href='/groups' class='async'>Find Groups</a>
+      
+        <a class="view-notifications">
+          <span class='counter {% if unread_notification_count == 0 %}grey{% endif %}' id="unread-notification-counter">
+            {{ unread_notification_count }}
+          </span>
+        </a>
+        <ul class='dropdown-menu hidden notifications'>
+          <div class='white-bg'></div>
+          <div class='arrow-top-border'></div>
+          <div class='arrow-top'></div>
+          <ul>
+            <p><strong>Loading...</strong></p>
+          </ul>
+        </ul>
+    </ul>
+  {% endif %}
+{% endblock %}
+
+{% block left_sidebar %}
+    {% include "left_sidebar.html" %}
+{% endblock %} 
+
+{% block body %}
+    <div id='popup' class='hidden'>
+      <div class='background'>
+        <div class='content'>
+        </div>
+      </div>
+    </div>
+      
+    <div id='overlay'></div>
+    <div id="body">        
+      {% if view == 'new-group' %}
+        {% include "new.html" %}
+      {% elif view == 'feed'%}
+        {% include 'news_feed.html' %}
+      {% else %}
+        {% set template = view + '.html' %}
+        {% include template %}
+      {% endif %}  
+    </div>
+    
+    
+
+    
+{% endblock %}
+
+
+{% block online_now %}
+    <a class="online-now"><i class='friends-online'></i> Online (<span class='online-count'>0</span>)</a>
+    
+    
+    <ul id="friends-online" class='hidden'>
+      {% if friends_online %}
+        {% set users = friends_online %}
+        {% include 'friends_online.html' %}
+      {% endif %}
+    </ul>
+
+{% endblock %}
+
+{% block stylesheets %}
+
+  {% if debug == True %}
+  
+          <link rel="stylesheet" href="/public/styles/normalize.css">
+          <link rel="stylesheet" href="/public/styles/animations.css">
+          <link rel="stylesheet" href="/public/styles/icons.css">
+          <link rel="stylesheet" href="/public/styles/home.css">
+          <link rel="stylesheet" href="/public/styles/wysihtml5.css">
+          <link rel="stylesheet" href="/public/styles/jquery.notice.css">
+  
+  
+  {% else %}
+    {% assets filter="cssmin", 
+              output="style.css",
+              "styles/normalize.css",
+              "styles/animations.css",
+              "styles/icons.css",
+              "styles/home.css",
+              "styles/wysihtml5.css",
+              "styles/jquery.notice.css" %}
+          <link rel="stylesheet" href="{{ ASSET_URL }}">
+    {% endassets %} 
+  
+  {% endif %}        
+
+{% endblock %}
+
+{% block top_scripts %}
+  
+  {% if debug == True %}
+    <script type='text/javascript' src='/public/scripts/jquery.1.7.1min.js'></script>
+    <script type='text/javascript' src='/public/scripts/detect_timezone.min.js'></script>
+    <script type='text/javascript' src='/public/scripts/jquery.caret.js'></script>
+    <script type='text/javascript' src='/public/scripts/plupload.js'></script>
+    <script type='text/javascript' src='/public/scripts/plupload.html5.js'></script>
+    <script type='text/javascript' src='/public/scripts/jquery.elastic.js'></script>
+    <script type='text/javascript' src='/public/scripts/underscore-min.js'></script>
+    <script type='text/javascript' src='/public/scripts/jquery.mentions.js'></script>
+    <script type='text/javascript' src='/public/scripts/jquery.notice.js'></script>
+    <script type='text/javascript' src='/public/scripts/jquery.idle-timer.js'></script>
+    <script type='text/javascript' src='/public/scripts/jquery.tokeninput.js'></script>
+    <script type='text/javascript' src='/public/scripts/jquery.tipsy.js'></script>
+    <script type='text/javascript' src='/public/scripts/jquery.timeago.js'></script>
+    <script type='text/javascript' src='/public/scripts/functions.js'></script>
+  
+  {% else %}
+    {% assets filter="jsmin", 
+              output="lib.js",
+              'scripts/jquery.1.7.1min.js', 
+              'scripts/detect_timezone.min.js',
+              'scripts/jquery.caret.js',
+              'scripts/plupload.js',
+              'scripts/plupload.html5.js',
+              'scripts/jquery.elastic.js',
+              'scripts/underscore-min.js',
+              'scripts/jquery.mentions.js',
+              'scripts/jquery.notice.js',
+              'scripts/jquery.idle-timer.js',
+              'scripts/jquery.tokeninput.js',
+              'scripts/jquery.tipsy.js',
+              'scripts/jquery.timeago.js',
+              'scripts/functions.js' %}
+      <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
+   {% endif %}
+   
+   <script type='text/javascript'>
+      if (typeof $.global === 'undefined') {
+        $.global = {};
+      }         
+   </script>
+   
+{% endblock %}
+
+{% block bottom_scripts %}
+  
+  {% if debug == True %}
+    
+    
+    <script type='text/javascript' src='/public/scripts/main.js'></script>
+    <script type='text/javascript' src='/public/scripts/guiders-1.2.7.js'></script>
+    
+  {% else %}  
+    {% assets filter="jsmin", 
+              output="core.js",
+              "scripts/main.js",
+              "scripts/guiders-1.2.7.js" %}
+              
+             <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
+  
+  {% endif %}
+   
+  <script type="text/javascript">
+      if (top.location.href != self.location.href)
+         top.location.href = self.location.href;
+  </script>
+   
+   
+   
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  
+    ga('create', 'UA-39400415-1', 'jupo.com');
+    ga('send', 'pageview');
+  
+  </script>
+   
+
+
+  <script id="IntercomSettingsScriptTag">
+    window.intercomSettings = {
+      // TODO: The current logged in user's email address.
+      email: "{{ owner.email }}",
+      // TODO: The current logged in user's sign-up date as a Unix timestamp.
+      created_at: {{ owner.created_at }},
+      app_id: "7e4f0ed896cd548b9f3a1c6d12d8aa468ba44f6c"
+    };
+  </script>
+  <script>(function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',intercomSettings);}else{var d=document;var i=function(){i.c(arguments)};i.q=[];i.c=function(args){i.q.push(args)};w.Intercom=i;function l(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://api.intercom.io/api/js/library.js';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);}if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}};})()</script>
+
+
+
+  
+  
+  
+{% endblock %}

@@ -1,0 +1,331 @@
+
+
+{% if view == 'notes' %}
+  <form class="new">
+    <table>
+      <tbody>
+        <tr id='notes'>
+          <td>
+            <a href='#!/note/new' class='overlay'>+ Create a new note</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </form> 
+
+
+{% elif view in ['discover', 'news_feed', 'group', 'user', 'new_message', 'messages'] %}
+  <form id='new-feed' action='/{% if view == "docs" %}doc{% elif view == "bookmarks" %}bookmark{% else %}feed{% endif %}/new?rel={{ view }}' method='post' class="new {% if view == 'new_message' %}new-message{% endif %}">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+  {% cache 'form.new.table:%s:%s' % (view, user.id if user else group.id if group else ""), 86400 %}
+  <table>
+    <tbody>
+      <tr id='message'>
+        <td colspan="2">
+          <textarea {% if view == 'docs'%}name='content' class='watermark'{% else %}class='mention'{% endif %}
+                    placeholder="{% if view == 'docs' %}
+ + New note...
+{% elif view == 'discover' or (group and group.id == 'public') %}
+Share something with everyone...  
+{% elif view == 'news_feed' %}
+Write a message...
+{% elif view == 'user' %}
+Leave a private message...
+{% else %}
+Leave a message...
+{% endif %}" required {% if view in ['new_message', 'user'] %}autofocus{% endif %}></textarea>
+          <textarea class='hidden marked-up'
+                    name='message'></textarea>
+        </td>
+      </tr>
+      
+      <tr id='send-to' class='toggle hidden'>
+        <td colspan="2">
+          <input type='text' 
+                 name='viewers' 
+                 class='autocomplete'
+                 {% if group %}
+                  data-prefill='[{name: "{{ group.name }}", id: "{{ group.id }}"},]'
+                 {% elif user %}
+                  data-prefill='[{name: "{{ user.name }}", id: "{{ user.id }}"},]'
+                 {% else %}
+                  data-prefill='[{name: "Public", id: "public"},]'
+                 {% endif %}
+                 
+                 required
+                 placeholder='To:'>
+                 
+        </td>
+        {#
+        <td>
+          <input type='text' 
+                 name='tags' 
+                 class='autocomplete tags'
+                 placeholder='Add tag...'>
+        </td>
+        #}
+      </tr>
+      
+{#   
+      {% if view not in ["docs", "bookmarks"] %}
+      <tr id='focus' class='toggle hidden'>
+        <td colspan="2">  
+            <div class='radio'>
+              <input id='urgent' type='radio' name='priority' value='1' />
+              <label for='urgent' title='Task that are perceived as being urgent and important'>Urgent</label>
+            </div>
+            
+            
+            <div class='radio'>
+              <input id='important' type='radio' name='priority' value='2' />
+              <label for='important' title='Task that are important but not urgent'>Important</label>
+            </div>
+            
+            
+            <div class='radio'>
+              <input id='normal' type='radio' name='priority' value='3' {% if view == 'focus' %}checked{% endif %} />
+              <label for='normal' title='Task that are neither urgent nor important'>Normal</label>
+            </div>
+            
+        </td>
+      </tr>
+      {% endif %}
+#}
+      <tr id='attach' class='toggle hidden'>
+        <td colspan="2">
+          <a id='pickfiles' class='lfloat'>Browse...</a>
+          <div id="container">
+            <div id="filelist"></div>
+          </div>  
+          <div id="attachments"></div>
+          <div class="upload-status rfloat"></div>
+        </td>
+        
+      </tr>
+    </tbody>
+  </table>
+  {% endcache %}
+  
+  <footer {% if view != 'new_message' %}class='hidden'{% endif %}>
+    <input type='hidden' name='attachments'>
+     
+    <a id='send-to' title='Share with (people or group)...' class='send-to-icon lfloat'></a>
+
+    
+{#    
+    {% if view not in ["docs", "bookmarks", "discover"] %}
+    <a id='focus' title='Set priority' class='task-icon lfloat'></a>
+    {% endif %}
+#}    
+    {% if view != 'bookmarks' %}
+      <a id='attach' title='Attach Files' class='attachment-icon lfloat'></a>
+    {% endif %}
+    
+    {% if view in ["docs", "bookmarks"] %}
+      <input type='submit' value="Publish" class='button small-button'>
+    {% elif view in ['user', 'new_message'] %}
+      <input type='submit' value="Send" class='button small-button'>
+    {% else %}
+      <input type='submit' value="Share" class='button small-button' tabindex="0">
+    {% endif %}
+  </footer>
+    
+</form>
+{% endif %}
+
+
+{% if view == "new-group" %}
+  <div id="page-header">
+          <h2>New Group</h2>
+  </div>  
+  
+  <form action='/group/new' method='post' class="new-group group{#new form overlay#}">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+  <table>
+    <tbody>
+
+      
+      <tr id='name'>
+        <td>
+          <input title="Name the group" type="text" name="name" class='title' required placeholder="Name the group" value='Name the group'/>
+          
+       </td>
+     </tr>  
+
+
+
+     <tr>
+       <td>
+          <textarea name='about' 
+                    placeholder="Description (optional)"></textarea>
+        </td>
+      </tr>
+  
+          
+<!--            <tr>
+       <td> 
+          <label>Who can view content?</label> 
+          <div class='privacy'>
+            <div>
+              <input id='open-group' type='radio' name='privacy' value='open'/>
+              <label for='open-group'>
+                Anyone {# <i class='public-icon' title='Anyone can see the group, who is in it, and what members post.'></i> #}
+              </label>
+            </div>
+            
+            
+            <div>
+              <input id='closed-group' type='radio' name='privacy' value='closed'/>
+              <label for='closed-group'>
+                Only approved members {# <i class='lock-icon' title='Anyone can see the group and who is in it. Only members see posts.'></i> #}
+              </label>
+            </div>
+            
+            {#
+            <div class='radio'>
+              <input id='secret-group' type='radio' name='privacy' value='secret'/>
+              <label for='secret-group'>
+                Secret <i class='ghost-icon' title='Only members see the group, who is in it, and what members post.'></i>
+              </label>
+            </div>
+            #}
+          </div>
+          
+          <input type='hidden' name='privacy' value='closed'>
+       </td>
+     </tr>    -->
+
+{#     
+      <tr id='members'>
+        <td>
+          <br>
+          <label>Type emails to invite people:</label><br>
+          <span>(or you can do this later, too.)</span>
+          {% for i in range(3) %}
+          <input type='email' name='member-{{ i }}' placeholder="Email Address">
+          {% endfor %}
+        </td>
+      </tr>
+#}      
+    </tbody>
+  </table>
+  
+  <footer>    
+    <br>
+    <input type='submit' value="Start the group" class='button'> or <a onclick='close_popup();'>Cancel</a>
+  </footer>
+  
+
+  <script type='text/javascript'>
+  $(document).ready(function () {
+    
+      $('form.group textarea').elastic();
+      
+      $('form.group').on('focus', '#members input:last', function() {         
+        name = 'member-' + (parseInt($(this).attr('name').split('-')[1]) + 1);
+        $(this).after('<input type="email" name="' + name + '" placeholder="Email Address">')
+      })
+      
+      setTimeout(function() {
+        $('form.group #name input').focus().select();
+      }, 1);
+  })
+</script>
+
+    
+</form>
+
+
+{% elif view == "new-network" %}
+  <div id="page-header">
+          <h2>New Network</h2>
+  </div>  
+  
+  <form action='/network/new' method='post' class="new-network group">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+  <table>
+    <tbody>
+
+      
+      <tr id='name'>
+        <td>
+          <input title="Name the network" type="text" name="name" class='title' required placeholder="Name the network" value='Name the network'/>
+          
+       </td>
+     </tr>  
+
+
+
+     <tr>
+       <td>
+          <textarea name='about' 
+                    placeholder="Description (optional)"></textarea>
+        </td>
+      </tr>
+  
+     
+    </tbody>
+  </table>
+  
+  <footer>    
+    <br>
+    <input type='submit' value="Start the network" class='button'> or <a onclick='close_popup();'>Cancel</a>
+  </footer>
+  
+
+  <script type='text/javascript'>
+  $(document).ready(function () {
+    
+      $('form.network textarea').elastic();
+      
+      setTimeout(function() {
+        $('form.network #name input').focus().select();
+      }, 1);
+  })
+</script>
+
+    
+</form>
+
+
+{% elif view == 'files' %}
+  <form id='new-file' action='/file/new' method='post' class="new">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <table>
+      <tbody>
+        <tr id='files'>
+          <td>
+            <a id='pickfiles' class='lfloat' onclick="preload_autocomplete(); $('form#new-file footer, form#new-file #send-to').removeClass('hidden')"><i class="upload-icon"></i> Upload new file</a>
+            <div id="container">
+              <div id="filelist"></div>
+            </div>  
+            <div id="attachments"></div>
+          </td>
+        </tr>
+        
+        <tr id='send-to' class='toggle hidden'>
+          <td>
+            <div class="upload-status rfloat"></div>
+            <input type='text' 
+                   name='viewers' 
+                   class='autocomplete'
+                   placeholder='Add people or group...'>
+          </td>
+        </tr>
+        
+      </tbody>
+    </table>
+    
+    <footer class="hidden">
+      <input type='hidden' name='attachments'>
+      <a id="send-to" title="Share with (people or group)..." class="send-to-icon lfloat active"></a>
+
+      <input type='submit' value="Publish" class='button small-button'>
+    </footer>
+
+  </form> 
+  
+{% endif %}
+
+

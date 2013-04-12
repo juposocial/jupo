@@ -1,0 +1,2852 @@
+#! coding: utf-8
+# pylint: disable-msg=W0311, W0611, E1103, E1101
+#@PydevCodeAnalysisIgnore
+
+from gevent import monkey
+monkey.patch_all()
+
+from gevent.pywsgi import WSGIServer
+from raven.contrib.flask import Sentry
+ 
+from flask import (Flask, request, 
+                   render_template, render_template_string,
+                   redirect, abort, 
+                   url_for, session, g, flash,
+                   make_response, Response)
+from flask_sslify import SSLify
+from flask.ext.oauth import OAuth
+from flask.ext.seasurf import SeaSurf
+from flask.ext.assets import Bundle, Environment as WebAssets
+from werkzeug.wrappers import BaseRequest
+from werkzeug.utils import cached_property
+from werkzeug.contrib.securecookie import SecureCookie
+from werkzeug.contrib.profiler import ProfilerMiddleware, MergeStream
+
+from datetime import timedelta
+from commands import getoutput
+from mimetypes import guess_type
+from simplejson import dumps, loads
+from time import mktime, strptime, sleep
+from urlparse import urlparse, urlunparse
+
+from jinja2 import Environment
+from werkzeug.contrib.cache import MemcachedCache
+
+from lib import cache
+from lib.img_utils import zoom
+from lib.json_util import default as BSON
+
+from helpers import extensions
+from helpers.decorators import *
+from helpers.converters import *
+
+import os
+import sys
+import logging
+import requests
+import traceback
+import werkzeug.serving
+
+import api
+import filters
+import settings
+from app import CURRENT_APP, render
+
+
+# switch from the default ASCII to UTF-8 encoding
+reload(sys)
+sys.setdefaultencoding("utf-8") #@UndefinedVariable
+
+requests.adapters.DEFAULT_RETRIES = 3
+
+app = CURRENT_APP
+  
+assets = WebAssets(app)
+
+if settings.SENTRY_DSN:
+  sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
+csrf = SeaSurf(app)
+oauth = OAuth()
+
+facebook = oauth.remote_app('facebook',
+    base_url='https://graph.facebook.com/',
+    request_token_url=None,
+    access_token_url='/oauth/access_token',
+    authorize_url='https://www.facebook.com/dialog/oauth',
+    consumer_key=settings.FACEBOOK_APP_ID,
+    consumer_secret=settings.FACEBOOK_APP_SECRET,
+    request_token_params={'scope': 'email'}
+)
+
+twitter = oauth.remote_app('twitter',
+    base_url='http://api.twitter.com/1/',
+    request_token_url='http://api.twitter.com/oauth/request_token',
+    access_token_url='http://api.twitter.com/oauth/access_token',
+    authorize_url='http://api.twitter.com/oauth/authenticate',
+    consumer_key='bzGP5UsngddWkDxJP59yng',
+    consumer_secret='jFn6xw4DamxRpsvlSBzZvzkJUcUA6Rc8sJh521sUSk'
+)
+
+
+def render_homepage(session_id, title, **kwargs):  
+  """ Render homepage for signed in user """
+  if session_id:
+    user_id = api.get_user_id(session_id)
+    if user_id:
+      owner = api.get_user_info(user_id)
+    else:
+      owner = None
+  else:
+    owner = None
+#  friends_online = api.get_online_coworkers(session_id)
+  if owner:
+    friends_online = owner.contacts
+    friends_online.sort(key=lambda k: k.last_online, reverse=True)
+    groups = api.get_groups(session_id)
+    for group in groups[:3]:
+      group.unread_posts = api.get_unread_posts_count(session_id, group.id)
+    
+    unread_notification_count = api.get_unread_notifications_count(session_id)
+  
+  else:
+    friends_online = []
+    groups = []
+    unread_notification_count = 0
+#  if owner:
+#    owner.recent_notes = api.get_notes(session_id, limit=3)
+#    owner.recent_files = api.get_files(session_id, limit=3)
+  
+  if kwargs.has_key('stats'):  
+    stats = kwargs.pop('stats')
+  else: 
+    stats = {}
+
+  resp = Response(render_template('home.html', 
+                                  owner=owner,
+                                  title=title, 
+                                  groups=groups,
+                                  friends_online=friends_online,
+                                  unread_notification_count=unread_notification_count,
+                                  stats=stats,
+                                  debug=settings.DEBUG,
+                                  **kwargs))
+  if owner:
+    if not request.cookies.get('channel_id'):
+      resp.set_cookie('channel_id', session_id)
+  else:
+    resp.delete_cookie('channel_id')
+  
+  # disallows rendering of the document when inside an iframe
+  # http://javascript.info/tutorial/clickjacking
+  resp.headers['X-Frame-Options'] = 'DENY'
+  return resp
+
+
+def event_stream(channel):
+  pubsub = api.PUBSUB.pubsub()
+  pubsub.subscribe(channel)
+  for message in pubsub.listen():
+    print message
+    yield 'data: %s\n\n' % message['data']
+    
+#===============================================================================
+# URL routing and handlers
+#===============================================================================
+@app.route('/ping')
+def ping():
+  session_id = session.get('session_id')
+  if session_id:
+    api.update_pingpong_timestamp(session_id)
+  return 'pong'
+
+@app.route('/stream')
+def stream():
+  session_id = session.get('session_id')
+  if not session_id:
+    abort(400)
+  resp = Response(event_stream(session_id),
+                        mimetype="text/event-stream")
+  resp.headers['X-Accel-Buffering'] = 'no'
+  return resp
+
+
+@csrf.exempt
+@app.route("/autocomplete")
+def autocomplete():
+  session_id = session.get("session_id")
+  query = request.args.get('query')
+  type = request.args.get('type')
+    
+  if not query: # preload all groups & coworkers
+    owners = api.get_contacts(session_id)
+    user_ids = [i.id for i in owners]
+    for user in api.get_all_users():
+      if user.id not in user_ids:
+        user_ids.append(user.id)
+        owners.append(user)
+    
+    if type != 'user':
+      groups = api.get_groups(session_id)
+      owners.extend(groups)
+  
+      items = [{'id': 'public', 
+                'name': 'Public',
+                'avatar': '/public/images/public-group.png',
+                'type': 'group'}]
+      
+    else:
+      items = []
+      
+    for i in owners:
+      if i.is_group():
+        info = {'name': i.name, 
+                'id': str(i.id), 
+                'avatar': '/public/images/group-icon2.png',
+                'type': 'group'}
+        items.append(info)
+      else:          
+        names = [i.name]  
+        for name in names:
+          info = {'name': name, 
+                  'id': str(i.id), 
+                  'avatar': i.avatar,
+                  'type': 'user'}
+          
+          items.append(info)  
+      
+  else:
+      
+    if type == 'user': # mentions
+      _items = api.autocomplete(session_id, query)
+      items = []
+      for item in _items:
+        if not api.is_group(item.get('id')):  # only show user, not group
+          info = api.get_user_info(item.get('id'))
+          avatar = info.avatar
+          type = 'user'
+        
+          items.append({'id': str(item.get('id')),
+                        'name': item.get('name', item.get('email')),
+                        'avatar': avatar,
+                        'type': type})
+    else:
+      _items = api.autocomplete(session_id, query)
+      items = []
+      for item in _items:
+        info = api.get_owner_info_from_uuid(item.get('id'))
+        avatar = '/public/images/group.png' if info.is_group() else info.avatar
+      
+        items.append({'id': str(item.get('id')),
+                      'name': item.get('name', item.get('email')),
+                      'avatar': avatar,
+                      'type': item.get('type')})
+      
+#  emoticons = [{'id': 'happy',
+#                'type': 'emoticon',
+#                'name': 'happy',
+#                'avatar': 'https://5works.s3.amazonaws.com/emoticons/1.gif'},
+#               {'id': 'sad',
+#                'type': 'emoticon',
+#                'name': 'sad',
+#                'avatar': 'https://5works.s3.amazonaws.com/emoticons/2.gif'},
+#               ]    
+#  items.extend(emoticons)
+  return dumps(items)
+
+
+@app.route("/search", methods=['GET', 'OPTIONS', 'POST'])
+@login_required
+def search():
+  t0 = api.utctime()
+  session_id = session.get("session_id")
+  query = request.form.get('query', request.args.get('query', '')).strip()
+  item_type = request.args.get('type')
+  page = int(request.args.get('page', 1))
+    
+  if item_type in ['people', 'email']: 
+    user_id = api.get_user_id(session_id)
+    owner = api.get_user_info(user_id)
+    
+    ref = request.args.get('ref')
+    if ref and 'group-' in ref:
+      group_id = ref.split('-')[1]
+      group = api.get_group_info(session_id, group_id)
+      if item_type == 'people':
+        title = 'Add people to group'
+      else:
+        title = 'Invite your friends'
+    else:
+      group_id = group = None
+      title = 'Add Contacts'
+      
+    if request.method == 'OPTIONS':
+      if query:
+        if item_type == 'people':
+          users = api.people_search(query, group_id)
+          if users:
+            users = [i for i in users if i.id not in owner.contact_ids and i.id != owner.id][:5]
+          else:
+            users = [i for i in api.get_coworkers(session_id) if i.id not in group.member_ids and i.id != owner.id][:5]
+        else:
+          users = [i for i in owner.google_contacts if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
+          
+      elif group_id:
+        if item_type == 'email':
+          users = [i for i in owner.google_contacts if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
+        else:
+          users = [i for i in api.get_coworkers(session_id) if i.id not in group.member_ids and i.id != owner.id][:5]
+      else:
+        if item_type == 'email':
+          users = [i for i in owner.google_contacts][:5]
+        else:
+          users = [i for i in api.get_coworkers(session_id) if i.id not in owner.contact_ids and i.id != owner.id][:5]
+      return dumps({'title': title,
+                    'body': render_template('people_search.html',
+                                            title=title, 
+                                            mode='search',
+                                            type=item_type,
+                                            group_id=group_id,
+                                            users=users,
+                                            query=query, 
+                                            owner=owner)})
+    else:
+      if item_type == 'people':
+        users = api.people_search(query)
+        if '@' in query:
+          new_user = api.User({'email': query})
+        else:
+          new_user = None
+      else:
+        q = query.lower()
+        users = [i for i in owner.google_contacts if i.email.lower().startswith(q)]
+        
+        if '@' in query and query.lower().strip() not in owner.to_dict().get('google_contacts'):
+          new_user = api.User({'email': query})
+        else:
+          new_user = None
+          
+      if group_id:
+        users = [i for i in users if i.id not in group.member_ids][:5]
+        if not users:
+          users = [i for i in api.get_coworkers(session_id) \
+                   if i.id not in group.member_ids and i.id != owner.id][:5]
+      else:
+        users = [i for i in users if i.id not in owner.contact_ids][:5]
+        if not users:
+          users = [i for i in api.get_coworkers(session_id) \
+                   if i.id not in owner.contact_ids and i.id != owner.id][:5]
+      if new_user:
+        users.insert(0, new_user)
+        users = users[:5]
+        
+      return ''.join(render_template('user.html', 
+                                     mode='search', 
+                                     user=user, 
+                                     group_id=group_id,
+                                     query=query,
+                                     owner=owner,
+                                     title=title) for user in users)
+      
+  # search posts
+  results = api.search(session_id, query, item_type, user=user, page=page)
+  if results and results.has_key('counters'):
+    hits = results.get('hits', 0)
+    total = sum([i['count'] for i in results.get('counters')])
+    counters = results['counters']
+  else:
+    hits = 0
+    total = 0
+    counters = {}
+  due = api.utctime() - t0
+  owner = api.get_owner_info(session_id)
+  coworkers = api.get_coworkers(session_id)
+  
+  app.logger.debug('query: %s' % due)
+  
+  t0 = api.utctime()
+  if request.method == 'GET':
+    return render_homepage(session_id, 'Results for "%s"' % query,
+                           query=query, 
+                           type=item_type,
+                           due='%.3f' % due,
+                           total=total,
+                           hits=hits,
+                           coworkers=coworkers,
+                           user=user,
+                           view='results',
+                           page=page,
+                           counters=counters)
+
+    
+  if page == 1:
+    body = render_template('results.html', owner=owner,
+                                           query=query, 
+                                           type=item_type,
+                                           due='%.3f' % due,
+                                           total=total,
+                                           hits=hits,
+                                           coworkers=coworkers,
+                                           user=user,
+                                           view='results',
+                                           page=page,
+                                           counters=counters)
+  else:
+    posts = [render(hits, "feed", owner, 'results')]
+      
+    if len(hits) == 0:
+      posts.append(render_template('more.html', more_url=None))
+    else:
+      more_url = '/search?query=%s&page=%s' % (query, page+1)
+      if item_type:
+        more_url += '&type=%s' % item_type
+      if user:
+        more_url += '&user=%s' % user
+       
+      posts.append(render_template('more.html', more_url=more_url))
+    return ''.join(posts)
+  
+  app.logger.debug('render: %s' % (api.utctime() - t0))
+  
+  # TODO: render 1 lần thôi :(
+  if body.split('<ul id="stream">')[-1].split('<script>')[0].split('right-sidebar')[0].count(query) < 2:
+    spelling_suggestion = api.get_spelling_suggestion(query)
+    app.logger.debug('spelling suggestion: %s' % spelling_suggestion)
+    body = render_template('results.html', owner=owner,
+                                           spelling_suggestion=spelling_suggestion,
+                                           query=query, 
+                                           type=item_type,
+                                           due='%.3f' % due,
+                                           total=total,
+                                           hits=hits,
+                                           coworkers=coworkers,
+                                           user=user,
+                                           view='results',
+                                           counters=counters)
+    
+  json = dumps({'title': '%s - Jupo Search' % query,
+                'body': body})
+  return Response(json, content_type='application/json')
+
+
+#@app.route("/", methods=["GET", "OPTIONS"])
+@app.route('/<any(discover, starred, hot, incoming, shared_by_me):name>', methods=['GET', 'OPTIONS'])
+@app.route('/<any(discover, starred, hot, incoming, shared_by_me):name>/page<int:page>', methods=['OPTIONS'])
+def discover(name='discover', page=1):
+  code = request.args.get('code')
+  user_id = api.get_user_id(code)
+  if user_id:
+    session['session_id'] = code
+    return render_homepage(code, 'Complete Profile',
+                           code=code, user_id=user_id)
+    
+  session_id = session.get("session_id")
+  if request.cookies.get('utcoffset'):
+    api.update_utcoffset(session_id, request.cookies.get('utcoffset'))
+  
+  
+  app.logger.debug('session_id: %s' % session_id)
+  
+  t0 = api.utctime()
+  
+  user_id = api.get_user_id(session_id)
+  
+  if user_id:
+    owner = api.get_user_info(user_id)
+    if name == 'starred':
+      category = name
+      feeds = api.get_starred_posts(session_id, page=page)
+    elif name == 'hot':
+      category = name
+      feeds = api.get_hot_posts(page=page)
+    elif name == 'shared_by_me':
+      category = name
+      feeds = api.get_shared_by_me_posts(session_id, page=page)
+    elif request.path in ['/', '/incoming', '/discover']:
+#      feeds = api.get_incoming_posts(session_id, page=page)
+      feeds = api.get_discover_posts(session_id, page=page)
+#      feeds = api.get_public_posts(session_id=session_id, page=page)
+      category = None     
+    else:
+      feeds = api.get_public_posts(session_id=session_id, page=page)
+      category = None     
+  else:
+    feeds = api.get_public_posts(session_id=session_id, page=page)
+    owner = category = None     
+    if session.has_key('session_id'):
+      session.pop('session_id')
+  
+  public_groups = api.get_open_groups(limit=10) 
+      
+  app.logger.info('query: %.2f' % (api.utctime() - t0))
+
+
+  if request.method == 'OPTIONS':  
+    t0 = api.utctime()
+    if page == 1:
+      menu = render_template('menu.html', 
+                             owner=owner,
+                             category=category,
+                             view='discover')
+        
+      body = render_template('discover.html', 
+                             view='discover', 
+                             category=category,
+                             public_groups=public_groups,
+                             owner=owner,
+                             title='Discover', 
+                             feeds=feeds)
+      
+      
+      app.logger.info('render: %.2f' % (api.utctime() - t0))
+      
+      json = dumps({"body": body, 
+                    "menu": menu, 
+                    "title": 'Discover'})
+    
+      resp = Response(json, mimetype='application/json')
+      return resp
+    else:
+      posts = []
+      for feed in feeds:
+        posts.append(render(feed, "feed", owner, 'discover')) 
+      if len(feeds) == 0:
+        posts.append(render_template('more.html', more_url=None))
+      else:
+        posts.append(render_template('more.html', 
+                                     more_url='/%s/page%d' \
+                                     % (request.path.split('/')[1], page+1)))
+      
+      return ''.join(posts)
+  else:
+    if not user_id:
+  #    return render_homepage(session_id, 'Get work done. Faster. | Jupo', 
+  #                           view='intro')
+      return render_template('landing_page.html')
+    else:
+      return render_homepage(session_id, 'Discover', 
+                             view='discover',
+                             feeds=feeds)
+
+
+@app.route('/invite', methods=['GET', 'POST'])
+def invite():
+  email = request.form.get('email', request.args.get('email'))
+  group_id = request.form.get('group_id', request.args.get('group_id'))
+  session_id = session.get("session_id")
+  api.invite(session_id, email, group_id)
+  return ' ✔ Done '
+
+
+
+@app.route('/welcome', methods=['GET', 'OPTIONS'])
+def welcome():
+  if request.method == 'GET':
+    session_id = session.get("session_id")
+    return render_homepage(session_id, 'Getting Started', view='welcome')
+  else:
+    body = render_template('welcome.html', view='welcome')
+    return dumps({'body': body, 
+                  'title': 'Welcome to Jupo'})
+    
+@app.route('/privacy')
+def privacy():
+  return redirect('https://www.jupo.com/note/340925645733232641')
+
+@app.route('/terms')
+def terms():
+  return redirect('https://www.jupo.com/note/340921286333038593')
+
+@app.route('/about')
+def about():
+  return render_template('about.html')
+    
+    
+@app.route('/notify_me', methods=['POST'])
+def notify_me():
+  email = request.form.get('email')
+  if not email:
+    abort(400, 'Missing email')
+  state = api.notify_me(email)
+  return 'Thank you!'
+
+
+@app.route('/jobs')
+def jobs():
+  return render_template('jobs_v2.html', title='Jupo - Jobs')
+
+  
+@app.route("/<any(sign_in, sign_up, sign_out, forgot_password, reset_password):action>", methods=["GET", "OPTIONS", "POST"])
+def authentication(action=None):
+  hostname = request.headers.get('Host')
+  
+  db_name = hostname.replace('.', '_')
+  
+  primary_domain = '.'.join(settings.PRIMARY_DOMAIN.rsplit('.', 2)[-2:])
+  if hostname != settings.PRIMARY_DOMAIN:
+    network_info = api.get_network_info(db_name)
+  else:
+    network_info = {'name': 'Jupo'}
+  
+  if request.path.endswith('sign_in'):
+    
+    
+    if request.method == 'OPTIONS':
+      data = dumps({'title': 'Sign in to Jupo',
+                    'body': render_template('sign_in.html', 
+                                            domain=hostname, 
+                                            PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN)})
+      resp = Response(data, mimetype='application/json')
+      return resp
+    
+    elif request.method == "GET":
+      resp = Response(render_template('sign_in.html', 
+                                      domain=hostname, 
+                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                      network_info=network_info))
+      return resp
+      
+    
+    email = request.form.get("email")
+    password = request.form.get("password")
+    back_to = request.form.get('back_to', request.args.get('back_to'))
+    user_agent = request.environ.get('HTTP_USER_AGENT')
+    app.logger.debug(user_agent)
+    remote_addr = request.environ.get('REMOTE_ADDR')
+    session_id = api.sign_in(email, password, 
+                             user_agent=user_agent, remote_addr=remote_addr)
+    app.logger.debug(session_id)
+    if session_id:
+    
+      # Sign in for all networks
+      if db_name:
+        db_names = api.get_db_names(email)
+        if db_name not in db_names:
+          api.add_db_name(email, db_name)
+        
+        for db in db_names:
+          if db != db_name:
+            api.update_session_id(email, session_id, db)
+
+      
+      session.permanent = True
+      session['session_id'] = session_id
+      if back_to:
+        resp = redirect(back_to)
+        resp.set_cookie('channel_id', session_id) 
+      else:
+        resp = redirect('/news_feed')  
+        resp.set_cookie('channel_id', session_id)
+      return resp
+    else:
+      message = 'Wrong email address and password combination.'
+      resp = redirect('/?email=%s&message=%s' % (email, message))
+      resp.set_cookie('new_user', '0')
+      return resp
+        
+
+  elif request.path.endswith('sign_up'):
+    if request.method == 'GET':
+      welcome = request.args.get('welcome')
+      resp = Response(render_template('sign_up.html', 
+                                      welcome=welcome,
+                                      domain=hostname, 
+                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                      network_info=network_info))
+      return resp
+        
+    email = request.form.get('email').strip()
+    name = request.form.get('name')
+    password = request.form.get('password', '')
+    
+    alerts = {}
+    if email and api.is_exists(email):
+      alerts['email'] = '"%s" is already in use.' % email
+    if len(password) < 6:
+      alerts['password'] = 'Your password must be at least 6 characters long.'
+    
+    
+    if alerts.keys():
+      data = dumps(alerts)
+      return Response(data, mimetype='application/json')
+      
+    else:
+      session_id = api.sign_up(email, password, name)
+      if session_id:
+        
+        # Sign in for all networks
+        if db_name:
+          db_names = api.get_db_names(email)
+          if db_name not in db_names:
+            api.add_db_name(email, db_name)
+          
+          for db in db_names:
+            if db != db_name:
+              api.update_session_id(email, session_id, db)
+              
+        session['session_id'] = session_id
+        return redirect('/reminders')  
+      else:
+        return redirect('/')
+      
+  elif request.path.endswith('sign_out'):
+    session_id = session.get('session_id')
+    if session_id:
+      user_id = api.get_user_id(session_id)
+      email = api.get_user_info(user_id).email
+      
+      app.logger.debug('sign out: %s' % session_id)
+      api.set_status(session_id, 'offline')
+      api.sign_out(session_id)
+      session.pop('session_id')
+      
+      
+      # Sign out all networks
+      if db_name:
+        db_names = api.get_db_names(email)
+        if db_name not in db_names:
+          api.add_db_name(email, db_name)
+        
+        for db in db_names:
+          if db != db_name:
+            api.sign_out(session_id, db_name=db)
+      
+    return redirect('/')
+  
+  elif request.path.endswith('forgot_password'):
+    if request.method == 'GET':
+      return render_template('reset_password.html')  
+    if request.method == 'OPTIONS':
+      data = dumps({'title': 'Jupo - Forgot your password?',
+                    'body': render_template('forgot_password.html')})
+      return Response(data, mimetype='application/json')
+    else:
+      email = request.form.get('email')
+      if not email:
+        abort(400)
+      api.forgot_password(email)
+      return redirect("/?message=Please check your inbox and follow the instructions in the email")
+    
+  elif request.path.endswith('reset_password'):
+    if request.method == 'GET':
+      code = request.args.get('code')
+      if not code:
+        return redirect('/news_feed')
+      email = api.FORGOT_PASSWORD.get(code)
+      if email:
+        resp = {'title': 'Reset your password',
+                'body': render_template('reset_password.html', 
+                                        email=email, code=code)}
+        return render_homepage(None, 'Reset your password',
+                               view='reset_password', email=email, code=code)
+      return redirect('/?message=Link expired')
+        
+    else:
+      code = request.form.get('code')
+      new_password = request.form.get('password')
+      if not code or not new_password:
+        abort(400)
+      email = api.FORGOT_PASSWORD.get(code)
+      if not email:
+        abort(410)
+      user_id = api.get_user_id_from_email_address(email)
+      if not user_id:
+        abort(400)
+      else:
+        api.reset_password(user_id, new_password)
+        session_id = api.sign_in(email, new_password)
+        session['session_id'] = session_id
+        return redirect('/news_feed')
+      
+  
+
+
+@app.route('/oauth/google')
+def google_login():
+  domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+  
+  return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt=auto&state=%s&client_id=%s&hl=en&from_login=1&as=-773fbbe34097e4fd&pli=1&authuser=0' \
+                  % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID))
+
+@app.route('/oauth/google/authorized')
+def google_authorized():
+  code = request.args.get('code')
+  domain = request.args.get('state', settings.PRIMARY_DOMAIN)
+  
+  # get access_token
+  url = 'https://accounts.google.com/o/oauth2/token'
+  resp = requests.post(url, data={'code': code,
+                                  'client_id': settings.GOOGLE_CLIENT_ID,
+                                  'client_secret': settings.GOOGLE_CLIENT_SECRET,
+                                  'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+                                  'grant_type': 'authorization_code'})
+  data = loads(resp.text)
+  
+#  app.logger.debug(data)
+  
+  # fetch user info
+  url = 'https://www.googleapis.com/oauth2/v1/userinfo'
+  resp = requests.get(url, headers={'Authorization': '%s %s' \
+                                    % (data.get('token_type'),
+                                       data.get('access_token'))})
+  user = loads(resp.text)
+  
+  
+  url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=5000'
+  resp = requests.get(url, headers={'Authorization': '%s %s' \
+                                    % (data.get('token_type'),
+                                       data.get('access_token'))})
+  contacts = api.re.findall("address='(.*?)'", resp.text)
+  if contacts:
+    contacts = list(set(contacts))
+  
+  db_name = domain.lower().strip().replace('.', '_')
+  session_id = api.sign_in_with_google(email=user.get('email'), 
+                                       name=user.get('name'), 
+                                       gender=user.get('gender'), 
+                                       avatar=user.get('picture'), 
+                                       link=user.get('link'), 
+                                       locale=user.get('locale'), 
+                                       verified=user.get('verified_email'),
+                                       google_contacts=contacts,
+                                       db_name=db_name)
+  if domain == settings.PRIMARY_DOMAIN:
+    session['session_id'] = session_id
+    return redirect('/')
+  else:
+    url = 'http://%s/?session_id=%s' % (domain, session_id)
+    resp = redirect(url)
+    return resp
+    
+
+@app.route('/oauth/facebook')
+def facebook_login():
+#  return facebook.authorize(callback='http://play.jupo.com/oauth/facebook/authorized')
+  callback_url = url_for('facebook_authorized',
+                         domain=request.args.get('domain', settings.PRIMARY_DOMAIN),
+                         _external=True)
+  app.logger.debug(callback_url)
+  return facebook.authorize(callback=callback_url)
+
+
+
+@app.route('/oauth/facebook/authorized')
+@facebook.authorized_handler
+def facebook_authorized(resp):
+  domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+  
+  if resp is None:
+    return 'Access denied: reason=%s error=%s' % (request.args['error_reason'],
+                                                  request.args['error_description'])
+  session['facebook_access_token'] = (resp['access_token'], '')
+  
+  if request.args.get('fb_source') == 'notification':
+    return redirect('/')
+  
+  retry_count = 0
+  while retry_count < 3:
+    try:
+      me = facebook.get('/me')
+      break
+    except:
+      retry_count += 1
+      sleep(1)
+      
+  retry_count = 0
+  while retry_count < 3:    
+    try:
+      friends = facebook.get('/me/friends?limit=5000')
+      break
+    except:
+      retry_count += 1
+      sleep(1)
+  
+  facebook_id = me.data['id']
+  friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
+
+  db_name = domain.lower().strip().replace('.', '_')
+  session_id = api.sign_in_with_facebook(email=me.data.get('email'), 
+                                         name=me.data.get('name'), 
+                                         gender=me.data.get('gender'), 
+                                         avatar='https://graph.facebook.com/%s/picture' % facebook_id, 
+                                         link=me.data.get('link'), 
+                                         locale=me.data.get('locale'), 
+                                         timezone=me.data.get('timezone'), 
+                                         verified=me.data.get('verified'), 
+                                         facebook_id=facebook_id,
+                                         facebook_friend_ids=friend_ids,
+                                         db_name=db_name)
+  if domain == settings.PRIMARY_DOMAIN:
+    session['session_id'] = session_id
+    return redirect('/')
+  else:
+    url = 'http://%s/?session_id=%s' % (domain, session_id)
+    resp = redirect(url)
+    return resp
+
+
+@facebook.tokengetter
+def get_facebook_token():
+  return session.get('facebook_access_token') 
+
+
+@app.route('/oauth/twitter')
+def twitter_login():
+    """Calling into authorize will cause the OpenID auth machinery to kick
+    in.  When all worked out as expected, the remote application will
+    redirect back to the callback URL provided.
+    """
+    return twitter.authorize(callback=url_for('twitter_authorized'))
+    
+@app.route('/oauth/twitter/authorized')
+@twitter.authorized_handler
+def twitter_authorized(resp):
+  app.logger.debug(resp)
+  next_url = '/'
+  if resp is None:
+      flash(u'You denied the request to sign in.')
+      return redirect('/')
+
+#  oauth_token = request.args.get('oauth_token')
+#  oauth_verifier = request.args.get('oauth_verifier')
+  user_id = resp.get('user_id')
+  oauth_token = resp.get('oauth_token')
+  oauth_token_secret = resp.get('oauth_token_secret')
+  screen_name = resp.get('screen_name')
+  
+  session['oauth_token'] = (oauth_token, oauth_token_secret)
+  resp = requests.get('https://api.twitter.com/1/users/show.json?screen_name=%s&include_entities=true' % screen_name)
+  return resp.text
+  
+
+@twitter.tokengetter
+def get_twitter_token():
+  return session.get('oauth_token')
+  
+
+@app.route('/reminders', methods=['GET', 'OPTIONS', 'POST'])
+@app.route('/reminder/new', methods=["POST"])
+@app.route('/reminder/<int:reminder_id>/check', methods=["POST"])
+@app.route('/reminder/<int:reminder_id>/uncheck', methods=["POST"])
+@login_required
+def reminders(reminder_id=None):
+  session_id = session.get("session_id")
+  message = request.form.get('message')
+  if request.path.endswith('/new'):
+    id = api.new_reminder(session_id, message)
+    return str(id)
+  elif request.path.endswith('/check'):
+    api.check(session_id, reminder_id)
+    return 'Done'
+  elif request.path.endswith('/uncheck'):
+    api.uncheck(session_id, reminder_id)
+    return 'Done'
+  else:
+    reminders_list = api.get_reminders(session_id)
+    if request.method == 'GET':
+      return render_homepage(session_id, 'Reminders',
+                             view='reminders',
+                             reminders=reminders_list)
+    else:
+      body = render_template('reminders.html', 
+                             view='reminders',
+                             reminders=reminders_list)
+      
+      json = dumps({"body": body, 
+                    "title": 'Reminders'})
+      return Response(json, mimetype='application/json') 
+  
+
+  
+@app.route("/notes", methods=['GET', 'OPTIONS'])
+@app.route("/notes/page<int:page>", methods=['OPTIONS'])
+@login_required
+def notes(page=1):
+  view = 'notes'
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+  
+  t0 = api.utctime()
+  
+  title = "Notes"
+  notes = api.get_notes(session_id, page=page)
+  
+  if page == 1:
+    reference_notes = api.get_reference_notes(session_id, 10)
+  else:
+    reference_notes = []
+  
+  app.logger.debug(notes)
+      
+  app.logger.info('query: %.2f' % (api.utctime() - t0))
+  
+  t0 = api.utctime()
+  
+  if request.method == "OPTIONS":
+    if page > 1:
+      stream = ''
+      posts = []
+      for note in notes:
+        posts.append(render(note, "note", owner, view))  
+      if len(notes) == 0:
+        posts.append(render_template('more.html', more_url=None))
+      else:
+        posts.append(render_template('more.html', 
+                                     more_url='/notes/page%d' % (page+1)))
+      return ''.join(posts)
+    else:
+      menu = render_template('menu.html', 
+                             view=view)
+      body = render_template('notes.html', 
+                             view=view,  
+                             title=title, 
+                             owner=owner,
+                             reference_notes=reference_notes,
+                             notes=notes)
+  
+      app.logger.info('render: %.2f' % (api.utctime() - t0))
+      
+      json = dumps({"body": body, 
+                    "menu": menu, 
+                    "title": title})
+      return Response(json, mimetype='application/json') 
+  else:
+    return render_homepage(session_id, title,
+                           view=view,
+                           reference_notes=reference_notes,
+                           notes=notes)
+    
+
+@app.route("/note/new", methods=["GET", "OPTIONS", "POST"])
+@app.route("/note/<int:note_id>", methods=["GET", "OPTIONS"])
+@app.route("/note/<int:note_id>/edit", methods=["OPTIONS"])
+@app.route("/note/<int:note_id>/v<int:version>", methods=["OPTIONS", "POST"])
+@app.route("/note/<int:note_id>/<action>", methods=["GET", "OPTIONS", "POST"])
+@login_required
+def note(note_id=None, action=None, version=None):  
+  session_id = session.get("session_id")
+  owner = api.get_owner_info(session_id)
+  content = info = None
+  if request.path == '/note/new':
+    if request.method == 'GET':
+      note = {}
+      title = 'New Note'
+      mode = 'edit'
+      view = 'notes'
+      return render_homepage(session_id, title,
+                             view=view,
+                             note=note, mode=mode)
+    elif request.method == 'OPTIONS':
+      title = 'New Note'
+      mode = 'edit'
+      note = {}
+    else:
+      title = request.form.get('title', 'Untitled Note')
+      content = request.form.get('content')
+      note_id = request.form.get('note_id')
+          
+      viewers = request.form.get('viewers')
+      if viewers:
+        viewers = viewers.split(',')
+      else:
+        viewers = []
+      
+      attachments = request.form.get('attachments')
+      if attachments:
+        attachments = attachments.rstrip(',').split(',')
+      else:
+        attachments = []
+
+      note_id = api.new_note(session_id, title, content, attachments, viewers)
+      
+      return dumps({'redirect': '/note/%s' % note_id})
+
+
+  elif action and action == 'last_changes':
+    note = api.compare_with_previous_version(session_id, note_id, revision=0)
+    mode = 'view'
+    action = 'compare'
+    title = 'Notes - Track changes'
+    
+
+  elif version is not None:
+    app.logger.debug(version)
+    note = api.get_note(session_id, note_id, version)
+    mode = 'view'
+    title = '%s v%s | Jupo Notes' % (note.title, version)
+    
+  elif request.path.endswith('/edit'):
+    note = api.get_note(session_id, note_id)
+    title = 'Notes - EditMode - %s' % note.title
+    mode = 'edit'
+    
+  elif action == 'update':    
+    title = request.form.get('title', 'Untitled Note')
+    content = request.form.get('content')
+    viewers = request.form.get('viewers')
+    if viewers:
+      viewers = viewers.split(',')
+    else:
+      viewers = []      
+    
+    attachments = request.form.get('attachments')
+    app.logger.debug(attachments)
+    if attachments:
+      attachments = attachments.rstrip(',').split(',')
+    else:
+      attachments = []
+    
+    if note_id:
+      api.update_note(session_id, note_id, title, content, attachments, viewers)
+    else:
+      note_id = api.new_note(session_id, title, content, attachments, viewers)
+      
+    return dumps({'redirect': '/note/%s' % note_id})
+    
+  elif action == 'remove':
+    session_id = session.get("session_id")
+    id = api.remove_note(session_id, note_id)
+    return id
+  
+  elif action == 'mark_official':
+    api.mark_official(session_id, note_id)
+    return 'Done'
+  
+  elif action == 'mark_unofficial':
+    api.mark_unofficial(session_id, note_id)
+    return 'Done'
+  
+  elif action == 'mark_as_read':
+    api.mark_as_read(session_id, note_id)
+    return ':)'
+  
+#  elif action and action.startswith('restore_from_'):
+#    revision = action.lstrip('restore_from_')
+#    if revision.isdigit():
+#      api.restore_note(session_id, note_id, int(revision))
+#      note = api.get_note(session_id, note_id)
+#      title = 'Notes - %s' % info.title
+#      mode = 'view'
+#    else:
+#      pass  #TODO: return an error page with code = 405 
+    
+  elif action == 'comment':
+    message = request.form.get('message')
+    comment = api.new_comment(session_id, message, note_id)
+    return render_template('comment.html', 
+                           comment=comment,
+                           owner=owner,
+                           prefix='note')
+  
+  else:
+    note = api.get_note(session_id, note_id)
+    
+    if not session_id and note is False:
+      return redirect('/?back_to=%s' % request.path)
+    
+    if not note.id:
+      abort(404)
+    mode = 'view'
+    
+  recents = api.get_notes(session_id, limit=5) 
+  view = 'notes'
+  if version is None and info:
+    version = len(note.to_dict()['version'])
+
+  group_id = request.args.get('group_id')
+  if group_id:
+    group = api.get_group_info(session_id, group_id)
+  else:
+    group = None
+    
+  if request.method in ["POST", "OPTIONS"]:
+    body = render_template('notes.html', 
+                           view='notes',
+                           mode=mode,
+                           action=action,
+                           version=version,
+                           recents=recents,
+                           note=note,
+                           group=group,
+                           owner=owner,
+                           content=content)
+    info = {'body': body}
+    if note:
+      info['title'] = note.title 
+    else:
+      info['title'] = 'Untitle Note'
+    return Response(dumps(info), mimetype='application/json')
+  else:
+    return render_homepage(session_id, note.title,
+                           version=version,
+                           group=group, note=note, view='notes', mode='view')
+
+@app.route('/u<key>')
+@app.route('/u/<int:note_id>')
+def share_to_anyone_with_the_link(note_id=None, key=None):
+  session_id = session.get("session_id")
+  if key:
+    doc = api.get_doc_by_key(key)            
+    return render_homepage(session_id, 'Note',
+                           view='discover', mode='view', doc=doc)
+    
+  else:
+    key = api.get_key(session_id, note_id)
+    if not key:
+      abort(404)
+    return redirect('/u' + key)
+  
+
+
+#===============================================================================
+# Files
+#===============================================================================
+
+@app.route("/public/<path:filename>")
+def public_files(filename):
+  filedata = cache.get('file:%s' % os.path.basename(filename)) \
+             if not settings.DEBUG else None
+  
+  if not filedata:
+    path = os.path.join(os.path.dirname(__file__), 'public', filename)
+    if not os.path.exists(path):
+      abort(404, 'File not found')
+    filedata = open(path).read()  
+      
+  response = make_response(filedata)
+  response.headers['Content-Length'] = len(filedata)
+  response.headers['Content-Type'] = guess_type(filename)[0]
+  response.headers['Cache-Control'] = 'public'
+  response.headers['Expires'] = '31 December 2037 23:59:59 GMT'
+  return response
+
+
+@app.route("/favicon.ico")
+def favicon():
+  path = 'public/favicon.ico'
+  filedata = open(path).read()
+  response = make_response(filedata)
+  response.headers['Content-Length'] = len(filedata)
+  response.headers['Content-Type'] = 'image/x-icon'
+  return response
+
+
+@app.route('/update_profile_picture', methods=['POST'])
+@app.route('/user/<int:user_id>', methods=['GET', 'OPTIONS'])
+@app.route('/user/<int:user_id>/page<int:page>', methods=['GET', 'OPTIONS'])
+@app.route('/user/<int:user_id>/update', methods=['POST'])
+@app.route('/user/<int:user_id>/complete_profile', methods=['POST'])
+@app.route('/user/<int:user_id>/follow', methods=['POST'])
+@app.route('/user/<int:user_id>/unfollow', methods=['POST'])
+@app.route('/user/<int:user_id>/<view>', methods=['OPTIONS'])
+@login_required
+def user(user_id=None, page=1, view=None):
+  session_id = session.get("session_id") 
+    
+  if request.path == '/update_profile_picture':
+    fid = request.args.get('fid')
+    api.update_user_info(session_id, {'avatar': long(fid)})
+    return 'OK'
+  
+  owner = api.get_owner_info(session_id)
+  user = api.get_user_info(user_id)
+  if not user.id:
+    abort(404)
+      
+  if view in ['edit', 'update_profile']:
+    resp = {'title': 'Update Profile',
+            'body': render_template('user.html',
+                                    mode='edit', 
+                                    view='update_profile',
+                                    owner=owner)}
+    return Response(dumps(resp), mimetype='application/json')
+
+  elif view == 'change_password':
+    resp = {'title': 'Change Password',
+            'body': render_template('user.html',
+                                    mode='change_password', 
+                                    owner=user)}
+    return Response(dumps(resp), mimetype='application/json')
+    
+  elif request.path.endswith('/complete_profile'):
+    name = request.form.get('name')
+    gender = request.form.get('gender')
+    
+    password = request.form.get('password')
+    avatar = request.files.get('file')
+    
+    fid = api.new_attachment(session_id, avatar.filename, avatar.stream.read())
+    new_session_id = api.complete_profile(session_id, 
+                                          name, password, gender, fid)
+    
+    resp = redirect('/news_feed')  
+    if new_session_id:
+      session['session_id'] = new_session_id
+    return resp
+    
+  elif request.path.endswith('/update'):
+    old_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_new_password = request.form.get('confirm_new_password')
+    
+    if old_password:
+      if new_password != confirm_new_password:
+        return redirect('/?message=New password does not match')
+      else:
+        ok = api.change_password(session_id, old_password, new_password)
+        
+        api.set_status(session_id, 'offline')
+        api.sign_out(session_id)
+        session.pop('session_id')
+        
+        return redirect('/?message=Password updated successfully.')
+    
+    if not old_password and new_password and new_password == confirm_new_password:
+      if owner.has_password():
+        return redirect('/?message=Please enter your current password.')
+      else:
+        user_id = api.get_user_id(session_id)
+        api.reset_password(user_id, new_password)
+        return redirect('/?message=New password updated successfully.')
+    
+    
+    name = request.form.get('name')
+    gender = request.form.get('gender')
+    
+      
+    intro = request.form.get('intro')
+    location = request.form.get('location')
+    
+    if location:
+      info = {'name': name,
+              'gender': gender,
+              'location': location,
+              'introduction': intro}
+    else:
+      info = {'name': name,
+              'gender': gender,
+              'introduction': intro}
+      
+    
+    birthday_day = request.form.get('birthday-day')
+    birthday_month = request.form.get('birthday-month')
+    birthday_year = request.form.get('birthday-year')
+    if birthday_day.isdigit() and birthday_month.isdigit() and birthday_year.isdigit():
+      info['birthday'] = '%s/%s/%s' % (birthday_day, birthday_month, birthday_year)
+      
+    
+    phone = request.form.get('phone')
+    if phone.replace('+', '').replace(' ', '').isdigit():
+      info['phone'] = phone
+    
+    fid = request.form.get('fid')
+    if fid:
+      info['avatar'] = long(fid)
+    api.update_user_info(session_id, info)
+    return redirect('/news_feed')
+        
+  elif request.path.endswith('/follow'):
+    api.add_to_contacts(session_id, user_id)
+#    api.follow(session_id, user_id)
+    return 'Done'
+  
+  elif request.path.endswith('/unfollow'):
+    api.remove_from_contacts(session_id, user_id)
+#    api.unfollow(session_id, user_id)
+    return 'Done'
+  
+  elif view == 'groups':
+    return dumps({'body': render_template('groups.html',
+                                          user=user,
+                                          groups=user.groups)})
+  elif view == 'followers':
+    users = [api.get_user_info(user_id) for user_id in user.followers]
+    return dumps({'body': render_template('users.html', 
+                                          title='Followers',
+                                          users=users)})
+  
+  elif view == 'following':
+    users = [api.get_user_info(user_id) for user_id in user.following_users]
+    return dumps({'body': render_template('users.html', 
+                                          title='Following',
+                                          users=users)})
+    
+  elif view == 'starred':
+    posts = api.get_starred_posts(api.get_session_id(user_id))
+    body = render_template('user.html', 
+                           title='Starred', 
+                           category = 'starred',
+                           view='user',
+                           user=user,
+                           owner=owner,
+                           feeds=posts)
+    json = dumps({'body': body, 'title': 'Intelliview'})
+    return Response(json, mimetype='application/json')
+  
+  elif view == 'new_message':    
+    view = 'new_message'
+    title = user.name
+        
+    if request.method == "OPTIONS":   
+      
+      body = render_template('message.html', 
+                             view=view, 
+                             user=user,
+                             owner=owner,
+                             title=title)
+      
+      json = dumps({"body": body, 
+                    "title": title})
+      return Response(json, mimetype='application/json')
+    
+
+  else:
+    
+    view = 'user'
+    title = user.name
+    
+    t0 = api.utctime()
+    
+    if not session_id or owner.id == user.id:
+      feeds = api.get_public_posts(user_id=user.id, page=page)
+    else:
+      feeds = api.get_user_posts(session_id, user_id, page=page)
+
+    user.recent_files = api.get_user_files(session_id, user_id=user.id, limit=3)
+    user.recent_notes = api.get_user_notes(session_id, user_id=user.id, limit=3)
+    
+    app.logger.info('query: %.2f' % (api.utctime() - t0))
+    
+    coworkers = [user]
+    if request.method == "OPTIONS":   
+        
+      if page == 1:
+        t0 = api.utctime() 
+        body = render_template('user.html', 
+                               view=view, 
+                               user=user,
+                               owner=owner,
+                               title=title, 
+                               coworkers=coworkers,
+                               feeds=feeds)
+        app.logger.info('render: %.2f' % (api.utctime() - t0))
+        
+        json = dumps({"body": body, 
+                      "title": title})
+        return Response(json, mimetype='application/json')
+      else:
+        posts = [render(feeds, 'feed', owner, 'user')]
+          
+        if len(feeds) == 0:
+          posts.append(render_template('more.html', more_url=None))
+        else:
+          posts.append(render_template('more.html', 
+                                       more_url='/user/%s/page%d' \
+                                       % (user_id, page+1)))
+        return ''.join(posts)
+      
+      
+      
+    else:
+      return render_homepage(session_id, title,
+                             coworkers=coworkers,
+                             user=user,
+                             feeds=feeds, view=view)
+
+
+
+@app.route("/contacts", methods=["GET", "OPTIONS"])
+@login_required
+def contacts():
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  owner = api.get_owner_info(session_id)
+  coworkers = api.get_coworkers(session_id)
+  groups = api.get_groups(session_id)
+
+  if request.method == 'GET':
+    return render_homepage(session_id, 'Contacts',
+                           coworkers=coworkers,
+                           view='people')
+  else:
+    body = render_template('people.html',
+                           groups=groups, 
+                           coworkers=coworkers,
+                           owner=owner)
+    resp = Response(dumps({'body': body,
+                           'title': 'Contacts'}))
+    return resp      
+  
+  
+@app.route('/explore', methods=['OPTIONS'])
+def explore():
+  session_id = session.get("session_id")
+  owner = api.get_owner_info(session_id)
+  groups = api.get_open_groups()
+  body = render_template('groups.html', 
+                          owner=owner,
+                          view='groups', 
+                          title='Explore',
+                          groups=groups)
+  return dumps({'body': body,
+                'title': 'Explore'})
+  
+
+
+@app.route("/network/new", methods=['GET', 'POST'])
+@app.route("/networks")
+def network():
+  if request.path.endswith('/new'):
+    
+    domain = subdomain = organization_name = msg = None
+    
+    
+    if request.method == 'POST':
+      domain = request.form.get('domain')
+      organization_name = request.form.get('name')
+      
+        
+      if domain:
+        if  '.' not in domain:
+          msg = 'The domain you entered was invalid.'
+        elif not api.domain_is_ok(domain):
+          msg = '''\
+          Please make sure <strong>%s</strong> is mapped to <strong>play.jupo.com</strong>.<br>
+          If you already do it, please try again after few minutes. <br>
+          Normally it takes some time once you update your DNS records<br>
+          until the changes take effect around the world.''' % (domain)
+        
+      subdomain = request.form.get('subdomain')
+      
+      if subdomain and len(subdomain) > 50:
+        msg = 'Subdomain is too long.'
+        
+      if subdomain and not api.domain_is_ok(subdomain + '.jupo.com'):
+        msg = 'Subdomain already exists.'
+        
+      if not subdomain and not domain:
+        msg = 'Please enter a domain or choose a subdomain.'
+        
+      if not organization_name:
+        msg = 'Please enter your organization name.'
+        
+      
+      if not msg:
+          
+        # TODO: check subdomain is valid (a-Z0-9)
+        if subdomain:
+          db_name = subdomain.lower().strip() + '_jupo_com'
+          if api.is_exists(db_name=db_name):
+            msg = 'Subdomain already exists.'
+        elif domain:
+          db_name = domain.lower().strip().replace('.', '_')
+          if api.is_exists(db_name=db_name):
+            msg = 'Domain already exists.'
+        
+        if db_name and not msg:
+          api.new_network(db_name, organization_name)
+          if subdomain:
+            return redirect('http://%s.jupo.com/sign_up?welcome=1' % subdomain)
+          else:
+            return redirect('http://%s/sign_up?welcome=1' % domain)
+      
+        
+    return render_template('new_network.html', 
+                           ip=api.PRIMARY_IP,
+                           organization_name=organization_name,
+                           domain=domain,
+                           subdomain=subdomain,
+                           message=msg)
+
+
+
+@app.route("/groups", methods=["GET", "OPTIONS"])
+@app.route("/group/new", methods=["GET", "OPTIONS", "POST"])
+@app.route("/everyone", methods=["GET", "OPTIONS"])
+@app.route("/everyone/page<int:page>", methods=["GET", "OPTIONS"])
+@app.route("/people", methods=["GET", "OPTIONS"])
+@app.route("/group/<int:group_id>/add_member", methods=["POST"])
+@app.route("/group/<int:group_id>/update", methods=["POST"])
+@app.route("/group/<int:group_id>/follow", methods=["POST"])
+@app.route("/group/<int:group_id>/unfollow", methods=["POST"])
+@app.route("/group/<int:group_id>/highlight", methods=["POST"])
+@app.route("/group/<int:group_id>/unhighlight", methods=["POST"])
+@app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
+@app.route("/group/<int:group_id>/page<int:page>", methods=["OPTIONS"])
+@app.route("/group/<int:group_id>/<view>", methods=["GET", "OPTIONS"])
+@login_required
+def group(group_id=None, view='group', page=1):
+  session_id = session.get("session_id")    
+  user_id = api.get_user_id(session_id)
+  if not user_id:
+    return redirect('/?continue=%s' % request.path)
+  
+  owner = api.get_user_info(user_id)
+  
+  hashtag = request.args.get('hashtag')
+  
+  # 5works stats
+  if group_id in [
+    340918405215289345,   # 5works Dev Team group_id 
+    340918693007458305   # 5works group_id 
+   ]:
+    _5works_stats = api._jupo_stats()
+  else:
+    _5works_stats = None
+    
+  if request.path.startswith('/everyone'):
+    group_id = 'public'
+
+  if request.path == '/people':
+    group_id = 'public'
+    view = 'members'
+    
+  
+  if request.path.endswith('/new'):
+    if request.method == 'GET':
+      return render_homepage(session_id, 'Groups',
+                             view='new-group')
+      
+    name = request.form.get('name')
+    if name:
+      privacy = request.form.get('privacy', 'closed')
+      about = request.form.get('about')
+      
+      members = set()
+      email_addrs = set()
+      for k in request.form.keys():
+        if k.startswith('member-'):
+          email = request.form.get(k).strip()
+          if email and email != owner.email:
+            email_addrs.add(email)
+            uid = api.get_user_id_from_email_address(email)
+            if uid:
+              members.add(uid)
+
+      group_id = api.new_group(session_id, 
+                               name, privacy, members, about=about, email_addrs=email_addrs)
+
+      return str(group_id)
+    
+    else:     
+      body = render_template('new.html', 
+                             owner=owner,
+                             view='new-group')
+      return Response(dumps({'title': 'New Group',
+                             'body': body}), mimetype='application/json')
+    
+  if request.path.endswith('/follow'):
+    is_ok = api.join_group(session_id, group_id)
+    return 'Done'
+
+  elif request.path.endswith('/unfollow'):
+    api.leave_group(session_id, group_id)
+    return 'Done'
+
+  elif request.path.endswith('/highlight'):
+    note_id = request.args.get('note_id')
+    api.highlight(session_id, group_id, note_id)
+    return 'Done'
+
+  elif request.path.endswith('/unhighlight'):
+    note_id = request.args.get('note_id')
+    api.unhighlight(session_id, group_id, note_id)
+    return 'Done'
+    
+  elif request.path.endswith('/add_member'):
+    user_id = request.args.get('user_id')
+    api.add_member(session_id, group_id, user_id)
+    return 'Done' 
+      
+  elif request.path.endswith('/update'):
+    name = request.form.get('name')
+    about = request.form.get('about')
+    privacy = request.form.get('privacy', 'closed')
+    post_permission = request.form.get('post_permission', 'members')
+    
+    info = {'name': name,
+            'privacy': privacy,
+            'post_permission': post_permission,
+            'about': about}
+    
+    members = request.form.get('members')
+    if members:
+      members = [int(i) for i in members.split(',')]
+    else:
+      members = []
+  
+    if members:
+      info['members'] = members
+    
+    admins = request.form.get('administrators')
+    if admins:
+      admins = [int(i) for i in admins.split(',')]
+    else:
+      admins = []
+    if user_id not in admins:
+      admins.append(user_id)
+  
+    if admins:    
+      info['leaders'] = admins
+    
+    fid = request.form.get('fid')
+    if fid:
+      info['avatar'] = long(fid)
+    api.update_group_info(session_id, group_id, info)
+    return redirect('/group/%s' % group_id)
+    
+  if not group_id:
+    groups = api.get_groups(session_id)
+    if not groups:
+      open_groups = api.get_open_groups()
+    else:
+      open_groups = []
+    if request.method == 'GET':
+      return render_homepage(session_id, 'Groups',
+                             open_groups=open_groups,
+                             view='groups')
+
+    else:
+      owner = api.get_owner_info(session_id)
+      body = render_template('groups.html', 
+                             view='groups',
+                             owner=owner,
+                             open_groups=open_groups,
+                             groups=groups)
+      resp = Response(dumps({'body': body,
+                             'title': 'Groups'}))
+      return resp
+    
+  t0 = api.utctime()
+  
+  group = api.get_group_info(session_id, group_id)  
+  if view == 'edit':
+    resp = {'title': 'Group Settings',
+            'body': render_template('group.html',
+                                    mode='edit', 
+                                    group=group)}
+    return Response(dumps(resp), mimetype='application/json')
+    
+  
+  elif view == 'docs':  
+#    group.docs = api.get_docs_count(group_id)
+#    group.files = api.get_files_count(group_id)
+    
+    owner = api.get_owner_info(session_id)
+    docs = api.get_notes(session_id, group_id=group_id)
+    if request.method == 'OPTIONS':
+      body = render_template('group.html', 
+                             group=group,
+                             owner=owner,
+                             mode='docs', 
+                             docs=docs)
+      resp = Response(dumps({'body': body}), mimetype='application/json')
+      return resp
+    else:
+      return render_homepage(session_id, "%s's Notes" % group.name,
+                             view='group',
+                             mode='docs',
+                             group=group,
+                             docs=docs)
+  
+  elif view == 'files':
+    abort(404)
+    
+  elif view == 'events':
+    events = api.get_events(session_id, group_id, as_feeds=True)
+    body = render_template('events.html', events=events, owner=owner)
+    return dumps({'body': body, 'title': 'Events'})
+  
+  elif view == 'members':
+    app.logger.debug('aaaaaaAAAAAAAAAAAAAAA')
+    
+    group.docs = api.get_docs_count(group_id)
+    group.files = api.get_files_count(group_id)
+    
+    owner = api.get_owner_info(session_id)
+    body = render_template('group.html', 
+                           view='members',
+                           group=group, owner=owner)
+    return dumps({'body': body})
+  
+  else:   
+    
+    if not group.id:
+      abort(404)
+    
+    if group_id == 'public':
+      feeds = api.get_public_posts(session_id, page=page)
+    else:
+      feeds = api.get_feeds(session_id, group_id, page=page)  
+      api.add_to_recently_viewed_list(session_id, group_id)
+  
+    if not group.highlight_ids:
+      group.recent_notes = api.get_notes(session_id, group_id=group_id, limit=3)
+    group.recent_files = api.get_attachments(session_id, 
+                                             group_id=group_id, limit=3)
+    
+    owner = api.get_owner_info(session_id)
+    
+    app.logger.debug('query: %s' % (api.utctime() - t0))
+    
+    if request.method == 'OPTIONS':
+      if page > 1:
+        posts = [render(feeds, "feed", owner, view)]
+          
+        if len(feeds) == 0:
+          posts.append(render_template('more.html', more_url=None))
+        elif group_id == 'public':
+          posts.append(render_template('more.html', 
+                                       more_url='/everyone/page%d' % (page+1)))
+        else:
+          posts.append(render_template('more.html', 
+                                       more_url='/group/%s/page%d' \
+                                       % (group_id, page+1)))
+        return ''.join(posts)
+      else:
+#        upcoming_events = api.get_upcoming_events(session_id, group_id)
+      
+        t0 = api.utctime()
+        
+        resp = {'title': group.name, 
+                'body': render_template('group.html', 
+                                        feeds=feeds, 
+                                        group=group,
+                                        owner=owner,
+#                                        upcoming_events=upcoming_events,
+                                        _5works_stats=_5works_stats,
+                                        view=view)}
+        
+        app.logger.info('render: %.2f' % (api.utctime() - t0))
+        t0 = api.utctime()
+        
+        json = dumps(resp)
+        
+        app.logger.info('json dumps: %.2f' % (api.utctime() - t0))
+        t0 = api.utctime()
+        
+        resp = Response(json, mimetype='application/json')
+        
+        app.logger.info('make response: %.2f' % (api.utctime() - t0))
+        
+        return resp
+    else:
+      stats = {}
+      groups = api.get_groups(session_id)
+#      upcoming_events = api.get_upcoming_events(session_id, group_id)
+      
+      resp = render_homepage(session_id, 
+                             group.name,
+                             feeds=feeds, 
+                             view=view, 
+                             group=group,
+#                             upcoming_events=upcoming_events,
+                             _5works_stats=_5works_stats)    
+#      resp.set_cookie('last_g%s' % group_id, api.utctime())
+      return resp
+
+@app.route('/messages', methods=["GET", "OPTIONS"])
+@app.route('/messages/page<int:page>', methods=["GET", "OPTIONS"])
+def messages(page=1):
+  session_id = session.get("session_id")
+  messages = api.get_direct_messages(session_id, page=page)
+  if request.method == 'GET':
+    return render_homepage(session_id, 'Direct Messages',
+                           view='messages',
+                           feeds=messages)
+  else:
+    owner = api.get_owner_info(session_id)
+    if page > 1:
+      posts = []
+      for feed in messages:
+        if feed.id not in owner.unfollow_posts:
+          posts.append(render(feed, "feed", owner, 'messages')) 
+      if len(messages) == 0:
+        posts.append(render_template('more.html', more_url=None))
+      else:
+        posts.append(render_template('more.html', 
+                                     more_url='/messages/page%d' % (page+1)))
+      
+      return ''.join(posts)
+    else:
+      body = render_template('messages.html', 
+                             view='messages',
+                             feeds=messages, owner=owner)
+      return Response(dumps({'body': body,
+                             'title': 'Direct Messages | Jupo'}))
+      
+
+@app.route('/message')
+def message():
+  pass
+
+
+@app.route('/launchpad')
+def launchpad():
+  networks = [
+    {'name': 'Jupo', 'url': 'http://play.jupo.com'},
+    {'name': '5works', 'url': 'http://5w.jupo.com'},
+    {'name': 'JoomlArt', 'url': 'http://joomlart.jupo.com'},
+  ]
+  owner = {'name': 'Pham Tuan Anh'}
+  
+  return render_template('launchpad.html', networks=networks, owner=owner)
+
+
+@app.route("/", methods=["GET"])
+def home():
+  hostname = request.headers.get('Host', '')
+  session_id = request.args.get('session_id')
+  
+  if hostname != settings.PRIMARY_DOMAIN:
+    if not api.is_exists(db_name=hostname.replace('.', '_')):
+      abort(404)
+    
+    if session_id:
+      session.permanent = True
+      session['session_id'] = request.args.get('session_id')
+      return redirect('/news_feed')
+  
+  
+  code = request.args.get('code')
+  user_id = api.get_user_id(code)
+  if user_id:
+    session['session_id'] = code
+    owner = api.get_user_info(user_id)
+    return render_template('profile_setup.html',
+                           owner=owner,
+                           code=code, user_id=user_id)
+    
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  if not session_id or not user_id:
+    try:
+      session.pop('session_id')
+    except KeyError:
+      pass
+    
+    if hostname != settings.PRIMARY_DOMAIN:
+      return redirect('/sign_in')
+    
+    new_user = request.cookies.get('new_user', "1")
+    email = request.args.get('email')
+    message = request.args.get('message')
+    resp = Response(render_template('landing_page.html',
+                                    email=email,
+                                    message=message,
+                                    new_user=new_user))
+    
+    back_to = request.args.get('back_to')
+    if back_to:
+      resp.set_cookie('redirect_to', back_to)
+    
+    return resp
+  else:
+    return redirect('/news_feed')
+  
+  
+@app.route("/news_feed", methods=["GET", "OPTIONS"])
+@app.route("/news_feed/page<int:page>", methods=["GET", "OPTIONS"])
+@app.route('/archived', methods=['GET', 'OPTIONS'])
+@app.route('/archived/page<int:page>', methods=['GET', 'OPTIONS'])
+@app.route("/news_feed/archive_from_here", methods=["POST"])
+@login_required
+def news_feed(page=1):  
+  t0 = api.utctime()
+  
+  session_id = session.get("session_id")
+  if request.cookies.get('utcoffset'):
+    api.update_utcoffset(session_id, request.cookies.get('utcoffset'))
+    
+  
+  if request.path.endswith('archive_from_here'):
+    ts = float(request.args.get('ts', api.utctime()))
+    api.archive_posts(session_id, ts)
+    return 'Done'
+    
+    
+  user_id = api.get_user_id(session_id)
+  
+  if user_id and request.cookies.get('redirect_to'):
+    redirect_to = request.cookies.get('redirect_to')
+    if redirect_to != request.url:
+      resp = redirect(request.cookies.get('redirect_to'))
+      resp.delete_cookie('redirect_to')
+      return resp
+  
+  
+  # Bắt user dùng facebook phải invite friends trước khi dùng ứng dụng
+#  
+#  if request.args.get('request') and request.args.get('to[0]'):
+#    api.update_user_info(session_id, {'fb_request_sent': True})
+#  
+#  else:
+#    user = api.get_user_info(user_id)
+#    if not user.fb_request_sent:
+#      return redirect('https://www.facebook.com/dialog/apprequests?app_id=%s' % settings.FACEBOOK_APP_ID \
+#                      + '&message=Qua%20%C4%91%C3%A2y%20th%E1%BB%AD%20c%C3%A1i%20n%C3%A0o%20:-)&redirect_uri=https://www.jupo.com/')
+#  
+  
+  #####
+  
+  
+  filter = request.args.get('filter', 'default')
+  app.logger.debug('session_id: %s' % session_id)
+  
+  
+  view = 'news_feed'
+  title = "Jupo"
+  
+  
+  if filter == 'archived':
+    feeds = api.get_archived_posts(session_id, page=page)
+    category = 'archived'
+  elif filter == 'email':
+    feeds = api.get_emails(session_id, page=page)
+    category = 'email'
+  elif filter == 'all':
+    feeds = api.get_feeds(session_id, page=page, 
+                          include_archived_posts=True)
+    category = None
+#  elif '@' in filter:
+#    feeds = api.get_emails(session_id, page)
+  else:
+    feeds = api.get_feeds(session_id, page=page, 
+                          include_archived_posts=False)
+    category = None
+    
+  pinned_posts = api.get_pinned_posts(session_id) \
+                 if filter == 'default' else None
+  
+  app.logger.info('query: %.2f' % (api.utctime() - t0))
+    
+  notification_count = api.get_unread_notifications_count(session_id)
+  owner = api.get_owner_info(session_id)
+  coworkers = api.get_coworkers(session_id)
+  reminders = api.get_reminders(session_id)
+    
+  browser = api.Browser(request.headers.get('User-Agent'))
+  
+  if request.method == "OPTIONS":
+    if page > 1:
+      posts = []
+      for feed in feeds:
+        if feed.id not in owner.unfollow_posts:
+          posts.append(render(feed, "feed", owner, view)) 
+      if len(feeds) == 0:
+        posts.append(render_template('more.html', more_url=None))
+      elif filter:
+        posts.append(render_template('more.html', 
+                                     more_url='/news_feed/page%d?filter=%s' \
+                                     % (page+1, filter)))
+      else:
+        posts.append(render_template('more.html', 
+                                     more_url='/news_feed/page%d' % (page+1)))
+      
+      return ''.join(posts)
+    
+    else:
+      t0 = api.utctime()
+      
+#      owner.recent_notes = api.get_notes(session_id, limit=3)
+#      owner.recent_files = api.get_files(session_id, limit=3)
+      
+      email_addrs = api.get_email_addresses(session_id)
+      
+      body = render_template('news_feed.html', 
+                             owner=owner,
+                             view=view, 
+                             title=title, 
+                             filter=filter,
+                             browser=browser,
+                             email_addresses=email_addrs,
+                             category=category,
+                             coworkers=coworkers,
+                             reminders=reminders,
+                             pinned_posts=pinned_posts,
+                             feeds=feeds)
+      
+      json = dumps({"body": body, 
+                    "title": title})
+            
+      resp = Response(json, mimetype='application/json')
+      
+      app.logger.info('render: %.2f' % (api.utctime() - t0))
+      
+  else:
+    resp = render_homepage(session_id, title,
+                           view=view,
+                           coworkers=coworkers,
+                           filter=filter,
+                           browser=browser,
+                           category=category,
+                           email_addresses=api.get_email_addresses(session_id),
+                           pinned_posts=pinned_posts,
+                           reminders=reminders,
+                           feeds=feeds)
+    
+    resp.set_cookie('new_user', "0")
+  resp.delete_cookie('redirect_to')
+  return resp
+
+
+@app.route("/feed/new", methods=['POST'])
+@app.route("/feed/<int:owner_id>/new", methods=['POST'])
+@app.route("/feed/<int:feed_id>", methods=['GET', 'OPTIONS'])
+@app.route("/post/<int:feed_id>", methods=['GET'])
+@app.route("/feed/<int:feed_id>/<action>", methods=["POST"])
+@app.route("/feed/<int:feed_id>/<int:comment_id>/<action>", methods=["POST"])
+@app.route("/feed/<int:feed_id>/starred", methods=["OPTIONS"])
+@app.route("/feed/<int:feed_id>/<message_id>@<domain>", methods=["GET", "OPTIONS"])
+@app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
+@app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
+def feed_actions(feed_id=None, action=None, owner_id=None, 
+                 message_id=None, domain=None, comment_id=None):
+  session_id = session.get("session_id")
+  
+#  if message_id:
+#    message_id = '%s@%s' % (message_id, domain)
+#    
+#    # TODO: check permission
+#    message = api.DATABASE[api.get_database_name(request)].stream.find_one({'message_id': message_id})
+#    if not message:
+#      thread = api.DATABASE.stream.find_one({'comments.message_id': message_id})
+#      if thread:
+#        comments = thread['comments']
+#        for comment in comments:
+#          if comment.get('message_id') == message_id:
+#            message = comment
+#            message['subject'] = thread['subject']
+#            message['body'] = comment.get('html', comment.get('message'))
+#            break
+#      else:
+#        abort(404)
+#    else:
+#      message['body'] = message.get('html', message.get('body'))
+#      
+#  
+#    if request.method == 'OPTIONS':
+#      message['id'] = feed_id
+#      return dumps({'body': render_template('email.html', feed=message),
+#                    'title': message['subject']})
+#      return message
+#    else:
+#      return render_homepage(session_id, message['subject'],
+#                             view='email', mode='view', feed=message)
+  
+  
+  owner = api.get_owner_info(session_id)
+#  if not owner.id:
+#    return redirect('/sign_in?continue=%s' % request.path)
+  
+  if request.path.endswith('new'):
+    facebook_access_token = session.get('facebook_access_token', [None])[0]
+    message = request.form.get('message')
+    viewers = request.form.get('viewers')
+    if viewers:
+      viewers = viewers.split(',')
+    else:
+      viewers = []    
+    
+    attachments = request.form.get('attachments')
+    if attachments:
+      attachments = attachments.rstrip(',').split(',')
+      attachments = list(set(attachments))
+    else:
+      attachments = []
+        
+
+    feed_id = api.new_feed(session_id, 
+                           message, 
+                           viewers, 
+                           attachments,
+                           facebook_access_token=facebook_access_token)
+    feed = api.get_feed(session_id, feed_id)
+    return render_template('feed.html', 
+                           view=request.args.get('rel'),
+                           feed=feed, owner=owner, hide_comments=True)
+    
+  elif request.path.endswith('/viewers'):
+    if request.method == 'GET':
+      feed = api.get_feed(session_id, feed_id)
+      return render_template('viewers.html', feed=feed)
+    else:
+      viewers = request.form.get('viewers')
+      viewers = viewers.split(',')
+      
+      api.set_viewers(session_id, feed_id, viewers)
+      
+      feed = api.get_feed(session_id, feed_id)
+      return render_template('feed.html', 
+                             owner=owner,
+                             feed=feed)
+    
+  elif request.path.endswith('/reshare'):
+    if request.method == 'GET':
+      return render_template('reshare.html', feed_id=feed_id)
+    else:
+      viewers = request.form.get('to')
+      viewers = viewers.split(',')
+      app.logger.debug(viewers)
+      
+      api.reshare(session_id, feed_id, viewers)
+      
+      feed = api.get_feed(session_id, feed_id)
+      return render_template('feed.html', 
+                             view='discover',
+                             owner=owner,
+                             feed=feed)
+  elif request.path.endswith('/starred'):
+    feed = api.get_feed(session_id, feed_id)
+    users = feed.starred_by    
+    body = render_template('users.html', title='Starred', users=users)
+    json = dumps({'body': body, 'title': 'Intelliview'})
+    return Response(json, mimetype='application/json')
+    
+      
+  elif action == 'remove':
+    feed_id = api.remove_feed(session_id, feed_id)
+    
+  elif action == 'undo_remove':
+    feed_id = api.undo_remove(session_id, feed_id)
+    
+  elif action == 'star':
+    feed_id = api.star(session_id, feed_id)
+    
+  elif action == 'unstar':
+    feed_id = api.unstar(session_id, feed_id)  
+    
+  elif action == 'pin':
+    feed_id = api.pin(session_id, feed_id)  
+    
+  elif action == 'unpin':
+    feed_id = api.unpin(session_id, feed_id)  
+    
+  elif action == 'archive':
+    api.archive_post(session_id, feed_id)
+    
+  elif action == 'unarchive':
+    api.unarchive_post(session_id, feed_id)
+  
+  elif action == 'remove_comment':
+    api.remove_comment(session_id, comment_id, post_id=feed_id)
+    
+  elif action == 'update_comment':
+    message = request.form.get('message')
+    api.update_comment(session_id, comment_id, message, post_id=feed_id)
+    comment = '''{{ message | autolink | autoemoticon | nl2br | sanitize }}'''
+    message = api.filters.sanitize_html(\
+                  api.filters.nl2br(\
+                      api.filters.autoemoticon(\
+                          api.filters.autolink(message))))
+
+    return message
+      
+  elif action == 'unfollow':
+    feed_id = api.unfollow_post(session_id, feed_id)
+      
+  elif action == 'mark_as_task':
+    api.mark_as_task(session_id, feed_id)
+      
+  elif action == 'mark_unresolved':
+    api.mark_unresolved(session_id, feed_id)
+      
+  elif action == 'mark_as_read':
+    api.mark_as_read(session_id, feed_id)
+      
+  elif action == 'comment':
+    t0 = api.utctime()
+    
+    message = request.form.get('message', '')
+    attachments = request.form.get('attachments')
+    reply_to = request.form.get('reply_to')
+    if reply_to.isdigit():
+      reply_to = int(reply_to)
+    else:
+      reply_to = None  
+    from_addr = request.form.get('from')
+    app.logger.debug(from_addr) 
+    
+    if not message and not attachments:
+      abort(403)
+    
+    app.logger.debug(attachments) 
+    if attachments:
+      attachments = attachments.rstrip(',').split(',')
+      attachments = list(set(attachments))
+    else:
+      attachments = []
+
+    info = api.new_comment(session_id, 
+                           message, feed_id, attachments, 
+                           reply_to=reply_to,
+                           from_addr=from_addr)
+    
+  
+    app.logger.debug('query: %s' % (api.utctime() - t0))
+    t0 = api.utctime()
+    
+    item = {'id': feed_id}
+    html = render_template('comment.html', 
+                           comment=info,
+                           prefix='feed',
+                           item=item,
+                           owner=owner)
+    
+    app.logger.debug('render: %s' % (api.utctime() - t0))
+    return html
+    
+  else:
+    feed = api.get_feed(session_id, feed_id)
+    if request.method == 'OPTIONS':
+      body = render_template('news_feed.html',
+                             view='news_feed',
+                             mode='view',
+                             owner=owner,
+                             feed=feed)
+      msg = feed.message
+      if not msg or \
+        (msg and str(msg).strip()[0] == '{' and str(msg).strip()[-1] == '}'):
+        title = ''
+      else:
+        title = msg if len(msg)<= 50 else msg[:50] + '...'
+      json = dumps({'body': body, 'title': title})
+      return Response(json, mimetype='application/json')
+    else:
+      if not session_id and feed is False:
+        return redirect('/?back_to=%s' % request.path)
+      
+      if session_id and not feed.id:
+        abort(404)
+      
+      image = description = None
+      if feed.is_note():
+        title = feed.details.title
+        description = feed.details.content
+        # TODO: insert image of post
+      elif feed.is_file():
+        title = feed.details.name
+        description = feed.details.size
+      else:
+        if feed.message:
+          title = feed.message[:50] + '...'
+        else:
+          title = ''
+        if feed.urls:
+          url = feed.urls[0]
+          description = feed.urls[0].description
+          if url.img_src:
+            image = url.img_src
+          else:
+            image = url.favicon
+      if request.path.startswith('/post/') or not owner.id:
+        return render_template('post.html',
+                               background='dark-bg', 
+                               owner=owner,
+                               mode='view',
+                               title=title, description=description, image=image, feed=feed)
+      else:
+        return render_homepage(session_id, 
+                               title=title, description=description, image=image,
+                               view='feed', mode='view', feed=feed)
+    
+  return str(feed_id)
+
+
+@csrf.exempt
+@app.route('/hooks/<service>/<key>', methods=['POST'])
+@app.route('/group/<int:group_id>/new_<service>_key')
+def service_hooks(service, key=None, group_id=None):
+  if group_id: # new key
+    session_id = session.get('session_id')
+    key = api.get_new_webhook_key(session_id, group_id, service)
+    return 'https://www.jupo.com/hooks/%s/%s' % (service, key)
+  
+  if service == 'gitlab':
+    feed_id = api.new_hook_post(service, key, request.data)
+    return str(feed_id)
+  elif service == 'github':
+    pass
+  
+
+@app.route('/events', methods=['GET', 'OPTIONS'])
+def events():
+  session_id = session.get("session_id")
+  events = api.get_events(session_id, as_feeds=True)
+  if request.method == 'GET':
+    return render_homepage(session_id, 'Events',
+                           view='events',
+                           events=events)
+  else:
+    owner = api.get_owner_info(session_id)
+    body = render_template('events.html', events=events, owner=owner)
+    return dumps({'body': body, 'title': 'Events'})
+
+
+
+@app.route('/event/new', methods=['OPTIONS', 'POST'])
+@app.route('/event/<int:event_id>', methods=['GET', 'OPTIONS'])
+@app.route('/event/<int:event_id>/mark_as_read', methods=['GET', 'POST'])
+@app.route('/<int:group_id>/events', methods=['GET', 'POST'])
+def event(event_id=None, group_id=None):
+  session_id = session.get("session_id")
+  if request.path == '/event/new':
+    group_id = request.args.get('group_id')
+    name = request.form.get("name")
+    if not name:  # not submit
+      if group_id:
+        group = api.get_group_info(session_id, group_id)
+      else:
+        group = None
+      body = render_template('event.html', group=group)
+      return dumps({'body': body})
+    
+    when = request.form.get('when')
+    when = strptime(when, "%a %d, %B %Y - %I:%M%p")
+    when = mktime(when)
+    
+    where = request.form.get('where')
+    details = request.form.get('details')
+    viewers = request.form.get('viewers')
+    if viewers:
+      viewers = viewers.split(',')
+    event_id = api.new_event(session_id, name, when, where, None, details, viewers)
+    event = api.get_event(session_id, event_id)
+    body = render_template('event.html', 
+                           event=event)
+    return dumps({'body': body,
+                  'reload': True})
+  elif group_id:
+    events = api.get_events(session_id, group_id)
+    pass
+  elif event_id:
+    if request.path.endswith('mark_as_read'):
+      api.mark_as_read(session_id, event_id)
+      return 'Done'
+    event = api.get_event(session_id, event_id)
+    body = render_template('event.html', event=event)
+    return dumps({'body': body})
+    
+  else:
+    event = api.get_events(session_id)
+
+  
+@app.route("/files", methods=['GET', 'OPTIONS'])
+@login_required
+def files():
+  session_id = session.get("session_id")
+  owner = api.get_owner_info(session_id)
+  title = "Files"
+  files = api.get_files(session_id) 
+  attachments = api.get_attachments(session_id) 
+  if request.method == 'OPTIONS':
+    body = render_template('files.html', 
+                           view='files', 
+                           owner=owner,
+                           files=files,
+                           attachments=attachments)
+    return dumps({'body': body, 
+                  'title': 'Files'})
+  else:
+    return render_homepage(session_id, title,
+                           view='files', 
+                           files=files, 
+                           attachments=attachments)
+    
+  
+
+@app.route("/attachment/new", methods=["POST"])
+@app.route("/attachment/<int:attachment_id>")
+@app.route("/attachment/<int:attachment_id>.png")
+@app.route("/attachment/<int:attachment_id>.jpg")
+@app.route("/attachment/<int:attachment_id>/<action>", methods=["POST"])
+def attachment(attachment_id=None, action=None):
+  session_id = session.get("session_id")
+  if request.path.endswith('new'):
+    file = request.files.get('file')
+    filename = file.filename
+    attachment_id = api.new_attachment(session_id, 
+                                 file.filename, 
+                                 file.stream.read())
+    info = api.get_attachment_info(attachment_id)
+    info = {'html': render_template('attachment.html', attachment=info),
+            'attachment_id': str(attachment_id)}
+    json = dumps(info)
+    return Response(json, mimetype='application/json')
+
+  
+  elif action == 'remove':
+    api.remove_attachment(session_id, attachment_id)
+    return str(attachment_id)
+  else:
+    attachment = api.get_attachment(attachment_id)
+    post_id = request.args.get('rel')
+    viewers = []
+    if post_id:
+      post = api.get_feed(session_id, int(post_id))
+      if (post and not post.id) or not post:
+        abort(400)
+      comments = post.to_dict().get('comments')
+      if attachment_id in post.attachment_ids:
+        viewers = post.viewer_ids
+      elif comments:
+        for comment in comments:
+          if attachment_id in comment.get('attachments', []):
+            viewers = post.viewer_ids
+            break
+      else:
+        abort(403, 'Permission Denied')
+    else:
+      viewers = [api.get_attachment_info(attachment_id).owner.id]
+
+      
+    if isinstance(attachment, unicode) or isinstance(attachment, str):
+      s3_url = attachment
+      return redirect(s3_url, code=301)
+    
+    
+    if not attachment:
+      abort(404, 'File not found')
+      
+    filedata = attachment.read()
+    filename = attachment._filename
+    
+    resp = Response(filedata)
+    
+    name = request.args.get('name', request.args.get('filename'))
+    content_type = attachment.content_type \
+                   if attachment.content_type \
+                   else 'application/octet-stream'
+    if not name and not content_type.startswith('image/'):
+      name = filename
+    if name:
+      resp.headers['Content-Disposition'] = str('attachment; filename="%s"' % name)
+      resp.headers['Content-Type'] = guess_type(name)[0]
+    else:
+      resp.headers['Content-Type'] = guess_type(filename)[0]
+    
+    return resp
+  
+
+@app.route("/img/<int:attachment_id>.png")
+@app.route("/img/<int:attachment_id>.jpg")
+@app.route("/img/<size>/<int:attachment_id>.png")
+@app.route("/img/<size>/<int:attachment_id>.jpg")
+def profile_pictures(attachment_id, size='60'):
+  try:
+    info = api.get_attachment_info(attachment_id)
+    if info.md5 and api.is_s3_file(info.md5 + '_%s.jpg' % size):
+      url = 'https://%s.s3.amazonaws.com/%s_%s.jpg' % (settings.S3_BUCKET_NAME, info.md5, size)
+      return redirect(url, code=301)
+    
+    data = api.get_file_data(attachment_id)
+    if not data:
+      return redirect('http://www.jupo.com/public/images/avatar.96.gif')
+    if size.isdigit():
+      size = int(size)
+      filedata = zoom(data, size, size)
+    else:
+      width, height = size.split('_')
+      filedata = zoom(data, int(width), int(height))
+        
+    domain = request.headers.get('Host')
+    db_name = domain.lower().strip().replace('.', '_')
+    api.move_to_s3_queue.enqueue(api.move_to_s3, '%s_%s.jpg|%s|%s' \
+                                 % (api.hashlib.md5(data).hexdigest(), 
+                                    str(size), 'image/jpeg', filedata),
+                                 db_name)
+    return Response(filedata, mimetype='image/jpeg')
+  
+  except api.NoFile:  # 'NoneType' object has no attribute 'get'
+    return redirect('http://www.jupo.com/public/images/avatar.96.gif')
+#    abort(404, 'File not found')
+    
+
+
+@app.route("/file/new", methods=["POST"])
+@app.route("/file/<int:file_id>", methods=["GET", "POST", "OPTIONS"])
+@app.route("/file/<int:file_id>/<action>", methods=["POST"])
+def file(file_id=None, action=None, size=None):
+  session_id = session.get("session_id")
+  owner = api.get_owner_info(session_id)
+  if request.path == '/file/new':
+    attachments = request.form.get('attachments')
+    attachments = [i for i in attachments.split(',') if i]
+    
+    viewers = request.form.get('viewers')
+    if viewers:
+      viewers = viewers.split(',')
+    else:
+      viewers = []
+    
+    blocks = []
+    for attachment in attachments:
+      file_id = api.new_file(session_id, attachment, viewers)
+      file = api.get_file_info(session_id, file_id)
+      blocks.append(render_template('file.html', 
+                                    owner=owner,
+                                    file=file))
+  
+    return ''.join(blocks)
+  
+  elif action == 'mark_as_read':
+    api.mark_as_read(session_id, file_id)
+    return 'Done'
+    
+  elif action == 'comment':
+    message = request.form.get('message')
+    info = api.new_comment(session_id, message, file_id)
+          
+    return render_template('comment.html', 
+                           comment=info,
+                           prefix='stream',
+                           owner=owner)
+  elif action == 'update':
+    file = request.files.get('file')
+    filename = file.filename
+    attachment_id = api.new_attachment(session_id, 
+                                       file.filename, 
+                                       file.stream.read())
+    api.update_file(session_id, file_id, attachment_id)
+    info = api.get_file_info(session_id, file_id)
+    
+    info = {'html': render_template('file.html', 
+                                    owner=owner,
+                                    file=info)}
+    return Response(dumps(info), mimetype='application/json')
+  
+  elif action == 'rename':
+    new_name = request.form.get('name')
+    if not new_name:
+      abort(400)
+    api.rename_file(session_id, file_id, new_name)
+    info = api.get_file_info(session_id, file_id)
+    
+    return render_template('file.html', owner=owner,file=info)
+    
+  
+  else:
+    file = api.get_file_info(session_id, file_id)
+    body = render_template('files.html',
+                           mode='view',
+                           view='files',
+                           owner=owner,
+                           file=file)
+      
+    return dumps({'body': body,
+                  'title': file.name})
+
+
+
+@app.route('/set', methods=["POST", "HEAD"])  # HEAD for websocket set status
+def change_status():
+  session_id = request.args.get('session_id')
+  if not session_id:
+    session_id = session.get("session_id")
+    if not session_id:
+      abort(401, 'Authentication credentials were missing')
+  status = request.args.get('status') 
+  is_success = api.set_status(session_id, status)
+  if is_success:
+    return 'OK'
+  else:
+    abort(401, 'Authentication credentials were incorrect.')  
+
+
+
+# Notifications ----------------------------------------------------------------
+
+@app.route('/notifications', methods=['GET', 'OPTIONS'])
+@login_required
+def notifications():
+  session_id = session.get("session_id")
+    
+  notifications = api.get_all_notifications(session_id)
+    
+  if request.method == 'OPTIONS':
+    owner = api.get_owner_info(session_id)
+    body = render_template('notifications.html',
+                           owner=owner, 
+                           notifications=notifications)
+    resp = {'body': body,
+            'title': 'Notifications'}
+    
+    #  mark as read luôn các notifications không quan trọng
+    api.mark_notification_as_read(session_id, type='like')
+    api.mark_notification_as_read(session_id, type='add_contact')
+    api.mark_notification_as_read(session_id, type='google_friend_just_joined')
+    api.mark_notification_as_read(session_id, type='facebook_friend_just_joined')
+    
+    resp['unread_notifications_count'] = api.get_unread_notifications_count(session_id)
+    return dumps(resp)
+  else:
+    return render_homepage(session_id, 'Notifications',
+                           notifications=notifications,
+                           view='notifications')
+
+
+@app.route('/notification', methods=['GET', 'POST'])
+@app.route('/notification/<int:ref_id>-comments', methods=['GET', 'POST'])
+@app.route('/notification/<int:id>', methods=['GET', 'POST'])
+@app.route('/notification/<int:id>/mark_as_read', methods=['GET', 'POST'])
+@app.route('/post/<int:post_id>/mark_as_read', methods=['GET', 'POST'])
+@app.route('/notifications/mark_as_read', methods=['GET', 'POST'])
+@login_required
+def notification(id=None, ref_id=None, post_id=None):
+  app.logger.debug(id)
+  session_id = session.get("session_id")
+  
+  
+  if request.path.endswith('mark_as_read'):
+    if id:
+      api.mark_notification_as_read(session_id, id)
+      return 'Done'
+    else:
+      api.mark_all_notifications_as_read(session_id)
+  
+  if post_id:
+    ref_id = post_id
+  
+  if id:
+    api.mark_notification_as_read(session_id, id)
+  elif ref_id:
+    api.mark_notification_as_read(session_id,
+                                  ref_id=ref_id)
+  else:
+    api.mark_notification_as_read(session_id, 
+                                  type='conversation',
+                                  ts=api.utctime())
+  
+  unread_notification_count = api.get_unread_notifications_count(session_id)
+  return str(unread_notification_count)
+
+
+@app.route('/feeds/<int:user_id>')
+def atom_feeds(user_id):
+  owner = api.get_user_info(user_id)
+  feeds = api.get_feeds(owner.session_id, limit=100)
+  
+  resp = Response(render_template('news_feed.atom', owner=owner, feeds=feeds))
+  resp.headers['Content-Type'] = 'application/atom+xml'
+  return resp
+
+
+@app.route('/like/<int:item_id>', methods=['GET', 'POST'])
+@app.route('/unlike/<int:item_id>', methods=['GET', 'POST'])
+@login_required
+def like(item_id):
+  session_id = session.get("session_id")
+  post_id = request.args.get('post_id')
+  if post_id:
+    post_id = int(post_id)
+  else:
+    post_id = item_id
+    
+  if request.path.startswith('/like/'):
+    is_ok = api.like(session_id, item_id, post_id)
+  else:
+    is_ok = api.unlike(session_id, item_id, post_id)
+  if is_ok:  
+    return 'OK'
+  else:
+    return 'Error'
+
+#===============================================================================
+# _Collaborate
+#===============================================================================
+@app.route('/_clear_cache')
+def _clear_cache():
+  filename = request.args.get('filename').lower().strip()
+  cache.delete('file:%s' % filename.lower().strip())
+  cache.delete('file:%s:last_updated' % filename)
+  return 'Done'
+  
+
+@app.route('/_update', methods=['GET', 'POST'])
+def _update():
+  ts = content = None
+  if request.method == 'GET':
+    key = None
+    filename = 'main.js'
+  else:
+    key = request.form.get('key')
+    filename = request.form.get('filename')
+    if key == '3.' and filename.endswith('.js'):
+      ts = int(api.utctime())
+      content = request.form.get('content')
+      cache.set('file:%s' % filename.lower().strip(), content, None)
+      cache.set('file:%s:last_updated' % filename, ts, None)
+      
+  if not ts:
+    ts = cache.get('file:%s:last_updated' % filename)
+    ts = ts if ts else 0
+  
+  if not content:
+    content = cache.get('file:%s' % filename)
+  
+  return render_template('_update.html', key=key, 
+                         ts=api.datetime.fromtimestamp(ts).isoformat(),
+                         content=content, filename=filename)
+
+
+
+#===============================================================================
+# Run App
+#===============================================================================
+
+@app.before_request
+def redirect_if_not_play_jupo():
+  """Redirect www.jupo.com or jupo.com to play.jupo.com"""
+  if request.headers.get('Host') in ['www.jupo.com', 'jupo.com']:
+    url = 'http://play.jupo.com%s' % request.path
+    if request.environ.get('QUERY_STRING'):
+      url += '?' + request.environ.get('QUERY_STRING')
+    return redirect(url, code=301)
+  
+  
+if __name__ == "__main__":
+    
+  formatter = logging.Formatter(
+    '(%(asctime)-6s) %(levelname)s: %(message)s' + '\n' + '-' * 80)
+  
+  file_logger = logging.FileHandler(filename='/var/log/jupo/errors.log')
+  file_logger.setLevel(logging.ERROR)
+  file_logger.setFormatter(formatter)
+  app.logger.addHandler(file_logger)
+    
+  try:  
+    port = int(sys.argv[1])    
+    
+    app.debug = settings.DEBUG
+    
+    server = WSGIServer(('0.0.0.0', port), app)
+    try:
+      print 'Serving HTTP on 0.0.0.0 port %s...' % port
+      server.serve_forever()
+    except KeyboardInterrupt:
+      print '\nGoodbye.'
+      server.stop()
+    
+    
+  except (IndexError, TypeError): # dev only
+#    f = open('/var/log/jupo/profiler.log', 'w')
+#    stream = MergeStream(sys.stdout, f)
+#    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, stream)
+    
+    @werkzeug.serving.run_with_reloader
+    def gevent_auto_reloader():  
+      app.debug = True
+      
+      server = WSGIServer(('0.0.0.0', 8888), app)
+      try:
+        print 'Serving HTTP on 0.0.0.0 port 8888...'
+        server.serve_forever()
+      except KeyboardInterrupt:
+        print '\nGoodbye.'
+        server.stop()
+    
+
+
+
+
+

@@ -1,0 +1,42 @@
+
+
+<div id="page-header">
+  
+        <h2>{{ title }}</h2>
+  
+</div>    
+    
+<ul id="items">
+    {% for user in users %}
+      <li>
+      {% if user.groups %}
+        <a href="/user/{{ user.id }}" class='async'><img class='micro-avatar' src="{{ user.avatar }}" width=16 height=16> 
+          {{ user.name }}
+          
+          
+          {% set groups = user.groups %}
+          <span class='member-of rfloat'>
+              {% if groups | length == 1 %}
+                  {% set group = groups[0] %}
+                    {{ group.name }}
+                  
+              {% elif groups | length == 2 %}
+                {% for group in groups %}
+                  {{ group.name }}{% if loop.index == 1 %}, {% endif %}
+                {% endfor %}
+                
+              {% elif groups | length > 0 %}
+                {% for group in groups[:2] %}
+                  {{ group.name }}{% if loop.index == 1 %}, {% endif %}
+                {% endfor %}
+                and {{ groups | length - 2 }} other.
+              {% endif %}
+              
+          </span>
+            
+        </a>
+        
+      {% endif %}  
+      </li>
+    {% endfor %}
+</ul>

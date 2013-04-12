@@ -1,0 +1,189 @@
+<li class="comment {% if hidden %}hidden{% endif %}" id="comment-{{ comment.id }}">
+    <a href="/user/{{ comment.owner.id }}" class='async' data-user-id='{{ comment.owner.id }}'>
+      <img src="{{ comment.owner.avatar }}" class="small-avatar lfloat">
+    </a>
+    
+    
+    
+    
+    {% if comment.owner.id == owner.id %}
+    <div class='update-comment hidden'>
+      <a class="remove-comment" href="/feed/{{ item.id }}/{{ comment.id }}/remove_comment" title='Remove this comment'><i class='close-icon'></i></a>
+      <form action='/feed/{{ item.id }}/{{ comment.id }}/update_comment' method='post' class='update-comment' data-comment-id='comment-{{ comment.id }}'>
+        
+        
+            <textarea class="mention"></textarea>
+            <textarea name="message" class="marked-up hidden" data-prefill='{{ comment.message | safe }}'></textarea>
+      </form>
+      
+      
+      <span class='gray'>Press Esc to cancel.</span>
+    </div>
+    
+    {% endif %}
+    
+    {% if comment.owner.id == owner.id %}       
+        <a class="update-comment" title='Edit this comment' data-comment-id='comment-{{ comment.id }}'><i class='edit-icon'></i></a>
+    {% elif item.owner.id == owner.id %}
+        <a class="remove-comment" href="/feed/{{ item.id }}/{{ comment.id }}/remove_comment" title='Delete'><i class='close-icon'></i></a>
+{#    {% else %}
+        <a class="remove-comment" href="/feed/{{ item.id }}/{{ comment.id }}/mark_as_spam" title='Hide as Spam'><i class='close-icon'></i></a>
+#}
+    {% endif %}
+    
+    <div class="message expandable">
+        <a href="/user/{{ comment.owner.id }}" class='async'><strong>{{ comment.owner.name }}</strong></a>&nbsp;  
+        {% autoescape on %}
+          {% if comment.is_email() %} 
+            
+            {% set content = comment.message | sanitize | remove_signature | remove_empty_lines %}
+            {% set summary = content | lines_truncate | fix_unclosed_tags %}
+            
+            
+            <div>{{ summary | nl2br }}</div>
+            
+            {% if content|length > (summary|length + 3) %}
+            <a class='see-more'>See more</a>
+            <div class='hidden'>
+              {{ content | nl2br }}
+            </div>
+            {% endif %}
+          {% elif "</iframe>" in comment.message %}
+            <div class='embed-code'>
+              {{ comment.message | sanitize | fix_unclosed_tags }}
+            </div>
+          {% else%}
+          
+            {% if '\n' in comment.message %}
+              <div class='text'>
+              {{ comment.message | autolink | autoemoticon | nl2br | sanitize }}
+              </div>
+            {% else %}
+              <span class='text'>
+              {{ comment.message | autolink | autoemoticon | sanitize }}
+              </span>
+            {% endif %}
+          
+          
+            {% if comment.is_edited() %}
+              {% if '\n' in comment.original_message %}
+                <div class='text hidden'>
+                {{ comment.changes | nl2br }}
+                </div>
+              {% else %}
+                <span class='text hidden'>
+                {{ comment.changes }}
+                </span>
+              {% endif %}
+            {% endif %}
+          
+          
+            
+          {% endif %}
+        {% endautoescape %}
+        
+        
+        
+      {% if comment.attachments %}
+        <br>
+        <i class='attach-icon lfloat'></i>
+        <div class='attachments'>
+        {% for attachment in comment.attachments %}
+            <div>
+              <a href='/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}' target='_blank' title='{{ attachment.name }}'>
+                  {{ attachment.name | truncate(30, True) }}
+              </a>
+              <span class='gray'>({{ attachment.size }})</span>
+            </div>
+        {% endfor %}
+        </div>
+      {% endif %}
+        
+        
+        
+        
+        {% if comment.urls | length == 1 %}
+        {% set url = comment.urls[0] %}
+        
+        {% if url.is_image() %}
+          <div class="file-attachment">
+                <a href='{{ url.url }}' rel="gallery"><img src='{{ url.url }}' width="200" title='{{ url.basename }}'/></a>
+          </div>
+        {% elif ('www.youtube.com/' in comment.message or 'youtu.be/' in comment.message) and '</iframe>' not in comment.message %}
+          <div class='embed-code'>
+            {% autoescape on %}
+              {{ url.url | to_embed_code }}
+            {% endautoescape %}
+          </div>
+{#          
+        {% elif url.description %}
+          <div class="url-attachment {% if not url.img_src %}favicon{% else %}image{% endif %}">
+                <div class='{% if url.img_src %}crop{% endif %}'>
+                  <a href='http://{{ url.domain }}' target="_blank">
+                  {% if url.img_src %}
+                    <img src='{{ url.img_src }}' class='lfloat' width="75" title='{{ url.title }}'> 
+                  {% else %}
+                    <img src='{{ url.favicon }}' class='lfloat favicon' width=16 title='{{ url.title }}'> 
+                  {% endif %}
+                  </a>
+                </div>
+                <div class="title">
+                  <a href='{{ url.url }}' target='_blank' title='{{ url.title }}'>{% autoescape on %}{{ url.title }}{% endautoescape %}</a>
+                  (<a href='http://{{ url.domain }}' target='_blank' class='gray'>{{ url.domain }}</a>)
+                </div>
+                
+                <div class="info">                  
+                  {% if url.description %}
+                    {{ url.description  | truncate(175) }}
+                  {% endif %}
+                </div>
+                
+
+          </div>
+#}          
+        {% endif %}
+      {% endif %}
+        
+    </div>
+    
+
+      
+      
+    <div class="footer">
+      {% if comment.is_email() %}
+        <a href='#!/feed/{{ item.id }}/{{ comment.message_id }}' class='overlay gray'><time class='timeago' title='{{ comment.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ comment.timestamp | isoformat(owner.utcoffset) }}'>{{ comment.timestamp | friendly_format(owner.utcoffset, short=True) }}</time></a>
+      {% else %}
+        <a href='/feed/{{ item.id }}#comment-{{ comment.id }}' target="_blank" class='time'><time class='timeago' title='{{ comment.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ comment.timestamp | isoformat(owner.utcoffset) }}'>{{ comment.timestamp | friendly_format(owner.utcoffset, short=True) }}</time></a>
+      {% endif %}
+      
+      
+      {% if comment.is_edited() %}
+        · <a class='see-changes' title='Last edited: {{ comment.last_edited_timestamp | strftime(owner.utcoffset, "%I:%M%p - %b %d, %Y") }} (click to see changes)'><i class='edited-icon'></i></a>
+      {% endif %}
+      
+      {% if comment.reply_src %}
+        · <a href='#comment-{{ comment.reply_to }}' class='reply-to' title='In reply to {{ comment.reply_src.owner.name }}: "{{ comment.reply_src.message | clean | truncate(60) }}"'><i class='reply-icon'></i></a>
+      {% endif %}
+      
+       
+    {% if owner.id %}   
+      {% if owner.id not in comment.liked_user_ids %}
+        · <a class='toggle' href='/like/{{ comment.id }}?post_id={{ item.id }}' data-name='Unlike' data-href='/unlike/{{ comment.id }}?post_id={{ item.id }}'>Like</a>
+      {% else %}
+        · <a class='toggle' href='/unlike/{{ comment.id }}?post_id={{ item.id }}' data-name='Like' data-href='/like/{{ comment.id }}?post_id={{ item.id }}'>Unlike</a>
+      {% endif %}
+        
+      · <a class='reply' data-comment-id="{{ comment.id }}" data-owner-id="{{ comment.owner.id }}" data-owner-name="{{ comment.owner.name }}" title='Reply to this comment'>
+          Reply
+        </a>
+    {% endif %}
+      
+      
+      
+          
+       <span class='likes {% if not comment.liked_by %}hidden{% endif %}' title='{% if comment.liked_by %}{% for i in comment.liked_by %}{% if i.id == owner.id %}{% if loop.index == 1 %}You{% else %}you{% endif %}{% else %}{{ i.name }}{% endif %}{% if loop.index < (comment.liked_user_ids | length - 2) %}, {% elif loop.index == (comment.liked_user_ids | length - 1) %} and {% endif %}{% endfor %} likes this.{% endif %}'>
+        · <i class='like-small-icon'></i> <span class='counter' id='counter-{{ comment.id }}'>{{ comment.liked_user_ids | length }}</span>
+       </span>
+       
+    </div>
+</li>

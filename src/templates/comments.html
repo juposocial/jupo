@@ -1,0 +1,183 @@
+<ul class="comments {% if (item.comments_count == 0 and mode != 'view') or hide_comments %}hidden{% endif %}" id="comments-{{ item.id }}">
+       
+    <div id="comments-list-{{ item.id }}" class="comments-list">
+      
+      
+      {% set likes = item.liked_by %}
+      {% include "likes.html" %}
+        
+{#        
+      {% set read_receipts_length = item.read_receipts | length %}
+      {% if view != 'discover' and owner.id and item.read_receipts %}
+        <li class="action read-receipts">
+          <i class='receipt-icon'></i>
+          Seen by 
+          {% if read_receipts_length < 3 %}
+            {% for receipt in item.read_receipts %}
+              <a href='/user/{{ receipt.user.id }}' class='async' title='{{ receipt.timestamp | friendly_format(owner.utcoffset, short=True) }}'>{% if receipt.user.id == owner.id %}you{% else %}{{ receipt.user.name }}{% endif %}</a>{% if loop.index < read_receipts_length - 1 %}, {% elif loop.index == read_receipts_length - 1%} and {% else %}{% endif %}
+            {% endfor %} 
+          
+          {% else %}
+          
+            <a href='/user/{{ item.read_receipts[0].user.id }}' 
+               class='async' title='{{ item.read_receipts[0].timestamp | friendly_format(owner.utcoffset, short=True) }}'>
+               {% if item.read_receipts[0].user.id == owner.id %}you{% else %}{{ item.read_receipts[0].user.name }}{% endif %}</a> 
+            
+            and 
+            
+            <a href='/feed/{{ item.id }}' class='async' 
+               title='{% for i in item.read_receipts[1:] %}{{ i.user.name }}{% if loop.index < read_receipts_length - 1 %}, {% endif %}{% endfor %}'>
+               {{ read_receipts_length - 1 }} others</a>
+          
+          {% endif %}          
+
+        </li>
+      {% endif %}
+#}
+
+      
+      {% if mode == 'view' %}
+        {% set comments_preview_count = 5 %}
+      {% else %}
+        {% set comments_preview_count = 2 %}
+      {% endif %}
+    
+      {% if item.comments_count > comments_preview_count %}
+
+        <li class="action">
+            <span class="comment-icon"></span>
+            <a class="view-previous-comments">
+              {% if item.comments_count > (5 + comments_preview_count) %}
+              <span class='rfloat'>
+                Showing <span class='displayed-count'>{{ comments_preview_count }}</span> of <span class='comment-count'>{{ item.comments_count }}</span> comments
+              </span>
+              View previous comments
+              {% else %}
+              View {{ item.comments_count - comments_preview_count }} more comments
+              {% endif %}
+            </a>
+        </li>
+
+        
+        {% for comment in item.comments[:-comments_preview_count] %}
+          {% set hidden = True %}
+          {% include 'comment.html' %}
+        {% endfor %}
+
+        {% for comment in item.comments[-comments_preview_count:] %}
+          {% include 'comment.html' %}
+        {% endfor %}
+        
+      {% elif item.comments_count > 0 %}
+        {% for comment in item.comments %}
+          {% include 'comment.html' %}
+        {% endfor %}
+        
+      {% endif %}
+    
+    </div>
+    
+    {% if not mode or not owner.id %}
+    <li class='write-a-comment'>
+      {% if owner.id %}
+      <a class="reply" rel="#{{ feed.id }}-comments">Write a comment</a>
+      {% else %}
+      <a href='/?back_to=/feed/{{ feed.id }}#comments' class="sign-in-to-write-a-comment">Write a comment</a>
+      {% endif %}
+    </li>
+    {% endif %}
+      
+    {% if owner.id %}
+      <li class="new-comment {% if not mode %}hidden{% endif %}">
+          <form id='new-comment-{{ item.id }}' class="new-comment" action="/feed/{{ item.id }}/comment" method="POST">
+            <a href="/user/{{ owner.id }}" class='async lfloat' data-user-id='{{ owner.id }}'>
+              <img src="{{ owner.avatar }}" class="small-avatar">
+            </a>
+      
+            <textarea class="mention"></textarea>
+            <textarea name="message" class="marked-up hidden"></textarea>
+            <input name='reply_to' type='hidden'>
+            
+            <footer>
+              {% set id = item.id | unique_by_timestamp %}
+              <a id='pickfile-{{ id }}' class='lfloat attach-button' title='Attach files'>
+                <i class='attach-icon'></i>Attach files
+              </a>
+              <input type='hidden' name='attachments'>
+  {#
+              <input type="submit" value="Post" class='button small-button rfloat'>
+  #}
+              <div class="upload-status rfloat"></div>
+              <div class="attachments"></div>
+              
+              {% if item.is_email() %}
+              {# TODO: replace đống này với thông tin chưa bị cache #}
+              <select name="from" class='rfloat' title='Send as...'>
+                {% for addr in owner.email_addresses %}
+                  {% if addr in item.email_addresses %}
+                    <option value="{{ addr }}">{{ addr }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+              {% endif %}
+              
+              <script type="text/javascript">
+                  $.global.uploader_{{ id }} = new plupload.Uploader({
+                    runtimes : 'html5',
+                    browse_button : 'pickfile-{{ id }}',
+                    url : '/attachment/new',
+                    multi_selection : true,
+                    max_file_size : '50mb',
+                    headers: {
+                      'X-CSRFToken': get_cookie('_csrf_token')
+                    }
+                  });
+              
+                  $.global.uploader_{{ id }}.bind('Init', function(up, params) {
+                  });
+                  
+                  $.global.uploader_{{ id }}.init();
+              
+                  $.global.uploader_{{ id }}.bind('FilesAdded', function(up, files) {
+                        $.global.uploader_{{ id }}.start();
+                  });
+              
+                  $.global.uploader_{{ id }}.bind('UploadProgress', function(up, file) {
+                    if(file.percent != 100) {
+                      $('#new-comment-{{ item.id }} .upload-status').html("Uploading " + file.percent + "%");
+                    } else {
+                      $('#new-comment-{{ item.id }} .upload-status').html("Verifying...");
+                    }
+                  });
+                  
+                  $.global.uploader_{{ id }}.bind('UploadComplete', function(up, file) {
+                  });
+              
+                  $.global.uploader_{{ id }}.bind('Error', function(up, err) {
+                    show_error();
+                  });
+              
+                  $.global.uploader_{{ id }}.bind('FileUploaded', function(up, file, response) {
+                    $('#new-comment-{{ item.id }} .upload-status').html('');
+                    response = $.parseJSON(response.response);
+                    
+                   if ($('#new-comment-{{ item.id }} div.attachments div#attachment-' + response.attachment_id).length == 0) {
+                      $('#new-comment-{{ item.id }} div.attachments').append(response.html);
+              
+                      files = $('#new-comment-{{ item.id }} input[name="attachments"]').val() + response.attachment_id + ','
+                      $('#new-comment-{{ item.id }} input[name="attachments"]').val(files);
+                
+                      refresh('#new-comment-{{ item.id }} div.attachments');
+                      
+                    }
+                    
+                  });
+              
+              </script>
+              
+  
+            </footer>
+          </form>
+      </li>    
+    {% endif %}
+</ul>

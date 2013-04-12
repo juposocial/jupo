@@ -1,0 +1,35 @@
+
+{% set likes_count = likes | length %}
+
+
+{% if likes_count != 0 %}
+<li class="action likes">
+  <i class='like-icon'></i>
+  {% if likes_count < 3 %}
+    {% for user in likes %}
+      <a href='/user/{{ user.id }}' 
+         class='async' 
+         title='{{ user.timestamp | friendly_format(owner.utcoffset, short=True) }}'>
+         {% if user.id == owner.id %}{% if loop.index == 1 %}You{% else %}you{% endif %}{% else %}{{ user.name }}{% endif %}</a>{% if loop.index < (likes_count - 1) %}, {% elif loop.index == likes_count - 1%} and {% else %}{% endif %}
+    {% endfor %} 
+  
+  {% else %}
+  
+    <a href='/user/{{ likes[0].id }}' 
+       class='async' title='{{ likes[0].timestamp | friendly_format(owner.utcoffset, short=True) }}'>
+       {% if likes[0].id == owner.id %}you{% else %}{{ likes[0].name }}{% endif %}
+    </a> 
+    
+    and 
+    
+    <a href='#!/feed/{{ id }}' class='overlay' 
+       title='{% for i in likes[1:] %}{{ i.name }}{% if loop.index < likes_count - 1 %}, {% endif %}{% endfor %}'>
+       {{ likes_count - 1 }} others</a>
+  
+  {% endif %}
+  
+            
+  likes this.
+</li>
+
+{% endif %}

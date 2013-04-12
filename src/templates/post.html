@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  {{ title }}
+{% endblock %}
+
+{% block header %}{% endblock %}
+
+
+{% block meta %}
+  <meta property="og:type" content="fire-works:post" />
+  <meta property="og:title" content="{{ title }}" />
+  <meta property="og:url" content="{{ request.url }}" />
+  {% if description %}
+    <meta property="og:description" content="{{ description }}" />
+  {% endif %}
+  {% if image %}
+    <meta property="og:image" content="{{ image }}" />
+  {% endif %}
+{% endblock %}
+
+
+
+
+{% block global %}
+    <div id="body" class='post'>          
+      {% set mode = 'view' %}
+      {% set view = 'post' %}
+      {% include 'feed.html' %}
+    </div>
+{% endblock %}
+
+{% block stylesheets %}
+
+  {% assets filter="cssmin", 
+            output="post.css",
+            "styles/normalize.css",
+            "styles/animations.css",
+            "styles/icons.css",
+            "styles/home.css" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}">
+  {% endassets %} 
+
+{% endblock %}
+
+{% block top_scripts %}
+
+  
+  {% assets filter="jspacker", 
+            output="lib.js",
+            'scripts/jquery.1.7.1min.js', 
+            'scripts/detect_timezone.min.js',
+            'scripts/jquery.caret.js',
+            'scripts/plupload.js',
+            'scripts/plupload.html5.js',
+            'scripts/jquery.elastic.js',
+            'scripts/underscore-min.js',
+            'scripts/jquery.mentions.js',
+            'scripts/jquery.notice.js',
+            'scripts/jquery.idle-timer.js',
+            'scripts/jquery.tokeninput.js',
+            'scripts/jquery.tipsy.js',
+            'scripts/jquery.timeago.js',
+            'scripts/functions.js' %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %}
+      
+   <script type='text/javascript'>
+      if (typeof $.global === 'undefined') {
+        $.global = {};
+      }         
+      
+   </script>
+   
+
+{% endblock %}
+
+
+{% block bottom_scripts %}
+
+  {% assets filter="jspacker", 
+            output="post.js",
+            "scripts/main.js" %}
+            
+           <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %} 
+  
+     
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  
+    ga('create', 'UA-39400415-1', 'jupo.com');
+    ga('send', 'pageview');
+  
+  </script>
+   
+
+
+  <script id="IntercomSettingsScriptTag">
+    window.intercomSettings = {
+      // TODO: The current logged in user's email address.
+      email: "{{ owner.email }}",
+      // TODO: The current logged in user's sign-up date as a Unix timestamp.
+      created_at: {{ owner.created_at }},
+      app_id: "7e4f0ed896cd548b9f3a1c6d12d8aa468ba44f6c"
+    };
+  </script>
+  <script>(function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',intercomSettings);}else{var d=document;var i=function(){i.c(arguments)};i.q=[];i.c=function(args){i.q.push(args)};w.Intercom=i;function l(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://api.intercom.io/api/js/library.js';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);}if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}};})()</script>
+
+
+
+  
+  
+  
+{% endblock %}
+
+  
+
+  

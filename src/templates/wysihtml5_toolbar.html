@@ -1,0 +1,48 @@
+<div id="wysihtml5-toolbar" style="display: none">
+
+{#
+  <a tabindex="-1" data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="h2" title="Insert Title"><h2>Title</h2></a>
+#}
+
+  <a tabindex="-1" data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="div" title="clear format">Normal text</a>
+  <a tabindex="-1" data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="h3" title="Insert Subtitle" class='heading'><h3>Heading</h3></a>
+  
+  <br>
+  <a tabindex="-1" data-wysihtml5-command="bold" title="CTRL+B"><strong>B</strong></a>
+  <a tabindex="-1" data-wysihtml5-command="italic" title="CTRL+I"><em>I</em></a>
+  <a tabindex="-1" data-wysihtml5-command="underline" title="CTRL+U"><u>U</u></a>
+  
+  
+  <a tabindex="-1" data-wysihtml5-command="insertUnorderedList" title="Unordered List"><i class='unordered-list-icon'></i></a>
+  
+{#  
+  <a tabindex="-1" data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="blockquote" title="Insert Quote" class='quote'>“</a>
+#}
+
+  <a tabindex="-1" data-wysihtml5-command="formatCode" title='Fixed Width' class='code'>&lt;/&gt;</a>
+
+{#
+  <a tabindex="-1" data-wysihtml5-command="Outdent" title="Outdent"><i class="outdent-icon"></i></a>
+  <a tabindex="-1" data-wysihtml5-command="Indent" title="Indent"><i class="indent-icon"></i></a>
+#}
+
+{#    
+  <a tabindex="-1" data-wysihtml5-command="insertImage"><i class='picture-icon'></i></a>
+  <div data-wysihtml5-dialog="insertImage" style="display: none;">
+    <label>
+      <input data-wysihtml5-dialog-field="src" placeholder="http://" type="text">
+    </label>
+    
+    <span class='align'>
+        Align:
+        <select data-wysihtml5-dialog-field="className">
+          <option value="wysiwyg-float-left">left</option>
+          <option value="wysiwyg-float-right" selected="selected">right</option>
+        </select>
+
+    </span>
+    
+    <a tabindex="-1" data-wysihtml5-dialog-action="save" class='button'>Insert</a>
+  </div>
+#}  
+</div>

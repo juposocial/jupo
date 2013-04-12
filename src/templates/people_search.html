@@ -1,0 +1,44 @@
+
+{% if type == 'email' %}
+  <div id="page-header" class='search'>
+    <form action='/search?type=email{% if group_id %}&ref=group-{{ group_id }}{% endif %}' method='post'>
+      <input autofocus type='text' name='query' placeholder="Type your friend email" {% if query %}value="{{ query }}"{% endif %} >
+    
+    </form>
+          <h2>{{ title }}</h2>
+  </div> 
+
+  <ul class='people'>
+    {% if users %}
+      {% for user in users %}
+          {% include 'user.html' %}
+      {% endfor %}
+    {% else %}
+      <li>
+        0 results found
+      </li>
+    {% endif %}
+  </ul>
+
+{% else %}
+  <div id="page-header" class='search'>
+    <form action='/search?type=people{% if group_id %}&ref=group-{{ group_id }}{% endif %}' method='post'>
+      <input autofocus type='text' name='query' placeholder="Your contact name" {% if query %}value="{{ query }}"{% endif %} >
+    
+    </form>
+          <h2>{{ title }}</h2>
+  </div> 
+
+  <ul class='people'>
+    {% if users %}
+      {% for user in users %}
+          {% include 'user.html' %}
+      {% endfor %}
+    {% else %}
+      <li>
+        Your contact list is empty. <a href="/search?query=&type=email&ref=group-{{ group_id }}" class="popup">Invite people by Email</a>
+      </li>
+    {% endif %}
+  </ul>
+
+{% endif %}

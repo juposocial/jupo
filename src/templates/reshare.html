@@ -1,0 +1,50 @@
+<footer class='reshare forward undo'>
+  <div class='actions'>
+    <div class='rfloat'>
+      <a class="undo" title='Cancel'>Cancel</a>
+    </div>
+    <div class='lfloat'>
+      <strong>&nbsp;&nbsp;Reshare this post with:</strong>
+    </div>
+  </div>
+  <form class='viewers' method='post' action='/feed/{{ feed_id }}/reshare'>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <input type="submit" class='button small-button rfloat' value='Done'>
+    <input type="text" name='to' autocomplete="off" class='autocomplete' placeholder="Add people or group..." autofocus>
+
+  </form>
+</footer>
+
+<script>
+
+    
+  $('#post-{{ feed_id }} form input.autocomplete').tokenInput('/autocomplete', {
+      searchDelay: 300,
+      preventDuplicates: true,
+      queryParam: 'query',
+      hintText: 'Add people or group...',
+      animateDropdown: false,
+      allowEmail: true,
+      noResultsText: null,
+      searchingText: null,
+      resultsFormatter: function(item) {
+  	      return "<li><img class='" + item.type + "' src='" + item.avatar + "'>" + item.name + "</li>" 
+      }
+  });
+
+  if ($.global.autocomplete == null) {
+    $.ajax({
+      url: '/autocomplete',
+      dataType: 'json',
+      success: function(resp) {
+        $.global.autocomplete = resp;
+        $('#post-{{ feed_id }} form input.autocomplete').tokenInput("setLocalData", resp);
+      }
+    })
+  } 
+  
+  else {
+    $('#post-{{ feed_id }} form input.autocomplete').tokenInput("setLocalData", $.global.autocomplete);
+  }
+
+</script>

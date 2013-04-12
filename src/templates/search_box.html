@@ -1,0 +1,13 @@
+
+
+<form id="search-box" class="lfloat" action='/search'>
+	<span class="search-icon-wrap">
+		<i class="search-icon"></i>
+	</span>
+	<input type="text" name="query" placeholder="Search for people, groups and posts" autocomplete='off' title='Press Enter to Search' {% if query %}value='{{ query }}'{% endif %} />
+	<div class='reset hidden'></div>
+	<div class='spinner hidden'></div>
+  
+	<ul class='dropdown-menu hidden'></ul>
+	
+</form>

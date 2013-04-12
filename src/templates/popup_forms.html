@@ -1,0 +1,100 @@
+<script type="text/javascript">
+  $(document).ready( function (e) {
+    $("input#send-to, input#members").autoSuggest("/suggest", {
+        minChars: 1,
+        startText: "User or Group Name...",
+        {% if info.reference_users %}
+        preFill: [
+                  {% for i in info.reference_users %}
+                    {name: "{{ i['username'] }}", value: "{{ i['user_id'] }}"},
+                  {% endfor %}
+                 ],
+        {% endif %}
+        selectedItemProp: "name",
+        searchObjProps: "name"
+    });
+    
+              
+    refresh();
+    
+    {% if type == "note" %}
+      $('textarea').focus();
+    {% endif %}
+    
+    $("input.datetime").datetimepicker({dateFormat: 'dd/mm/yy',
+                                        stepMinute: 5,
+                                        hour: 10,
+                                        minute: 00});
+    if ($("a").hasClass("remove-attachment")) {
+      $(".new-attachment").hide();
+    }                 
+  });
+</script>
+
+
+{% if type == "task" %}
+<div class="popup">
+  <h2><span class="title">{% if action == "edit" %}Edit{%else%}New{% endif %} Task</span></h2>
+  <form id="{% if action == 'new' %}new-task{% else %}edit-task{% endif %}" action="{% if action == 'new' %}/new_task{% else %}/edit?type=task{% endif %}" method="POST">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <p>
+      <label>Info:</label>
+      <textarea placeholder="Title...\n\nNote" name="info">{{ info.info }}</textarea>
+    </p>
+    
+    <p>
+      <label>Deadline:</label>
+      <input type="text" name="deadline" class="datetime" value="{% if info.deadline %}{{ info.deadline }}{% endif %}"/>
+    </p>
+    
+    <p>
+      <label>Priority:</label>
+      <select class="button" name="priority">
+        <option value="1" {% if info.priority == 'urgent' %}selected{% endif %}>Urgent</option>
+        <option value="3" {% if info.priority == 'important' %}selected{% endif %}>Important</option>
+        <option value="4" {% if info.priority == 'medium' %}selected{% endif %}>Medium</option>
+      </select>
+    </p>
+    
+    <p>
+      <label>Assign To:</label>
+      <input placeholder="Assign to..." type="text" name="send_to" id="send-to"/>
+      <input type="hidden" name="task_id" value="{{ info.uuid }}"/>
+    </p> 
+    <div class="popup-buttons">
+      <input type="submit" value="{% if action == 'new' %}Create{% else %}Update{% endif %}" class="button">
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% if type == "group" %}
+<div class="popup">
+  <h2><span class="title">{% if action == "edit" %}Edit{%else%}New{% endif %} Group</span></h2>
+  <form id="{% if action == 'new' %}new-group{% else %}edit-group{% endif %}" action="{% if action == 'new' %}/new?type=group{% else %}/edit?type=group{% endif %}" method="POST">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <p>
+      <label>Name:</label>
+      <input placeholder="Group name..." type="text" name="name" autofocus required value="{{ info.name }}" >
+    </p>
+    
+    <p>
+      <label>Members:</label>
+      <input id="members" placeholder="Members to join this group" name="members" type="text">
+    </p>
+    
+    <p>
+      <label>Privacy:</label>
+      <select class="button" name="priority">
+        <option value="Open" {% if info.privacy == 'Open' %}selected{% endif %}>Open</option>
+        <option value="Closed" {% if info.privacy == 'Closed' %}selected{% endif %}>Closed</option>
+        <option value="Secret" {% if info.privacy == 'Secret' %}selected{% endif %}>Secret</option>
+      </select>
+    </p>
+    
+    <div class="popup-buttons">
+      <input type="submit" value="{% if action == 'new' %}Create{% else %}Update{% endif %}" class="button">
+    </div>
+  </form>
+</div>
+{% endif %}

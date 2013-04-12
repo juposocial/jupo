@@ -1,0 +1,109 @@
+  <div id="page-header">
+    {% if event %}
+          <h2>Event</h2>
+    {% else %}
+          <h2>Create event</h2>
+    {% endif %}
+  </div>  
+  
+  <form id='new-event' action='{% if not event %}/event/new{% if group %}?group_id={{ group.id }}{% endif %}{% endif %}' method='post' class="new form">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+  <table>
+    <tbody>
+      <tr id='event'>
+        <td>
+        <p>
+          <label>Title:</label>
+          <input placeholder='What are you planning?' type="text" name="name" class='title' required {% if event %}readonly value="{{ event.name }}"{% endif %}/>
+          </p>
+          
+          <p>
+            <label>When:</label>
+            <input type='text' name='when' class='datetime' placeholder='Time' required {% if event %}readonly value="{{ event.when | friendly_format(owner.utcoffset) }}"{% endif %}><br>
+<!--             <label>&nbsp;</label> -->
+<!--             <input type='text' name='duration' placeholder='Duration (option)'> hours -->
+          </p>
+          
+          
+          {% if event and event.where %}
+          <p>          
+            <label>Where:</label>
+            <input type='text' name='where' placeholder='Location' value="{{ event.where }}" readonly>
+          </p>
+          {% else %}
+          <p>          
+            <label>Where:</label>
+            <input type='text' name='where' placeholder='Location'>
+          </p>
+          {% endif %}
+          
+          {% if event and event.details %}
+          <p>
+          <label>What:</label>
+          <textarea name='details' 
+                    placeholder='Details'
+                    title="Details">{{ event.details }}</textarea>
+          </p>
+          {% else %}
+          <p>
+          <label>What:</label>
+          <textarea name='details' 
+                    placeholder='Details'></textarea>
+          </p>
+          {% endif %}
+        </td>
+      </tr>
+            
+      <tr id='members'>
+        <td>
+      
+          <label>Who's Invited:</label>
+          
+          <input type='text' 
+                 name='viewers' 
+                 class='autocomplete'
+                 placeholder='Add people or group...' required>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  
+  {% if not event %}
+  <footer>  
+    <input type='submit' value="Create" class='button'>
+  </footer>
+  {% endif %}
+  
+  <script type='text/javascript'>
+  $(document).ready(function () {
+      {% if not event %}
+        {% if group %}
+          viewers =  [{name: "{{ group.name }}", id: "{{ group.id }}"}];
+        {% else %}
+          viewers = []
+        {% endif %}
+      {% else %}
+          viewers =  [{% for user in event.viewers %}
+                        {name: "{{ user.name }}", id: "{{ user.id }}"},
+                      {% endfor %}
+                      ];
+      {% endif %}
+      
+      $("input[name='viewers']").tokenInput('/autocomplete', {
+          searchDelay: 300,
+      preventDuplicates: true,  
+          queryParam: 'query',
+          hintText: 'Add people...',
+          animateDropdown: false,
+          allowEmail: true,
+          noResultsText: null,
+          searchingText: null,
+          resultsFormatter: function(item) {
+              return "<li><img class='" + item.type + "' src='" + item.avatar + "'>" + item.name + "</li>" 
+          },
+          prePopulate: viewers,
+       });
+  })
+  </script>
+
+</form>
