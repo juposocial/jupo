@@ -556,7 +556,7 @@
         <div class="body">
           <div class='intro'>
             {% if group.about %}
-              {{ group.about }}
+              {{ group.about | autolink | safe }}
               <br>
             
             {% elif group.id == 'public' %}
