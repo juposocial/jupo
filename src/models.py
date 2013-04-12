@@ -263,11 +263,13 @@ class User(Model):
   
   @property
   def email_name(self):
-    return self.email.split('@', 1)[0]
+    if '@' in self.email:
+      return self.email.split('@', 1)[0]
   
   @property
   def email_domain(self):
-    return self.email.split('@', 1)[1]
+    if '@' in self.email:
+      return self.email.split('@', 1)[1]
   
   @property
   def avatar(self):
