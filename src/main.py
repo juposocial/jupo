@@ -2328,7 +2328,7 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
         title = feed.details.name
         description = feed.details.size
       else:
-        if feed.message:
+        if feed.message and not isinstance(feed.message, dict):
           title = feed.message[:50] + '...'
         else:
           title = ''

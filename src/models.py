@@ -953,22 +953,22 @@ class Feed(Model):
               for attachment_id in self.info.get('attachments')]
   
   def is_task(self):
-    if self.info.get('priority') is not None:
+    if self.info and self.info.get('priority') is not None:
       return True
     return False
   
   def is_file(self):
-    if self.info.has_key('history') \
+    if self.info and self.info.has_key('history') \
       and self.info.get('history')[0].get('attachment_id'):
       return True
     return False
   
   def is_note(self):
-    if self.info.get('version'):
+    if self.info and self.info.get('version'):
       return True
     
   def is_event(self):
-    if self.info.get('when'):
+    if self.info and self.info.get('when'):
       return True
   
   def is_gitlab_commit(self):
@@ -979,7 +979,7 @@ class Feed(Model):
       return True
     
   def is_system_message(self):
-    if isinstance(self.info.get('message'), dict):
+    if self.info and isinstance(self.info.get('message'), dict):
       return True
   
   @property
