@@ -763,7 +763,6 @@ class Group(Model):
           if len(users) >= 5:
             break
     
-    users.reverse()
     return users
   
   def is_group(self):
