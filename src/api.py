@@ -528,42 +528,35 @@ def get_friend_suggestions(user_info):
   facebook_friend_ids = user_info.get('facebook_friend_ids', [])
   google_contacts = user_info.get('google_contacts', [])
   
-  key = 'friend_suggestions:%s:%s:%s' % (user_id, 
-                                         len(facebook_friend_ids), 
-                                         len(google_contacts))
+  contact_ids = user_info.get('contacts', [])
+
+  user_ids = set()
   
-  users = cache.get(key)
-  if not users:
-    contact_ids = user_info.get('contacts', [])
+  checklist = facebook_friend_ids
+  checklist.extend(google_contacts)
   
-    user_ids = set()
+  for i in checklist:
+    if '@' in i:
+      uid = get_user_id(email=i)
+    else:
+      uid = get_user_id(facebook_id=i)
     
-    checklist = facebook_friend_ids
-    checklist.extend(google_contacts)
+    if uid and uid not in contact_ids and uid != user_id:
+      user_ids.add(uid)
+  
+  user_ids = list(user_ids)
+  
+  shuffle(user_ids)
+  
+  users = []
+  for i in user_ids:
+    user = get_user_info(i)
+    if user.id not in contact_ids:
+      users.append(user)
+      if len(users) >= 5:
+        break
+  
     
-    for i in checklist:
-      if '@' in i:
-        uid = get_user_id(email=i)
-      else:
-        uid = get_user_id(facebook_id=i)
-      
-      if uid and uid not in contact_ids and uid != user_id:
-        user_ids.add(uid)
-    
-    user_ids = list(user_ids)
-    
-    shuffle(user_ids)
-    
-    users = []
-    for i in user_ids:
-      user = get_user_info(i)
-      if user.id not in contact_ids:
-        users.append(user)
-        if len(users) >= 5:
-          break
-    
-    cache.set(key, users)
-      
   return users
   
   
@@ -575,8 +568,9 @@ def get_user_id(session_id=None, facebook_id=None, email=None):
   if not session_id and not facebook_id and not email:
     return None
   
-  key = '%s:uid' \
-      % (session_id if session_id else facebook_id if facebook_id else email)
+  key = '%s:%s:uid' \
+      % (db_name, session_id if session_id \
+                             else facebook_id if facebook_id else email)
   user_id = cache.get(key)
   if user_id:
     return user_id

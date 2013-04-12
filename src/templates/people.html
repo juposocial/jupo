@@ -114,7 +114,7 @@
 
 
 {% autoescape on %}  
-  {% cache "suggested_friends:%s:%s" % (owner.id, owner.contact_ids | length), 3600 %}
+  {% cache "suggested_friends:%s:%s" % (owner.id, owner.contact_ids | length), 86400 %}
     {% include "suggested_friends.html" %}
   {% endcache %}
 {% endautoescape %}

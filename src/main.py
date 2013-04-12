@@ -107,7 +107,7 @@ def render_homepage(session_id, title, **kwargs):
       group.unread_posts = api.get_unread_posts_count(session_id, group.id)
     
     unread_notification_count = api.get_unread_notifications_count(session_id)
-  
+    
   else:
     friends_online = []
     groups = []
@@ -1461,16 +1461,19 @@ def contacts():
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
   owner = api.get_owner_info(session_id)
+  suggested_friends = api.get_friend_suggestions(owner.to_dict())
   coworkers = api.get_coworkers(session_id)
   groups = api.get_groups(session_id)
 
   if request.method == 'GET':
     return render_homepage(session_id, 'Contacts',
+                           suggested_friends=suggested_friends,
                            coworkers=coworkers,
                            view='people')
   else:
     body = render_template('people.html',
                            groups=groups, 
+                           suggested_friends=suggested_friends,
                            coworkers=coworkers,
                            owner=owner)
     resp = Response(dumps({'body': body,
@@ -2022,8 +2025,10 @@ def news_feed(page=1):
     
   notification_count = api.get_unread_notifications_count(session_id)
   owner = api.get_owner_info(session_id)
+  suggested_friends = api.get_friend_suggestions(owner.to_dict())
+
   coworkers = api.get_coworkers(session_id)
-  reminders = api.get_reminders(session_id)
+#  reminders = api.get_reminders(session_id)
     
   browser = api.Browser(request.headers.get('User-Agent'))
   
@@ -2062,7 +2067,7 @@ def news_feed(page=1):
                              email_addresses=email_addrs,
                              category=category,
                              coworkers=coworkers,
-                             reminders=reminders,
+                             suggested_friends=suggested_friends,
                              pinned_posts=pinned_posts,
                              feeds=feeds)
       
@@ -2082,7 +2087,7 @@ def news_feed(page=1):
                            category=category,
                            email_addresses=api.get_email_addresses(session_id),
                            pinned_posts=pinned_posts,
-                           reminders=reminders,
+                           suggested_friends=suggested_friends,
                            feeds=feeds)
     
     resp.set_cookie('new_user', "0")

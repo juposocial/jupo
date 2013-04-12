@@ -421,10 +421,6 @@ class User(Model):
     return self.info.get('fb_request_sent')
   
   @property
-  def suggested_users(self):
-    return api.get_friend_suggestions(self.info)
-  
-  @property
   def google_contacts(self):
     return [User({'_id': api.get_user_id_from_email_address(email),
                   'email': email}) for email in self.info.get('google_contacts', [])]
