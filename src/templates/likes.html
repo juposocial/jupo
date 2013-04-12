@@ -16,9 +16,7 @@
   {% else %}
   
     <a href='/user/{{ likes[0].id }}' 
-       class='async' title='{{ likes[0].timestamp | friendly_format(owner.utcoffset, short=True) }}'>
-       {% if likes[0].id == owner.id %}you{% else %}{{ likes[0].name }}{% endif %}
-    </a> 
+       class='async' title='{{ likes[0].timestamp | friendly_format(owner.utcoffset, short=True) }}'>{% if likes[0].id == owner.id %}you{% else %}{{ likes[0].name }}{% endif %}</a> 
     
     and 
     
@@ -28,8 +26,13 @@
   
   {% endif %}
   
-            
-  likes this.
+  {% if likes_count == 1 %}          
+    likes
+  {% else %}
+    like
+  {% endif %}
+  
+  this.
 </li>
 
 {% endif %}

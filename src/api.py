@@ -4772,8 +4772,13 @@ def publish(user_id, event_type, info=None):
                                                'text': text}}))
       
   elif event_type == 'like-comment':
-    msg = '%s likes this.' % (', '.join([user.name for user in info['likes']]))
     likes_count = len(info['likes'])
+    
+    if likes_count == 1:
+      msg = '%s likes this.' % (info['likes'][0].user.name)
+    else:
+      msg = '%s like this.' % (', '.join([user.name for user in info['likes']]))
+      
     
     channel_id = get_session_id(user_id)
     PUBSUB.publish(channel_id, dumps({'type': event_type,
