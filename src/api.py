@@ -2578,16 +2578,16 @@ def get_user_posts(session_id, user_id, page=1):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
+  user_id = long(user_id)
   owner_id = get_user_id(session_id)
   groups_list_1 = get_group_ids(owner_id)
   groups_list_2 = get_group_ids(user_id)
   viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
+  viewers.append('public')
 
-  feeds = db.stream.find({'$or': [{'owner': long(user_id), 'viewers': 'public'},
-                                        {'viewers': {'$in': viewers}},
-                                        {'viewers': {'$all': [owner_id, 
-                                                              user_id]}}],
-                                'is_removed': {'$exists': False}})\
+  feeds = db.stream.find({'owner': user_id, 
+                          'viewers': {'$in': viewers},
+                          'is_removed': {'$exists': False}})\
                          .sort('last_updated', -1)\
                          .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                          .limit(settings.ITEMS_PER_PAGE)
@@ -2598,21 +2598,21 @@ def get_user_notes(session_id, user_id, limit=3):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
+  user_id = long(user_id)
   owner_id = get_user_id(session_id)
   if not owner_id:
     return []
   groups_list_1 = get_group_ids(owner_id)
   groups_list_2 = get_group_ids(user_id)
   viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
+  viewers.append('public')
 
-  notes = db.stream.find({'$or': [{'owner': long(user_id), 'viewers': 'public'},
-                                        {'viewers': {'$in': viewers}},
-                                        {'viewers': {'$all': [owner_id, 
-                                                              user_id]}}],
-                                'version': {'$exists': True},
-                                'is_removed': {'$exists': False}})\
+  notes = db.stream.find({'owner': user_id, 
+                          'viewers': {'$in': viewers},
+                          'version': {'$exists': True},
+                          'is_removed': {'$exists': False}})\
                          .sort('last_updated', -1)\
-                         .limit(limit)
+                         .limit(limit)                    
                                         
   return [Note(i) for i in notes if i]
 
@@ -2621,19 +2621,19 @@ def get_user_files(session_id, user_id, limit=3):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
+  user_id = long(user_id)
   owner_id = get_user_id(session_id)
   if not owner_id:
     return []
   groups_list_1 = get_group_ids(owner_id)
   groups_list_2 = get_group_ids(user_id)
   viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
+  viewers.append('public')
 
-  files = db.stream.find({'$or': [{'owner': long(user_id), 'viewers': 'public'},
-                                        {'viewers': {'$in': viewers}},
-                                        {'viewers': {'$all': [owner_id, 
-                                                              user_id]}}],
-                                'history.attachment_id': {'$exists': True},
-                                'is_removed': {'$exists': False}})\
+  files = db.stream.find({'owner': user_id, 
+                          'viewers': {'$in': viewers},
+                          'history.attachment_id': {'$exists': True},
+                          'is_removed': {'$exists': False}})\
                          .sort('last_updated', -1)\
                          .limit(limit)
                                         
