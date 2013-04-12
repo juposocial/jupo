@@ -112,7 +112,6 @@ send_mail_queue = Queue('send_mail')
 move_to_s3_queue = Queue('move_to_s3')
 
 
-
 def send_mail(to_addresses, subject=None, body=None, mail_type=None, 
               user_id=None, post=None, db_name=None, **kwargs):
   if not settings.SMTP_HOST:
@@ -4947,6 +4946,27 @@ def get_liked_user_ids(item_id):
   
 
 
+def ensure_index(db_name=None):
+  db = DATABASE[db_name]
+  
+  db.owner.ensure_index('session_id', background=True)
+  db.owner.ensure_index('email', background=True)
+  db.owner.ensure_index('name', background=True)
+  db.owner.ensure_index('members', background=True)
+  db.notification.ensure_index('receiver', background=True)
+  db.notification.ensure_index('is_unread', background=True)
+  db.notification.ensure_index('timestamp', background=True)
+  
+  db.stream.ensure_index('viewers', background=True)
+  db.stream.ensure_index('last_updated', background=True)
+  db.stream.ensure_index('archived_by', background=True)
+  db.stream.ensure_index('is_removed', background=True)
+  
+  db.url.ensure_index('url', background=True)
+  db.spelling_suggestion.ensure_index('keyword', background=True)
+  return True
+
+
 def add_db_name(email, db_name):
   email = email.lower().strip()
   db_name = db_name.lower().strip()
@@ -4969,6 +4989,7 @@ def new_network(db_name, organization_name, description=None):
   DATABASE[db_name].info.insert({'name': organization_name,
                                  'description': description,
                                  'timestamp': utctime()})
+  ensure_index(db_name)
   return True
 
 
