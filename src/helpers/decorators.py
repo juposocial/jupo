@@ -9,22 +9,22 @@ import api
 
 
 def login_required(f):
-    """
-    redirects to the home page if the user has no session
-    """
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-      session_id = session.get('session_id')
-      if api.get_user_id(session_id):
-        return f(*args, **kwargs)
-      resp = redirect('/')
-      back_to = request.args.get('back_to')
-      if back_to:
-        resp.set_cookie('redirect_to', back_to)
-      else:
-        resp.set_cookie('redirect_to', request.url)
-      return resp
-    return wrapper
+  """
+  redirects to the home page if the user has no session
+  """
+  @wraps(f)
+  def wrapper(*args, **kwargs):
+    session_id = session.get('session_id')
+    if api.get_user_id(session_id):
+      return f(*args, **kwargs)
+    resp = redirect('/')
+    back_to = request.args.get('back_to')
+    if back_to:
+      resp.set_cookie('redirect_to', back_to)
+    else:
+      resp.set_cookie('redirect_to', request.url)
+    return resp
+  return wrapper
   
   
 def cache_response(f):

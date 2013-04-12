@@ -5,6 +5,7 @@ import settings
 
 MEMCACHED = Client(settings.MEMCACHED_SERVERS)
 
+
 def _get_version(namespace):
   key = str(namespace)
   version = MEMCACHED.get(key)
@@ -12,6 +13,7 @@ def _get_version(namespace):
     version = 1
     MEMCACHED.set(key, 1)
   return version
+
 
 def set(key, value, expire=3600, namespace=None):
   if namespace:
@@ -25,6 +27,7 @@ def set(key, value, expire=3600, namespace=None):
     MEMCACHED.set(key, value)
   return True
 
+
 def get(key, namespace=None):
   if namespace:
     version = _get_version(namespace)
@@ -33,9 +36,11 @@ def get(key, namespace=None):
     key = md5(key).hexdigest()
   return MEMCACHED.get(key)
 
+
 def clear(namespace):
   MEMCACHED.incr(str(namespace))
   return True
+
 
 def delete(key):
   key = md5(key).hexdigest()
