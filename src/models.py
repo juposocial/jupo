@@ -255,7 +255,7 @@ class User(Model):
   
   @property
   def name(self):
-    return self.info.get('name') if self.info.has_key('name') else self.email
+    return self.info.get('name') if self.info.get('name') else self.email
   
   @property
   def email(self):
