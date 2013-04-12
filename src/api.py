@@ -194,7 +194,9 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       msg['Reply-To'] = Header(reply_to, "utf-8")
       
     MAIL = SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
-    MAIL.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+    if settings.SMTP_PASSWORD:
+      MAIL.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+    
     MAIL.sendmail(settings.SMTP_SENDER, 
                   to_addresses, msg.as_string()) 
     MAIL.quit()
