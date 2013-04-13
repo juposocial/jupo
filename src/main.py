@@ -68,25 +68,6 @@ if settings.SENTRY_DSN:
 csrf = SeaSurf(app)
 oauth = OAuth()
 
-facebook = oauth.remote_app('facebook',
-    base_url='https://graph.facebook.com/',
-    request_token_url=None,
-    access_token_url='/oauth/access_token',
-    authorize_url='https://www.facebook.com/dialog/oauth',
-    consumer_key=settings.FACEBOOK_APP_ID,
-    consumer_secret=settings.FACEBOOK_APP_SECRET,
-    request_token_params={'scope': 'email'}
-)
-
-twitter = oauth.remote_app('twitter',
-    base_url='http://api.twitter.com/1/',
-    request_token_url='http://api.twitter.com/oauth/request_token',
-    access_token_url='http://api.twitter.com/oauth/access_token',
-    authorize_url='http://api.twitter.com/oauth/authenticate',
-    consumer_key='bzGP5UsngddWkDxJP59yng',
-    consumer_secret='jFn6xw4DamxRpsvlSBzZvzkJUcUA6Rc8sJh521sUSk'
-)
-
 
 def render_homepage(session_id, title, **kwargs):  
   """ Render homepage for signed in user """
@@ -826,10 +807,29 @@ def google_authorized():
     url = 'http://%s/?session_id=%s' % (domain, session_id)
     resp = redirect(url)
     return resp
+  
+  
+  
+  
+  
     
-
+if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
+  facebook = oauth.remote_app('facebook',
+      base_url='https://graph.facebook.com/',
+      request_token_url=None,
+      access_token_url='/oauth/access_token',
+      authorize_url='https://www.facebook.com/dialog/oauth',
+      consumer_key=settings.FACEBOOK_APP_ID,
+      consumer_secret=settings.FACEBOOK_APP_SECRET,
+      request_token_params={'scope': 'email'}
+  )
+else:
+  facebook = None
+  
 @app.route('/oauth/facebook')
 def facebook_login():
+  if not facebook:
+    abort(501)
 #  return facebook.authorize(callback='http://play.jupo.com/oauth/facebook/authorized')
   callback_url = url_for('facebook_authorized',
                          domain=request.args.get('domain', settings.PRIMARY_DOMAIN),
@@ -898,39 +898,6 @@ def facebook_authorized(resp):
 def get_facebook_token():
   return session.get('facebook_access_token') 
 
-
-@app.route('/oauth/twitter')
-def twitter_login():
-    """Calling into authorize will cause the OpenID auth machinery to kick
-    in.  When all worked out as expected, the remote application will
-    redirect back to the callback URL provided.
-    """
-    return twitter.authorize(callback=url_for('twitter_authorized'))
-    
-@app.route('/oauth/twitter/authorized')
-@twitter.authorized_handler
-def twitter_authorized(resp):
-  app.logger.debug(resp)
-  next_url = '/'
-  if resp is None:
-      flash(u'You denied the request to sign in.')
-      return redirect('/')
-
-#  oauth_token = request.args.get('oauth_token')
-#  oauth_verifier = request.args.get('oauth_verifier')
-  user_id = resp.get('user_id')
-  oauth_token = resp.get('oauth_token')
-  oauth_token_secret = resp.get('oauth_token_secret')
-  screen_name = resp.get('screen_name')
-  
-  session['oauth_token'] = (oauth_token, oauth_token_secret)
-  resp = requests.get('https://api.twitter.com/1/users/show.json?screen_name=%s&include_entities=true' % screen_name)
-  return resp.text
-  
-
-@twitter.tokengetter
-def get_twitter_token():
-  return session.get('oauth_token')
   
 
 @app.route('/reminders', methods=['GET', 'OPTIONS', 'POST'])
