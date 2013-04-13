@@ -34,7 +34,7 @@ from urllib2 import urlopen
 from simplejson import dumps
 from datetime import datetime
 from httplib import CannotSendRequest
-from pyelasticsearch import ElasticSearch
+from pyelasticsearch import ElasticSearch, ElasticHttpNotFoundError
 from diff_match_patch import diff_match_patch
 
 from lib import cache
@@ -122,7 +122,7 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     return False
 
   if mail_type == 'thanks':    
-    subject = 'Thanks for Joining the 5works Waiting List'
+    subject = 'Thanks for Joining the Jupo Waiting List'
     template = app.CURRENT_APP.jinja_env.get_template('email/thanks.html')
     body = template.render()
     
@@ -137,12 +137,12 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = template.render(**kwargs)
     
   elif mail_type == 'forgot_password':
-    subject = 'Reset your 5works password'
+    subject = 'Reset your Jupo password'
     template = app.CURRENT_APP.jinja_env.get_template('email/reset_password.html')
     body = template.render(email=to_addresses, **kwargs)
     
   elif mail_type == 'welcome':
-    subject = 'Welcome to 5works!'
+    subject = 'Welcome to Jupo!'
     body = None
     
   elif mail_type == 'new_post':
@@ -1094,8 +1094,8 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
   new_reminder(session_id, 'Hover over me and click anywhere on this line to check me off as done')
 
   # add user to "Welcome to 5works" group
-  db.owner.update({'_id': 340916998231818241}, 
-                        {'$addToSet':{'members': info['_id']}})
+#  db.owner.update({'_id': 340916998231818241}, 
+#                        {'$addToSet':{'members': info['_id']}})
 
   return session_id
 
@@ -4525,23 +4525,32 @@ def regex_search(query):
   items = [Result(i, raw_query) for i in items]
   return items
 
-def add_index(_id, content, viewers, _type='post'):
+def add_index(_id, content, viewers, type_='post', db_name=None):
+  if isinstance(content, dict): # system messages
+    return False 
+  
+  if not viewers:
+    return False
+  
+  if not _id:
+    return False
+  
+  if not db_name:
+    db_name = get_database_name()
+  
   viewers = ' '.join([str(i) for i in set(viewers)])
   info = {'content': content,
           'viewers': viewers,
           'comments': '',
           'ts': utctime(),
-          'type': _type,
+          'type': type_,
           'id': str(_id)}
-  for __ in xrange(5):
-    try:
-      es.index(info, "5works-index", 'doc')
-      es.refresh(["5works-index"])
-      return True
-    except CannotSendRequest:
-      continue
+  es.index(db_name, 'doc', info)
+  es.refresh(db_name)
+  return True
 
 def update_viewers(_id, viewers):
+  db_name = get_database_name()
   query = 'id:%s' % _id
   result = es.search(query)
   hits = result.get('hits').get('hits')   # pylint: disable-msg=E1103
@@ -4558,14 +4567,15 @@ def update_viewers(_id, viewers):
     
     for __ in xrange(5):
       try:
-        es.index(info, '5works-index', 'doc', index_id)
-        es.refresh(["5works-index"])
+        es.index(db_name, 'doc', info, index_id)
+        es.refresh(db_name)
         return True
       except CannotSendRequest:
         continue
   
 
 def update_index(_id, content, viewers, is_comment=False):
+  db_name = get_database_name()
   if viewers is None:
     viewers = []
   if isinstance(viewers, str) or isinstance(viewers, unicode):
@@ -4593,8 +4603,8 @@ def update_index(_id, content, viewers, is_comment=False):
               'id': str(_id)}
     for __ in xrange(5):
       try:
-        es.index(info, '5works-index', 'doc', index_id)
-        es.refresh(["5works-index"])
+        es.index(db_name, 'doc', info, index_id)
+        es.refresh(db_name)
         return True
       except CannotSendRequest:
         continue
@@ -4621,7 +4631,9 @@ def people_search(query, group_id=None, db_name=None):
   return [User(i) for i in users]
 
 
-def search(session_id, query, type=None, user=None, page=1):
+def search(session_id, query, type=None, ref_user_id=None, page=1):
+  db_name = get_database_name()
+  
   hashtag_id = None
   if query.startswith('#'):
     hashtag_id = query.lstrip('#').lower()
@@ -4631,8 +4643,8 @@ def search(session_id, query, type=None, user=None, page=1):
   if not user_id:
     user_id = 'public'
   
-  if user:
-    viewers = '(viewers:%s) AND (viewers:%s)' % (user_id, user)
+  if ref_user_id:
+    viewers = '(viewers:%s) AND (viewers:%s)' % (user_id, ref_user_id)
   else:
     if user_id != 'public':
       group_ids = get_group_ids(user_id)
@@ -4652,6 +4664,7 @@ def search(session_id, query, type=None, user=None, page=1):
   if type:
     query += ' AND type:%s' % type 
   
+  print query
   query_dsl =  {}
 
   query_dsl['query'] = {"query_string": {"query": query}}
@@ -4662,14 +4675,10 @@ def search(session_id, query, type=None, user=None, page=1):
                        "_score"]
   query_dsl["facets"] = {"counters": {"terms": {"field" : "type"}}}
       
-  # retry if error
-  result = None
-  for _ in xrange(5):
-    try:
-      result = es.search(query=None, body=query_dsl, indexes=['5works-index'])
-      break
-    except CannotSendRequest:
-      continue
+  try:
+    result = es.search(query=query_dsl, index=db_name)
+  except ElasticHttpNotFoundError:
+    return None
   
 
   if result and result.has_key('hits'): # pylint: disable-msg=E1103

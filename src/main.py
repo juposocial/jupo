@@ -262,6 +262,7 @@ def search():
   query = request.form.get('query', request.args.get('query', '')).strip()
   item_type = request.args.get('type')
   page = int(request.args.get('page', 1))
+  ref_user_id = request.args.get('user')
     
   if item_type in ['people', 'email']: 
     user_id = api.get_user_id(session_id)
@@ -284,22 +285,28 @@ def search():
         if item_type == 'people':
           users = api.people_search(query, group_id)
           if users:
-            users = [i for i in users if i.id not in owner.contact_ids and i.id != owner.id][:5]
+            users = [i for i in users \
+                     if i.id not in owner.contact_ids and i.id != owner.id][:5]
           else:
-            users = [i for i in api.get_coworkers(session_id) if i.id not in group.member_ids and i.id != owner.id][:5]
+            users = [i for i in api.get_coworkers(session_id) \
+                     if i.id not in group.member_ids and i.id != owner.id][:5]
         else:
-          users = [i for i in owner.google_contacts if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
+          users = [i for i in owner.google_contacts \
+                   if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
           
       elif group_id:
         if item_type == 'email':
-          users = [i for i in owner.google_contacts if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
+          users = [i for i in owner.google_contacts \
+                   if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
         else:
-          users = [i for i in api.get_coworkers(session_id) if i.id not in group.member_ids and i.id != owner.id][:5]
+          users = [i for i in api.get_coworkers(session_id) \
+                   if i.id not in group.member_ids and i.id != owner.id][:5]
       else:
         if item_type == 'email':
           users = [i for i in owner.google_contacts][:5]
         else:
-          users = [i for i in api.get_coworkers(session_id) if i.id not in owner.contact_ids and i.id != owner.id][:5]
+          users = [i for i in api.get_coworkers(session_id) \
+                   if i.id not in owner.contact_ids and i.id != owner.id][:5]
       return dumps({'title': title,
                     'body': render_template('people_search.html',
                                             title=title, 
@@ -318,9 +325,11 @@ def search():
           new_user = None
       else:
         q = query.lower()
-        users = [i for i in owner.google_contacts if i.email.lower().startswith(q)]
+        users = [i for i in owner.google_contacts \
+                 if i.email.lower().startswith(q)]
         
-        if '@' in query and query.lower().strip() not in owner.to_dict().get('google_contacts'):
+        if '@' in query \
+        and query.lower().strip() not in owner.to_dict().get('google_contacts'):
           new_user = api.User({'email': query})
         else:
           new_user = None
@@ -348,7 +357,8 @@ def search():
                                      title=title) for user in users)
       
   # search posts
-  results = api.search(session_id, query, item_type, user=user, page=page)
+  results = api.search(session_id, query, item_type, 
+                       ref_user_id=ref_user_id, page=page)
   if results and results.has_key('counters'):
     hits = results.get('hits', 0)
     total = sum([i['count'] for i in results.get('counters')])
@@ -2826,9 +2836,9 @@ if __name__ == "__main__":
     
     
   except (IndexError, TypeError): # dev only
-    f = open('/var/log/jupo/profiler.log', 'w')
-    stream = MergeStream(sys.stdout, f)
-    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, stream)
+#    f = open('/var/log/jupo/profiler.log', 'w')
+#    stream = MergeStream(sys.stdout, f)
+#    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, stream)
     
     @werkzeug.serving.run_with_reloader
     def gevent_auto_reloader():  

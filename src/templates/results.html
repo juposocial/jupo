@@ -61,23 +61,23 @@
       <div class="body">
         <ul>
           
-          {#
             <li {% if user == 'public' %}class='current'{% endif %}>
               <a href='/search?query={{ query }}{% if type %}&type={{ type }}{% endif %}&user=public' class='overlay'>
               <img class='small-avatar lfloat' src='http://Jupo.s3.amazonaws.com/images/user2.png' />
-                <strong>Public</strong><br>
+                <div class="title">Everyone</div>
                 &nbsp;
               </a>
             </li>
-            #}
+            
         {% for u in coworkers[:10] %}
           {% if u.id != owner.id %}
             <li {% if "%s" | format(u.id) == user %}class='current'{% endif %}>
               <a href='/search?query={{ query }}{% if type %}&type={{ type }}{% endif %}&user={{ u.id }}' class='overlay'>
               <img class='small-avatar lfloat' src='{{ u.avatar }}' />
-                {{ u.name }}<br>
+                <div class="title">{{ u.name }}</div>
                 &nbsp;
               </a>
+              
             </li>
           {% endif %}
         {% endfor %}
@@ -87,6 +87,7 @@
 </div>
 {% endif %}
 
+<script type='text/javascript' src='/public/scripts/jquery.highlight.js'></script>
 <script>
 $('document').ready(function(e) {
     $('div#overlay article').highlight('{{ query }}');
