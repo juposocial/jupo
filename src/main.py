@@ -823,81 +823,79 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
       consumer_secret=settings.FACEBOOK_APP_SECRET,
       request_token_params={'scope': 'email'}
   )
-else:
-  facebook = None
   
-@app.route('/oauth/facebook')
-def facebook_login():
-  if not facebook:
-    abort(501)
-#  return facebook.authorize(callback='http://play.jupo.com/oauth/facebook/authorized')
-  callback_url = url_for('facebook_authorized',
-                         domain=request.args.get('domain', settings.PRIMARY_DOMAIN),
-                         _external=True)
-  app.logger.debug(callback_url)
-  return facebook.authorize(callback=callback_url)
-
-
-
-@app.route('/oauth/facebook/authorized')
-@facebook.authorized_handler
-def facebook_authorized(resp):
-  domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+  @app.route('/oauth/facebook')
+  def facebook_login():
+    if not facebook:
+      abort(501)
+  #  return facebook.authorize(callback='http://play.jupo.com/oauth/facebook/authorized')
+    callback_url = url_for('facebook_authorized',
+                           domain=request.args.get('domain', settings.PRIMARY_DOMAIN),
+                           _external=True)
+    app.logger.debug(callback_url)
+    return facebook.authorize(callback=callback_url)
   
-  if resp is None:
-    return 'Access denied: reason=%s error=%s' % (request.args['error_reason'],
-                                                  request.args['error_description'])
-  session['facebook_access_token'] = (resp['access_token'], '')
   
-  if request.args.get('fb_source') == 'notification':
-    return redirect('/')
   
-  retry_count = 0
-  while retry_count < 3:
-    try:
-      me = facebook.get('/me')
-      break
-    except:
-      retry_count += 1
-      sleep(1)
-      
-  retry_count = 0
-  while retry_count < 3:    
-    try:
-      friends = facebook.get('/me/friends?limit=5000')
-      break
-    except:
-      retry_count += 1
-      sleep(1)
+  @app.route('/oauth/facebook/authorized')
+  @facebook.authorized_handler
+  def facebook_authorized(resp):
+    domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+    
+    if resp is None:
+      return 'Access denied: reason=%s error=%s' % (request.args['error_reason'],
+                                                    request.args['error_description'])
+    session['facebook_access_token'] = (resp['access_token'], '')
+    
+    if request.args.get('fb_source') == 'notification':
+      return redirect('/')
+    
+    retry_count = 0
+    while retry_count < 3:
+      try:
+        me = facebook.get('/me')
+        break
+      except:
+        retry_count += 1
+        sleep(1)
+        
+    retry_count = 0
+    while retry_count < 3:    
+      try:
+        friends = facebook.get('/me/friends?limit=5000')
+        break
+      except:
+        retry_count += 1
+        sleep(1)
+    
+    facebook_id = me.data['id']
+    friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
   
-  facebook_id = me.data['id']
-  friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
-
-  db_name = domain.lower().strip().replace('.', '_')
-  session_id = api.sign_in_with_facebook(email=me.data.get('email'), 
-                                         name=me.data.get('name'), 
-                                         gender=me.data.get('gender'), 
-                                         avatar='https://graph.facebook.com/%s/picture' % facebook_id, 
-                                         link=me.data.get('link'), 
-                                         locale=me.data.get('locale'), 
-                                         timezone=me.data.get('timezone'), 
-                                         verified=me.data.get('verified'), 
-                                         facebook_id=facebook_id,
-                                         facebook_friend_ids=friend_ids,
-                                         db_name=db_name)
-  if domain == settings.PRIMARY_DOMAIN:
-    session['session_id'] = session_id
-    return redirect('/')
-  else:
-    url = 'http://%s/?session_id=%s' % (domain, session_id)
-    resp = redirect(url)
-    return resp
-
-
-@facebook.tokengetter
-def get_facebook_token():
-  return session.get('facebook_access_token') 
-
+    db_name = domain.lower().strip().replace('.', '_')
+    session_id = api.sign_in_with_facebook(email=me.data.get('email'), 
+                                           name=me.data.get('name'), 
+                                           gender=me.data.get('gender'), 
+                                           avatar='https://graph.facebook.com/%s/picture' % facebook_id, 
+                                           link=me.data.get('link'), 
+                                           locale=me.data.get('locale'), 
+                                           timezone=me.data.get('timezone'), 
+                                           verified=me.data.get('verified'), 
+                                           facebook_id=facebook_id,
+                                           facebook_friend_ids=friend_ids,
+                                           db_name=db_name)
+    if domain == settings.PRIMARY_DOMAIN:
+      session['session_id'] = session_id
+      return redirect('/')
+    else:
+      url = 'http://%s/?session_id=%s' % (domain, session_id)
+      resp = redirect(url)
+      return resp
+  
+  
+  @facebook.tokengetter
+  def get_facebook_token():
+    return session.get('facebook_access_token') 
+  
   
 
 @app.route('/reminders', methods=['GET', 'OPTIONS', 'POST'])
