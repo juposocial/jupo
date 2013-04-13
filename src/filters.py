@@ -575,6 +575,8 @@ def clean(text):
   if not text:
     return ''
   
+  text = str(text)
+  
 #  key = '%s:clean' % hash(text)
 #  out = cache.get(key, namespace="filters")
 #  if out:
