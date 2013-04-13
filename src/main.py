@@ -329,13 +329,16 @@ def search():
         users.insert(0, new_user)
         users = users[:5]
         
-      return ''.join(render_template('user.html', 
-                                     mode='search', 
-                                     user=user, 
-                                     group_id=group_id,
-                                     query=query,
-                                     owner=owner,
-                                     title=title) for user in users)
+      if users:
+        return ''.join(render_template('user.html', 
+                                       mode='search', 
+                                       user=user, 
+                                       group_id=group_id,
+                                       query=query,
+                                       owner=owner,
+                                       title=title) for user in users)
+      else:
+        return ''
       
   # search posts
   results = api.search(session_id, query, item_type, 

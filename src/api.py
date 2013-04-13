@@ -4471,6 +4471,9 @@ def is_public(group_id):
 
 
 def get_group_info(session_id, group_id):
+  if not group_id:
+    return Group({})
+  
   db_name = get_database_name()
   db = DATABASE[db_name]
   
@@ -4482,7 +4485,7 @@ def get_group_info(session_id, group_id):
     
   user_id = get_user_id(session_id)
   info = db.owner.find_one({"_id": long(group_id), 
-                                  'members': user_id})
+                            'members': user_id})
   if not info:
     info = db.owner.find_one({'_id': long(group_id),
                                     'privacy': {'$in': ['open', 'closed']}})

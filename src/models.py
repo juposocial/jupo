@@ -234,7 +234,7 @@ class Model:
     return False
   
   def is_email(self):
-    if self.info.has_key('message_id'):
+    if self.info and self.info.has_key('message_id'):
       return True
   
   def to_dict(self):
