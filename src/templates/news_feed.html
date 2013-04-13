@@ -236,7 +236,7 @@
         <div class="title">Last Activities</div>
       </div>
       <div class="body" id='owners'>
-      {% cache "last_activities:%s:%s" % (owner.id, coworkers[0].last_online) %}  
+      {% cache "last_activities:%s:%s" % (owner.id, coworkers[1].last_online) %}  
         <ul>
         {% for user in coworkers[:5] %}
           <li>

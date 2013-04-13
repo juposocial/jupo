@@ -1988,19 +1988,10 @@ def news_feed(page=1):
                           include_archived_posts=False)
     category = None
     
-  pinned_posts = api.get_pinned_posts(session_id) \
-                 if filter == 'default' else None
   
   app.logger.info('query: %.2f' % (api.utctime() - t0))
     
-#  notification_count = api.get_unread_notifications_count(session_id)
   owner = api.get_owner_info(session_id)
-  suggested_friends = api.get_friend_suggestions(owner.to_dict())
-
-  coworkers = api.get_coworkers(session_id)
-#  reminders = api.get_reminders(session_id)
-    
-  browser = api.Browser(request.headers.get('User-Agent'))
   
   if request.method == "OPTIONS":
     if page > 1:
@@ -2023,9 +2014,11 @@ def news_feed(page=1):
     else:
       t0 = api.utctime()
       
-#      owner.recent_notes = api.get_notes(session_id, limit=3)
-#      owner.recent_files = api.get_files(session_id, limit=3)
-      
+      pinned_posts = api.get_pinned_posts(session_id) \
+                     if filter == 'default' else None
+      suggested_friends = api.get_friend_suggestions(owner.to_dict())
+      coworkers = api.get_coworkers(session_id)
+      browser = api.Browser(request.headers.get('User-Agent'))
       email_addrs = [] # api.get_email_addresses(session_id)
       
       body = render_template('news_feed.html', 
@@ -2048,7 +2041,13 @@ def news_feed(page=1):
       
       app.logger.info('render: %.2f' % (api.utctime() - t0))
       
-  else:
+  else:  
+    pinned_posts = api.get_pinned_posts(session_id) \
+                   if filter == 'default' else None
+    suggested_friends = api.get_friend_suggestions(owner.to_dict())
+    coworkers = api.get_coworkers(session_id)
+    browser = api.Browser(request.headers.get('User-Agent'))
+    
     resp = render_homepage(session_id, title,
                            view=view,
                            coworkers=coworkers,
