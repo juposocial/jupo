@@ -2636,7 +2636,7 @@ def change_status():
 def notifications():
   session_id = session.get("session_id")
     
-  notifications = api.get_all_notifications(session_id)
+  notifications = api.get_notifications(session_id)
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
@@ -2646,13 +2646,16 @@ def notifications():
     resp = {'body': body,
             'title': 'Notifications'}
     
-    #  mark as read luôn các notifications không quan trọng
-    api.mark_notification_as_read(session_id, type='like')
-    api.mark_notification_as_read(session_id, type='add_contact')
-    api.mark_notification_as_read(session_id, type='google_friend_just_joined')
-    api.mark_notification_as_read(session_id, type='facebook_friend_just_joined')
+    unread_count = api.get_unread_notifications_count(session_id)
     
-    resp['unread_notifications_count'] = api.get_unread_notifications_count(session_id)
+    if unread_count:
+      #  mark as read luôn các notifications không quan trọng
+      api.mark_notification_as_read(session_id, type='like')
+      api.mark_notification_as_read(session_id, type='add_contact')
+      api.mark_notification_as_read(session_id, type='google_friend_just_joined')
+      api.mark_notification_as_read(session_id, type='facebook_friend_just_joined')
+      
+    resp['unread_notifications_count'] = unread_count
     return dumps(resp)
   else:
     return render_homepage(session_id, 'Notifications',

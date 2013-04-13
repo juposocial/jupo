@@ -1626,14 +1626,14 @@ def get_unread_notifications(session_id):
       
   return results
   
-def get_all_notifications(session_id):
+def get_notifications(session_id, limit=25):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
   notifications = db.notification.find({'receiver': user_id})\
                                        .sort('timestamp', -1)\
-                                       .limit(50)
+                                       .limit(limit)
 
   offset = get_utcoffset(user_id)
   notifications = [Notification(i, offset) for i in notifications]
