@@ -208,8 +208,9 @@
 
 {% block top_scripts %}
   
+  
+  <script type='text/javascript' src='//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
   {% if debug == True %}
-    <script type='text/javascript' src='/public/scripts/jquery.1.7.1min.js'></script>
     <script type='text/javascript' src='/public/scripts/detect_timezone.min.js'></script>
     <script type='text/javascript' src='/public/scripts/jquery.caret.js'></script>
     <script type='text/javascript' src='/public/scripts/plupload.js'></script>
@@ -227,7 +228,6 @@
   {% else %}
     {% assets filter="jsmin", 
               output="lib.js",
-              'scripts/jquery.1.7.1min.js', 
               'scripts/detect_timezone.min.js',
               'scripts/jquery.caret.js',
               'scripts/plupload.js',
