@@ -49,7 +49,7 @@ from gevent import spawn, joinall
 from pymongo import MongoClient as MongoDB
 from pymongo.son_manipulator import SON
 
-from redis import Redis, StrictRedis
+from redis import Redis, ConnectionPool
 from memcache import Client as Memcached
 from jinja2 import Environment, FileSystemLoader
 
@@ -86,8 +86,9 @@ sys.setdefaultencoding("utf-8") #@UndefinedVariable
 
 DATABASE = MongoDB(settings.MONGOD_SERVERS, use_greenlets=True)
 
-PUBSUB = StrictRedis(host=settings.REDIS_SERVER.split(':')[0], 
-                     port=int(settings.REDIS_SERVER.split(':')[1]), db=0)
+pool = ConnectionPool(host=settings.REDIS_SERVER.split(':')[0], 
+                      port=int(settings.REDIS_SERVER.split(':')[1]), db=0)
+PUBSUB = Redis(connection_pool=pool)
 
 es = ElasticSearch('http://%s/' % settings.ELASTICSEARCH_SERVER)
 
@@ -2726,7 +2727,7 @@ def get_feeds(session_id, group_id=None, page=1,
   
     query = {'$and': [{'viewers': {'$in': viewers}},
                       {'viewers': {'$ne': [user_id]}}],
-             'is_removed': {'$exists': False}}
+             'is_removed': {'$exists': False}}  
     if not include_archived_posts:
       query['archived_by'] = {'$nin': [user_id]}
         
