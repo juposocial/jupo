@@ -2914,6 +2914,8 @@ div.url-attachment img.favicon {
 
 div#body .title, div#overlay div.title {
   display: block;
+  overflow: hidden;
+text-overflow: ellipsis;
 }
 
 div#body .subtitle {
@@ -6437,12 +6439,12 @@ ul.contacts li > a, ul.groups li > a {
   min-height: 36px;
   box-shadow: 0 1px 7px rgba(0, 0, 0, 0.15);
   border-bottom: 1px solid rgba(34, 113, 168, 0.7);
+  position: relative;
 }
 
 ul.contacts li > a:hover, ul.groups li > a:hover {
   text-decoration: none;
-  
-border-bottom: 1px solid rgba(34, 113, 168, 1);
+  border-bottom: 1px solid rgba(34, 113, 168, 1);
 }
 
 ul.contacts li > a:active, ul.groups li > a:active {
@@ -6451,7 +6453,14 @@ ul.contacts li > a:active, ul.groups li > a:active {
 
 ul.groups li a i.group-icon {
   padding: 5px 7px 5px 2px;
-float: left;
+  float: left;
+}
+
+ul.groups li a i.online, ul.groups li a i.offline, ul.groups li a i.away,
+ul.contacts li a i.online, ul.contacts li a i.offline, ul.contacts li a i.away {
+  position: absolute;
+  right: 10px;
+  
 }
 
 ul.groups li a .info {

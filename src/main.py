@@ -1541,11 +1541,11 @@ def network():
 
 
 
-@app.route("/groups", methods=["GET", "OPTIONS"])
-@app.route("/group/new", methods=["GET", "OPTIONS", "POST"])
 @app.route("/everyone", methods=["GET", "OPTIONS"])
 @app.route("/everyone/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route("/people", methods=["GET", "OPTIONS"])
+@app.route("/groups", methods=["GET", "OPTIONS"])
+@app.route("/group/new", methods=["GET", "OPTIONS", "POST"])
 @app.route("/group/<int:group_id>/add_member", methods=["POST"])
 @app.route("/group/<int:group_id>/update", methods=["POST"])
 @app.route("/group/<int:group_id>/follow", methods=["POST"])

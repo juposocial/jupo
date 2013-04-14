@@ -2700,10 +2700,10 @@ def get_feeds(session_id, group_id=None, page=1,
       group = get_record(group_id, 'owner')
       if group.get('privacy') == 'open':
         feeds = db.stream.find({'is_removed': {'$exists': False},
-                                      'viewers': long(group_id)})\
-                                      .sort('last_updated', -1)\
-                                      .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                                      .limit(limit)
+                                'viewers': long(group_id)})\
+                                .sort('last_updated', -1)\
+                                .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                                .limit(limit)
         return [Feed(i) for i in feeds if i]
       
     return []
@@ -2715,10 +2715,10 @@ def get_feeds(session_id, group_id=None, page=1,
       group_id = 'public'
     
     feeds = db.stream.find({'is_removed': {'$exists': False},
-                                    'viewers': group_id})\
-                                    .sort('last_updated', -1)\
-                                    .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                                    .limit(limit)
+                            'viewers': group_id})\
+                            .sort('last_updated', -1)\
+                            .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                            .limit(limit)
       
   else:
     viewers = get_group_ids(user_id)
@@ -2726,16 +2726,16 @@ def get_feeds(session_id, group_id=None, page=1,
   
     query = {'$and': [{'viewers': {'$in': viewers}},
                       {'viewers': {'$ne': [user_id]}}],
-               'is_removed': {'$exists': False}}
+             'is_removed': {'$exists': False}}
     if not include_archived_posts:
       query['archived_by'] = {'$nin': [user_id]}
         
         
     feeds = db.stream.find(query)\
-                           .sort('last_updated', -1)\
-                           .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                           .limit(limit)
-                                          
+                     .sort('last_updated', -1)\
+                     .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                     .limit(limit)
+                                    
   return [Feed(i) for i in feeds if i]
 
 
@@ -4471,31 +4471,33 @@ def is_public(group_id):
 
 
 def get_group_info(session_id, group_id):
-  if not group_id:
-    return Group({})
-  
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
   if group_id == 'public':
     info = {'name': 'Public',
             'members': get_group_member_ids(group_id),
             '_id': 'public'}
     return Group(info)
+  
+  if not str(group_id).isdigit():
+    return Group({})
+  else:
+    group_id = long(group_id)
+  
+  db_name = get_database_name()
+  db = DATABASE[db_name]
     
   user_id = get_user_id(session_id)
-  info = db.owner.find_one({"_id": long(group_id), 
+  info = db.owner.find_one({"_id": group_id, 
                             'members': user_id})
   if not info:
-    info = db.owner.find_one({'_id': long(group_id),
-                                    'privacy': {'$in': ['open', 'closed']}})
+    info = db.owner.find_one({'_id': group_id,
+                              'privacy': {'$in': ['open', 'closed']}})
 
     
   # TODO: xem lại chỗ này
   if info and not info.has_key('recently_viewed'): # preinitialize recently_viewed arrays with nulls
     db.owner.update({'_id': group_id},
-                          {'$set': 
-                           {'recently_viewed': [None for __ in xrange(0, 250)]}})
+                    {'$set': 
+                     {'recently_viewed': [None for __ in xrange(0, 250)]}})
   return Group(info)
 
 def add_to_recently_viewed_list(session_id, group_id):
