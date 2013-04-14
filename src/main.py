@@ -242,6 +242,8 @@ def autocomplete():
 @login_required
 @line_profile
 def search():
+  t0 = api.utctime()
+
   session_id = session.get("session_id")
   query = request.form.get('query', request.args.get('query', '')).strip()
   item_type = request.args.get('type')
@@ -354,6 +356,8 @@ def search():
     hits = 0
     total = 0
     counters = {}
+    
+  due = api.utctime() - t0
   owner = api.get_owner_info(session_id)
   coworkers = api.get_coworkers(session_id)
   
@@ -1424,7 +1428,7 @@ def contacts():
   owner = api.get_owner_info(session_id)
   suggested_friends = api.get_friend_suggestions(owner.to_dict())
   coworkers = api.get_coworkers(session_id)
-  groups = api.get_groups(session_id)
+#  groups = api.get_groups(session_id)
 
   if request.method == 'GET':
     return render_homepage(session_id, 'Contacts',
@@ -1433,7 +1437,7 @@ def contacts():
                            view='people')
   else:
     body = render_template('people.html',
-                           groups=groups, 
+#                           groups=groups, 
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
                            owner=owner)
@@ -1442,18 +1446,18 @@ def contacts():
     return resp      
   
   
-@app.route('/explore', methods=['OPTIONS'])
-def explore():
+@app.route('/find_groups', methods=['OPTIONS'])
+def find_groups():
   session_id = session.get("session_id")
   owner = api.get_owner_info(session_id)
-  groups = api.get_open_groups()
+  open_groups = api.get_open_groups()
   body = render_template('groups.html', 
                           owner=owner,
                           view='groups', 
-                          title='Explore',
-                          groups=groups)
+                          title='Find Groups',
+                          open_groups=open_groups)
   return dumps({'body': body,
-                'title': 'Explore'})
+                'title': 'Find Groups'})
   
 
 

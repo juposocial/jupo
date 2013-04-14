@@ -6448,7 +6448,8 @@ ul.contacts li > a:hover, ul.groups li > a:hover {
 }
 
 ul.contacts li > a:active, ul.groups li > a:active {
-  box-shadow: inset 0 1px 7px rgba(0, 0, 0, 0.2)
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  background: #fafafa;
 }
 
 ul.groups li a i.group-icon {

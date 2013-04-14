@@ -1,34 +1,29 @@
 <div id="page-header" class='border-bottom'>
-  {% if view == 'groups' %}
+  {% if view == 'groups' and not open_groups %}
   <div class="actions rfloat">
      <a href="/group/new" class="popup button">New Group</a>
   </div>
   {% endif %}
   
-  {% if not user %}
-        <h2>Groups</h2>
+  
+  {% if open_groups %}
+    <h2>Featured Groups</h2>
+  {% elif not user %}
+    <h2>Groups</h2>
   {% else %}
-      <h2><a href='/user/{{ user.id }}' class='async black'>{{ user.name }}</a>'s Groups</h2>
+    <h2><a href='/user/{{ user.id }}' class='async black'>{{ user.name }}</a>'s Groups</h2>
   {% endif %}
 </div>
 
 <ul class='groups'>
   {% if open_groups %}
-    <div class='title'>Featured</div>
     {% for group in open_groups %}
       {% if group.privacy == 'open' %}
       <li>
         <a href="/group/{{ group.id }}" class='async' rel='group-{{ group.id }}'>
           <i class="group-icon"></i> {{ group.name }}
         
-          <div class='info rfloat'>
-            {% if group.privacy == 'open' %}
-              <i class='public-icon' title='Privacy: Open'></i>
-            {% elif group.privacy == 'closed' %}
-              <i class='lock-icon' title='Privacy: Closed'></i>
-            {% else %}
-              <i class='ghost-icon ' title='Privacy: Secret'></i>
-            {% endif %}
+          <div class='info'>
             <span class=''>{{ group.members | length }} {% if group.privacy == 'open' %}followers{% else %}members{% endif %}</span>
           
           </div>
@@ -64,7 +59,7 @@
     {% if user %}
     <li>
       <a>
-        &nbsp;... and {{ groups | length - user.open_groups | length }} private groups.
+        and {{ groups | length - user.open_groups | length }} private groups.
       </a>
     </li>
     {% endif %}

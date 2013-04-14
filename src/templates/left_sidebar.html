@@ -93,12 +93,7 @@
 
   <ul id="groups-nav">
 
-{#
-    <li id='group-public'>
-      <a href='/group/public' class='{% if group and view == "group" and group.id == "public" %}active async{% else %}async{% endif %}'><i class="public-group-icon"></i> Public</a>
-    </li>
-#}
-    {% for _group in groups[:3] %}
+    {% for _group in groups[:2] %}
     <li id='group-{{ _group.uuid }}'>
       <a href="/group/{{ _group.uuid }}" class='{% if group and view == "group" and group.id == _group.id %}active async{% else %}async{% endif %}' {% if groupname | length == 21 %}title="{{ _group.name }}"{% endif %}> 
         
@@ -113,11 +108,10 @@
     </li>
     {% endfor %}
 
-{#
     <li id='see-all'>
       <a href="/groups" class='{% if view == "groups" %}active async{% else %}async{% endif %} no-icon'> See All Groups </a>
     </li>
-#}
+
 
     <li id='new-group'>
       <a href="/group/new" class='no-icon popup'> + New Group </a>

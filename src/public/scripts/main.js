@@ -622,10 +622,16 @@ $(document).ready(function(e) {
     });
     href = href.replace('/follow', '/unfollow');
     
-    if ($(this).parents('#right-sidebar').length > 0) {
-      element.replaceWith('<a href="' + href + '" class="unfollow">- Remove Contact</a>');
-    } else {
-      element.replaceWith('<a href="' + href + '" class="button unfollow">Remove from Contacts</a>');
+    if (window.location.href.indexOf('/group/') != -1) {
+        element.replaceWith('<a href="' + href + '" class="button unfollow">Unfollow</a>');
+    }
+    else {  // user page
+      
+      if ($(this).parents('#right-sidebar').length > 0) {
+        element.replaceWith('<a href="' + href + '" class="unfollow">- Remove Contact</a>');
+      } else {
+        element.replaceWith('<a href="' + href + '" class="button unfollow">Remove from Contacts</a>');
+      }
     }
     return false;
   });
@@ -645,10 +651,15 @@ $(document).ready(function(e) {
     });
     href = href.replace('/unfollow', '/follow');
     
-    if ($(this).parents('#right-sidebar').length > 0) {
-      element.replaceWith('<a href="' + href + '" class="follow">+ Add Contact</a>');
+    
+    if (window.location.href.indexOf('/group/') != -1) {
+      element.replaceWith('<a href="' + href + '" class="button follow">Follow</a>');
     } else {
-      element.replaceWith('<a href="' + href + '" class="button follow">Add to Contacts</a>');
+      if ($(this).parents('#right-sidebar').length > 0) {
+        element.replaceWith('<a href="' + href + '" class="follow">+ Add Contact</a>');
+      } else {
+        element.replaceWith('<a href="' + href + '" class="button follow">Add to Contacts</a>');
+      }
     }
     return false;
   });
