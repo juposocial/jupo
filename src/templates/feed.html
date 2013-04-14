@@ -314,7 +314,7 @@
                
         {% if info %}
           {% if info.commits %}
-            {% autoescape on %}{{ info.commits[0].author.email | sanitize | autolink }}{% endautoescape %}
+            {% autoescape on %}{{ info.commits[0].author.email | autolink }}{% endautoescape %}
           {% else %}
             <a>{{ info.user_name }}</a>
           {% endif %}
@@ -333,6 +333,42 @@
             {% for commit in commits %}
               <li><a title="{{ commit.timestamp }}" href="{{ commit.url }}" target='_blank' class='id'>{{ commit.id[:7] }}</a>&nbsp; 
                 – {% autoescape on %}<span title="{{ commit.message }}"> {{ commit.message | autolink | autoemoticon | sanitize }}</span>{% endautoescape %}
+              </li>
+            {% endfor %}
+            {% if info.commits | length > 3 and mode != 'view' %}
+              ... and <a href="/feed/{{ feed.id }}" class="async">{{ info.commits | length - 3 }} more</a> commits
+            {% endif %}
+            </ul>
+          </div>
+          {% endif %}
+        {% endif %}  
+      
+      {% elif feed.is_github_commit() %}
+               
+        {% set info = feed.message | parse_json %}
+               
+        {% if info %}
+          {% if info.commits %}
+            {{ info.commits[0].author.email | autolink | safe }}
+          {% else %}
+            <a>{{ info.user_name }}</a>
+          {% endif %}
+             pushed to <a href="{{ info.repository.url }}/tree/{{ info.repository.master_branch }}" target='_blank'>{{ info.repository.master_branch }}</a> at <a href="{{ info.repository.url }}" title="{{ info.repository.description }} ({{ info.repository.homepage }})" target='_blank'>{{ info.repository.organization }}/{{ info.repository.name }}</a>. 
+          
+          <a href="{{ info.repository.url }}/compare/{{ info.before[:10] }}...{{ info.after[:10] }}" target='_blank' title="View comparison for these commits">See changes</a>
+         
+          {% if info.commits %}         
+          <div class='attachment'>
+            <ul class='commits'>
+              {% if mode != 'view' %}
+                {% set commits = info.commits[::-1][:3] %}
+              {% else %}
+                {% set commits = info.commits[::-1] %}
+              {% endif %}
+              
+            {% for commit in commits %}
+              <li><a title="{{ commit.timestamp }}" href="{{ commit.url }}" target='_blank' class='id'>{{ commit.id[:7] }}</a>&nbsp; 
+                – <span title="{{ commit.message }}"> {{ commit.message | autolink | autoemoticon | safe }}</span>
               </li>
             {% endfor %}
             {% if info.commits | length > 3 and mode != 'view' %}

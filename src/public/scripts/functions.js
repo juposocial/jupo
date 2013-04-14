@@ -240,8 +240,8 @@ function start_tour() {
         }, 1000)
       }
     }],
-    title: "Welcome to 5works!",
-    description: "5works is an online working environment. It keeps your discussions, notes, files, tasks and team together.",
+    title: "Welcome to Jupo!",
+    description: "Jupo is an online working environment. It keeps your discussions, notes, files, tasks and team together.",
     id: "tour-1",
     next: "tour-3",
     overlay: true,
@@ -406,7 +406,7 @@ function start_tour() {
       // name: "Continue",
       // onclick: guiders.next
     // }],
-    // description: "Enter your coworker email addresses to invite them to join 5works",
+    // description: "Enter your coworker email addresses to invite them to join Jupo",
     // onShow: disable_scroll,
     // onHide: enable_scroll,
     // id: "tour-8",
@@ -564,7 +564,7 @@ function start_tour() {
       onclick: guiders.next
     }],
     title: "Real-time commenting",
-    description: "- Press Enter to Post<br>- Press Ctrl+Enter for new line<br>- <a>5works Flavored Markdown</a> supported",
+    description: "- Press Enter to Post<br>- Press Ctrl+Enter for new line<br>- <a>Jupo Flavored Markdown</a> supported",
     onShow: disable_scroll,
     onHide: enable_scroll,
     id: "tour-14",
@@ -1564,7 +1564,7 @@ function open_in_overlay_mode(href, data) { // has #! in url
         history.pushState({
           rel: null,
           path: href
-        }, '5works', href);
+        }, 'Jupo', href);
         // change URL in browser (if support HTML5)
 
         if (resp.title) {
@@ -1667,7 +1667,7 @@ function close_overlay() {
   history.pushState({
     rel: null,
     path: window.location.pathname
-  }, '5works', window.location.pathname);
+  }, 'Jupo', window.location.pathname);
   // change URL in browser (if
   // support HTML5)
 

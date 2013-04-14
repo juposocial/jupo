@@ -1541,6 +1541,8 @@ def network():
 @login_required
 @line_profile
 def group(group_id=None, view='group', page=1):
+  hostname = request.headers.get('Host')
+  
   session_id = session.get("session_id")    
   user_id = api.get_user_id(session_id)
   if not user_id:
@@ -1680,6 +1682,7 @@ def group(group_id=None, view='group', page=1):
   if view == 'edit':
     resp = {'title': 'Group Settings',
             'body': render_template('group.html',
+                                    hostname=hostname,
                                     mode='edit', 
                                     group=group)}
     return Response(dumps(resp), mimetype='application/json')
@@ -2289,17 +2292,18 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
 @app.route('/hooks/<service>/<key>', methods=['POST'])
 @app.route('/group/<int:group_id>/new_<service>_key')
 def service_hooks(service, key=None, group_id=None):
+  hostname = request.headers.get('Host')
+  
   if group_id: # new key
     session_id = session.get('session_id')
     key = api.get_new_webhook_key(session_id, group_id, service)
-    return 'https://www.jupo.com/hooks/%s/%s' % (service, key)
+    return 'http://%s/hooks/%s/%s' % (hostname, service, key)
   
   if service == 'gitlab':
     feed_id = api.new_hook_post(service, key, request.data)
-    return str(feed_id)
   elif service == 'github':
-    pass
-  
+    feed_id = api.new_hook_post(service, key, request.form.get('payload'))
+  return str(feed_id)  
 
 @app.route('/events', methods=['GET', 'OPTIONS'])
 def events():

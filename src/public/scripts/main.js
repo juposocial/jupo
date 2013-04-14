@@ -15,7 +15,7 @@ $(document).ready(function(e) {
     $.global.preload = {};
   }
 
-  $.global.title = '5works';
+  $.global.title = 'Jupo';
   $.global.history = [];
   sessionStorage.clear();
 
@@ -1460,7 +1460,7 @@ $(document).ready(function(e) {
           history.pushState({
             rel: null,
             path: href
-          }, '5works', href);
+          }, 'Jupo', href);
 
           show_results(resp);
           return false;
@@ -1697,7 +1697,7 @@ $(document).ready(function(e) {
       $('div#intro h1').html('Thanks!').fadeIn('fast');
     });
     $('div.info').fadeOut(0, function() {
-      $('div.info').html("You're now in the waiting list.<br>We'll email you when 5works is ready.").fadeIn(3000);
+      $('div.info').html("You're now in the waiting list.<br>We'll email you when Jupo is ready.").fadeIn(3000);
     });
     return false;
   })

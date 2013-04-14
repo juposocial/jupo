@@ -4367,11 +4367,11 @@ def unfollow(session_id, user_id):
   
   
   
-def get_group_id(key):
+def get_group_id(service_key):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  info = db.owner.find_one({'gitlab_key': key}, {'_id': True})
+  info = db.owner.find_one(service_key, {'_id': True})
   if info:
     return info['_id']
   
@@ -4385,21 +4385,32 @@ def get_new_webhook_key(session_id, group_id, service_name):
 
   key = uuid4().hex
   db.owner.update({'_id': long(group_id), 'leaders': user_id},
-                        {'$set': {'%s_key' % service_name: key}})
+                  {'$set': {'%s_key' % service_name: key}})
   return key
 
 def new_hook_post(service_name, key, message):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  group_id = get_group_id(key)
+  query = {'%s_key' % service_name: key}
+  group_id = get_group_id(query)
   if service_name == 'gitlab':
     email = 'gitlab@gitlabhq.com'
     user = db.owner.find_one({'email': email}, 
-                                   {'session_id': True})
+                             {'session_id': True})
     if not user:
       session_id = sign_up(email='gitlab@gitlabhq.com', 
                            password='gitlab', name='Gitlab')
+    else:
+      session_id = user['session_id']
+    return new_feed(session_id, str(message), viewers=[group_id])
+  elif service_name == 'github':
+    email = 'github@github.com'
+    user = db.owner.find_one({'email': email}, 
+                             {'session_id': True})
+    if not user:
+      session_id = sign_up(email='github@github.com', 
+                           password='github', name='GitHub')
     else:
       session_id = user['session_id']
     return new_feed(session_id, str(message), viewers=[group_id])

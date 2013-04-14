@@ -73,7 +73,7 @@
       <li class="field field-text">
         {% if group.to_dict().gitlab_key %}
           <label for="name">Gitlab (<a title='Click to reset' href='/group/{{ group.id }}/new_gitlab_key'>Reset</a>)</label>
-          <input class="input-text" type="text" value="https://www.jupo.com/hooks/gitlab/{{ group.to_dict().gitlab_key }}" readonly>
+          <input class="input-text" type="text" value="http://{{ hostname }}/hooks/gitlab/{{ group.to_dict().gitlab_key }}" readonly>
         {% else %}
           <label for="name">Gitlab (<a title='Click to reset' href='/group/{{ group.id }}/new_gitlab_key'>Generate</a>)</label>
           <input class="input-text" type="text" placeholder='Click Generate to get new' readonly>
@@ -83,12 +83,12 @@
       
       <li class="field field-text">
         {% if group.to_dict().github_key %}
-          <label for="name">Gitlab (<a title='Click to reset' href='/group/{{ group.id }}/new_github_key'>Reset</a>)</label>
-          <input class="input-text" type="text" value="https://www.jupo.com/hooks/github/{{ group.to_dict().gitlab_key }}" readonly>
+          <label for="name">GitHub (<a title='Click to reset' href='/group/{{ group.id }}/new_github_key'>Reset</a>)</label>
+          <input class="input-text" type="text" value="http://{{ hostname }}/hooks/github/{{ group.to_dict().github_key }}" readonly>
           <a title='Click to reset' href='/group/{{ group.id }}/new_github_key'>Gitlab</a>
       
         {% else %}
-          <label for="name">Gitlab (<a title='Click to reset' href='/group/{{ group.id }}/new_github_key'>Generate</a>)</label>
+          <label for="name">GitHub (<a title='Click to reset' href='/group/{{ group.id }}/new_github_key'>Generate</a>)</label>
           <input class="input-text" type="text" placeholder='Click Generate to get new' readonly>
         {% endif %}
       </li>

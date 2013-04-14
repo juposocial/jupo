@@ -972,7 +972,16 @@ class Feed(Model):
     if (not self.is_system_message() and 
         self.message.strip() and
         self.message.strip()[0] == '{' 
-        and 'commits' in self.message):
+        and 'commits' in self.message
+        and 'github.com' not in self.message):
+      return True
+    
+  def is_github_commit(self):
+    if (not self.is_system_message() and 
+        self.message.strip() and
+        self.message.strip()[0] == '{' 
+        and 'commits' in self.message
+        and 'github.com' in self.message):
       return True
     
   def is_system_message(self):
