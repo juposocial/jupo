@@ -85,12 +85,13 @@ sys.setdefaultencoding("utf-8") #@UndefinedVariable
 
 
 DATABASE = MongoDB(settings.MONGOD_SERVERS, use_greenlets=True)
+DATABASE['global'].user.ensure_index('email')
 
 pool = ConnectionPool(host=settings.REDIS_SERVER.split(':')[0], 
                       port=int(settings.REDIS_SERVER.split(':')[1]), db=0)
 PUBSUB = Redis(connection_pool=pool)
 
-es = ElasticSearch('http://%s/' % settings.ELASTICSEARCH_SERVER)
+INDEX = ElasticSearch('http://%s/' % settings.ELASTICSEARCH_SERVER)
 
 PINGPONG = Redis(host=settings.REDIS_SERVER.split(':')[0], 
                  port=int(settings.REDIS_SERVER.split(':')[1]), db=10)
@@ -354,19 +355,18 @@ def get_lan_ip():
         pass
   return ip
 
-# An Improved Liberal, Accurate Regex Pattern for Matching URLs
-# http://daringfireball.net/2010/07/improved_regex_for_matching_urls
-URL_REGEX = r"""(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
-WORD_REGEX = """[a-zA-Z0-9ạảãàáâậầấẩẫăắằặẳẵóòọõỏôộổỗồốơờớợởỡ""" \
-           + """éèẻẹẽêếềệểễúùụủũưựữửừứíìịỉĩýỳỷỵỹđ]+"""
-EMAIL_REGEX = re.compile(
+
+URL_RE = re.compile(r"(http.*?|www\..*?)\s+", re.IGNORECASE)
+WORD_RE = re.compile("""[a-zA-Z0-9ạảãàáâậầấẩẫăắằặẳẵóòọõỏôộổỗồốơờớợởỡ""" \
+                     + """éèẻẹẽêếềệểễúùụủũưựữửừứíìịỉĩýỳỷỵỹđ]+""")
+EMAIL_RE = re.compile(
   r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"  # dot-atom
   r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-011\013\014\016-\177])*"' # quoted-string
   r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?$', 
   re.IGNORECASE)  # domain
 
 def extract_urls(text):
-  matches = re.compile(URL_REGEX, re.IGNORECASE).findall(text)
+  matches = URL_RE.findall(text)
   urls = [i[0] for i in matches]
   return urls
 
@@ -412,6 +412,14 @@ def get_words(text):
              + 'éèẻẹẽêếềệểễúùụủũưựữửừứíìịỉĩýỳỷỵỹđ]+'
   return re.compile(word_regex, re.I).findall(text.strip().lower())
 
+def get_database_names():
+  key = 'db_names'
+  db_names = cache.get(key)
+  if not db_names:
+    db_names = DATABASE.database_names()
+    cache.set(key, db_names)
+  return db_names
+
 def get_database_name():
   db_name = None
   if request:
@@ -422,7 +430,7 @@ def get_database_name():
   if not db_name:
     db_name = 'play_jupo_com'
   
-  if db_name not in DATABASE.database_names():
+  if db_name not in get_database_names():
     # Ensure indexes
     DATABASE[db_name].owner.ensure_index('session_id', background=True)
     DATABASE[db_name].owner.ensure_index('email', background=True)
@@ -534,7 +542,7 @@ def get_friend_suggestions(user_info):
   
   key = '%s:friends_suggestion' % user_id
   users = cache.get(key)
-  if users:
+  if users is not None:
     return users
   
   facebook_friend_ids = user_info.get('facebook_friend_ids', [])
@@ -544,8 +552,11 @@ def get_friend_suggestions(user_info):
     
   user_ids = set()
   
-  checklist = facebook_friend_ids
-  checklist.extend(google_contacts)
+  shuffle(facebook_friend_ids)
+  shuffle(google_contacts)
+  
+  checklist = facebook_friend_ids[:5]
+  checklist.extend(google_contacts[:5])
   
   for i in checklist:
     if '@' in i:
@@ -555,10 +566,6 @@ def get_friend_suggestions(user_info):
     
     if uid and uid not in contact_ids and uid != user_id:
       user_ids.add(uid)
-  
-  user_ids = list(user_ids)
-  
-  shuffle(user_ids)
   
   users = []
   for i in user_ids:
@@ -619,7 +626,7 @@ def get_session_id(user_id, db_name=None):
 
 def is_exists(email=None, db_name=None):
   if db_name is not None:
-    if db_name in DATABASE.database_names():
+    if db_name in get_database_names():
       return True
     return False
   else:
@@ -1285,12 +1292,16 @@ def get_all_users(limit=300):
   users = db.owner.find({'password': {'$exists': True}}).limit(limit)
   return [User(i) for i in users]
 
-def get_coworkers(session_id):
-#  user_id = get_user_id(session_id)
-#  key = '%s:coworkers' % user_id
-#  coworkers = cache.get(key)
-#  if coworkers:
-#    return coworkers
+def get_coworkers(session_id, limit=100):
+  if str(session_id).isdigit():
+    user_id = long(session_id)
+  else:
+    user_id = get_user_id(session_id)
+
+  key = '%s:coworkers' % user_id
+  coworkers = cache.get(key)
+  if coworkers:
+    return coworkers[:limit]
   
   groups = get_groups(session_id)
   if not groups:
@@ -1304,8 +1315,8 @@ def get_coworkers(session_id):
         _ids.add(member.id)
   coworkers = sorted(coworkers, 
                      key=lambda user: last_online(user.id), reverse=True)
-#  cache.set(key, coworkers, 3600)
-  return coworkers
+  cache.set(key, coworkers, 3600)
+  return coworkers[:limit]
 
 def get_friends(session_id):
   """
@@ -1397,10 +1408,14 @@ def update_utcoffset(session_id, offset):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  if str(session_id).isdigit():
+    user_id = long(session_id)
+  else:
+    user_id = get_user_id(session_id)
+    
   if cache.get('utcoffset', namespace=user_id) != offset:
     db.owner.update({'_id': user_id}, 
-                          {'$set': {'utcoffset': offset}})
+                    {'$set': {'utcoffset': offset}})
     cache.set('utcoffset', offset, namespace=user_id)
   return True
 
@@ -1583,6 +1598,11 @@ def new_notification(session_id, receiver, type, ref_id=None, comment_id=None):
   
   spawn(publish, receiver, 'unread-notifications', 
         get_unread_notifications_count(user_id=receiver))
+  
+  
+  key = '%s:%s:unread_count' % (receiver, db_name)
+  cache.delete(key)
+  
   return notification_id
 
 def get_unread_notifications(session_id):
@@ -1591,8 +1611,8 @@ def get_unread_notifications(session_id):
   
   user_id = get_user_id(session_id)
   notifications = db.notification.find({'receiver': user_id,
-                                              'is_unread': True})\
-                                       .sort('timestamp', -1)
+                                        'is_unread': True})\
+                                 .sort('timestamp', -1)
 
   offset = get_utcoffset(user_id)
   notifications = [Notification(i, offset) for i in notifications]
@@ -1633,8 +1653,8 @@ def get_notifications(session_id, limit=25):
   
   user_id = get_user_id(session_id)
   notifications = db.notification.find({'receiver': user_id})\
-                                       .sort('timestamp', -1)\
-                                       .limit(limit)
+                                 .sort('timestamp', -1)\
+                                 .limit(limit)
 
   offset = get_utcoffset(user_id)
   notifications = [Notification(i, offset) for i in notifications]
@@ -1680,10 +1700,16 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   
   if not user_id:
     user_id = get_user_id(session_id)
+  
+  
+  key = '%s:%s:unread_count' % (user_id, db_name)
+  count = cache.get(key)
+  if count is not None:
+    return count 
     
   notifications = db.notification.find({'receiver': user_id,
-                                              'is_unread': True})\
-                                       .sort('timestamp', -1)
+                                        'is_unread': True})\
+                                 .sort('timestamp', -1)
 
   offset = get_utcoffset(user_id)
   notifications = [Notification(i, offset) for i in notifications]
@@ -1719,10 +1745,7 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
         results[i.date][id].append(i)
         user_ids.append(i.sender.id)
   
- 
-        
-    
-      
+  cache.set(key, count)
   return count
   
     
@@ -1740,7 +1763,12 @@ def mark_all_notifications_as_read(session_id):
   
   user_id = get_user_id(session_id)
   db.notification.update({'receiver': user_id}, 
-                               {'$unset': {'is_unread': 1}}, multi=True)
+                         {'$unset': {'is_unread': 1}}, multi=True)
+  
+  
+  key = '%s:%s:unread_count' % (user_id, db_name)
+  cache.delete(key)
+  
   return True
 
 def mark_notification_as_read(session_id, notification_id=None, 
@@ -1753,17 +1781,21 @@ def mark_notification_as_read(session_id, notification_id=None,
   user_id = get_user_id(session_id)
   if notification_id:
     db.notification.update({'receiver': user_id, 
-                                  '_id': long(notification_id)},
-                                 {'$unset': {'is_unread': 1}})
+                            '_id': long(notification_id)},
+                           {'$unset': {'is_unread': 1}})
   elif ref_id:
     db.notification.update({'receiver': user_id, 
-                                  'ref_id': long(ref_id)},
-                                 {'$unset': {'is_unread': 1}}, multi=True)
+                            'ref_id': long(ref_id)},
+                           {'$unset': {'is_unread': 1}}, multi=True)
   else:
     db.notification.update({'receiver': user_id, 
-                                  'type': type,
-                                  'timestamp': {'$lt': float(ts)}},
-                                 {'$unset': {'is_unread': 1}}, multi=True)
+                            'type': type,
+                            'timestamp': {'$lt': float(ts)}},
+                           {'$unset': {'is_unread': 1}}, multi=True)
+    
+  
+  key = '%s:%s:unread_count' % (user_id, db_name)
+  cache.delete(key)
     
   return True
 
@@ -3401,17 +3433,17 @@ def get_notes(session_id, group_id=None, limit=10, page=1):
       group_id = 'public'
   
     notes = db.stream.find({'is_removed': {'$exists': False},
-                                 'viewers': group_id,
-                                 'version': {'$exists': True}})\
-                                .sort('last_updated', -1)\
-                                .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                                .limit(limit)
+                            'viewers': group_id,
+                            'version': {'$exists': True}})\
+                     .sort('last_updated', -1)\
+                     .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                     .limit(limit)
   else:    
     notes = db.stream.find({'is_removed': {'$exists': False},
-                                 'version.owner': user_id})\
-                              .sort('last_updated', -1)\
-                              .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                              .limit(limit)
+                            'version.owner': user_id})\
+                     .sort('last_updated', -1)\
+                     .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                     .limit(limit)
   return [Note(i) for i in notes]
     
 
@@ -3423,18 +3455,17 @@ def get_reference_notes(session_id, limit=10, page=1):
   if not user_id:
     return False
   
-  
   viewers = get_group_ids(user_id)
   viewers.append(user_id)
    
   notes = db.stream.find({'is_removed': {'$exists': False},
-                                'viewers': {'$in': viewers},
-                                '$and': [{'version': {'$exists': True}}, 
-                                         {'version.owner': {'$ne': user_id}}]
-                                })\
-                            .sort('last_updated', -1)\
-                            .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                            .limit(limit)
+                          'viewers': {'$in': viewers},
+                          '$and': [{'version': {'$exists': True}}, 
+                                   {'version.owner': {'$ne': user_id}}]
+                          })\
+                   .sort('last_updated', -1)\
+                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                   .limit(limit)
   return [Note(i) for i in notes]
 
 
@@ -3630,8 +3661,8 @@ def check(session_id, reminder_id):
   if not user_id:
     return False
   db.reminder.update({'_id': int(reminder_id), 'owner': user_id},
-                           {'$set': {'checked': True,
-                                     'last_updated': utctime()}})
+                     {'$set': {'checked': True,
+                               'last_updated': utctime()}})
   return True
 
 def uncheck(session_id, reminder_id):
@@ -3642,8 +3673,8 @@ def uncheck(session_id, reminder_id):
   if not user_id:
     return False
   db.reminder.update({'_id': int(reminder_id), 'owner': user_id},
-                           {'$set': {'last_updated': utctime()},
-                            '$unset': {'checked': True}})
+                     {'$set': {'last_updated': utctime()},
+                      '$unset': {'checked': True}})
   return True
 
 def get_reminders(session_id):
@@ -3654,9 +3685,12 @@ def get_reminders(session_id):
   if not user_id:
     return False
   reminders = db.reminder.find({'owner': user_id, 
-                                      'checked': {'$exists': False}}).sort('timestamp', -1)
+                                'checked': {'$exists': False}})\
+                         .sort('timestamp', -1)
   reminders = list(reminders)
-  completed_list = db.reminder.find({'owner': user_id, 'checked': True}).sort('last_updated', -1).limit(1)
+  completed_list = db.reminder.find({'owner': user_id, 'checked': True})\
+                              .sort('last_updated', -1)\
+                              .limit(1)
   reminders.extend(completed_list)
   return [Reminder(i) for i in reminders]
     
@@ -4206,6 +4240,10 @@ def leave_group(session_id, group_id):
     return False
   if group_info.get('privacy') == 'open':
     db.owner.update({'_id': group_id}, {'$pull': {'members': user_id}})
+    
+    key = '%s:groups' % user_id
+    cache.delete(key)
+    
     return True
   elif group_info.get('privacy') == 'closed':
     pending_members = group_info.get('pending_members', [])
@@ -4232,6 +4270,10 @@ def add_member(session_id, group_id, user_id):
   
   db.owner.update({'_id': group_id},
                   {'$addToSet': {'members': user_id}})
+  
+  
+  key = '%s:groups' % user_id
+  cache.delete(key)
   
   new_feed(session_id, {'action': 'added',
                         'user_id': user_id, 
@@ -4284,7 +4326,7 @@ def remove_from_contacts(session_id, user_id):
   if not uid:
     return False
   db.owner.update({'_id': uid},
-                        {'$pull': {'contacts': long(user_id)}})
+                  {'$pull': {'contacts': long(user_id)}})
   
   # TODO: send notification
   
@@ -4305,7 +4347,7 @@ def follow(session_id, user_id):
   if not uid:
     return False
   db.owner.update({'_id': user_id},
-                        {'$addToSet': {'followers': uid}})
+                  {'$addToSet': {'followers': uid}})
   
   # send notification
   new_notification(session_id, user_id, 'follow', id)
@@ -4320,7 +4362,7 @@ def unfollow(session_id, user_id):
   if not _id:
     return False
   db.owner.update({'_id': user_id},
-                        {'$pull': {'followers': _id}})
+                  {'$pull': {'followers': _id}})
   return True
   
   
@@ -4388,7 +4430,7 @@ def get_following_users(user_id):
   return [i['_id'] for i in users]
   
 
-def get_groups(session_id):
+def get_groups(session_id, limit=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
@@ -4396,12 +4438,17 @@ def get_groups(session_id):
   if not user_id:
     return []
   key = '%s:groups' % user_id
-  groups = None # cache.get(key)
+  groups = cache.get(key)
   if not groups:
     groups = db.owner.find({"members": user_id}).sort('last_updated', -1)
     groups = list(groups)
-#    cache.set(key, groups)
-  return [Group(i) for i in groups]
+    cache.set(key, groups, 3600)
+  
+  groups = [Group(i) for i in groups]
+  if limit:
+    return groups[:limit]
+  else:
+    return groups
 
 def get_open_groups(user_id=None, limit=5):
   db_name = get_database_name()
@@ -4551,14 +4598,14 @@ def add_index(_id, content, viewers, type_='post', db_name=None):
           'ts': utctime(),
           'type': type_,
           'id': str(_id)}
-  es.index(db_name, 'doc', info)
-  es.refresh(db_name)
+  INDEX.index(db_name, 'doc', info)
+  INDEX.refresh(db_name)
   return True
 
 def update_viewers(_id, viewers):
   db_name = get_database_name()
   query = 'id:%s' % _id
-  result = es.search(query)
+  result = INDEX.search(query)
   hits = result.get('hits').get('hits')   # pylint: disable-msg=E1103
   if hits:
     index_id = hits[0].get('_id')
@@ -4573,8 +4620,8 @@ def update_viewers(_id, viewers):
     
     for __ in xrange(5):
       try:
-        es.index(db_name, 'doc', info, index_id)
-        es.refresh(db_name)
+        INDEX.index(db_name, 'doc', info, index_id)
+        INDEX.refresh(db_name)
         return True
       except CannotSendRequest:
         continue
@@ -4587,7 +4634,7 @@ def update_index(_id, content, viewers, is_comment=False):
   if isinstance(viewers, str) or isinstance(viewers, unicode):
     viewers = [viewers]
   query = 'id:%s' % _id
-  result = es.search(query)
+  result = INDEX.search(query)
   hits = result.get('hits').get('hits')   # pylint: disable-msg=E1103
   if hits:
     index_id = hits[0].get('_id')
@@ -4609,8 +4656,8 @@ def update_index(_id, content, viewers, is_comment=False):
               'id': str(_id)}
     for __ in xrange(5):
       try:
-        es.index(db_name, 'doc', info, index_id)
-        es.refresh(db_name)
+        INDEX.index(db_name, 'doc', info, index_id)
+        INDEX.refresh(db_name)
         return True
       except CannotSendRequest:
         continue
@@ -4682,7 +4729,7 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
   query_dsl["facets"] = {"counters": {"terms": {"field" : "type"}}}
       
   try:
-    result = es.search(query=query_dsl, index=db_name)
+    result = INDEX.search(query=query_dsl, index=db_name)
   except ElasticHttpNotFoundError:
     return None
   
@@ -4980,6 +5027,7 @@ def ensure_index(db_name=None):
   db.owner.ensure_index('email', background=True)
   db.owner.ensure_index('name', background=True)
   db.owner.ensure_index('members', background=True)
+  
   db.notification.ensure_index('receiver', background=True)
   db.notification.ensure_index('is_unread', background=True)
   db.notification.ensure_index('timestamp', background=True)
@@ -4987,7 +5035,16 @@ def ensure_index(db_name=None):
   db.stream.ensure_index('viewers', background=True)
   db.stream.ensure_index('last_updated', background=True)
   db.stream.ensure_index('archived_by', background=True)
+  db.stream.ensure_index('attachments', background=True)
+  db.stream.ensure_index('version', background=True)
+  db.stream.ensure_index('history.attachment_id', background=True)
   db.stream.ensure_index('is_removed', background=True)
+  
+  db.reminder.ensure_index('owner')
+  db.reminder.ensure_index('checked')
+  
+  db.status.ensure_index('user_id')
+  db['s3'].ensure_index('name')
   
   db.url.ensure_index('url', background=True)
   db.spelling_suggestion.ensure_index('keyword', background=True)
@@ -5016,6 +5073,9 @@ def new_network(db_name, organization_name, description=None):
   DATABASE[db_name].info.insert({'name': organization_name,
                                  'description': description,
                                  'timestamp': utctime()})
+  key = 'db_names'
+  cache.delete(key)
+  
   ensure_index(db_name)
   return True
 
@@ -5066,7 +5126,7 @@ def domain_is_ok(domain_name):
 #    pprint(i.to_dict())
 #    
 #  
-##  print es.delete_index('5works-index')
+##  print INDEX.delete_index('5works-index')
 #
 #  print re.compile(EMAIL_REGEX).match('ara.com')
 

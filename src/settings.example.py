@@ -2,7 +2,7 @@
 # pylint: disable-msg=W0311
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = ''
+SECRET_KEY = '<replace with a secret key>'
 DEBUG = False
 
 PRIMARY_DOMAIN = 'play.jupo.com'

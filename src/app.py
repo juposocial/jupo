@@ -12,7 +12,6 @@ from helpers import extensions
 from helpers.converters import (SnowflakeIDConverter, 
                                 RegexConverter, UUIDConverter)
 
-
 import api
 import filters
 import settings
@@ -24,7 +23,7 @@ CURRENT_APP = Flask(__name__,
                     template_folder='templates')
 
 
-#sslify = SSLify(app)
+#sslify = SSLify(CURRENT_APP)
 
 CURRENT_APP.secret_key = settings.SECRET_KEY
 CURRENT_APP.permanent_session_lifetime = timedelta(days=365*10)

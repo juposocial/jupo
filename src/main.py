@@ -46,6 +46,8 @@ import logging
 import requests
 import traceback
 import werkzeug.serving
+import flask_debugtoolbar
+from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 
 import api
 import filters
@@ -68,7 +70,7 @@ if settings.SENTRY_DSN:
 csrf = SeaSurf(app)
 oauth = OAuth()
 
-
+@line_profile
 def render_homepage(session_id, title, **kwargs):  
   """ Render homepage for signed in user """
   if session_id:
@@ -83,9 +85,9 @@ def render_homepage(session_id, title, **kwargs):
   if owner:
     friends_online = owner.contacts
     friends_online.sort(key=lambda k: k.last_online, reverse=True)
-    groups = api.get_groups(session_id)
+    groups = api.get_groups(session_id, limit=3)
     for group in groups[:3]:
-      group.unread_posts = api.get_unread_posts_count(session_id, group.id)
+      group.unread_posts = 0 # api.get_unread_posts_count(session_id, group.id)
     
     unread_notification_count = api.get_unread_notifications_count(session_id)
     
@@ -153,6 +155,7 @@ def stream():
 
 @csrf.exempt
 @app.route("/autocomplete")
+@line_profile
 def autocomplete():
   session_id = session.get("session_id")
   query = request.args.get('query')
@@ -237,8 +240,8 @@ def autocomplete():
 
 @app.route("/search", methods=['GET', 'OPTIONS', 'POST'])
 @login_required
+@line_profile
 def search():
-  t0 = api.utctime()
   session_id = session.get("session_id")
   query = request.form.get('query', request.args.get('query', '')).strip()
   item_type = request.args.get('type')
@@ -351,13 +354,9 @@ def search():
     hits = 0
     total = 0
     counters = {}
-  due = api.utctime() - t0
   owner = api.get_owner_info(session_id)
   coworkers = api.get_coworkers(session_id)
   
-  app.logger.debug('query: %s' % due)
-  
-  t0 = api.utctime()
   if request.method == 'GET':
     return render_homepage(session_id, 'Results for "%s"' % query,
                            query=query, 
@@ -399,8 +398,6 @@ def search():
       posts.append(render_template('more.html', more_url=more_url))
     return ''.join(posts)
   
-  app.logger.debug('render: %s' % (api.utctime() - t0))
-  
   # TODO: render 1 lần thôi :(
   if body.split('<ul id="stream">')[-1].split('<script>')[0].split('right-sidebar')[0].count(query) < 2:
     spelling_suggestion = api.get_spelling_suggestion(query)
@@ -440,8 +437,6 @@ def discover(name='discover', page=1):
   
   app.logger.debug('session_id: %s' % session_id)
   
-  t0 = api.utctime()
-  
   user_id = api.get_user_id(session_id)
   
   if user_id:
@@ -470,12 +465,9 @@ def discover(name='discover', page=1):
       session.pop('session_id')
   
   public_groups = api.get_open_groups(limit=10) 
-      
-  app.logger.info('query: %.2f' % (api.utctime() - t0))
 
 
   if request.method == 'OPTIONS':  
-    t0 = api.utctime()
     if page == 1:
       menu = render_template('menu.html', 
                              owner=owner,
@@ -490,8 +482,6 @@ def discover(name='discover', page=1):
                              title='Discover', 
                              feeds=feeds)
       
-      
-      app.logger.info('render: %.2f' % (api.utctime() - t0))
       
       json = dumps({"body": body, 
                     "menu": menu, 
@@ -906,6 +896,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
 @app.route('/reminder/<int:reminder_id>/check', methods=["POST"])
 @app.route('/reminder/<int:reminder_id>/uncheck', methods=["POST"])
 @login_required
+@line_profile
 def reminders(reminder_id=None):
   session_id = session.get("session_id")
   message = request.form.get('message')
@@ -938,13 +929,12 @@ def reminders(reminder_id=None):
 @app.route("/notes", methods=['GET', 'OPTIONS'])
 @app.route("/notes/page<int:page>", methods=['OPTIONS'])
 @login_required
+@line_profile
 def notes(page=1):
   view = 'notes'
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
   owner = api.get_user_info(user_id)
-  
-  t0 = api.utctime()
   
   title = "Notes"
   notes = api.get_notes(session_id, page=page)
@@ -956,9 +946,6 @@ def notes(page=1):
   
   app.logger.debug(notes)
       
-  app.logger.info('query: %.2f' % (api.utctime() - t0))
-  
-  t0 = api.utctime()
   
   if request.method == "OPTIONS":
     if page > 1:
@@ -982,7 +969,6 @@ def notes(page=1):
                              reference_notes=reference_notes,
                              notes=notes)
   
-      app.logger.info('render: %.2f' % (api.utctime() - t0))
       
       json = dumps({"body": body, 
                     "menu": menu, 
@@ -1218,6 +1204,7 @@ def favicon():
 @app.route('/user/<int:user_id>/unfollow', methods=['POST'])
 @app.route('/user/<int:user_id>/<view>', methods=['OPTIONS'])
 @login_required
+@line_profile
 def user(user_id=None, page=1, view=None):
   session_id = session.get("session_id") 
     
@@ -1383,7 +1370,6 @@ def user(user_id=None, page=1, view=None):
     view = 'user'
     title = user.name
     
-    t0 = api.utctime()
     
     if not session_id or owner.id == user.id:
       feeds = api.get_public_posts(user_id=user.id, page=page)
@@ -1393,13 +1379,10 @@ def user(user_id=None, page=1, view=None):
     user.recent_files = api.get_user_files(session_id, user_id=user.id, limit=3)
     user.recent_notes = api.get_user_notes(session_id, user_id=user.id, limit=3)
     
-    app.logger.info('query: %.2f' % (api.utctime() - t0))
-    
     coworkers = [user]
     if request.method == "OPTIONS":   
         
       if page == 1:
-        t0 = api.utctime() 
         body = render_template('user.html', 
                                view=view, 
                                user=user,
@@ -1407,7 +1390,6 @@ def user(user_id=None, page=1, view=None):
                                title=title, 
                                coworkers=coworkers,
                                feeds=feeds)
-        app.logger.info('render: %.2f' % (api.utctime() - t0))
         
         json = dumps({"body": body, 
                       "title": title})
@@ -1435,6 +1417,7 @@ def user(user_id=None, page=1, view=None):
 
 @app.route("/contacts", methods=["GET", "OPTIONS"])
 @login_required
+@line_profile
 def contacts():
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
@@ -1556,6 +1539,7 @@ def network():
 @app.route("/group/<int:group_id>/page<int:page>", methods=["OPTIONS"])
 @app.route("/group/<int:group_id>/<view>", methods=["GET", "OPTIONS"])
 @login_required
+@line_profile
 def group(group_id=None, view='group', page=1):
   session_id = session.get("session_id")    
   user_id = api.get_user_id(session_id)
@@ -1691,7 +1675,6 @@ def group(group_id=None, view='group', page=1):
                              'title': 'Groups'}))
       return resp
     
-  t0 = api.utctime()
   
   group = api.get_group_info(session_id, group_id)  
   if view == 'edit':
@@ -1761,8 +1744,6 @@ def group(group_id=None, view='group', page=1):
     
     owner = api.get_owner_info(session_id)
     
-    app.logger.debug('query: %s' % (api.utctime() - t0))
-    
     if request.method == 'OPTIONS':
       if page > 1:
         posts = [render(feeds, "feed", owner, view)]
@@ -1780,7 +1761,6 @@ def group(group_id=None, view='group', page=1):
       else:
 #        upcoming_events = api.get_upcoming_events(session_id, group_id)
       
-        t0 = api.utctime()
         
         resp = {'title': group.name, 
                 'body': render_template('group.html', 
@@ -1790,17 +1770,8 @@ def group(group_id=None, view='group', page=1):
 #                                        upcoming_events=upcoming_events,
                                         view=view)}
         
-        app.logger.info('render: %.2f' % (api.utctime() - t0))
-        t0 = api.utctime()
-        
         json = dumps(resp)
-        
-        app.logger.info('json dumps: %.2f' % (api.utctime() - t0))
-        t0 = api.utctime()
-        
         resp = Response(json, mimetype='application/json')
-        
-        app.logger.info('make response: %.2f' % (api.utctime() - t0))
         
         return resp
     else:
@@ -1924,14 +1895,10 @@ def home():
 @app.route('/archived/page<int:page>', methods=['GET', 'OPTIONS'])
 @app.route("/news_feed/archive_from_here", methods=["POST"])
 @login_required
+@line_profile
 def news_feed(page=1):  
-  t0 = api.utctime()
-  
   session_id = session.get("session_id")
-  if request.cookies.get('utcoffset'):
-    api.update_utcoffset(session_id, request.cookies.get('utcoffset'))
     
-  
   if request.path.endswith('archive_from_here'):
     ts = float(request.args.get('ts', api.utctime()))
     api.archive_posts(session_id, ts)
@@ -1939,6 +1906,9 @@ def news_feed(page=1):
     
     
   user_id = api.get_user_id(session_id)
+  
+  if request.cookies.get('utcoffset'):
+    api.update_utcoffset(user_id, request.cookies.get('utcoffset'))
   
   if user_id and request.cookies.get('redirect_to'):
     redirect_to = request.cookies.get('redirect_to')
@@ -1988,10 +1958,8 @@ def news_feed(page=1):
                           include_archived_posts=False)
     category = None
     
-  
-  app.logger.info('query: %.2f' % (api.utctime() - t0))
     
-  owner = api.get_owner_info(session_id)
+  owner = api.get_user_info(user_id)
   
   if request.method == "OPTIONS":
     if page > 1:
@@ -2012,14 +1980,12 @@ def news_feed(page=1):
       return ''.join(posts)
     
     else:
-      t0 = api.utctime()
       
       pinned_posts = api.get_pinned_posts(session_id) \
                      if filter == 'default' else None
       suggested_friends = api.get_friend_suggestions(owner.to_dict())
       coworkers = api.get_coworkers(session_id)
       browser = api.Browser(request.headers.get('User-Agent'))
-      email_addrs = [] # api.get_email_addresses(session_id)
       
       body = render_template('news_feed.html', 
                              owner=owner,
@@ -2027,7 +1993,6 @@ def news_feed(page=1):
                              title=title, 
                              filter=filter,
                              browser=browser,
-                             email_addresses=email_addrs,
                              category=category,
                              coworkers=coworkers,
                              suggested_friends=suggested_friends,
@@ -2039,13 +2004,12 @@ def news_feed(page=1):
             
       resp = Response(json, mimetype='application/json')
       
-      app.logger.info('render: %.2f' % (api.utctime() - t0))
       
   else:  
     pinned_posts = api.get_pinned_posts(session_id) \
                    if filter == 'default' else None
     suggested_friends = api.get_friend_suggestions(owner.to_dict())
-    coworkers = api.get_coworkers(session_id)
+    coworkers = api.get_coworkers(user_id, limit=5)
     browser = api.Browser(request.headers.get('User-Agent'))
     
     resp = render_homepage(session_id, title,
@@ -2054,7 +2018,6 @@ def news_feed(page=1):
                            filter=filter,
                            browser=browser,
                            category=category,
-                           email_addresses=api.get_email_addresses(session_id),
                            pinned_posts=pinned_posts,
                            suggested_friends=suggested_friends,
                            feeds=feeds)
@@ -2074,6 +2037,7 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/<message_id>@<domain>", methods=["GET", "OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
+@line_profile
 def feed_actions(feed_id=None, action=None, owner_id=None, 
                  message_id=None, domain=None, comment_id=None):
   session_id = session.get("session_id")
@@ -2229,7 +2193,6 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
     api.mark_as_read(session_id, feed_id)
       
   elif action == 'comment':
-    t0 = api.utctime()
     
     message = request.form.get('message', '')
     attachments = request.form.get('attachments')
@@ -2256,10 +2219,6 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
                            reply_to=reply_to,
                            from_addr=from_addr)
     
-  
-    app.logger.debug('query: %s' % (api.utctime() - t0))
-    t0 = api.utctime()
-    
     item = {'id': feed_id}
     html = render_template('comment.html', 
                            comment=info,
@@ -2267,7 +2226,6 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
                            item=item,
                            owner=owner)
     
-    app.logger.debug('render: %s' % (api.utctime() - t0))
     return html
     
   else:
@@ -2407,6 +2365,7 @@ def event(event_id=None, group_id=None):
   
 @app.route("/files", methods=['GET', 'OPTIONS'])
 @login_required
+@line_profile
 def files():
   session_id = session.get("session_id")
   owner = api.get_owner_info(session_id)
@@ -2632,6 +2591,7 @@ def change_status():
 
 @app.route('/notifications', methods=['GET', 'OPTIONS'])
 @login_required
+@line_profile
 def notifications():
   session_id = session.get("session_id")
     
@@ -2806,13 +2766,32 @@ if __name__ == "__main__":
     
     
   except (IndexError, TypeError): # dev only
-#    f = open('/var/log/jupo/profiler.log', 'w')
-#    stream = MergeStream(sys.stdout, f)
-#    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, stream)
+
     
     @werkzeug.serving.run_with_reloader
     def gevent_auto_reloader():  
       app.debug = True
+      
+      app.config['DEBUG_TB_PROFILER_ENABLED'] = True
+      app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
+      app.config['DEBUG_TB_PANELS'] = [
+          'flask_debugtoolbar.panels.versions.VersionDebugPanel',
+          'flask_debugtoolbar.panels.timer.TimerDebugPanel',
+          'flask_debugtoolbar.panels.headers.HeaderDebugPanel',
+          'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel',
+          'flask_debugtoolbar.panels.template.TemplateDebugPanel',
+          'flask_debugtoolbar.panels.logger.LoggingPanel',
+          'flask_debugtoolbar_mongo.panel.MongoDebugPanel',
+          'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel',
+          'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel'
+      ]
+      app.config['DEBUG_TB_MONGO'] = {
+        'SHOW_STACKTRACES': True,
+        'HIDE_FLASK_FROM_STACKTRACES': True
+      }
+      
+      toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+      
       
 #      from cherrypy import wsgiserver
 #      server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)

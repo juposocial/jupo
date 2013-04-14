@@ -4,11 +4,11 @@ import sys
 import time
 
 sys.path.append('../src/')
-from api import DATABASE, add_index, update_index, es, get_attachment_info, Feed
+from api import DATABASE, add_index, update_index, INDEX, get_attachment_info, Feed
 
 for db_name in DATABASE.database_names():
   try:
-    print es.delete_index(db_name)
+    print INDEX.delete_index(db_name)
   except:
     continue
   

@@ -132,6 +132,9 @@ def parse_json(text):
   except Exception:
     return None
 
+EMAIL_RE = re.compile('^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,4})$')
+MENTIONS_RE = re.compile('(@\[.*?\))')
+
 def autolink(text):  
   if not text:
     return text
@@ -141,8 +144,7 @@ def autolink(text):
   if out:
     return out
   
-  EMAIL = '^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,4})$'
-  if re.match(EMAIL, text):
+  if re.match(EMAIL_RE, text):
     email = text 
     user_id = api.get_user_id_from_email_address(email)
     user = api.get_user_info(user_id)
@@ -153,10 +155,9 @@ def autolink(text):
   s = str(s) # convert unicode to string
   s = s.replace('\r\n', '\n')
 
-  URL_REGEX = r"""(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
-
-  urls = re.compile(URL_REGEX).findall(s)
-  urls = list(set([i[0] for i in urls if i]))
+  
+  urls = api.URL_RE.findall(s)
+  urls = list(set(urls))
   urls.sort(key=len, reverse=True)
   
   for url in urls:
@@ -182,9 +183,8 @@ def autolink(text):
     if len(url) > 70:
       s = s.replace(md5(url[:70] + '...').hexdigest(), url[:70] + '...')
       
-      
   
-  mentions = re.compile('(@\[.*?\))').findall(s)
+  mentions = MENTIONS_RE.findall(s)
   if mentions:
     for mention in mentions:
       user = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
@@ -210,7 +210,8 @@ def unescape(s):
   s = s.replace("&amp;", "&") # last
   return s
 
-
+REFERENCE_URL_REGEX = re.compile(r"""\n(\[[a-zA-Z0-9_-]*\]: (?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])))""")
+  
 def flavored_markdown(text): 
   key = '%s:flavored_markdown' % hash(text)
   html = cache.get(key, namespace="filters")
@@ -221,15 +222,13 @@ def flavored_markdown(text):
   text = unescape(text)
   
   # extract Reference-style links
-  REFERENCE_URL_REGEX = r"""\n(\[[a-zA-Z0-9_-]*\]: (?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])))"""
-  reference_urls = re.compile(REFERENCE_URL_REGEX).findall(text)
+  reference_urls = REFERENCE_URL_REGEX.findall(text)
   reference_urls = [i[0] for i in reference_urls]
   for i in reference_urls:
     text = text.replace(i, md5(i).hexdigest())  
   
   # extract urls
-  URL_REGEX = r"""(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))"""
-  urls = re.compile(URL_REGEX).findall(text)
+  urls = URL_REGEX.findall(text)
   urls = [i[0] for i in urls if i]
   urls.sort(key=len, reverse=True)
   for url in urls:
@@ -249,20 +248,20 @@ def flavored_markdown(text):
         break
   
   # extract mentions
-  mentions = re.compile('(@\[.*?\))').findall(text)
+  mentions = re.findall('(@\[.*?\))', text)
   if mentions:
     for mention in mentions:
       text = text.replace(mention, md5(mention).hexdigest())
   
   # extract hashtags
-  hashtags = re.compile('(#\[.*?\))').findall(text)
+  hashtags = re.findall('(#\[.*?\))', text)
   if hashtags:
     for hashtag in hashtags:
       text = text.replace(hashtag, md5(hashtag).hexdigest())
             
   # extract underscores words - prevent foo_bar_baz from ending up with an italic word in the middle
   words_with_underscores = [w for w in \
-                            re.compile('((?! {4}|\t)\w+_\w+_\w[\w_]*)').findall(text) \
+                            re.findall('((?! {4}|\t)\w+_\w+_\w[\w_]*)', text) \
                             if not w.startswith('_')]
   
   for word in words_with_underscores:
@@ -292,7 +291,7 @@ def flavored_markdown(text):
   
   # extract code-blocks
   html = html.replace('\n', '<br/>') # convert multi-lines to single-lines for regex matching
-  code_blocks = re.compile('(<code>.*?</code>)').findall(html)
+  code_blocks = re.findall('(<code>.*?</code>)', html)
   for block in code_blocks:
     html = html.replace(block, md5(block).hexdigest())
     
@@ -373,7 +372,7 @@ def to_embed_code(url, width=437, height=246):
   embed_code = ''
   youtube_embed_code_template = '<iframe width="%s" height="%s" src="https://www.youtube.com/embed/%s?wmode=opaque" frameborder="0" allowfullscreen></iframe>'
   if not url.startswith('http'):
-    url = re.findall(api.URL_REGEX, url)[0]
+    url = URL_RE.findall(url)[0]
   
   if 'www.youtube.com/' in url:      
     video_id = url.rsplit('?v=', 1)[-1].split('&', 1)[0]
@@ -582,7 +581,7 @@ def clean(text):
 #  if out:
 #    return out
   
-  mentions = re.compile('(@\[.*?\))').findall(text)
+  mentions = re.findall('(@\[.*?\))', text)
   if mentions:
     for mention in mentions:
       user = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()

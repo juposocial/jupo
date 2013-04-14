@@ -110,16 +110,7 @@
               <div class="upload-status rfloat"></div>
               <div class="attachments"></div>
               
-              {% if item.is_email() %}
-              {# TODO: replace đống này với thông tin chưa bị cache #}
-              <select name="from" class='rfloat' title='Send as...'>
-                {% for addr in owner.email_addresses %}
-                  {% if addr in item.email_addresses %}
-                    <option value="{{ addr }}">{{ addr }}</option>
-                  {% endif %}
-                {% endfor %}
-              </select>
-              {% endif %}
+            
               
               <script type="text/javascript">
                   $.global.uploader_{{ id }} = new plupload.Uploader({
