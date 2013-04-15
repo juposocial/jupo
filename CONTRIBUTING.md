@@ -21,7 +21,7 @@ If you want to include your code in the general Jupo release, follow these steps
 ## Coding style
 * Use two spaces for indentation, not tabs.
 * Avoid trailing spaces.
-* Write tests. Integration testing with cucumber and unit test with rspec.
+* Write tests.
 * Clearness over cleverness. It’s better to write a simple, readable method.
 * Avoid long methods. Break them into smaller ones.
 * Write fat models, skinny controllers.
@@ -32,4 +32,8 @@ If you want to include your code in the general Jupo release, follow these steps
   * Follow python conventions
   * Pluralization rules
 * Use private methods for things that are not meant to be used by others.
+
+
+
+
 
