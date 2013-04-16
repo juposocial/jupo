@@ -9,8 +9,8 @@
         
         <p>
           <img src='{{ user.avatar }}' style='width: 16px; vertical-align: text-bottom; margin-right: 3px;'>
-          <a href='http://www.jupo.com/user/{{ user.id }}' style="text-decoration: none; color: #348">{{ user.name }}</a> wrote: 
-            "{{ post.message | autolink | replace('/user/', 'http://www.jupo.com/user/') | replace('<a href=', '<a style="text-decoration: none; color: #348" href=') | autoemoticon | replace("class='emoticon'", "style='vertical-align: middle;'") | nl2br | safe }}"
+          <a href='http://{{ domain }}/user/{{ user.id }}' style="text-decoration: none; color: #348">{{ user.name }}</a> wrote: 
+            "{{ post.message | autolink | replace('/user/', 'http://{{ domain }}/user/') | replace('<a href=', '<a style="text-decoration: none; color: #348" href=') | autoemoticon | replace("class='emoticon'", "style='vertical-align: middle;'") | nl2br | safe }}"
     
         </p>
         
@@ -18,7 +18,7 @@
         <p>Reply directly to this email to comment on this post.</p>
         
         <p>
-          <a href="http://www.jupo.com/feed/{{ post.id }}" style="text-decoration: none; color: #348">See post</a>
+          <a href="http://{{ domain }}/feed/{{ post.id }}" style="text-decoration: none; color: #348">See post</a>
         </p>
 
       </div>
@@ -31,7 +31,7 @@
 
 
         <p style="margin: 3px 0">
-          This email was sent by <a href="http://www.jupo.com/" style="text-decoration: none;color: #999">Jupo</a>. <a href="http://www.jupo.com/" style="text-decoration: none;color: #999">Jupo</a> keeps your discussions, notes, files, tasks and team together.
+          This email was sent by <a href="http://{{ domain }}/" style="text-decoration: none;color: #999">Jupo</a>. <a href="http://{{ domain }}/" style="text-decoration: none;color: #999">Jupo</a> keeps your discussions, notes, files, tasks and team together.
         </p>
 
 

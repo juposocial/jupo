@@ -124,6 +124,8 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
   
   if not db_name:
     db_name = get_database_name()
+    
+  domain = db_name.replace('_', '.')
 
   if mail_type == 'thanks':    
     subject = 'Thanks for Joining the Jupo Waiting List'
@@ -138,12 +140,12 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       subject = "%s has invited you to Jupo" % (kwargs.get('user').name)
       
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
-    body = template.render(**kwargs)
+    body = template.render(domain=domain, **kwargs)
     
   elif mail_type == 'forgot_password':
     subject = 'Reset your Jupo password'
     template = app.CURRENT_APP.jinja_env.get_template('email/reset_password.html')
-    body = template.render(email=to_addresses, **kwargs)
+    body = template.render(email=to_addresses, domain=domain, **kwargs)
     
   elif mail_type == 'welcome':
     subject = 'Welcome to Jupo!'
@@ -154,7 +156,7 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     post = Feed(post)
     subject = '%s shared a post with you' % user.name
     template = app.CURRENT_APP.jinja_env.get_template('email/new_post.html')
-    body = template.render(email=to_addresses, user=user, post=post)
+    body = template.render(domain=domain, email=to_addresses, user=user, post=post)
     
   elif mail_type == 'new_comment':
     user = get_user_info(user_id, db_name=db_name)
@@ -181,7 +183,7 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
                 % (post.owner.name, post.message) 
     
     template = app.CURRENT_APP.jinja_env.get_template('email/new_comment.html')
-    body = template.render(email=to_addresses, user=user, post=post)
+    body = template.render(domain=domain, email=to_addresses, user=user, post=post)
     
   
   if to_addresses and subject and body:
