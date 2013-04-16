@@ -1,0 +1,329 @@
+body {
+  font-family: Helvetica, arial, freesans, clean, sans-serif;
+}
+
+div.heading {
+  font-family: 'myriad-pro-regular';
+  margin-left: 10px;
+  text-shadow: 0 -1px 0 #444, 0 3px 25px rgba(0, 0, 0, 0.5);
+  width: 500px;
+}
+
+button {
+  position: relative;
+  font-weight: bold;
+  background-color: #E5E5E5;
+  background-image: -moz-linear-gradient(whiteSmoke, #E5E5E5);
+  background-image: -webkit-linear-gradient(whiteSmoke, #E5E5E5);
+  background-image: linear-gradient(whiteSmoke, #E5E5E5);
+  background-repeat: repeat-x;
+  border-radius: 3px;
+  border: 1px solid #DDD;
+  border-bottom-color: #BBB;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  display: block;
+  width: 307px;
+  padding: 9px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  font-size: 16px;
+  line-height: 1.4;
+  border-radius: 5px;
+  color: white;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
+  border-color: #74BB5A;
+  border-bottom-color: #509338;
+  background-color: #60B044;
+  background-image: -moz-linear-gradient(#8ADD6D, #60B044);
+  background-image: -webkit-linear-gradient(#8ADD6D, #60B044);
+  background-image: linear-gradient(#8ADD6D, #60B044);
+  background-repeat: repeat-x;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+  background-color: #4C8B36;
+  background-image: -moz-linear-gradient(#69D344, #4C8B36);
+  background-image: -webkit-linear-gradient(#69D344, #4C8B36);
+  background-image: linear-gradient(#69D344, #4C8B36);
+  background-repeat: repeat-x;
+  border-color: #4A993E;
+  color: white;
+}
+
+button:active {
+  background: #4C8B36;
+}
+
+header {
+  padding: 25px 0;
+  margin-bottom: 35px;
+}
+
+header nav {
+  padding: 0 5px;
+}
+
+header a {
+  font-weight: bold;
+  margin-left: 15px;
+  font-size: 14px;
+  color: white;
+  -webkit-transition: all .1s linear;
+  -moz-transition: all .1s linear;
+  transition: all .1s linear;
+  text-decoration: none;
+}
+
+header a:hover {
+  text-decoration: none;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.75);
+}
+
+header .button {
+
+  float: right;
+  padding: 7px 20px;
+  line-height: normal;
+  position: relative;
+  font-family: Helvetica, arial, freesans, clean, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  display: inline-block;
+  cursor: pointer;
+  font-weight: 700;
+  -webkit-border-radius: 2px;
+  border-radius: 2px;
+  background-color: #2b96f1;
+  border: solid 1px #2473b0;
+  border-bottom: 1px solid #20608f;
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #2a99ef), color-stop(1, #237bbd));
+  background: -webkit-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: -moz-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: -o-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: -ms-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  color: #fff;
+  -webkit-transition: none;
+  -moz-transition: none;
+  transition: none;
+  text-shadow: 0 -1px rgba(0,0,0,0.11);
+  -webkit-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
+  -moz-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
+}
+
+header .button:hover {
+  text-shadow: 0 0 15px white;
+}
+
+header .button:active {
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #237bbd), color-stop(1, #2a99ef));
+  background: -webkit-linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  background: -moz-linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  background: -o-linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  background: -ms-linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  background: linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  text-shadow: 0 1px rgba(0,0,0,0.6);
+  -webkit-box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+  -moz-box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+  box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+}
+
+header .button.sign-up {
+  background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #d62229), color-stop(100%, #ab171e));
+  background-image: -webkit-linear-gradient(#d62229, #ab171e);
+  background-image: -moz-linear-gradient(#d62229, #ab171e);
+  background-image: -o-linear-gradient(#d62229, #ab171e);
+  background-image: linear-gradient(#d62229,#ab171e);
+  background-color: #ab171e;
+  border: 1px solid #920c12;
+  color: #fff;
+  text-shadow: 0 -1px rgba(0,0,0,0.11);
+  -webkit-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
+  -moz-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
+}
+
+header .button.sign-up:hover {
+  text-shadow: 0 0 15px white;
+}
+
+header .button.sign-up:active {
+  background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #bb1618), color-stop(100%, #e22123));
+  background-image: -webkit-linear-gradient(#bb1618, #e22123);
+  background-image: -moz-linear-gradient(#bb1618, #e22123);
+  background-image: -o-linear-gradient(#bb1618, #e22123);
+  background-image: linear-gradient(#bb1618,#e22123);
+  background-color: #e22123;
+  border-color: #99161b;
+  text-shadow: 0 1px rgba(0,0,0,0.6);
+  -webkit-box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+  -moz-box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+  box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+}
+
+h1 {
+  font-size: 50px;
+  margin: 0;
+  line-height: 60px;
+  font-weight: normal;
+}
+
+h1 span {
+  background: rgb(187, 8, 15);
+  padding: 0 15px 5px;
+  box-shadow: 0 1px 50px #333;
+  margin-left: -20px;
+  border-radius: 2px;
+}
+
+a {
+  font-weight: normal;
+  font-family: myriad-pro-light;
+  font-size: 15px;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  display: block;
+}
+
+a:hover .text2 {
+  text-decoration: underline;
+}
+
+h2 {
+  font-family: 'myriad-pro-light';
+  font-size: 20px;
+  font-weight: normal;
+  margin: 10px 0;
+  color: white;
+}
+
+form.sign-in h2 {
+  text-shadow: 0 0 1px #666, 0 1px 6px rgba(0, 0, 0, 0.75);
+  font-family: myriad-pro-light;
+}
+
+div.teaser {
+  width: 262px;
+  display: inline-block;
+  margin: 0 25px;
+  float: left;
+  color: #333;
+  line-height: 1.5em;
+  text-align: center;
+}
+
+div.teaser h2 {
+  margin: 0 0 9px;
+  font-size: 20px;
+  font-weight: normal;
+  line-height: 1.1;
+  color: #2A2A2A;
+}
+
+div.teaser p {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: #5A5A5A;
+}
+
+.jumbotron {
+
+  /*        background-image: url("/public/images/the-final-frontier.jpg");
+   background-size: 100% 100%;*/
+
+  background-image: url(/public/images/bg.jpg);
+  background-size: 100%;
+  background-position: center bottom;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  background-color: #081218;
+  background-repeat: no-repeat;
+  text-rendering: optimizeLegibility;
+  position: relative;
+  overflow: hidden;
+  height: 375px;
+  margin-bottom: 50px;
+}
+
+.jumbotron-shadow {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  height: 30px;
+  background-color: rgba(0, 0, 0, 0.15);
+  background-image: -moz-linear-gradient(transparent, rgba(0, 0, 0, 0.15));
+  background-image: -webkit-linear-gradient(transparent, rgba(0, 0, 0, 0.15));
+  -ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr='rgba(0,0,0,0)', endColorstr='rgba(0,0,0,0.15)')";
+  background-color: transparent;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.container {
+  width: 940px;
+  margin: 0 auto;
+}
+
+.logo {
+  color: white;
+  margin-left: 13px;
+  vertical-align: top;
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: bold;
+  font-family: arial;
+  line-height: 18px;
+  text-shadow: black 1px 1px 0px, #B5B5B5 1px 2px 0px;
+  outline: 0;
+  float: left;
+  margin-right: 20px;
+}
+
+.logo:hover {
+  text-shadow: black 1px 1px 0px, #B5B5B5 1px 2px 0px, 0 0 10px rgba(255, 255, 255, 0.75);
+}
+
+.red {
+  color: #DA0000
+}
+
+div.teasers {
+  overflow: hidden;
+}
+
+footer {
+  display: block;
+  color: #666;
+  font-size: 12px;
+  text-align: right;
+  width: 940px;
+  margin: 20px auto;
+  border-top: 1px solid #E2E2E2;
+  padding: 20px 10px;
+}
+
+.hidden {
+  display: none;
+}
+
+img {
+  width: 450px;
+  margin-right: -25px;
+  float: right;
+}

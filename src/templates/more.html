@@ -1,0 +1,14 @@
+<li class='more'>
+  <section>
+  {% if more_url %}
+  <a href='{{ more_url }}' class='next'>
+    <span class='loading'></span>
+    <span class='text'>More...</span>
+  </a> 
+  {% else %}
+  <a>
+    <span class='text'>There are no more posts to show.</span>
+  </a> 
+  {% endif %}
+  </section>
+</li>

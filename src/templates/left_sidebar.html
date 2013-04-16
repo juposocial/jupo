@@ -1,0 +1,124 @@
+<div id="left-sidebar">
+  {% if not owner %}
+  <ul id="main-nav" class='account intro'>
+    
+    <li>
+      <a href='#'>Features</a>
+    </li>
+    <li>
+      <a href='#'>Stories</a>
+    </li>
+    <li>
+      <a href='#'>@Jupo</a>
+    </li>
+    <li>
+      <a href='#'>Find Us on Facebook</a>
+    </li>
+
+{#
+    <h2>New to Jupo?</h2>
+
+    <br>
+
+    <del>&nbsp;<strong>Sign up</strong> </del>
+    <br>
+    (Skip it! No sign up needed)
+
+    <br>
+    <br>
+    <li>
+      <a href='#!/sign_up' class='overlay'><i class="email-icon img-wrap"></i>Email</a>
+    </li>
+#}
+    <strong>Already have an account? <br>Sign in with:</strong>
+
+  
+    <li>
+      <a href='/oauth/google'><i class="google-icon img-wrap"></i> Google</a>
+    </li>
+    <li>
+      <a href='/oauth/facebook'><i class="facebook-icon img-wrap img-wrap"></i> Facebook</a>
+    </li>
+    <li>
+      <a href='#!/sign_in' class='overlay'><i class="password-icon img-wrap"></i> Password</a>
+
+    </li>
+{#
+    <br>
+    <br>
+    <br>
+    <h2>Jupo keeps your discussions, docs, files and team together.</h2>
+    » <a href='/welcome' class='overlay'>Learn more</a>
+#}  
+  </ul>
+
+  {% else %}
+
+
+  {% cache 'main-nav:%s' % view, 86400 %}
+  <ul id="main-nav">
+    <li id='welcome'>
+      <a href="/welcome" class="{% if view == 'welcome' %}active async{% else %}async{% endif %}"> Welcome </a>
+    </li>
+
+    
+    <li id="discover">
+      <a href='/everyone'  class="{% if view == 'everyone' %}active async{% else %}async{% endif %}"><i class="public-group-icon"></i> Everyone</a>
+    </li>
+
+
+    <li>
+      <a href="/news_feed" class="{% if view == 'news_feed' %}active async{% else %}async{% endif %}"> <i class="news-feed-icon"></i> News Feed </a>
+    </li>
+
+    <li id="people">
+      <a href="/contacts" class="{% if view == 'people' %}active async{% else %}async{% endif %}"> <i class="people-icon"></i> Contacts </a>
+    </li>
+
+
+    <li id="reminders">
+      <a href="/reminders" class="{% if view == 'reminders' %}active async{% else %}async{% endif %}"> <i class="focus-icon"></i> Reminders </a>
+    </li>
+
+    <li id="notes">
+      <a href="/notes"  class="{% if view == 'notes' %}active async{% else %}async{% endif %}"> <i class="notes-icon"></i> Notes </a>
+    </li>
+
+    <li id="files">
+      <a href="/files" class="{% if view == 'files' %}active async{% else %}async{% endif %}"> <i class="files-icon"></i> Files </a>
+    </li>
+
+  </ul>
+  {% endcache %}
+
+  <ul id="groups-nav">
+
+    {% for _group in groups[:2] %}
+    <li id='group-{{ _group.uuid }}'>
+      <a href="/group/{{ _group.uuid }}" class='{% if group and view == "group" and group.id == _group.id %}active async{% else %}async{% endif %}' {% if groupname | length == 21 %}title="{{ _group.name }}"{% endif %}> 
+        
+        <i class="group-icon"></i> 
+        {% set groupname = _group.name | truncate(18, True) %} 
+        {{ groupname }}
+        
+        {% if _group.unread_posts > 0 %}
+          <span class='count'>{{ _group.unread_posts }}</span>
+        {% endif %}
+      </a>
+    </li>
+    {% endfor %}
+
+    <li id='see-all'>
+      <a href="/groups" class='{% if view == "groups" %}active async{% else %}async{% endif %} no-icon'> See All Groups </a>
+    </li>
+
+
+    <li id='new-group'>
+      <a href="/group/new" class='no-icon popup'> + New Group </a>
+    </li>
+
+  </ul>
+
+  {% endif %}
+
+</div>

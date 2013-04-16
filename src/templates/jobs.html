@@ -1,0 +1,193 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Jobs - Jupo</title>
+
+<link rel="stylesheet" href="/public/styles/base.css">
+
+<script type="text/javascript" src="/public/scripts/jquery.min.js"></script>
+<script>
+    $(document).ready(function() {
+    	$('a').live('click', function(e) {
+    	    href = $(this).attr('href');
+    	    if ('#' + $('div.more:visible').attr('id') != href) {
+    		      $('div.more:visible').slideToggle('fast');
+    	    }
+    	    $(href).slideToggle('fast');
+    	    return false;
+    	});
+    });
+</script>
+</head>
+<body>
+  <header>
+  </header>
+  <div id="content">
+    <h2>About Jupo</h2>
+    Jupo is a tech startup based in Hanoi. 
+    We're revolutionizing the way that people think about collaboration and 
+    communication in their team, and we're looking for great people to join us.
+  
+<!--     <h2>We are family</h2> -->
+<!--     We want you to be balanced and happy while working at Jupo.  -->
+<!--     That is why we cultivate a friendly and harmonious corporate culture.  -->
+<!--     No senseless hierarchies, open discussions and transparency regarding  -->
+<!--     management decisions make Jupo a great place to work at.  -->
+<!--     You really matter to us, that's why you are here. -->
+  
+    <h2>Join Jupo Team</h2>
+    We don't have titles at Jupo, but these are roughly the people
+    we're looking for right now:
+    <div id='jobs'>
+      <h3>
+        - <a href='#frontend-developer'>Frontend Developer</a>
+      </h3>
+      <div id='frontend-developer' class='more'>
+        <p>We know that some people think front-end development is
+          just the little, less intelligent brother of the "real"
+          coding. Some people think JavaScipt is a “toy” language. 
+          But we think that a talented front-end
+          developer is the perfect bridge between the vision of the
+          designer and the reality of the back end developer. Think you
+          can handle this challenge? Apply now!</p>
+        <h4>What we are looking for?</h4>
+        <ul>
+          <li>Expertise in client-side JavaScript (jQuery), HTML5 and CSS3</li>
+          <li>Proven track record creating rock-solid interfaces
+            for the web</li>
+          <li>You know the importance of responsiveness and performance</li>
+          <li>Learn from & teach your new colleagues</li>
+          <li>You take pride in writing beautiful, readable code</li>
+          <li>Enjoy building user interfaces with usability and
+            accessibility in mind</li>
+          <li>Ready to live in Hanoi, Vietnam</li>
+        </ul>
+        <h4>What you will do?</h4>
+        <ul>
+          <li>Front-end implementation & design across web and
+            mobile</li>
+          <li>Work directly with the designers to ensure page
+            builds include interactive elements and dynamics as intended</li>
+          <li>Develop new concepts with our engineers for the next
+            big thing</li>
+          <li>Maintain and improve our current apps</li>
+        </ul>
+      </div>
+      <h3>
+        - <a href='#application-engineer'>Application Engineer</a>
+      </h3>
+      <div id='application-engineer' class='more'>
+        <p>Do your friends call you a geek, because you think
+          HBase is cool technology? Do you think you can change the
+          world by writing the right code? Sounds like you're the
+          perfect addition to our development team. Together you will
+          create amazing things, armed with your favourite IDE and some
+          stress balls.</p>
+
+        <h4>What we are looking for?</h4>
+        <ul>
+          <li>Expertise in Python and MongoDB at its best</li>
+          <li>Real passion and interest in working with NoSQL</li>
+          <li>Furthermore interest in working with asynchronous web
+            services</li>
+          <li>Enthusiasm for beautiful, pragmatic code and an eye
+            for simplicity</li>
+          <li>Motivation, talent and endless spirit</li>
+          <li>Ability to integrate into a symbiotic team of young
+            and highly motivated people</li>
+        </ul>
+        <h4>What you will do?</h4>
+        <ul>
+          <li>Create our productivity platform Jupo with some
+            visionary features and an impressive user interface</li>
+          <li>Optimize databases, program unique modules and think
+            a lot about cloud computing</li>
+          <li>Develop new features, including database design and
+            programming</li>
+          <li>Work on Linux</li>
+          <li>Get exceptional career opportunities</li>
+          <li>Enrich our team with expert knowledge</li>
+          <li>Relocate to Hanoi, Vietnam</li>
+        </ul>
+
+      </div>
+      <h3>
+        - <a href='#ui-designer'>UI Designer</a>
+      </h3>
+      <div id='ui-designer' class='more'>
+        <p>Designing fancy and shiny interface elements that look
+          like candy is not exactly the same as creating great user
+          interface designs. Do you like thinking out of the box and
+          discussing features and functions for hours and days? If not,
+          please stick with your sweets. If yes, apply now for the UI
+          Designer position.</p>
+        <h4>What we are looking for</h4>
+        <ul>
+          <li>Excellent UI and visual design capabilities</li>
+          <li>Basic understanding of HTML/CSS and Javascript</li>
+          <li>Outstanding portfolio of successful solid web
+            application work</li>
+          <li>Ability to work in a team with developers</li>
+          <li>Proficiency to create beautiful and intuitive
+            interfaces to attract our users</li>
+          <li>Ability to create simple and gorgeous visual designs</li>
+          <li>Learn from & teach your new colleagues</li>
+        </ul>
+        <h4>What you will do?</h4>
+        <ul>
+
+          <li>Create crisp, innovative and impressive user
+            interfaces for complex web-based tools</li>
+          <li>Develop new concepts with our engineers for the next
+            big thing</li>
+          <li>Create wireframes, mockups and prototypes</li>
+          <li>A/B split testing and usability testing</li>
+          <li>Get exceptional career opportunities</li>
+          <li>Enrich our team with expert knowledge</li>
+          <li>Relocate to Hanoi, Vietnam</li>
+        </ul>
+      </div>
+      <h3>
+        - <a href='#qa-manager'>QA Manager</a>
+      </h3>
+      <div id='qa-manager' class='more'>
+        <p>Are you a tech-savvy person who doesn’t like buggy software and loses 
+        sleep at night until everything is fixed? Do you enjoy communicating 
+        with all types of customers and always want to ensure they are happy? 
+        Then you are the right person for our Quality Assurance team. Apply now!</p>
+        <h4>What we are looking for</h4>
+        <ul>
+          <li>At least 2+ year experience in a tech startup</li>
+          <li>Tech-savvy people who are exceptionally organized and detailed</li>
+          <li>Experience in creating and executing manual testing on a variety of platforms</li>
+          <li>High level of understanding of web/mobile applications, APIs</li>
+          <li>Previous experience as a QA manager in a related area</li>
+          <li>Take a lead to improve our products on a regular basis</li>
+          <li>Excellent communication and presentation skills</li>
+          <li>Have a strong interest in latest mobile apps and websites</li>
+          <li>You know the importance of high performing SaaS</li>
+          <li>Must move to Hanoi, Vietnam</li>
+        </ul>
+        <h4>What you will do?</h4>
+        <ul>
+          <li>Create, write and execute tests for our apps/platforms and usability</li>
+          <li>Work closely with our developers, product management, marketing, social media</li>
+          <li>Report and track problems by providing test results/cases, verify bug reports</li>
+          <li>Envision new concepts/features with our engineers for the next big thing</li>
+          <li>Maintain and improve our current and upcoming apps</li>
+        </ul>
+      </div>
+
+
+
+      <h3>Interested?</h3>
+      <p>
+<!--         Email us at <a href="mailto:jobs@jupo.com">jobs@jupo.com</a> -->
+        Call <b>+84.984320952</b>. Let's do something big!
+      </p>
+    </div>
+
+
+  </div>
+</body>
+</html>

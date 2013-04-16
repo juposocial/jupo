@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  {% if title %}{{ title }}{% else %}Home{% endif %}
+{% endblock %}
+
+{% block logo %}
+  <a href='/' class='lfloat fire-icon logo'>Jupo</a>
+{% endblock %}
+
+{% block search_box %}
+  {% include 'search_box.html' %}
+{% endblock %}
+
+{% block main %}{% endblock %}
+
+{% block welcome %}
+<div id='welcome' class='description'>
+  <div class='text'>
+    <h1>Coming soon</h1>
+    <div class='info'>
+      <b>Jupo</b> is a tech startup based in Hanoi. <br>
+      We're revolutionizing the way that people think about 
+      collaboration and communication in their team, 
+      and we're looking for great people to join us.
+    </div>
+  </div>
+  <footer>
+   <form id='subscription' action='/notify_me' method='post'>
+     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <h3>Get notified when we launch!</h3>
+            <input type='email' placeholder="Your email address..." name='email' required {% if message %}autofocus{% endif %}>
+            <input type='submit' value="Notify me" class='button'>
+      </form>
+      
+      <form action='/sign_in' id="sign-in" method='post'>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <h3>Already have an account? Sign in now!</h3> <!-- <a href='#'>Forgot password?</a> -->
+          <input type='email' placeholder="Email" name='email' {% if email %}value='{{ email }}'{% else %}autofocus required{% endif %}>
+          <input type='password' placeholder="Password" name='password' required {% if email %}autofocus{% endif %}>
+          <input type='submit' value="Sign In" class='button'>
+      </form>
+  </footer>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+        <link rel="stylesheet" href="/public/styles/home.css">
+        <link rel="stylesheet" href="/public/styles/welcome.css">
+{% endblock %}
+
+{% block top_scripts %}
+   <script type="text/javascript" src="/public/scripts/jquery.min.js"></script>
+   <script>
+    $(document).ready(function() {
+      $('a').live('click', function(e) {
+          href = $(this).attr('href');
+          if ('#' + $('div.more:visible').attr('id') != href) {
+              $('div.more:visible').slideToggle('fast');
+          }
+          $(href).slideToggle('fast');
+          return false;
+      });
+    });
+</script>
+{% endblock %}
+
+
+

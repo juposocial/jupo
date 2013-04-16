@@ -1,0 +1,14 @@
+<div id="page-header">
+        <div class='title'>
+          <span class="img events-icon"></span>
+          <span>Events</span>
+        </div>
+        <div class='subtitle'>
+        </div>
+</div>
+
+<ul id="stream">
+    {% for feed in events %}
+      {% include 'feed.html' %}
+    {% endfor %}
+</ul>

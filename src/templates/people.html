@@ -1,0 +1,128 @@
+
+  
+  <div id="page-header" class='border-bottom'>
+    
+          <div class="actions rfloat">
+              <a href="/search?type=people" class="popup button">New Contact</a>
+          </div>
+          <h2>Contacts</h2>
+    
+  </div> 
+      
+  <ul class="contacts clearfix">
+    
+      {% for user in owner.contacts %}
+        {% if user.id %}
+            <li>
+              <a href='/user/{{ user.id }}' class='async'>
+                <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+                <div class='title'>
+                  {{ user.name }} <i class='{{ user.status }}'></i>
+                </div>
+                {% set last_online = user.last_online %}
+                {% if last_online %}
+                 <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>{{ last_online | friendly_format(owner.utcoffset, short=True) }}</time>
+                {% else %}
+                  &nbsp;
+                {% endif %}
+              </a>
+            </li>
+        {% endif %}
+      {% endfor %}
+  
+  </ul>
+  
+  
+  
+{#
+  <div id="page-header" class='border-bottom'>
+    
+          <div class="actions rfloat">
+             <a href="/group/new" class="popup button">New Group</a>
+          </div>
+          <h2>Groups</h2>
+    
+  </div> 
+  
+  <ul class="groups">
+      {% for group in groups %}      
+      {% if (user and group.privacy == 'open') or not user %}
+      <li>
+         <a href="/group/{{ group.id }}" class='async' rel='group-{{ group.id }}'>
+           
+          <i class="group-icon"></i>
+          {{ group.name }}
+        
+          <div class='info'>
+            <span class=''>{{ group.members | length }} {% if group.privacy == 'open' %}followers{% else %}members{% endif %}</span>          
+          </div>
+        </a>
+      </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+#}  
+
+{#
+
+  <div id="page-header" class='border-bottom'>
+    
+          <div class="actions rfloat">
+             <a href="/group/new" class="popup button">New Group</a>
+          </div>
+          <h2>Co-workers</h2>
+    
+  </div> 
+  
+    
+  <ul class="contacts">
+      {% for user in coworkers %}
+        {% if user.id not in owner.contact_ids %}
+            <li>
+              <a href='/user/{{ user.id }}' class='async'>
+                <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+                <div class='title'>
+                  {{ user.name }} <i class='{{ user.status }}'></i>
+                </div>
+                {% set last_online = user.last_online %}
+                {% if last_online %}
+                 <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>{{ last_online | friendly_format(owner.utcoffset, short=True) }}</time>
+                {% else %}
+                  &nbsp;
+                {% endif %}
+              </a>
+            </li>
+        {% endif %}
+      {% endfor %}
+  </ul>
+#} 
+
+
+
+
+
+
+
+
+
+
+
+<div id="right-sidebar">
+  
+  
+
+
+
+{% autoescape on %}  
+  {% cache "suggested_friends:%s:%s" % (owner.id, owner.contact_ids | length), 86400 %}
+    {% include "suggested_friends.html" %}
+  {% endcache %}
+{% endautoescape %}
+
+
+
+</div>
+
+
+
+

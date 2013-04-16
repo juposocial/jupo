@@ -1,0 +1,92 @@
+article code {
+  line-height: 20px !important;
+}
+
+
+
+article pre {
+font-family: monospace;
+font-size: 12px!important;
+color: whiteSmoke;
+word-wrap: break-word;
+white-space: nowrap;
+padding: 10px;
+background: #222;
+text-shadow: 0 1px 0 black;
+overflow-x: auto;
+}
+
+article pre::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+article pre a {
+  color: #bbb;
+}
+
+article.message pre {
+  margin: 10px 0;
+}
+
+article ul, article ol {
+  margin: 0;
+  padding: 0 0 0 20px
+}
+
+article ul:not(.dropdown-menu) li {
+  list-style-type: disc;
+}
+
+article p, article div, article ol, article ul {
+  margin: 0
+}
+
+article h2 {
+  margin: 0 !important;
+  font: bold 18px Arial, sans-serif !important;
+  line-height: 20px !important;
+}
+
+article h3 {
+  margin: 0 !important;
+  font: bold 14px Arial, sans-serif !important;
+  line-height: 20px !important;
+}
+
+article a {
+  word-wrap: break-word
+}
+
+article ul li {
+  display: list-item !important;
+  margin: 0 !important;
+}
+
+article b, article strong, article i, article em {
+  line-height: 0 !important;
+}
+
+article blockquote {
+  margin: 0 0 0 20px !important;
+}
+
+
+article img:not(.file-icon, .emoticon) {
+  float: left;
+  margin: 0 8px 8px 0;
+}
+
+.wysiwyg-float-left {
+  float: left;
+  margin: 0 8px 8px 0;
+}
+
+.wysiwyg-float-right {
+  float: right !important;
+  margin: 0 0 8px 8px !important;
+}
+
+
+
+

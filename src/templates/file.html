@@ -1,0 +1,217 @@
+<li class='file feed' id='post-{{ file.id }}'>
+  
+    {% set viewers = file.viewers | exclude(file.last_action.owner.id) %}
+    
+
+  
+    <a href='/user/{{ file.last_action.owner.id }}' class='async'>
+      <img src='{{ file.last_action.owner.avatar }}' class='medium-avatar'>
+    </a>
+
+{% set fid = file.id | unique_by_timestamp %} 
+   
+<i class='spine-pointer'></i>
+<section> 
+  {% if mode == 'view' %}
+  <header>
+    
+    <div class='rfloat options'>
+      
+      <a class='dropdown-menu-icon settings-icon'></a>
+      <ul class='dropdown-menu hidden'>
+        <div class="arrow-top-border"></div>
+        <div class="arrow-top"></div>
+        <li><a href='#!/file/{{ file.id }}' class='overlay'>View Details...</a></li>
+          
+        <li> <a id='replace-{{ fid }}'><i class='upload-icon'></i> New Version</a></li>
+        <li>  <a href='/file/{{ file.id }}/rename' class='rename' data-name="{{ file.name }}" data-id="post-{{ file.id }}">Rename</a></li>
+           
+           
+        <li><a href='/feed/{{ file.id }}/reshare' class='forward'>Share with...</a></li>
+        {% if file.owner.id == owner.id and not file.read_receipts %}
+          {% if file.is_note() and file.details.version | length > 1 %}
+          {% else %}
+            <li><a href='/feed/{{ file.id }}/remove' class='remove'>Remove this file</a></li>
+          {% endif %}
+        {% endif %}
+        <li><a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' class='forward'>Download this file</a></li> 
+
+      </ul>
+    </div>
+         
+
+            <a href="/user/{{ file.last_action.owner.id }}" class='async'><strong>{{ file.last_action.owner.name }}</strong></a>
+            {% if viewers %}
+              &#x21e2;
+              {% for user in viewers %}
+                  {% if user.id == 'public' %}
+                  <a href='/user/{{ file.last_action.owner.id }}/followers' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  {% elif user.is_group() %}
+                    <a href='/group/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  {% else %}
+                    <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  {% endif %}
+              {% endfor %}
+            {% endif %}
+            
+            <br>
+            <time class='timeago' title='{{ file.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ file.timestamp | isoformat(owner.utcoffset) }}'>{{ file.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+
+      
+      {% if not viewers %}
+         <a href='/feed/{{ file.id }}/viewers' class='forward viewers' title="Shared with: No one">
+           <i class="lock-icon"></i>
+         </a>
+      {% elif 'public' in viewers %}
+         <a href='/feed/{{ file.id }}/viewers' class='forward viewers' title="Shared with: Public">
+          <i class="public-icon"></i>
+         </a>
+      {% else %}
+         <a href='/feed/{{ file.id }}/viewers' class='forward viewers' title="Shared with: {% for user in viewers %}{{ user.name }}{% if loop.index != viewers | length %}, {% endif %}{% endfor %}">
+          <i class="friends-icon"></i>
+         </a>
+      {% endif %}
+  </header>
+  {% endif %}
+  
+    <article>
+      <div class='file-attachment'>
+        
+        <div class='rfloat options'>
+          
+          <a class='dropdown-menu-icon settings-icon'></a>
+          <ul class='dropdown-menu hidden'>
+            <div class="arrow-top-border"></div>
+            <div class="arrow-top"></div>
+            <li><a href='#!/file/{{ file.id }}' class='overlay'>View Details...</a></li>
+              
+               {% set fid = file.id | unique_by_timestamp %} 
+              <li> <a id='replace-{{ fid }}'><i class='upload-icon'></i> New Version</a></li>
+            <li>  <a href='/file/{{ file.id }}/rename' class='rename' data-name="{{ file.name }}" data-id="post-{{ file.id }}">Rename</a></li>
+               
+               
+            <li><a href='/feed/{{ file.id }}/reshare' class='forward'>Share with...</a></li>
+            {% if file.owner.id == owner.id and not file.read_receipts %}
+              {% if file.is_note() and file.details.version | length > 1 %}
+              {% else %}
+                <li><a href='/feed/{{ file.id }}/remove' class='remove'>Remove this file</a></li>
+              {% endif %}
+            {% endif %}
+            <li><a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' class='forward'>Download this file</a></li> 
+    
+          </ul>
+        </div>
+
+        
+        
+        <img src="{{ file.icon }}" class='lfloat file-icon' width="32">
+        <div class='title'>
+          <a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' target='_blank'>{{ file.name }}</a>
+        </div>
+        <div class="info">
+          Size: {{ file.size }}
+        </div>
+      </div>
+    </article>      
+    <footer>    
+      <div class='actions'> 
+        
+        <div class='rfloat'>
+            
+            {% if file.comments_count != 0 or file.read_receipt_ids | length != 0 %}
+             <a class="quick-stats toggle-comments">
+              {% if file.comments_count != 0 %}
+                <i class="comment-icon"></i>
+                <span class='comment-count'>{{ file.comments_count }}</span>
+              {% endif %}
+              {% if file.read_receipt_ids | length != 0 %}
+                <i class="receipt-icon"></i>
+                <span class='read-receipts-count'>{{ file.read_receipt_ids | length }}</span>
+              {% endif %}
+              </a>
+            {% endif %}
+          
+          
+        </div>
+        
+        <div class='lfloat'>
+           
+           {#
+           <a href="#!/file/{{ file.id }}/remove" class="overlay">Delete</a>
+          
+          
+           <a href="/attachment/{{ file.attachment_id }}?rel={{ file.id }}" class='download' title='Download this file'>
+            Download
+           </a>
+           #}
+                      
+           <a class="reply" rel="#{{ file.id }}-comments">Comment</a>
+        </div>
+      </div>
+
+{% if mode == 'view' %}      
+      {% set item = file %}
+      {% include 'comments.html' %}
+{% endif %}      
+    </footer>
+</section>
+</li>
+    
+
+<script type="text/javascript">   
+  $(document).ready(function() {
+    if (typeof $.global === 'undefined') {
+      $.global = {};
+    }
+    
+    $.global.uploader_{{ fid }} = new plupload.Uploader({
+      runtimes : 'gears,html5,flash,silverlight,browserplus',
+      browse_button : 'replace-{{ fid }}',
+      url : '/file/{{ file.id }}/update',
+      flash_swf_url: '/public/scripts/plupload.flash.swf',
+      silverlight_xap_url : '/public/scripts/plupload.silverlight.xap',
+      multi_selection : false,
+      max_file_size : '100mb',
+      headers: {
+        'X-CSRFToken': get_cookie('_csrf_token')
+      }
+    });
+
+    $.global.uploader_{{ fid }}.bind('Init', function(up, params) {});
+    $.global.uploader_{{ fid }}.init();
+
+    $.global.uploader_{{ fid }}.bind('FilesAdded', function(up, files) {
+      
+      var r = confirm('Are you sure you want to replace file "{{ file.name }}" ' + 
+                      'with this one?\n\n' + files[0].name + ' (' + readableFileSize(files[0].size) + ')\n\n' + 
+                      'Press OK to continue, or Cancel to go back.');
+      if (r == false) {
+          console.log('Cancelled');
+          hide_loading();
+          return false;
+      } else {
+          $.global.uploader_{{ fid }}.start();
+      }
+    
+      
+    });
+
+    $.global.uploader_{{ fid }}.bind('UploadProgress', function(up, file) {
+       show_loading();
+    });
+
+    $.global.uploader_{{ fid }}.bind('Error', function(up, err) {
+      show_error();
+      hide_loading();
+    });
+
+    $.global.uploader_{{ fid }}.bind('FileUploaded', function(up, file, response) {
+      
+      response = $.parseJSON(response.response);
+      
+      $('li#post-{{ file.id }}').replaceWith(response.html);
+      hide_loading();
+      
+    });
+  })
+</script>

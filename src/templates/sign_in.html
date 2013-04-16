@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Sign In
+{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block global %}
+
+<div class='content'>
+  <h2>{% if network_info %}Login to {{ network_info.name }} network{% else %}Login to Jupo network{% endif %}</h2>
+  
+  <form id='sign-in' action='/sign_in' class='authen' method='post'>
+    <div class='social-login'>
+      <a href='http://{{ PRIMARY_DOMAIN }}/oauth/facebook?domain={{ domain }}' class='facebook-button'> <i class='fb-icon'></i> <span> Login with Facebook </span> </a>
+      <a href='http://{{ PRIMARY_DOMAIN }}/oauth/google?domain={{ domain }}' class='google-button'> <i class='google-plus-icon'></i> <span>Login with Google</span> </a>
+
+    </div>
+
+    <div class='or'>
+      <span>or using email and password</span>
+      <hr>
+    </div>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+    <ul>
+      <li>
+        <input type='email' name='email' placeholder="Email" autocomplete="off" autofocus>
+        <br>
+      </li>
+      <li>
+        <input type='password' name='password' placeholder="Password" autocomplete="off">
+        <div class='click-target' onclick="document.getElementById('sign-in').submit();"></div>
+      </li>
+    </ul>
+
+    <p class='pwd'>
+      <input type="checkbox" checked id='remember'>
+      <label for='remember'>Remember me</label>
+      <a href='/forgot_password' class='forgot'>Forgot password?</a>
+    </p>
+
+    <button type="submit"></button>
+
+    <p>
+      Don’t have an account? <a href='/sign_up'>Sign Up</a>
+    </p>
+
+  </form>
+
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+
+<style>
+  html {
+    background: #111;
+    font: 13px Arial, "Helvetica Neue", Helvetica, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, cite, code, del, dfn, em, img, q, s, samp, small, strike, strong, sub, sup, tt, var, dd, dl, dt, li, ol, ul, fieldset, form, label, legend, button, table, caption, tbody, tfoot, thead, tr, th, td {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 100%;
+    line-height: 1;
+    font-family: inherit;
+  }
+
+  h1 {
+    font-size: 116%;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  p.pwd {
+    margin-top: -5px;
+  }
+
+  form ul {
+    margin: 0 0 15px;
+    list-style: none;
+  }
+
+  form ul li {
+    clear: both;
+    margin-bottom: 5px;
+    position: relative;
+    list-style: none;
+  }
+
+  form ul li label {
+    color: #9e9e9e;
+    clear: both;
+    display: block;
+    font-size: 85%;
+    float: none;
+    margin: 0 0 7px 0;
+    width: auto;
+  }
+
+  form ul li label a {
+    color: #11448B;
+    float: right;
+    text-decoration: none;
+    font-size: 85%;
+  }
+
+  form ul li input {
+    width: 250px;
+    font-size: 15px;
+    padding: 7px 8px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: 1px solid #dedede;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    -moz-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    color: #333;
+    resize: none;
+    font: 13px "Helvetica Neue", Arial, Helvetica, sans-serif;
+    font-weight: bold;
+  }
+
+  form ul li input[type='password'] {
+    background: #fff url('https://pathakacdn-a.akamaihd.net/web-assets/images/form-submit-disclosure_3443e97f5d4d434af894925c4bb9cf7c36f33ece.png') no-repeat 100% 50%;
+    padding-right: 32px;
+  }
+
+  .click-target {
+    cursor: pointer;
+    opacity: .5;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 33px;
+    height: 33px;
+  }
+
+  p {
+    line-height: 1.4;
+    margin-bottom: 1em;
+  }
+
+  .content {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    width: 250px;
+    margin-left: -125px;
+    background: whitesmoke;
+    border-radius: 3px;
+    border: 1px solid white;
+    padding: 20px 30px;
+    box-shadow: 0 1px 25px #000;
+    color: #333;
+  }
+
+  hr {
+    margin-bottom: 15px;
+    margin-top: -6px;
+    border: 0;
+    border-top: 1px solid #e2e2e2;
+  }
+
+  .social-login {
+    padding: 10px 5px 0;
+  }
+
+  .or {
+    text-align: center;
+  }
+
+  .or span {
+    color: #9e9e9e;
+    font-size: 85%;
+    display: inline-block;
+    background: whitesmoke;
+    padding: 0 7px;
+  }
+
+  .forgot {
+    float: right;
+  }
+
+  .google-button {
+    color: #dd4b39;
+  }
+
+  .facebook-button {
+    color: #3d7199;
+  }
+
+  .google-button, .facebook-button {
+    background: transparent;
+    cursor: pointer;
+    font-weight: bold;
+    display: table;
+    height: 37px;
+    line-height: 1.2em;
+    margin-bottom: 12px;
+    overflow: hidden;
+    padding: 0 10px 0 45px;
+    position: relative;
+    width: 185px;
+  }
+
+  .google-button span, .facebook-button span {
+    display: table-cell;
+    vertical-align: middle;
+    height: 37px;
+  }
+
+  .facebook-button i.fb-icon {
+
+    background: url('/public/images/fb.png');
+    background-position: 50% 50%;
+    background-color: #3d7199;
+  }
+
+  .google-button i.google-plus-icon {
+
+    background: url('/public/images/g+.png');
+    background-position: 60% 50%;
+    background-color: #dd4b39;
+  }
+  .google-button i.google-plus-icon, .facebook-button i.fb-icon {
+    background-repeat: no-repeat;
+    height: 37px;
+    display: block;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 37px;
+    border-radius: 20px;
+  }
+
+  a.facebook-button, a.google-button {
+    display: inline-block;
+    position: relative;
+    border-radius: 20px;
+  }
+
+  a {
+    color: #11448B;
+    outline-style: none;
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  a:focus {
+    outline: 0;
+  }
+
+  h2 {
+    font-weight: bold;
+    text-align: center;
+    padding: 0 0 15px;
+    text-shadow: 0 1px 0 white;
+  }
+
+</style>
+{% endblock %}
+

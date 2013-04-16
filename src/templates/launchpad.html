@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div id="popup" class="">
+  <div class="background">
+    <div class="content">
+      <div id="page-header" class="settings">
+        <h2>Choose a Network</h2>
+      </div>
+
+      <div class="launchpad">
+        <ul>
+          {% for network in networks %}
+          <li>
+            <a href="{{ network.url }}"> {{ network.name }} <span class="url">{{ network.url }}</span> </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block stylesheets %}
+  {% assets filter="cssmin",
+            output="style.css",
+            "styles/normalize.css",
+            "styles/animations.css",
+            "styles/icons.css",
+            "styles/home.css",
+            "styles/wysihtml5.css",
+            "styles/jquery.notice.css" %}
+  <link rel="stylesheet" href="{{ ASSET_URL }}">
+{% endassets %}
+
+<style>
+  .content {
+    width: 350px !important;
+  }
+
+  .launchpad li a {
+    padding: 15px;
+    display: block;
+    text-align: center;
+    font-size: 14px;
+    border-bottom: 1px solid #f1f1f1;
+  }
+
+  .launchpad li a:hover {
+    text-decoration: none;
+    color: white;
+    background-color: #2271A9;
+    background-repeat: repeat-x;
+    background-image: -moz-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+    background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#2F7EB6),color-stop(100%,#2271A9));
+    background-image: -webkit-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+    background-image: -ms-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+    background-image: -o-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2f7eb6',endColorstr='#2271a9',GradientType=0);
+    background-image: linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.25);
+  }
+
+  .launchpad li a:active {
+    background: #2271A8;
+  }
+
+  .launchpad li a span.url {
+    font-size: 11px;
+    display: block;
+    color: #999;
+  }
+
+  .launchpad li a:hover span.url {
+    color: #cdcdcd;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,19 @@
+<div id="page-header"></div>
+
+<li class='email' id='{{ feed.id }}'>
+    <div class='body'>
+    {% autoescape on %}
+      {{ feed.body | fix_unicode_error | unmunge }}
+    {% endautoescape %}
+    </div>
+</li>
+
+<script>
+
+$(document).ready(function() {
+    // add target=“blank” to all <a> tag links
+    $('li.email a').attr('target', '_blank');
+})
+
+
+</script>

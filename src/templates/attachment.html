@@ -1,0 +1,4 @@
+<div id='attachment-{{ attachment.id }}'>
+  <a href='/attachment/{{ attachment.id }}' target='_blank' title="{{ attachment.name }}">{{ attachment.name | truncate(40, True) }} ({{ attachment.size }})</a>
+  <a data-href='/attachment/{{ attachment.id }}/remove' class='remove-attachment' rel='div#attachment-{{ attachment.id }}' title='Remove this attachment'>×</a>
+</div>

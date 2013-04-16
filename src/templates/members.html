@@ -1,0 +1,89 @@
+<div id="page-header" class='group-header'>
+        
+        <img src='{{ group.logo }}' width=64 height=64 class='group-logo lfloat' />
+        
+        <div>
+        
+        {#
+        {% if owner.id in group.administrator_ids %}
+          <a class='overlay rfloat' href='#!/group/{{ group.uuid }}/edit'><i class='edit-icon' style='display: inline-block'></i>Edit Group</a>
+        {% else %}
+          <a class='' href='#'>Leave</a>
+        {% endif %}
+        #}
+        
+        
+          <h2>{{ group.name }} - Members</h2>
+          
+          {% if group.privacy == 'open' %}
+            <i class='public-icon' title='Open Group: Anyone can see the group, who is in it, and what members post.'></i>
+          {% elif group.privacy == 'closed' %}
+            <i class='lock-icon' title='Closed Group: Anyone can see the group and who is in it. Only members see posts.'></i>
+          {% else %}
+            <i class='ghost-icon' title='Secret Group: Only members see the group, who is in it, and what members post.'></i>
+          {% endif %}   
+          
+
+
+        </div>     
+        
+        <div class='info subtitle'>
+          <div class='about'>{{ group.about | truncate(75) }}</div>
+
+
+          <div class='stats'>
+            <a href='#!/group/{{ group.id }}/members' class='overlay'><i class='members-icon'></i>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            {% set unresolved_tasks = group.unresolved_tasks | length %}
+            <a href='#!/group/{{ group.id }}/focus' class='overlay'><i class='focus-icon'></i>{% if unresolved_tasks %}{{ unresolved_tasks }} {% endif %}Pending Tasks</a>
+            <a href='#!/group/{{ group.id }}/docs' class='overlay'><i class='docs-icon'></i>{% if group.docs %}{{ group.docs }} {% endif %}Docs</a>
+            <a href='#!/group/{{ group.id }}/files' class='overlay'><i class='files-icon'></i>{% if group.files %}{{ group.files }} {% endif %}Files</a>
+            
+                      
+            {% if owner.id in group.administrator_ids %}
+              <a class='overlay rfloat' href='#!/group/{{ group.uuid }}/edit'><i class='edit-icon' style='display: inline-block'></i>Edit Group</a>
+            {% elif owner.id in group.member_ids %}
+              <a class='rfloat unfollow' href='/group/{{ group.id }}/unfollow'>{% if group.privacy == 'open' %}Unfollow{% else %}Leave Group{% endif %}</a>
+            {% else %}
+              <a class='rfloat follow' href='/group/{{ group.id }}/follow'>{% if group.privacy == 'open' %}Follow{% else %}Join Group{% endif %}</a>
+            {% endif %}
+          </div>
+          
+        </div>
+        
+        
+        
+
+</div>
+
+  
+    <ul id="items">
+      
+      <div class='title'>Members:</div>
+      
+      {% for user in group.members %}
+        <li>
+          <a href="/user/{{ user.id }}" class='async'><img class='micro-avatar' src="{{ user.avatar }}" width=16 height=16> 
+            {{ user.name }}
+            
+            {% set groups = user.groups %}
+            <span class='member-of rfloat'>
+                {% if groups | length == 1 %}
+                  {{ group.name }}
+                    
+                {% elif groups | length == 2 %}
+                  {% for group in groups %}
+                      {{ group.name }}{% if loop.index == 1 %}, {% endif %}
+                  {% endfor %}
+                  
+                {% elif groups | length > 0 %}
+                  {% for group in groups[:2] %}
+                      {{ group.name }}{% if loop.index == 1 %}, {% endif %}
+                  {% endfor %}
+                  and {{ groups | length - 2 }} other.
+                {% endif %}
+            </span>
+            
+          </a>
+        </li>
+      {% endfor %}
+    </ul>

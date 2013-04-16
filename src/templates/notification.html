@@ -1,0 +1,130 @@
+
+{% set msg_count = messages | length %}
+{% cache "notification:%s:%s:%s" % (key, msg_count, messages[-1].is_unread() )%}
+
+<li>  
+  {% if msg_count == 1 %}
+    {% set message = messages[0] %}
+  
+    {% if key.startswith('message:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/feed/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
+        <span class='username'>{{ message.sender.name }}</span> shared a post with you: "{% autoescape on %}{{ message.item.message | clean| to_text | truncate(90, True) | autoemoticon | sanitize }}{% endautoescape %}"
+      
+    {% elif key.startswith('mention:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/feed/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
+        <span class='username'>{{ message.sender.name }}</span> mentioned you in a post.
+      
+    {% elif key.startswith('follow:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
+        <span class='username'>{{ message.sender.name }}</span> is now following you.
+      
+    {% elif key.startswith('like:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/feed/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
+        <span class='username'>{{ message.sender.name }}</span> likes your {% if message.comment_id %}comment{% else %}post{% endif %}: "{% autoescape on %}{{ message.item.message | clean | to_text  | truncate(90, True) | autoemoticon | sanitize | fix_unclosed_tags }}{% endautoescape %}"
+      
+      
+    {% elif key.startswith('update:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/note/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
+        <span class='username'>{{ message.sender.name }}</span> updated 
+           
+        note "{% autoescape on %}{{ message.item.message | clean | to_text | truncate(90, True) | autoemoticon | sanitize }}{% endautoescape %}"
+      
+    
+    {% elif key.startswith('facebook_friend_just_joined:') %}
+        
+      <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> (your Facebook friend) just joined Jupo.
+      
+    {% elif key.startswith('google_friend_just_joined:') %}
+        
+      <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> (your Google contact) just joined Jupo.
+      
+      
+      
+    {% elif key.startswith('comment:') %}
+      <a href='#!/notification/{{ message.ref_id }}-comments?continue=/feed/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
+        <span class='username'>{{ message.sender.name }}</span> commented on 
+        
+        {% if message.item.owner.id == message.sender.id %}
+          a
+        {% elif message.item.owner.id == owner.id %}
+          your
+        {% else %}
+          {{ message.item.owner.name }}'s
+        {% endif %} 
+        
+        post: "{% autoescape on %}{{ message.item.message | clean | to_text | truncate(90, True) | autoemoticon | fix_unclosed_tags | sanitize }}{% endautoescape %}"
+      
+    {% elif key.startswith('add_contact:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> added you to {% if message.sender.gender == 'female' %}her{% else %}his{% endif %} contact list
+      
+      
+      
+    {% endif %} 
+    
+    <br>
+    <time title='{{ message.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ message.timestamp | isoformat(owner.utcoffset) }}'>{{ message.timestamp | friendly_format(owner.utcoffset, short=True) | split(' at ') | last }}</time>
+    
+    
+  </a>
+    
+  {% else %}
+    
+    <a href='#!/post/{{ messages[-1].id }}/mark_as_read?continue={% if messages[-1].type in ['follow', 'add_contact', 'google_friend_just_joined', 'facebook_friend_just_joined'] %}/user/{{ messages[-1].sender.id }}{% else %}/feed/{{ messages[-1].ref_id }}{% endif %}' class='notification {% if  messages[-1].is_unread() %}unread{% endif %}'>
+      <img src='{{ messages[0].sender.avatar }}' class='lfloat small-avatar'>     
+      
+      {% for notification in messages %}
+      
+        {{ notification.sender.name }}{% if loop.index < msg_count - 1 %}, {% elif loop.index == msg_count - 1%} and {% else %}{% endif %}
+      
+      {% endfor %} 
+      
+      {% if key.startswith('comment') %}
+      
+        commented on {% if messages[0].details.owner.id == owner.id %}your{% else %}{{ messages[0].details.owner.name }}'s{% endif %} post.
+      
+      {% elif key.startswith('like') %}
+        like your 
+        {% if messages[0].item.comment_id %}
+          comment: "{{ messages[0].item.message | clean | to_text | truncate(90, True) | autoemoticon | fix_unclosed_tags | sanitize | safe }}"
+        {% else %}
+          post: "{{ messages[0].item.message | clean | to_text | truncate(90, True) | autoemoticon | fix_unclosed_tags | sanitize | safe }}"
+        {% endif %}
+      
+      {% elif key.startswith('add_contact') %}
+          added you to their contact list
+          
+      {% elif key.startswith('google_friend_just_joined:') %}
+          (your Google contact) just joined Jupo.
+      
+      {% elif key.startswith('facebook_friend_just_joined:') %}
+          (your Facebook friend) just joined Jupo.
+          
+      {% elif key.startswith('follow:') %}
+          is now following you
+      {% elif key.startswith('mention:') %}
+          mentioned you in a post
+      {% endif %}
+      
+      <br>
+      <time title='{{ messages[-1].timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ messages[-1].timestamp | isoformat(owner.utcoffset) }}'>{{ messages[-1].timestamp | friendly_format(owner.utcoffset, short=True) | split(' at ') | last }}</time>
+    
+    
+    </a>
+    
+  {% endif %}  
+     
+</li>
+
+{% endcache %}

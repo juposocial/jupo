@@ -1,0 +1,32 @@
+<li id="post-{{ result.id }}" class="result"> 
+
+    <div class="title">
+      <a href="#!{{ result.source }}" class='overlay'>
+        {{ result.title | truncate(70, True) }}
+      </a>
+    </div>
+    
+    <div class="description">
+      {% autoescape on %}
+        {{ result.description | sanitize | truncate(200, True) | nl2br }}
+      {% endautoescape %}
+    </div>
+    
+    
+    <div class="info">    
+      <a href='/user/{{ result.owner.id }}' class='async'>{{ result.owner.name }}</a>
+      {% if result.viewers %}
+                   &#x21e2;
+        {% for viewer in result.viewers %}
+          {% if viewer.members %}
+            <a href='/group/{{ viewer.id }}' class='async'>{{ viewer.name }}</a>{% if loop.index != result.viewers | length %}, {% endif %}
+          {% else %}
+            <a href='/user/{{ viewer.id }}' class='async'>{{ viewer.name }}</a>{% if loop.index != result.viewers | length %}, {% endif %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      · <time class='timeago' title='{{ result.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ result.timestamp | isoformat(owner.utcoffset) }}'>{{ result.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+      
+      
+    </div>
+</li>

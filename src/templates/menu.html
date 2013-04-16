@@ -1,0 +1,229 @@
+{% if view == "group" %}
+<a href="/group/{{ group.uuid }}" class='async active' rel='group-{{ group.uuid }}'>
+  <span class="img-wrap group-icon"></span>
+  {% set groupname = group.name | truncate(18, True) %}
+  <span class="url-wrap" {% if groupname | length == 21 %}title="{{ group.name }}"{% endif %}>{{ groupname }}</span>
+  
+</a>
+{% endif %}
+
+
+{% if view == "news_feed" %}
+    <a href="/news_feed" class="active async" rel='news-feed'>
+      <span class="img-wrap news-feed-icon"></span>
+      <span class="url-wrap">News Feed</span>    
+    </a>
+{% endif %}
+
+
+{% if view == "review" %}
+  <a href="/review" class="{% if view == 'review' %}active{% else %}async{% endif %}" rel="review">
+      <span class="img-wrap review-icon"></span>
+      <span class="url-wrap">Review</span>
+      
+  </a>
+  <ul>
+  <li>
+    <a href="#" rel="review" class="async">
+      <span class="url-wrap no-icon">Hot</span>
+      
+    </a>
+  </li>
+  
+  <li>
+    <a href="#" rel="review" class="async">
+      <span class="url-wrap no-icon">Top</span>
+      
+    </a>
+  </li>  
+  
+{% endif %}
+
+{% if view == "focus" %}
+<a href="/focus/assigned_to_me" rel="tasks" {% if not category %}class="active async"{% else %}class="async"{% endif %}>
+  <span class="img-wrap focus-icon"></span>
+  <span class="url-wrap">Tasks</span>
+</a>
+<ul> 
+  
+  <li>
+    <a href="/focus/assigned_to_me" rel="tasks" {% if category == 'assigned_to_me' %}class="active async"{% else %}class="async"{% endif %}>
+      <span class="url-wrap no-icon">Assigned to Me</span>
+      {% if stats.assigned_to_me_tasks_count %}
+      <span class="blue-bubble">
+         <span id="assigned-to-me-tasks-count" class="count">{{ stats.assigned_to_me_tasks_count }}</span>
+      </span>
+      {% endif %}
+    </a>
+  </li>
+  
+  
+  <li>
+    <a href="/focus/unresolved" rel="tasks" {% if category == "unresolved" %}class="active async"{% else %}class="async"{% endif %}>
+      <span class="url-wrap no-icon">Unresolved</span>
+      {% if stats.unresolved_tasks_count %}
+{#      
+      <span class="blue-bubble">
+         <span id="unresolved-tasks-count" class="count">{{ stats.unresolved_tasks_count }}</span>
+      </span>
+#}
+      {% endif %}
+    </a>
+  </li>
+  
+
+  <li>
+    <a href="/focus/resolved" rel="tasks" {% if category == "resolved" %}class="active async"{% else %}class="async"{% endif %}>
+      <span class="url-wrap no-icon">Resolved</span>
+    </a>
+  </li>
+  
+
+  <li>
+    <a href="/focus/cancelled" rel="tasks" {% if category == "cancelled" %}class="active async"{% else %}class="async"{% endif %}>
+      <span class="url-wrap no-icon">Cancelled</span>
+    </a>
+  </li>
+
+</ul>
+
+{% endif %}
+{% if view in ["notes", "docs"] %}
+<a href="/notes" {% if not category %}class="active async"{% else %}class="async"{% endif %} rel="notes">
+  <span class="img-wrap notes-icon"></span>
+  <span class="url-wrap">Notes</span>
+</a>
+
+{#
+<ul>
+
+  <li>
+    <a href="/docs/drafts" rel="docs" {% if category == "drafts" %}class="active async"{% else %}class="async"{% endif %}>
+      <span class="img-wrap"></span>
+      <span class="url-wrap">Drafts</span>
+
+      
+    </a>
+  </li>  
+  <li>
+    <a href="/docs/shared" rel="docs" {% if category == "shared" %}class="active async"{% else %}class="async"{% endif %}>
+      <span class="img-wrap"></span>
+      <span class="url-wrap">Shared</span>      
+    </a>
+  </li>  
+  
+</ul>
+#}
+{% endif %}
+
+{% if view == 'files' %}
+<a href="/files" class="{% if view == 'files' %}active async{% else %}async{% endif %}" rel="repositories">
+  <span class="img-wrap files-icon"></span>
+  <span class="url-wrap">Files</span>
+</a>
+{% endif %}
+
+{% if view == 'bookmarks' %}
+<a href="/bookmarks" {% if view == 'bookmarks' and category == 'unread' %}class="active async"{% else %}class="async"{% endif %} rel="bookmarks">
+  <span class="img-wrap bookmarks-icon"></span>
+  <span class="url-wrap">Bookmarks</span>
+  <span class="blue-bubble rfloat">
+     <span id="unread-bookmarks-count" class="count">{{ stats['unread_count'] }}</span>
+  </span>
+</a>
+
+<ul>
+  <li>
+    <a href="/bookmarks/archived" rel="bookmarks" {% if category == "archived" %}class="active async"{% else %}class="async"{% endif %}>
+      <span class="url-wrap no-icon">Archived</span>
+    </a>
+  </li>
+</ul>
+{% endif %}
+
+
+{% if view == 'group-focus' %}
+<a href="/group/{{ group.id }}/focus" rel="tasks" class="active async">
+  <span class="img-wrap focus-icon"></span>
+  <span class="url-wrap">Focus ™</span>
+  
+  <span class="blue-bubble rfloat">
+     <span id="pending-count" class="count {% if not stats['pending_count'] %}hidden{% endif %}">{{ stats['pending_count'] }}</span>
+  </span>
+  
+</a>
+{% endif %}
+
+{% if view == 'groups' %}
+<a href="/groups" rel="groups" class="active async no-icon">
+  <span class="img-wrap"></span>
+  <span class="url-wrap">See All Groups</span>
+  
+</a>
+{% endif %}
+
+
+{% if view == 'welcome' %}
+<a href="/welcome" rel="welcome" class="active async">
+  <span class="url-wrap">Welcome</span>
+  
+</a>
+{% endif %}
+
+{% if view == 'contacts' %}
+<a href="/contacts" class="active async" rel='contacts'>
+    <span class="img-wrap contacts-icon"></span>
+    <span class="url-wrap">Contacts</span>  
+</a>
+{% endif %}
+
+{% if view == 'notifications' %}
+<a href="/notifications" class="active async" rel='notifications'>
+    <span class="img-wrap notifications-icon"></span>
+    <span class="url-wrap">Notifications</span>  
+</a>
+{% endif %}
+
+
+{% if not owner and view == 'discover' %}
+<a href="/discover" rel="discover" {% if not category %}class="active async"{% else %}class='async'{% endif %}>
+  <span class="img-wrap discover-icon"></span>
+  <span class="url-wrap">Discover</span>
+</a>
+{% elif owner and view == 'discover' %}
+<a href="/discover" rel="discover" {% if not category %}class="active async"{% else %}class='async'{% endif %}>
+  <span class="img-wrap discover-icon"></span>
+  <span class="url-wrap">Discover</span>
+</a>
+
+{#
+  <ul>
+    <li>
+      <a href="/hot" rel="discover"  {% if category == "hot" %}class="active async"{% else %}class="async"{% endif %}>
+        <span class="url-wrap no-icon">What's hot</span>
+      </a>
+    </li>
+    
+    <li>
+      <a href="/starred" rel="discover" {% if category == "starred" %}class="active async"{% else %}class="async"{% endif %}>
+        <span class="url-wrap no-icon">Starred</span>
+      </a>
+    </li>
+    
+    <li>
+      <a href="/shared_by_me" rel="discover" {% if category == "shared_by_me" %}class="active async"{% else %}class="async"{% endif %}>
+        <span class="url-wrap no-icon">Shared by Me</span>
+      </a>
+    </li>
+<!--     <li>
+      <a href="/recommended" rel="discover" {% if category == "recommended" %}class="active async"{% else %}class="async"{% endif %}>
+        <span class="url-wrap no-icon">Recommended</span>
+      </a>
+    </li> -->
+  </ul>
+#}    
+{% endif %}
+
+
+
+

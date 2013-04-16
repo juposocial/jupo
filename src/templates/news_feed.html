@@ -1,0 +1,276 @@
+
+
+
+{% if mode == 'view' %}
+  <div id="page-header"></div>
+
+  {% autoescape on %}
+    {% if 'public' in feed.viewer_ids %}
+      {% set view = 'discover' %}
+    {% endif %}
+    {{ feed | render('feed', owner, view, mode) }}
+  {% endautoescape %}
+  
+  <div id="right-sidebar">
+     
+    {% if view != 'discover' %}
+     <div class="box">
+      <div class="header">
+        <div class="title"><strong>Seen by</strong></div>
+      </div>
+      <div class="body">
+        <ul>
+          {% for receipt in feed.seen_by %}
+            <li>
+              <a href='/user/{{ receipt.user.id }}' class='async'>
+                <img class='small-avatar lfloat' src='{{ receipt.user.avatar }}' />
+                <div class='title'>{{ receipt.user.name }}</div>
+                <time class='timeago' title='{{ receipt.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ receipt.timestamp | isoformat(owner.utcoffset) }}'>{{ receipt.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+     </div>
+     {% endif %}
+
+</div>
+  
+
+  
+{% else %}
+
+
+{% if announcement %}
+<div id="announce">
+  <a class='rfloat'><i class='close-icon'></i></a>
+  <img src='/public/tmp/TkwYQcavEdL.png' class='lfloat'>
+  <div class='title'>Keep Up With Your Interests</div>
+  <div class='body'>
+    Love action flicks, winter sports or runway fashion? 
+      Subscribe to interests featuring experts, 
+      pages and celebrities — and get a special news feed for each topic.
+  </div>
+</div>
+{% endif %}
+
+
+  <div id="page-header"></div>
+  
+  {% include 'new.html' %}
+  
+  <div id='filters' class='options'>
+    <a class='filter'><span>FILTER</span></a>
+    <ul class='hidden dropdown-menu'>
+      <div class="arrow-top-border"></div>
+      <div class="arrow-top"></div>
+      <li><a href='/news_feed' rel='news-feed' class='async' title='Hide Archived Posts'>{% if filter == 'default' %}<b>Default</b>{% else %}Default{% endif %}</a></li>
+      
+      <li><a href='/news_feed?filter=archived' rel='news-feed' class='async'>{% if filter == 'archived' %}<b>Archived</b>{% else %}Archived{% endif %}</a></li>
+      <li><a href='/news_feed?filter=all' rel='news-feed' class='async'>{% if filter == 'all' %}<b>Show All</b>{% else %}Show All{% endif %}</a></li>
+    </ul>
+  </div>
+  
+  <div id="unread-messages" class='{% if not unread_feeds %}hidden{% endif %}'>
+    <a class="unread-posts">
+      {% if unread_feeds | length == 1 %}
+        <span id="unread-counter">1</span> NEW FEED
+      {% else %}
+        <span id="unread-counter">{{ unread_feeds | length }}</span> NEW FEEDS
+      {% endif %}
+    </a>
+  </div>
+  
+  <ul id="stream">
+      {% if feeds == [] %}
+        <span class="empty">Nothing here</span>
+      {% else %}
+   
+      {% if pinned_posts %}
+          {% for feed in pinned_posts %}   
+            {% if owner.id in feed.pinned_by %}  
+              {% autoescape on %}  
+                {{ feed | render("feed", owner, view, mode) }}
+              {% endautoescape %}
+            {% endif %}
+          {% endfor %}
+          
+          {% for feed in feeds %}        
+            {% if feed.id not in owner.unfollow_posts and owner.id not in feed.pinned_by %}
+              {% autoescape on %} 
+                {{ feed | render("feed", owner, view) }} 
+              {% endautoescape %}
+            {% endif %}
+          {% endfor %}
+        
+      {% else %}
+      
+        {% if filter and filter != 'default' %}
+        
+          {% for feed in feeds %}
+            {% if feed.id not in owner.unfollow_posts and owner.id not in feed.pinned_by %}
+              {% include 'feed.html' %}
+            {% endif %}
+          {% endfor %}
+          
+        {% else %}
+        
+          {% autoescape on %} 
+              {{ feeds | render("feed", owner, view) }}
+          {% endautoescape %}
+          
+        {% endif %}
+        
+      {% endif %}
+    
+      {% if feeds | length == 5 %}
+        {% if filter %}
+          {% set more_url = '/news_feed/page2?filter=%s' % filter %}
+        {% else %}
+          {% set more_url = '/news_feed/page2' %}
+        {% endif %}
+        
+        {% include 'more.html' %}
+      {% endif %}
+      
+    {% endif %}
+  </ul>
+  
+  
+  <div id="right-sidebar">
+
+    
+{#    
+      <div class="box">
+        <div class="header">
+          <div class="actions rfloat"><a href="#!/events" class='overlay'>See All</a></div>
+          <div class="title">Upcoming Events</div>
+        </div>
+        <div class="body">
+          <ul class='events'>
+            {% for event in upcoming_events %}
+              <li>
+                <a href='#!/feed/{{ event.id }}' class='overlay'>
+                  <span class='gray rfloat'>(<time class='timeago' title='{{ event.when | friendly_format(owner.utcoffset) }}' datetime='{{ event.when | isoformat(owner.utcoffset) }}'>{{ event.when | friendly_format(owner.utcoffset, short=True) }}</time>)</span>
+                  <i class="events-icon"></i>{{ event.name }}
+                </a>
+              </li>
+            {% endfor %}
+            <li>
+              <a href='#!/event/new' class='overlay'>
+                <i class="events-icon"></i>Create new event...
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+#}    
+{#
+      <div class="box">
+        <div class="no-header">
+          <div class="title">Invite Your Friends to Jupo</div>
+        </div>
+        <div class="body">
+            <form action='/invite' method='post' id='invite'>
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <input type='email' name='email' placeholder='Email Address' required>
+              <span class='rfloat gray'>&nbsp;</span>
+            </form>
+        </div>
+      </div>
+#}
+
+    
+    
+{#    
+{% if browser and browser.is_firefox() %}
+
+      <div class="box">
+        <div class="body firefox-addon">
+            <p>Desktop notifications will keep you posted on what's happening 
+            in your stream even when you're not actively following Jupo.</p>
+            <a class='button lfloat install' href='http://cyril.me/dl/h5n/ff-html5notifications-latest-fx.xpi'>Install Now</a>
+        </div>
+      </div>
+
+{% endif %}
+#}    
+    
+
+
+
+
+
+
+
+
+
+
+<div class="box">
+  <div class="header">
+    <div class="title">Notice!</div>
+  </div>
+  <div class='body notice'> 
+    
+     This is a <strong>beta version</strong>, so some things may give you trouble. 
+     If that's the case, or you have a question or a suggestion, drop us a line at: 
+     <a href='mailto:feedback@jupo.com' target='_blank'>feedback@jupo.com</a>
+  </div>
+</div>
+
+
+
+
+{% autoescape on %}  
+  {% cache "suggested_friends:%s:%s" % (owner.id, owner.contact_ids | length), 86400 %}
+    {% include "suggested_friends.html" %}
+  {% endcache %}
+{% endautoescape %}
+
+
+
+{% if coworkers %}    
+    <div class="box">
+      <div class="header">
+        {# <div class="actions rfloat"><a href='#'>See All</a></div> #}
+        <div class="title">Last Activities</div>
+      </div>
+      <div class="body" id='owners'>
+      {% cache "last_activities:%s:%s" % (owner.id, coworkers[1].last_online) %}  
+        <ul>
+        {% for user in coworkers[:5] %}
+          <li>
+            <a href='/user/{{ user.id }}' class='async'>
+              <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+              <div class='title'>{{ user.name }}</div>
+              {% set last_online = user.last_online %}
+              {% if last_online %}
+                <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>{{ last_online | friendly_format(owner.utcoffset, short=True) }}</time>
+              {% else %}
+                &nbsp;
+              {% endif %}
+            </a>
+          </li>
+        {% endfor %}
+        </ul>
+      {% endcache %}
+      </div>
+    </div>
+{% endif %}
+    
+    <div class="box">
+      <div class="no-header"></div>
+      <div id='footer'> 
+        <span class="gray">© 2013 Jupo.com.</span><br>
+        <a class='async' href="/note/340925645733232641">Privacy</a> · 
+        <a class='async' href="/note/340921286333038593">Terms</a> · 
+        <a class='async' href="/note/340918820916953089">Jobs</a> · 
+        <a class='async' href="/group/340915856517103617">Feedback</a>
+      </div>
+    </div>
+    
+    
+  </div>
+{% endif %}
+
+

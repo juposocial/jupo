@@ -1,0 +1,58 @@
+<footer class='forward undo'>
+  <div class='actions'>
+    <div class='rfloat'>
+      <a class="undo" title='Cancel'>Cancel</a>
+    </div>
+    <div class='lfloat'>
+      <strong>&nbsp;&nbsp;Share this post with:</strong>
+    </div>
+  </div>
+  <form class='viewers' method='post' action='/feed/{{ feed.id }}/viewers'>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <input type="submit" class='button small-button rfloat' value='Done'>
+    <input type="text" name='viewers' class='autocomplete' autocomplete="off" placeholder="Add people or group...">
+
+  </form>
+</footer>
+
+<script>
+
+  var prefill = [
+                 {% for user in feed.viewers %}
+                   {% if user.id != feed.owner.id %}
+                     {name: "{{ user.name }}", id: "{{ user.id }}"},
+                   {% endif %}
+                 {% endfor %}
+                ];
+  $('#post-{{ feed.id }} form input.autocomplete').tokenInput('/autocomplete', {
+      searchDelay: 300,
+      preventDuplicates: true,
+      queryParam: 'query',
+      hintText: 'Add people or group...',
+      animateDropdown: false,
+      allowEmail: true,
+      noResultsText: null,
+      searchingText: null,
+      resultsFormatter: function(item) {
+  	      return "<li><img class='" + item.type + "' src='" + item.avatar + "'>" + item.name + "</li>" 
+      },
+      prePopulate: prefill,
+  });
+
+  if ($.global.autocomplete == null) {
+    $.ajax({
+      url: '/autocomplete',
+      dataType: 'json',
+      success: function(resp) {
+        $.global.autocomplete = resp;
+        $('#post-{{ feed.id }} form input.autocomplete').tokenInput("setLocalData", resp);
+      }
+    })
+  } 
+  
+  else {
+    $('#post-{{ feed.id }} form input.autocomplete').tokenInput("setLocalData", $.global.autocomplete);
+  }
+  
+
+</script>

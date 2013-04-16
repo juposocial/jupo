@@ -1,0 +1,138 @@
+{% if view == 'reminders' %}
+  <div id="page-header">
+    
+          <h2>Reminders</h2>
+    
+  </div>
+
+    <ul class='reminders'>
+      <li>
+        <form action='/reminder/new' method='post'>
+          <input type='text' name='message' placeholder='+ New...' autofocus required>
+        </form>
+      </li>
+      
+      {% if not reminders %}
+        <span class="empty">
+          Keep track of what you need to do.
+        </span>
+      {% endif %}
+      {% for reminder in reminders %}
+      <li {% if reminder.is_checked %}class='done'{% endif %}><label for='reminder-{{ reminder.id }}' title="{{ reminder.message | replace('"', '\"') }}"><input type='checkbox' id='reminder-{{ reminder.id }}' {% if reminder.is_checked %}checked="checked"{% endif %}> {{ reminder.message }}</label></li>
+      {% endfor %}
+    </ul>
+
+{% else %}    
+<div class="box">
+  <div class="header">
+<!--     <div class="actions rfloat"></div> -->
+    <div class="title">Reminders</div>
+  </div>
+  <div id='reminders' class="body reminders'>
+    <ul>
+      <li>
+        <form action='/reminder/new' method='post'>
+          <input type='text' name='message' placeholder='+ New...'>
+        </form>
+      </li>
+      
+      {% for reminder in reminders %}
+      <li {% if reminder.is_checked %}class='done'{% endif %}><label for='reminder-{{ reminder.id }}' title="{{ reminder.message }}"><input type='checkbox' id='reminder-{{ reminder.id }}' {% if reminder.is_checked %}checked="checked"{% endif %}> {{ reminder.message }}</label></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<script>
+
+  function new_id() {
+      var text = "";
+      var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  
+      for( var i=0; i < 5; i++ )
+          text += possible.charAt(Math.floor(Math.random() * possible.length));
+  
+      return text;
+  }
+  
+  $(document).ready(function() {
+    
+    $('.reminders form').submit(function() {
+      var input = $('.reminders input[name="message"]');
+      id = new_id();
+      val = input.val();
+      html = '<li><label for="' + id + '" title="' + val + '"><input type="checkbox" id="' + id + '"> ' + val + '</label></li>';
+      
+      $(this).parents('li').after(html);
+      
+      $.ajax({
+        type: "POST",
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        url: $(this).attr('action'),
+        data: $(this).serializeArray(),
+        success: function(reminder_id) {
+          reminder_id = 'reminder-' + reminder_id;
+          $('input#' + id).attr('id', reminder_id);
+          $('label[for="' + id + '"]').attr('for', reminder_id);
+          return false;
+        }
+      });
+      
+      input.val('');
+      return false;
+      
+    })
+    
+    
+    $('.reminders').on('change', 'input[type="checkbox"]', function() {
+      item = $(this);
+      
+      if (item.is(':checked')) {
+        $(this).parents('li').addClass('done');
+        
+        reminder_id = $(this).attr('id').split('-')[1];
+        
+        $.ajax({
+          type: "POST",
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          url: '/reminder/' + reminder_id + '/check',
+          data: $(this).serializeArray(),
+          success: function(resp) {
+            console.log(resp);
+          }
+        });
+        
+        // setTimeout(function() {
+          // item.parent().fadeOut().remove();
+        // }, 2000);
+      }
+      else {
+        $(this).parents('li').removeClass('done');
+        
+        reminder_id = $(this).attr('id').split('-')[1];
+        
+        $.ajax({
+          type: "POST",
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          url: '/reminder/' + reminder_id + '/uncheck',
+          data: $(this).serializeArray(),
+          success: function(resp) {
+            console.log(resp);
+          }
+        });
+        
+      }
+      
+    })
+    
+    
+  })
+  
+</script>

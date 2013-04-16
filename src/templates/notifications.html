@@ -1,0 +1,42 @@
+<header>
+  {% if notifications %}
+    <a href='/notifications/mark_as_read' class='notification rfloat'>Clear New</a>
+  {% endif %}
+  
+  <span class="rfloat updating hidden">Updating...</span>
+  
+  <strong>Notifications</strong>
+</header>
+
+
+  {% if not notifications %}
+  
+    <ul>
+       <span class="empty">You have no new notifications</span> 
+    </ul> 
+    
+  {% else %}
+ 
+    <ul> 
+        {% autoescape on %}
+            
+          {% for title, items in notifications.iteritems() %}
+              <h3>{{ title | upper }}</h3>
+              
+              {% for key, messages in items.iteritems() %}
+                  {% if messages %}
+                    {% include "notification.html" %}
+                  {% endif %}
+                
+                {#
+                  {{ messages | render('notification', owner) }}
+                #}
+              {% endfor %}
+            
+          {% endfor %}
+        
+        {% endautoescape %}
+        
+            
+    </ul>
+  {% endif %} 

@@ -1,0 +1,2 @@
+{% set read_receipts_length = read_receipts | length %} 
+Seen by {% if read_receipts_length == 0 %}you{% elif read_receipts_length < 3 %}{% for receipt in read_receipts %}{% if receipt.user.id == owner.id %}you{% else %}{{ receipt.user.name }}{% endif %}{% if loop.index < read_receipts_length - 1 %}, {% elif loop.index == read_receipts_length - 1%} and {% else %}{% endif %}{% endfor %}{% else %}{% if read_receipts[0].user.id == owner.id %}you{% else %}{{ read_receipts[0].user.name }}{% endif %} and {{ read_receipts_length - 1 }} others{% endif %}

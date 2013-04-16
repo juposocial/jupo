@@ -1,0 +1,173 @@
+{% if announcement %}
+<div id="announce">
+  <a class='rfloat'><i class='close-icon'></i></a>
+  <img src='https://s-static.ak.facebook.com/rsrc.php/v1/yd/r/TkwYQcavEdL.png' class='lfloat'>
+  <div class='title'>Keep Up With Your Interests</div>
+  <div class='body'>
+    Love action flicks, winter sports or runway fashion? 
+      Subscribe to interests featuring experts, 
+      pages and celebrities — and get a special news feed for each topic.
+  </div>
+</div>
+{% endif %}
+
+{% if mode == 'single-post' %}
+
+  <div id="page-header"></div>
+
+  <ul id="stream" class='discover {% if not owner.id %}public{% endif %}'>
+    {% autoescape on %}
+      {{ feed | render("feed", owner, view) }}
+    {% endautoescape %}
+  </ul>
+  
+  <div id="right-sidebar">
+    
+
+   </div>
+   
+   
+{% elif request.path.startswith('/u') %}
+
+  <div id="page-header"></div>
+
+  <ul id="stream" class='single'>
+  {% include 'doc.html' %}
+  </ul>   
+
+
+    
+  </div>
+  
+{% else %}
+    <div id="page-header">
+    {% if owner %}
+          <div class='title'>
+            <span class="img discover-icon"></span>
+            <span>Discover</span>
+          </div>
+          <div class='subtitle'>
+            Public posts from your co-workers and your contacts. 
+          </div>
+    {% else %}
+          <div class='title'>
+            <span class="img discover-icon"></span>
+            <span>Discover</span>
+          </div>
+    {% endif %}
+  </div>
+  
+  {% if owner %}
+    {% include 'new.html' %}
+  {% endif %}
+  
+  <ul id="stream" class='discover {% if not owner.id %}public{% endif %}'>
+    {% if feeds == [] %}
+      <span class="empty">Nothing here</span>
+    {% else %}
+      {% for feed in feeds %}    
+        {% if not owner %}    
+          {% autoescape on %}
+            {{ feed | render("feed", owner, view) }}            
+          {% endautoescape %}
+        {% elif owner and feed.id not in owner.unfollow_posts  %}
+          {% autoescape on %}
+            {{ feed | render("feed", owner, view) }}
+          {% endautoescape %}
+        {% endif %}
+      {% endfor %}
+        
+      {% if category %}
+        {% set more_url = '/' + category + '/page2' %}
+      {% else %}
+        {% set more_url = '/discover/page2' %}
+      {% endif %}
+      {% include 'more.html' %}
+      
+    {% endif %}
+  </ul>
+  
+  <div id="right-sidebar">
+
+    <div class="box">
+      <div class="header">
+        <div class="title">Notice!</div>
+      </div>
+      <div class='body notice'> 
+         This is a <strong>beta version</strong>, so some things may give you trouble. 
+         If that's the case, or you have a question or a suggestion, drop us a line at: 
+         <a href='mailto:feedback@jupo.com' target='_blank'>feedback@jupo.com</a>
+      </div>
+    </div>
+    
+    {% if category in [None, 'hot'] %}
+      <div class="box">
+          <div class="header">
+            <div class="actions rfloat"><a href='#!/explore' class='overlay'>See All</a></div>
+            <div class="title">Feature Groups</div>
+          </div>
+          <div class="body" id='owners'>
+            <ul>
+            {% for group in public_groups %}
+              <li>
+                <a href='#!/group/{{ group.id }}' class='overlay' title='{{ group.name }}{% if group.about %} - {{ group.about }}{% endif %}'>
+                  <img class='small-avatar lfloat' src='{{ group.logo }}' />
+                  <div class='title'>{{ group.name }}</div>
+                  <span class='gray'>
+                    {% set members_count = group.members | length %}
+                    {% if members_count == 1 %}
+                      1 member
+                    {% else %}
+                      {{ members_count }} members
+                    {% endif %}
+                  </span>
+                </a>
+              </li>
+            {% endfor %}
+            </ul>
+          </div>
+        </div>
+      {% else %}
+          <div class="box">
+            <div class="header">
+              <div class="actions rfloat"><a href='#!/user/{{ owner.id }}/following' class='overlay'>See All</a></div>
+              <div class="title">Following</div>
+            </div>
+            <div class="body">
+              <ul>
+              {% for user in owner.following_details %}
+                <li>
+                  <a href='#!/user/{{ user.id }}' class='overlay'>
+                    <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+                    <strong>{{ user.name }}</strong><br>
+                    <span class='gray' title='{{ user.introduction }}'>
+                      {% if user.introduction %}
+                        {{ user.introduction | truncate(25, True) }}
+                      {% else %}
+                        &nbsp;
+                      {% endif %}
+                    </span>
+                  </a>
+                </li>
+              {% endfor %}
+              </ul>
+            </div>
+          </div>
+      {% endif %}
+    
+    
+    <div class="box">
+      <div class="no-header"></div>
+      <div id='footer'> 
+        <span class="gray">© 2012 <a href='/about' class='gray overlay' title='About us'>Jupo.com.</a></span><br>
+        <a class='overlay' href="#!/note/340925645733232641">Privacy</a> · 
+        <a class='overlay' href="#!/note/340921286333038593">Terms</a> · 
+        <a class='overlay' href="#!/note/340918820916953089">Jobs</a> · 
+        <a class='async' href="/group/340915856517103617">Feedback</a>
+      </div>
+    </div>
+    
+  </div>
+  
+  
+{% endif %}
