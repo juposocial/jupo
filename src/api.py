@@ -2639,8 +2639,8 @@ def get_focus_feeds(session_id, page=1):
   
   user_id = get_user_id(session_id)
   feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'viewers': user_id,
-                                'priority': {'$exists': True}})\
+                          'viewers': user_id,
+                          'priority': {'$exists': True}})\
                          .sort('last_updated', -1)\
                          .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                          .limit(settings.ITEMS_PER_PAGE)
@@ -2652,13 +2652,24 @@ def get_user_posts(session_id, user_id, page=1):
   
   user_id = long(user_id)
   owner_id = get_user_id(session_id)
-  groups_list_1 = get_group_ids(owner_id)
-  groups_list_2 = get_group_ids(user_id)
-  viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
-  viewers.append('public')
-
-  feeds = db.stream.find({'owner': user_id, 
-                          'viewers': {'$in': viewers},
+#  groups_list_1 = get_group_ids(owner_id)
+#  groups_list_2 = get_group_ids(user_id)
+#  viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
+#  viewers.append('public')
+#
+#  feeds = db.stream.find({'$or': [{'owner': user_id, 'viewers': {'$in': viewers}}, 
+#                                  {'$and': [{'viewers': user_id}, 
+#                                            {'viewers': owner_id}]}],
+#                          'is_removed': {'$exists': False}})\
+#                         .sort('last_updated', -1)\
+#                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+#                         .limit(settings.ITEMS_PER_PAGE)
+                         
+                         
+  feeds = db.stream.find({'$or': [{'viewers': 'public', 'owner': user_id},
+                                  {'$and': [{'viewers': user_id}, 
+                                            {'viewers': owner_id}]}],
+                          'message.action': {'$exists': False},
                           'is_removed': {'$exists': False}})\
                          .sort('last_updated', -1)\
                          .skip((page - 1) * settings.ITEMS_PER_PAGE)\
