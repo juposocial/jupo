@@ -11,6 +11,6 @@ import api
 from rq import Queue, Worker, Connection
 
 
-with Connection(api.QUEUE):
+with Connection(api.TASKQUEUE):
   q = Queue(sys.argv[1])
   Worker(q, default_result_ttl=0).work()

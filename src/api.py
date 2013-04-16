@@ -57,8 +57,6 @@ from validate_email import validate_email
 
 from flask import request
 
-
-# Ordered Dictionary for conversation history processing
 try:
   from collections import OrderedDict as odict
 except ImportError:
@@ -78,27 +76,17 @@ requests.adapters.DEFAULT_RETRIES = 3
 
 # switch from the default ASCII to UTF-8 encoding
 reload(sys)
-sys.setdefaultencoding("utf-8") #@UndefinedVariable
+sys.setdefaultencoding("utf-8")
 
 
 DATABASE = MongoDB(settings.MONGOD_SERVERS, use_greenlets=True)
 DATABASE['global'].user.ensure_index('email')
 
-pool = ConnectionPool(host=settings.REDIS_SERVER.split(':')[0], 
-                      port=int(settings.REDIS_SERVER.split(':')[1]), db=0)
-PUBSUB = Redis(connection_pool=pool)
-
 INDEX = ElasticSearch('http://%s/' % settings.ELASTICSEARCH_SERVER)
 
-PINGPONG = cache.MEMCACHED
-QUEUE = Redis(host=settings.REDIS_SERVER.split(':')[0], 
-              port=int(settings.REDIS_SERVER.split(':')[1]), db=11)
+host, port = settings.REDIS_SERVER.split(':')
+FORGOT_PASSWORD = Redis(host=host, port=int(port), db=1)
 
-FORGOT_PASSWORD = Redis(host=settings.REDIS_SERVER.split(':')[0], 
-                        port=int(settings.REDIS_SERVER.split(':')[1]), db=13)
-
-goose = Goose()
-dmp = diff_match_patch()
 
 if settings.AWS_KEY and settings.S3_BUCKET_NAME:
   s3_conn = S3Connection(settings.AWS_KEY, settings.AWS_SECRET, is_secure=False)
@@ -106,11 +94,20 @@ if settings.AWS_KEY and settings.S3_BUCKET_NAME:
 else:
   BUCKET = None
 
-use_connection(QUEUE)
-default_queue = Queue('default')
-low_priority_queue = Queue('low')
-high_priority_queue = Queue('high')
+goose = Goose()
+dmp = diff_match_patch()
 
+host, port = settings.REDIS_PINGPONG_SERVER.split(':')
+PINGPONG = Redis(host=host, port=int(port), db=0)
+
+host, port = settings.REDIS_PUBSUB_SERVER.split(':')
+pool = ConnectionPool(host=host, port=int(port), db=0)
+PUBSUB = Redis(connection_pool=pool)
+
+host, port = settings.REDIS_TASKQUEUE_SERVER.split(':')
+TASKQUEUE = Redis(host=host, port=int(port), db=0)
+
+use_connection(TASKQUEUE)
 push_queue = Queue('push')
 index_queue = Queue('index')
 crawler_queue = Queue('urls')
@@ -1183,11 +1180,13 @@ def forgot_password(email):
 
 def update_pingpong_timestamp(session_id):
   user_id = get_user_id(session_id)
-  PINGPONG.set(str(user_id), utctime())
+  PINGPONG.set(user_id, utctime())
   return True
 
 def get_pingpong_timestamp(user_id):
-  return PINGPONG.get(str(user_id))
+  ts = PINGPONG.get(user_id)
+  if ts:
+    return float(ts)
 
 def set_status(session_id, status):
   db_name = get_database_name()
@@ -1231,14 +1230,14 @@ def check_status(user_id):
   status = cache.get(key)
   if not status:
     user = db.status.find_one({'user_id': user_id}, 
-                                    {'status': True})
+                              {'status': True})
     if not user:
       status = 'offline'
     else:
       status = user.get('status', 'offline')
       if status != 'offline':
         pingpong_ts = get_pingpong_timestamp(user_id)
-        if pingpong_ts and utctime() - pingpong_ts > 150:  # mất tín hiệu hơn 120 giây -> coi như offline
+        if pingpong_ts and utctime() - pingpong_ts > 150:  # lost ping pong signal > 150 secs -> offline
           status = 'offline'
     cache.set(key, status, 86400)
 
@@ -1261,7 +1260,7 @@ def last_online(user_id):
   ts = cache.get(key)
   if not ts:
     user = db.status.find_one({'user_id': long(user_id)}, 
-                                    {'timestamp': True})
+                              {'timestamp': True})
     if user:
       ts = user.get('timestamp')
       cache.set(key, ts, 86400)
