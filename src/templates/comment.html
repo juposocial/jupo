@@ -180,9 +180,9 @@
       
       
       
-          
-       <span class='likes {% if not comment.liked_by %}hidden{% endif %}' title='{% if comment.liked_by %}{% for i in comment.liked_by %}{% if i.id == owner.id %}{% if loop.index == 1 %}You{% else %}you{% endif %}{% else %}{{ i.name }}{% endif %}{% if loop.index < (comment.liked_user_ids | length - 2) %}, {% elif loop.index == (comment.liked_user_ids | length - 1) %} and {% endif %}{% endfor %} likes this.{% endif %}'>
-        · <i class='like-small-icon'></i> <span class='counter' id='counter-{{ comment.id }}'>{{ comment.liked_user_ids | length }}</span>
+       {% set likes_count = comment.liked_by | length %}
+       <span class='likes {% if not comment.liked_by %}hidden{% endif %}' title='{% if likes_count != 0 %}{% for i in comment.liked_by %}{% if i.id == owner.id %}{% if loop.index == 1 %}You{% else %}you{% endif %}{% else %}{{ i.name }}{% endif %}{% if loop.index < (likes_count - 1) %}, {% elif loop.index == (likes_count - 1) %} and {% endif %}{% endfor %} like{% if likes_count == 1 %}s{% endif %} this.{% endif %}'>
+        · <i class='like-small-icon'></i> <span class='counter' id='counter-{{ comment.id }}'>{{ likes_count }}</span>
        </span>
        
     </div>
