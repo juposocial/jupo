@@ -670,7 +670,7 @@ img.micro-avatar {
   padding: 13px 7px 0 10px;
   word-wrap: break-word;
   z-index: 2;
-  position: absolute;
+  position: fixed;
   border-right: 1px solid rgba(196, 205, 224, 0.4);
 }
 
@@ -2115,16 +2115,6 @@ div#page-header .info {
   font-size: 11px;
 }
 
-/* div#page-header .img { */
-/*   margin-top: 2px; */
-/*   vertical-align: text-top; */
-/* } */
-
-/* Monospace font for doc */
-/*textarea[name='content'] {
- font-family: 'Dejavu Sans Mono' !important;
- font-size: 12px !important;
- }*/
  
 /*======================= Selection Dropdown ===================*/
 /* The dropdown container */
@@ -2167,11 +2157,6 @@ div#page-header .ddContainer {
   height: 14px;
   position: relative;
   display: block;
-  /*  border-top:solid 1px #abadb3 !important;*/
-  /*border-top:solid 1px #ccc !important;
-   border-right:solid 1px #dbdfe6 !important;
-   border-bottom:solid 1px #e3e9ef !important;
-   border-left:solid 1px #e2e3ea !important;*/
   padding: 2px 18px 2px 4px;
   background-color: #fff;
   z-index: 1;
@@ -2193,10 +2178,6 @@ div#page-header .ddContainer {
 /* The dropdown option list */
 .ddOptionList {
   background-color: #fff;
-  /*  border-top:solid 1px #b2b2b2  !important;
-   border-right:solid 1px #000 !important;
-   border-bottom:solid 1px #000 !important;
-   border-left:solid 1px #b2b2b2 !important;*/
   list-style-type: none;
   padding: 0;
   margin: 0;
@@ -2228,9 +2209,7 @@ a.dropdown-menu-active {
   height: 20px;
 }
 
-/*a.dropdown-menu-active:hover {
- background: white !important;
- }*/
+
 ul.dropdown-menu div.account-info {
   padding: 17px 10px 15px 15px;
 }
@@ -2289,20 +2268,20 @@ header .networks-list li a {
 
 header .networks-list .unread {
   font-size: 9px;
-font-weight: bold;
-color: white;
-padding: 3px 6px;
-background-color: #D14836;
-background-image: -webkit-gradient(linear,left top,left bottom,from(#DD4B39),to(#D14836));
-background-image: -webkit-linear-gradient(top,#DD4B39,#D14836);
-background-image: -moz-linear-gradient(top,#DD4B39,#D14836);
-background-image: -ms-linear-gradient(top,#DD4B39,#D14836);
-background-image: -o-linear-gradient(top,#DD4B39,#D14836);
-background-image: linear-gradient(top,#DD4B39,#D14836);
-filter: progid:DXImageTransform.Microsoft.gradient(startColorStr='#dd4b39',EndColorStr='#d14836');
-text-shadow: 0 -1px 0 #666;
-border-radius: 2px;
-margin: 0 3px;
+  font-weight: bold;
+  color: white;
+  padding: 3px 6px;
+  background-color: #D14836;
+  background-image: -webkit-gradient(linear,left top,left bottom,from(#DD4B39),to(#D14836));
+  background-image: -webkit-linear-gradient(top,#DD4B39,#D14836);
+  background-image: -moz-linear-gradient(top,#DD4B39,#D14836);
+  background-image: -ms-linear-gradient(top,#DD4B39,#D14836);
+  background-image: -o-linear-gradient(top,#DD4B39,#D14836);
+  background-image: linear-gradient(top,#DD4B39,#D14836);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorStr='#dd4b39',EndColorStr='#d14836');
+  text-shadow: 0 -1px 0 #666;
+  border-radius: 2px;
+  margin: 0 3px;
 }
 
 
@@ -2313,14 +2292,6 @@ article ul.dropdown-menu li a {
 /* End */
 form.new {
   background: white;
-/*  background-color: #f2f2f2;
-  border-bottom: 1px solid #F1F1F1;
-  background-image: -ms-linear-gradient(top, white, whitesmoke);
-  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(white), to(whitesmoke));
-  background-image: -webkit-linear-gradient(top, white, whitesmoke);
-  background-image: -o-linear-gradient(top, white, whitesmoke);
-  background-image: linear-gradient(top, white, whitesmoke);
-  background-image: -moz-linear-gradient(top, white, whitesmoke);*/
 }
 
 form.new footer {
@@ -2563,34 +2534,6 @@ form select {
 }
 
 .button {
-/*  -webkit-border-radius: 2px;
-  -moz-border-radius: 2px;
-  border-radius: 2px;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
-  cursor: default;
-  font-weight: bold;
-  text-align: center;
-  min-width: 54px;
-  padding: 4px 17px 5px;
-  font-family: arial, sans-serif;
-  font-size: 12px;
-  color: #f2f2f2;
-  background-color: #2271A9;
-  background-repeat: repeat-x;
-  background-image: -moz-linear-gradient(top,#3386C0  0,#0D609C 100%);
-  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#3386C0 ),color-stop(100%,#0D609C));
-  background-image: -webkit-linear-gradient(top,#3386C0  0,#0D609C 100%);
-  background-image: -ms-linear-gradient(top,#3386C0  0,#0D609C 100%);
-  background-image: -o-linear-gradient(top,#3386C0  0,#0D609C 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#3386C0 ',endColorstr='#0D609C',GradientType=0);
-  background-image: linear-gradient(top,#3386C0  0,#0D609C 100%);
-  margin: 0;*/
-  
-  
-  
-  
-  
   box-shadow: 0 1px 0 white;
   padding: 7px 20px;
   line-height: normal;

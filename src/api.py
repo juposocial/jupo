@@ -2797,7 +2797,6 @@ def get_feeds(session_id, group_id=None, page=1,
     if not include_archived_posts:
       query['archived_by'] = {'$nin': [user_id]}
         
-        
     feeds = db.stream.find(query)\
                      .sort('last_updated', -1)\
                      .skip((page - 1) * settings.ITEMS_PER_PAGE)\
