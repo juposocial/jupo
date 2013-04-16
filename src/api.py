@@ -121,6 +121,9 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
               user_id=None, post=None, db_name=None, **kwargs):
   if not settings.SMTP_HOST:
     return False
+  
+  if not db_name:
+    db_name = get_database_name()
 
   if mail_type == 'thanks':    
     subject = 'Thanks for Joining the Jupo Waiting List'
@@ -147,14 +150,14 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = None
     
   elif mail_type == 'new_post':
-    user = get_user_info(user_id)
+    user = get_user_info(user_id, db_name=db_name)
     post = Feed(post)
     subject = '%s shared a post with you' % user.name
     template = app.CURRENT_APP.jinja_env.get_template('email/new_post.html')
     body = template.render(email=to_addresses, user=user, post=post)
     
   elif mail_type == 'new_comment':
-    user = get_user_info(user_id)
+    user = get_user_info(user_id, db_name=db_name)
     post = Feed(post)
 #      subject = '%s commented on a post' % user.name
     if post.is_system_message():
@@ -190,8 +193,6 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     if post:
 #        reply_to = "%s's post <post-%s@reply.jupo.com>" \
 #                 % (post.last_action.owner.name, post.id)
-      if not db_name:
-        db_name = get_database_name()
       mail_id = '%s-%s' % (post.id, db_name)
       mail_id = base64.b64encode(smaz.compress(mail_id)).replace('/', '-').rstrip('=')
       reply_to = 'post%s@%s' % (mail_id, settings.REPLY_EMAIL_DOMAIN)
@@ -617,8 +618,12 @@ def get_session_id(user_id, db_name=None):
   if user_id and user_id != 'public':
     user = db.owner.find_one({"_id": long(user_id)}, {'session_id': True,
                                                       'password': True})
+    if not user:
+      return False
+    
     if user.has_key('session_id'):
       return user.get("session_id")
+    
     elif not user.has_key('password'): # user chưa tồn tại, tạo tạm 1 session_id
       session_id = hashlib.md5('%s|%s' % (user_id, utctime())).hexdigest()
       db.owner.update({'_id': user['_id']}, 
@@ -1429,8 +1434,9 @@ def update_utcoffset(session_id, offset):
     cache.set('utcoffset', offset, namespace=user_id)
   return True
 
-def get_utcoffset(user_id):
-  db_name = get_database_name()
+def get_utcoffset(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not str(user_id).isdigit():
@@ -1460,7 +1466,7 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
     return User({})
   
   if not user_id:
-    user_id = get_user_id(facebook_id=facebook_id, email=email)
+    user_id = get_user_id(facebook_id=facebook_id, email=email, db_name=db_name)
   
   key = '%s:%s:%s:info' % (user_id, facebook_id, email)
   info = cache.get(key)
@@ -1484,15 +1490,16 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
   return User(info) if info else User({})
 
 
-def get_owner_info(session_id=None, uuid=None):
-  db_name = get_database_name()
+def get_owner_info(session_id=None, uuid=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not session_id and not uuid:
     return User({})
   
   elif session_id:
-    user_id = get_user_id(session_id)
+    user_id = get_user_id(session_id, db_name=db_name)
     key = '%s:info' % user_id
     info = cache.get(key)
     if not info:
@@ -1548,7 +1555,7 @@ def autocomplete(session_id, query):
   
   if query.startswith('#'):
     hashtags = db.hashtag.find({'name': re.compile('^' + query, 
-                                                         re.IGNORECASE)}).limit(5)
+                                                   re.IGNORECASE)}).limit(5)
     items = [{'name': i.get('name'), 
               'id': str(i.get('_id'))} for i in hashtags]
   else:
@@ -1595,7 +1602,7 @@ def new_notification(session_id, receiver, type,
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  sender = get_user_id(session_id)
+  sender = get_user_id(session_id, db_name=db_name)
   if not sender:
     return False
   
@@ -1609,26 +1616,28 @@ def new_notification(session_id, receiver, type,
           'timestamp': utctime()}
   notification_id = db.notification.insert(info)
   
-  push_queue.enqueue(publish, receiver, 'unread-notifications', 
-        get_unread_notifications_count(user_id=receiver), db_name=db_name)
-  
-  
   key = '%s:%s:unread_count' % (receiver, db_name)
   cache.delete(key)
   
+  unread_notifications_count = get_unread_notifications_count(user_id=receiver, 
+                                                              db_name=db_name)
+  push_queue.enqueue(publish, receiver, 'unread-notifications', 
+                     unread_notifications_count, db_name=db_name)
+  
   return notification_id
 
-def get_unread_notifications(session_id):
-  db_name = get_database_name()
+def get_unread_notifications(session_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   notifications = db.notification.find({'receiver': user_id,
                                         'is_unread': True})\
                                  .sort('timestamp', -1)
 
   offset = get_utcoffset(user_id)
-  notifications = [Notification(i, offset) for i in notifications]
+  notifications = [Notification(i, offset, db_name) for i in notifications]
       
   results = odict()
   for i in notifications:
@@ -1651,7 +1660,7 @@ def get_unread_notifications(session_id):
       results[i.date][id] = [i]
       user_ids = [i.sender.id]
     else:
-      # chống trùng 
+      # duplicate prevention 
       if i.sender.id not in user_ids:
         results[i.date][id].append(i)
         user_ids.append(i.sender.id)
@@ -1670,7 +1679,7 @@ def get_notifications(session_id, limit=25):
                                  .limit(limit)
 
   offset = get_utcoffset(user_id)
-  notifications = [Notification(i, offset) for i in notifications]
+  notifications = [Notification(i, offset, db_name) for i in notifications]
   results = odict()
   
   for i in notifications:
@@ -1712,20 +1721,19 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   db = DATABASE[db_name]
   
   if not user_id:
-    user_id = get_user_id(session_id)
-  
+    user_id = get_user_id(session_id, db_name=db_name)
   
   key = '%s:%s:unread_count' % (user_id, db_name)
   count = cache.get(key)
   if count is not None:
     return count 
-    
+  
   notifications = db.notification.find({'receiver': user_id,
                                         'is_unread': True})\
                                  .sort('timestamp', -1)
 
-  offset = get_utcoffset(user_id)
-  notifications = [Notification(i, offset) for i in notifications]
+  offset = get_utcoffset(user_id, db_name=db_name)
+  notifications = [Notification(i, offset, db_name) for i in notifications]
       
   count = 0
   results = odict()
@@ -1733,7 +1741,7 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   
     
   for i in notifications:
-    if not i.details.id: # post đã xoá
+    if not i.details.id: # deleted post 
       continue
     
     if not i.type:
@@ -1753,7 +1761,7 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
       user_ids = [i.sender.id]
       count += 1
     else:
-      # chống trùng 
+      # duplicate prevention
       if i.sender.id not in user_ids:
         results[i.date][id].append(i)
         user_ids.append(i.sender.id)
@@ -1860,8 +1868,10 @@ def mark_as_read(session_id, post_id):
     # update notification
     mark_notification_as_read(session_id, ref_id=post_id)
     
+    unread_notifications_count = get_unread_notifications_count(user_id=user_id,
+                                                                db_name=db_name)
     push_queue.enqueue(publish, user_id, 'unread-notifications', 
-          get_unread_notifications_count(user_id=user_id), db_name=db_name)
+                       unread_notifications_count, db_name=db_name)
     
     
     clear_html_cache(post_id)
@@ -2478,12 +2488,12 @@ def unread_count(session_id, timestamp):
   groups = db.owner.find({'members': user_id})
   group_ids = [i.get('_id') for i in groups]
   feeds = db.stream.find({'$or': [{'viewers': {'$in': group_ids}},
-                                          {'owner': user_id}],
-                                'timestamp': {'$gt': timestamp}}).count()
+                                  {'owner': user_id}],
+                          'timestamp': {'$gt': timestamp}}).count()
                                           
   docs = db.stream.find({'$or': [{'viewers': {'$in': group_ids}},
-                                    {'owner': user_id}],
-                            'timestamp': {'$gt': timestamp}}).count()
+                                 {'owner': user_id}],
+                         'timestamp': {'$gt': timestamp}}).count()
   return feeds + docs
 
 def get_public_posts(session_id=None, user_id=None, page=1):
@@ -2822,7 +2832,7 @@ def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return 0
   
@@ -3048,8 +3058,11 @@ def new_comment(session_id, message, ref_id,
   
   # upate unread notifications
   mark_notification_as_read(session_id, ref_id=ref_id)
+  
+  unread_notifications_count = get_unread_notifications_count(user_id=user_id,
+                                                              db_name=db_name)
   push_queue.enqueue(publish, user_id, 'unread-notifications', 
-        get_unread_notifications_count(user_id=user_id))
+                     unread_notifications_count, db_name=db_name)
   
   
   clear_html_cache(ref_id)
@@ -3075,18 +3088,20 @@ def remove_comment(session_id, comment_id, post_id=None):
   comment_id = long(comment_id)
   
   record = db.stream.find_and_modify({'$and': [{'comments.owner': user_id},
-                                                     {'comments._id': comment_id}]},
-                                            {'$set': {'comments.$.is_removed': True}})
+                                               {'comments._id': comment_id}]},
+                                     {'$set': {'comments.$.is_removed': True}})
   if not record:
     record = db.stream.find_and_modify({'$and': [{'owner': user_id},
-                                                       {'comments._id': comment_id}]},
-                                             {'$set': {'comments.$.is_removed': True}})
+                                                 {'comments._id': comment_id}]},
+                                       {'$set': {'comments.$.is_removed': True}})
   
   for _id in record.get('viewers'):
     cache.clear(_id)
     push_queue.enqueue(publish, _id, 'unread-notifications', 
-          get_unread_notifications_count(user_id=user_id), db_name=db_name)
-    
+                       get_unread_notifications_count(user_id=user_id, 
+                                                       db_name=db_name), 
+                       db_name=db_name)
+                  
     # Note: phải ép comment_id về str vì javascript không xử lý được số int lớn 
     # như số id của comment_id (id do snowflake sinh ra)
     push_queue.enqueue(publish, _id, 'remove', 
@@ -4578,7 +4593,7 @@ def get_group_info(session_id, group_id, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
     
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   info = db.owner.find_one({"_id": group_id, 
                             'members': user_id})
   if not info:

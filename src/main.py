@@ -2774,7 +2774,7 @@ if __name__ == "__main__":
 
     
     @werkzeug.serving.run_with_reloader
-    def gevent_auto_reloader():  
+    def server_run_with_auto_reloader():  
       app.debug = True
       
       app.config['DEBUG_TB_PROFILER_ENABLED'] = True
