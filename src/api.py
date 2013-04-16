@@ -369,9 +369,7 @@ EMAIL_RE = re.compile(
   re.IGNORECASE)  # domain
 
 def extract_urls(text):
-  matches = URL_RE.findall(text)
-  urls = [i[0] for i in matches]
-  return urls
+  return URL_RE.findall(text)
 
 #def get_tags(content):
 #  tags = re.compile('#([A-Za-z0-9_]+)').findall(content)

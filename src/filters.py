@@ -369,10 +369,11 @@ def flavored_markdown(text):
   return html  
   
 def to_embed_code(url, width=437, height=246): 
-  embed_code = ''
   youtube_embed_code_template = '<iframe width="%s" height="%s" src="https://www.youtube.com/embed/%s?wmode=opaque" frameborder="0" allowfullscreen></iframe>'
   if not url.startswith('http'):
-    url = URL_RE.findall(url)[0]
+    urls = api.URL_RE.findall(url)
+    if urls:
+      url = urls[0]
   
   if 'www.youtube.com/' in url:      
     video_id = url.rsplit('?v=', 1)[-1].split('&', 1)[0]
@@ -381,7 +382,9 @@ def to_embed_code(url, width=437, height=246):
   elif 'youtu.be/' in url:    
     video_id = url.rsplit('/', 1)[-1].split('&', 1)[0]
     embed_code = youtube_embed_code_template % (width, height, video_id)
-  
+  else:
+    embed_code = ''
+    
   return embed_code 
   
 
