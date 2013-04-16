@@ -347,14 +347,21 @@
                
         {% set info = feed.message | parse_json %}
                
-        {% if info %}
-          {% if info.commits %}
-            {{ info.commits[0].author.email | autolink | safe }}
-          {% else %}
-            <a>{{ info.user_name }}</a>
-          {% endif %}
-             pushed to <a href="{{ info.repository.url }}/tree/{{ info.repository.master_branch }}" target='_blank'>{{ info.repository.master_branch }}</a> at <a href="{{ info.repository.url }}" title="{{ info.repository.description }} ({{ info.repository.homepage }})" target='_blank'>{{ info.repository.organization }}/{{ info.repository.name }}</a>. 
+        {{ info.pusher.email | autolink | safe }}
+        
+        {% if info.created %}   
           
+          {% set ref_parts = info.ref.split('/') %}
+          created {{ ref_parts[1].rstrip('es') }} 
+          
+          <a href='{{ info.repository.url }}/tree/{{ ref_parts[2] }}' target='_blank'>{{ ref_parts[2] }}</a>
+          
+          at <a href="{{ info.repository.url }}" title="{{ info.repository.description }} ({{ info.repository.homepage }})" target='_blank'>{{ info.repository.organization }}/{{ info.repository.name }}</a>. 
+          
+        {% else %}
+        
+          pushed to <a href="{{ info.repository.url }}/tree/{{ info.repository.master_branch }}" target='_blank'>{{ info.repository.master_branch }}</a> at <a href="{{ info.repository.url }}" title="{{ info.repository.description }} ({{ info.repository.homepage }})" target='_blank'>{{ info.repository.organization }}/{{ info.repository.name }}</a>. 
+        
           <a href="{{ info.repository.url }}/compare/{{ info.before[:10] }}...{{ info.after[:10] }}" target='_blank' title="View comparison for these commits">See changes</a>
          
           {% if info.commits %}         

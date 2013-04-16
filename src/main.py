@@ -2262,10 +2262,14 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
         title = feed.details.name
         description = feed.details.size
       else:
-        if feed.message and not isinstance(feed.message, dict):
-          title = feed.message[:50] + '...'
-        else:
+        
+        msg = feed.message
+        if not msg or \
+          (msg and str(msg).strip()[0] == '{' and str(msg).strip()[-1] == '}'):
           title = ''
+        else:
+          title = msg if len(msg)<= 50 else msg[:50] + '...'
+
         if feed.urls:
           url = feed.urls[0]
           description = feed.urls[0].description
