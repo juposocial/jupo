@@ -13,4 +13,4 @@ from rq import Queue, Worker, Connection
 
 with Connection(api.QUEUE):
   q = Queue(sys.argv[1])
-  Worker(q).work()
+  Worker(q, default_result_ttl=0).work()

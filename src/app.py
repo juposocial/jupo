@@ -3,7 +3,6 @@
 #@PydevCodeAnalysisIgnore
 
 from datetime import timedelta
-from gevent import spawn, joinall
 from flask import Flask, render_template
 from werkzeug.contrib.cache import MemcachedCache
 
@@ -85,9 +84,7 @@ FILE_TEMPLATE = CURRENT_APP.jinja_env.get_template('file.html')
 
 def render(info, post_type, owner, viewport=None, mode=None, **kwargs): 
   if isinstance(info, list):
-    jobs = [spawn(_render, i, post_type, owner, viewport, mode) for i in info]
-    joinall(jobs)
-    return ''.join([i.value for i in jobs if i.value])
+    return ''.join([_render(i, post_type, owner, viewport, mode) for i in info])
   else:
     return _render(info, post_type, owner, viewport, mode, **kwargs)
 
