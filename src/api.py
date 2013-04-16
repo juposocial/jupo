@@ -80,7 +80,8 @@ sys.setdefaultencoding("utf-8")
 
 
 DATABASE = MongoDB(settings.MONGOD_SERVERS, use_greenlets=True)
-DATABASE['global'].user.ensure_index('email')
+DATABASE['global'].user.ensure_index('email', background=True)
+DATABASE['global'].spelling_suggestion.ensure_index('keyword', background=True)
 
 INDEX = ElasticSearch('http://%s/' % settings.ELASTICSEARCH_SERVER)
 
@@ -449,8 +450,7 @@ def get_database_name():
     DATABASE[db_name].stream.ensure_index('is_removed', background=True)
     
     DATABASE[db_name].url.ensure_index('url', background=True)
-    DATABASE[db_name].hashtag.ensure_index('name', background=True)
-    DATABASE[db_name].spelling_suggestion.ensure_index('keyword', background=True)
+#    DATABASE[db_name].hashtag.ensure_index('name', background=True)
 
   return db_name
 
@@ -4827,34 +4827,31 @@ def _jupo_stats():
   
   
 def get_google_spelling_suggestion(query):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
+  db = DATABASE['global']
   
   url = 'http://www.google.com/search?q=%s&start=0&hl=en' % quote(str(query))
   html = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/534.16 (KHTML, like Gecko) Ubuntu/10.10 Chromium/10.0.648.133 Chrome/10.0.648.133 Safari/534.16',
                                     'Referer': 'http://www.google.com/'}).content
-  suggestions = re.compile('spell=1" class=spell>(.*?)</a>').findall(html)
+  suggestions = re.compile('class="spell".*?>(.*?)</a>').findall(html)
   if suggestions:
-    suggestion = suggestions[0]
-    db.spelling_suggestion.insert({'keyword': query.lower().strip(), 
-                                         'suggestion': suggestion})
-    return suggestion
+    text = suggestions[0]
+    suggestion = re.findall('<i>(.*?)</i>', text)[0]
+    if suggestion:
+      db.spelling_suggestion.insert({'keyword': query.lower().strip(), 
+                                     'suggestion': suggestion})
+      return suggestion
 
 def get_spelling_suggestion(keyword):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
+  db = DATABASE['global']
   
   keyword = keyword.lower().strip()
   info = db.spelling_suggestion.find_one({'keyword': keyword})
   if info:
     suggestion = info.get('suggestion')
-    return {'text': suggestion.replace('<b>', '')\
-                              .replace('</b>', '')\
-                              .replace('<i>', '')\
-                              .replace('</i>', ''),
-            'html': suggestion}
+    return {'text': suggestion,
+            'html': '<b><i>%s</i></b>' % suggestion}
   else:
-    low_priority_queue.enqueue(get_google_spelling_suggestion, keyword)
+    crawler_queue.enqueue(get_google_spelling_suggestion, keyword)
 
 #===============================================================================
 # Nginx Push
@@ -5129,7 +5126,6 @@ def ensure_index(db_name=None):
   db['s3'].ensure_index('name')
   
   db.url.ensure_index('url', background=True)
-  db.spelling_suggestion.ensure_index('keyword', background=True)
   return True
 
 
