@@ -2,10 +2,6 @@
 # pylint: disable-msg=W0311, W0611, E1103, E1101
 #@PydevCodeAnalysisIgnore
 
-from gevent import monkey
-monkey.patch_all()
-
-from gevent.pywsgi import WSGIServer
 from raven.contrib.flask import Sentry
  
 from flask import (Flask, request, 
@@ -2750,6 +2746,8 @@ def redirect_if_not_play_jupo():
   
 if __name__ == "__main__":
     
+  from cherrypy import wsgiserver
+
   formatter = logging.Formatter(
     '(%(asctime)-6s) %(levelname)s: %(message)s' + '\n' + '-' * 80)
   
@@ -2762,11 +2760,11 @@ if __name__ == "__main__":
     port = int(sys.argv[1])    
     
     app.debug = settings.DEBUG
-    
-    server = WSGIServer(('0.0.0.0', port), app)
+            
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
     try:
       print 'Serving HTTP on 0.0.0.0 port %s...' % port
-      server.serve_forever()
+      server.start()
     except KeyboardInterrupt:
       print '\nGoodbye.'
       server.stop()
@@ -2776,11 +2774,12 @@ if __name__ == "__main__":
 
     
     @werkzeug.serving.run_with_reloader
-    def gevent_auto_reloader():  
+    def server_run_with_auto_reloader():  
       app.debug = True
       
       app.config['DEBUG_TB_PROFILER_ENABLED'] = True
       app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
+      app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
       app.config['DEBUG_TB_PANELS'] = [
           'flask_debugtoolbar.panels.versions.VersionDebugPanel',
           'flask_debugtoolbar.panels.timer.TimerDebugPanel',
@@ -2800,21 +2799,15 @@ if __name__ == "__main__":
       toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
       
       
-#      from cherrypy import wsgiserver
-#      server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
-#      try:
-#        server.start()
-#      except KeyboardInterrupt:
-#        server.stop()
-      
-      server = WSGIServer(('0.0.0.0', 8888), app)
+      server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
       try:
         print 'Serving HTTP on 0.0.0.0 port 8888...'
-        server.serve_forever()
+        server.start()
       except KeyboardInterrupt:
         print '\nGoodbye.'
         server.stop()
-    
+      
+
 
 
 

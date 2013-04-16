@@ -38,8 +38,11 @@ def get(key, namespace=None):
 
 
 def clear(namespace):
-  MEMCACHED.incr(str(namespace))
-  return True
+  try:
+    MEMCACHED.incr(str(namespace))
+    return True
+  except ValueError:  # MEMCACHED.get(str(namespace)) == None
+    return False
 
 
 def delete(key):

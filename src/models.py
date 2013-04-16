@@ -1350,21 +1350,24 @@ class ESResult(Model):
   
   
 class Notification(Model):
-  def __init__(self, info, utcoffset):
+  def __init__(self, info, utcoffset, db_name):
     self.info = info if info else dict()
     self.offset = utcoffset
+    self.db_name = db_name
     
   @property
   def sender(self):
-    return api.get_user_info(self.info.get('sender'))
+    return api.get_user_info(self.info.get('sender'), db_name=self.db_name)
     
   @property
   def receiver(self):
-    return api.get_user_info(self.info.get('receiver'))
+    return api.get_user_info(self.info.get('receiver'), db_name=self.db_name)
   
   @property
   def item(self):
-    record = api.get_record(self.ref_id, self.info.get('ref_collection', 'stream'))
+    record = api.get_record(self.ref_id, 
+                            self.info.get('ref_collection', 'stream'), 
+                            db_name=self.db_name)
     if not record or record.has_key('is_removed'):
       return Feed({})
     if self.comment_id:
@@ -1388,7 +1391,8 @@ class Notification(Model):
   @property
   def details(self):
     record = api.get_record(self.ref_id, 
-                            self.info.get('ref_collection', 'stream'))
+                            self.info.get('ref_collection', 'stream'), 
+                            db_name=self.db_name)
     if not record or record.has_key('is_removed'):
       return Feed({})
     return Feed(record)
