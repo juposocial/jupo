@@ -129,7 +129,6 @@ def event_stream(channel):
   pubsub = api.PUBSUB.pubsub()
   pubsub.subscribe(channel)
   for message in pubsub.listen():
-    print message
     yield 'data: %s\n\n' % message['data']
     
 #===============================================================================
@@ -148,7 +147,7 @@ def stream():
   if not session_id:
     abort(400)
   resp = Response(event_stream(session_id),
-                        mimetype="text/event-stream")
+                  mimetype="text/event-stream")
   resp.headers['X-Accel-Buffering'] = 'no'
   return resp
 
