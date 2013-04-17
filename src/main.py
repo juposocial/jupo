@@ -2037,6 +2037,7 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/<int:comment_id>/<action>", methods=["POST"])
 @app.route("/feed/<int:feed_id>/starred", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/<message_id>@<domain>", methods=["GET", "OPTIONS"])
+@app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
 @line_profile
@@ -2136,6 +2137,7 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
                              view='discover',
                              owner=owner,
                              feed=feed)
+      
   elif request.path.endswith('/starred'):
     feed = api.get_feed(session_id, feed_id)
     users = feed.starred_by    
@@ -2143,7 +2145,39 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
     json = dumps({'body': body, 'title': 'Intelliview'})
     return Response(json, mimetype='application/json')
     
+  
+  elif request.path.endswith('/comments'):
+    limit = int(request.args.get('limit', 5))
+    last_comment_id = int(request.args.get('last'))
+    
+    post = api.get_feed(session_id, feed_id)
+    if not post.id:
+      abort(400)
+    
+    comments = []
+    for comment in post.comments:
+      if comment.id == last_comment_id:
+        break
+      else:
+        comments.append(comment)
+    
+    if len(comments) > limit:
+      comments = comments[-limit:]
       
+    html = render(comments, 'comment', 
+                  owner, None, None, 
+                  item=post, hidden=True)
+    resp = {'html': html,
+            'length': len(comments),
+            'comments_count': post.comments_count}
+    
+    if comments[0].id != post.comments[0].id:
+      resp['next_url'] = '/feed/%s/comments?last=%s' \
+                          % (feed_id, comments[0].id)
+      
+    return Response(dumps(resp), mimetype='application/json')
+  
+  
   elif action == 'remove':
     feed_id = api.remove_feed(session_id, feed_id)
     

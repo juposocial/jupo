@@ -1886,19 +1886,54 @@ $(document).ready(function(e) {
   
   $('#body, #overlay').on('click', 'a.view-previous-comments', function() {
     
-    var post_id = $(this).parents('li.feed').attr('id');
+    var _this = $(this);
+    var post_id = _this.parents('li.feed').attr('id');
     
-    var hidden_comments = $('#' + post_id + ' ul.comments li.comment.hidden');
+    // Show preloaded comments
+    $('#' + post_id + ' ul.comments li.comment.hidden').removeClass('hidden');
     
-    hidden_comments.slice(-5).removeClass('hidden');
-    if ($('#' + post_id + ' ul.comments li.comment.hidden').length > 0) {
-      $('#' + post_id + ' ul.comments .displayed-count').html($('#' + post_id + ' ul.comments li.comment:not(.hidden)').length)
+    var displayed_count = $('#' + post_id + ' ul.comments li.comment:not(.hidden)').length;
+    $('.displayed-count', _this).html(displayed_count);
+    
+    var undisplayed_count = $('.comment-count', _this).html() - displayed_count;
+    if (undisplayed_count <= 0) {
+      _this.parent().remove()
+    }
+    else if (undisplayed_count > 5) {
+      $('text', _this).html('View previous comments');
     } else {
-      $(this).parents('li.action').remove();
-    } 
+      $('text', _this).html('View ' + undisplayed_count + ' more comments');
+    }
     
+    // Preload next comments
+    if (_this.attr('href') != undefined) {
+      $.ajax({
+        type: "OPTIONS",
+        url: _this.attr('href'),
+        dataType: "json",
+        success: function(data) {
+          
+          if (data.next_url < 5) {
+            _this.attr('href', data.next_url);
+          }
+          
+          $('.comment-count', _this).html(data.comments_count);
+          
+          $('#' + post_id + ' ul.comments li.comment:first').before(data.html);
+          refresh('#' + post_id + ' ul.comments');
+          
+          return false;
+        }
+      });
+    }
+    
+      
+    
+    return false;
     
   })
+  
+  
   
   $('#global').on('click', 'a.online-now', function() {
     

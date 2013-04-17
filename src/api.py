@@ -2477,7 +2477,7 @@ def get_feed(session_id, feed_id, group_id=None):
     viewers.append(user_id)
     viewers.append('public')
     info = db.stream.find_one({'_id': long(feed_id),
-                                     'viewers': {'$in': viewers}})
+                               'viewers': {'$in': viewers}})
   return Feed(info)
 
 def unread_count(session_id, timestamp):
