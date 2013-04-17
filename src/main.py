@@ -105,7 +105,7 @@ def render_homepage(session_id, title, **kwargs):
   logo_text = 'Jupo'
   if hostname != settings.PRIMARY_DOMAIN:
     network_info = api.get_network_info(hostname.replace('.', '_'))
-    if network_info.has_key('name'):
+    if network_info and network_info.has_key('name'):
       logo_text = network_info['name']
 
   resp = Response(render_template('home.html', 

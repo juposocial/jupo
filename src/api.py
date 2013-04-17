@@ -152,6 +152,13 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     subject = 'Welcome to Jupo!'
     body = None
     
+  elif mail_type == 'mentions':
+    user = get_user_info(user_id, db_name=db_name)
+    post = Feed(post)
+    subject = '%s mentioned you in a comment.' % user.name
+    template = app.CURRENT_APP.jinja_env.get_template('email/new_comment.html')
+    body = template.render(domain=domain, user=user, post=post)
+    
   elif mail_type == 'new_post':
     user = get_user_info(user_id, db_name=db_name)
     post = Feed(post)
@@ -162,7 +169,6 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
   elif mail_type == 'new_comment':
     user = get_user_info(user_id, db_name=db_name)
     post = Feed(post)
-#      subject = '%s commented on a post' % user.name
     if post.is_system_message():
       if post.message.action == 'added':
         subject = 'New comment to "%s added %s to %s group."' \
@@ -194,11 +200,9 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     msg['From'] = settings.SMTP_SENDER
     msg['X-MC-Track'] = 'opens,clicks'
     if post:
-#        reply_to = "%s's post <post-%s@reply.jupo.com>" \
-#                 % (post.last_action.owner.name, post.id)
       mail_id = '%s-%s' % (post.id, db_name)
       mail_id = base64.b64encode(smaz.compress(mail_id)).replace('/', '-').rstrip('=')
-      reply_to = 'post%s@%s' % (mail_id, settings.REPLY_EMAIL_DOMAIN)
+      reply_to = 'post%s@%s' % (mail_id, settings.EMAIL_REPLY_TO_DOMAIN)
       msg['Reply-To'] = Header(reply_to, "utf-8")
       
     MAIL = SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
@@ -2995,10 +2999,7 @@ def new_comment(session_id, message, ref_id,
   mentions = get_mentions(message)
   mentions = [long(i.get('id')) for i in mentions]
   mentions.append(user_id)
-  
-  # send notification mail
-  for uid in mentions:
-    pass
+  mentions = list(set(mentions))
   
   # send notification
   info = db.stream.find_one({'_id': long(ref_id)})
@@ -3032,10 +3033,22 @@ def new_comment(session_id, message, ref_id,
     info['comments'] = [comment]
     
   
+  for uid in mentions:
+    if uid != user_id:
+      notification_queue.enqueue(new_notification, 
+                                 session_id, uid, 'mention', 
+                                 ref_id, comment['_id'], db_name=db_name)
+      u = get_user_info(uid)
+      send_mail_queue.enqueue(send_mail, u.email, 
+                              mail_type='mentions', 
+                              user_id=user_id, post=info, 
+                              db_name=db_name)
+    
+  
   receivers = [info.get('owner')]
   if info.get('comments'):
     for i in info.get('comments'):
-      if i.get('owner') != user_id and i.get('owner') not in receivers:
+      if i.get('owner') != user_id and i.get('owner') not in mentions and i.get('owner') not in receivers:
         receivers.append(i.get('owner'))
         notification_queue.enqueue(new_notification, 
                                    session_id, i.get('owner'), 
@@ -3051,15 +3064,15 @@ def new_comment(session_id, message, ref_id,
       push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
       
       
-      if user_id != id:
+      if user_id != id and id not in mentions:
         # send email notification
         u = get_user_info(id)
-        if '@' in u.email and \
-          (id in new_mentions or \
-           u.status == 'offline' or \
-           (u.status == 'away' and utctime() - u.last_online > 180)):
-          send_mail_queue.enqueue(send_mail, u.email, mail_type='new_comment', 
-                                  user_id=user_id, post=info, db_name=db_name)
+        if '@' in u.email:
+          if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
+            send_mail_queue.enqueue(send_mail, u.email, 
+                                    mail_type='new_comment', 
+                                    user_id=user_id, post=info, 
+                                    db_name=db_name)
   
   urls = extract_urls(message)
   if urls:
@@ -3067,8 +3080,6 @@ def new_comment(session_id, message, ref_id,
       crawler_queue.enqueue(get_url_description, url, db_name=db_name)
       
   index_queue.enqueue(update_index, ref_id, message, viewers, is_comment=True)
-  #TODO: notify mentioned users
-  
   
   # upate unread notifications
   mark_notification_as_read(session_id, ref_id=ref_id)

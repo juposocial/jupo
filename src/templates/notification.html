@@ -14,7 +14,8 @@
     {% elif key.startswith('mention:') %}
       <a href='#!/notification/{{ message.id }}?continue=/feed/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
-        <span class='username'>{{ message.sender.name }}</span> mentioned you in a post.
+        <span class='username'>{{ message.sender.name }}</span> mentioned you in a comment: 
+        "{{ message.item.message | clean | to_text | truncate(90, True) | autoemoticon | fix_unclosed_tags | sanitize | safe }}"
       
     {% elif key.startswith('follow:') %}
       <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
