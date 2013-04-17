@@ -380,9 +380,11 @@
         <div class='intro'>
             Name: {{ user.name }}
             <br>
+            {% if user.id == owner.id %}
             Email: <a href='mailto:{{ user.email }}'>{{ user.email }}</a>
             <br>
-          {% if user.birthday %}
+            {% endif %}
+          {% if user.birthday and user.birthday.year != '0' %}
             Born: {{ user.birthday.year }}
             <br>
           {% endif %}
@@ -394,10 +396,12 @@
             Phone: {{ user.phone }}
             <br>
           {% endif %}
+{#          
           {% if user.locale %}
             Locale: {{ user.locale }}
             <br>
           {% endif %}
+#}
           {% if user.introduction %}
             {{ user.introduction }}
             <br>
