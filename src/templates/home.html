@@ -24,12 +24,13 @@
   <a id='menu-toggle' class='lfloat'>
     <i class='menu-icon'></i>
   </a>
+  
 
   <div id='logo' class='lfloat'>
   {#  <a href='/welcome' class='async fire-icon logo' rel='welcome'>Jupo</a> #}
   
-    <a href='{% if owner %}/news_feed{% else %}/{% endif %}' class='async' rel='{% if owner %}news-feed{% else %}discover{% endif %}'>
-      Jupo
+    <a title='{{ logo_text }}' href='{% if owner %}/news_feed{% else %}/{% endif %}' class='async' rel='{% if owner %}news-feed{% else %}discover{% endif %}'>
+      {{ logo_text }}
     </a>
     
   </div>

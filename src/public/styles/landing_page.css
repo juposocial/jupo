@@ -322,6 +322,11 @@ footer {
   display: none;
 }
 
+header .logo img {
+  width: 80px;
+  height: 25px;
+}
+
 img {
   width: 450px;
   margin-right: -25px;

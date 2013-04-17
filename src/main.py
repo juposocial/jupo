@@ -99,6 +99,14 @@ def render_homepage(session_id, title, **kwargs):
     stats = kwargs.pop('stats')
   else: 
     stats = {}
+    
+  
+  hostname = request.headers.get('Host')
+  logo_text = 'Jupo'
+  if hostname != settings.PRIMARY_DOMAIN:
+    network_info = api.get_network_info(hostname.replace('.', '_'))
+    if network_info.has_key('name'):
+      logo_text = network_info['name']
 
   resp = Response(render_template('home.html', 
                                   owner=owner,
@@ -108,6 +116,7 @@ def render_homepage(session_id, title, **kwargs):
                                   unread_notification_count=unread_notification_count,
                                   stats=stats,
                                   debug=settings.DEBUG,
+                                  logo_text=logo_text,
                                   **kwargs))
   if owner:
     if not request.cookies.get('channel_id'):

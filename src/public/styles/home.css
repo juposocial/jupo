@@ -4577,18 +4577,42 @@ a#notification:hover {
   text-shadow: 0 0 10px white;
 }
 
+
+div#jupo-logo a {
+  position: absolute;
+  width: 24px;
+  top: 0;
+  left: 0;
+  opacity: 0.8;
+  padding: 9px 15px;
+}
+
+div#jupo-logo a:hover {
+  opacity: 1;
+}
+
+
+div#jupo-logo a:active {
+  opacity: 0.7;
+}
+
 div#logo a {
   display: block;
   color: #f1f1f1;
   margin-left: 13px;
   vertical-align: top;
   text-decoration: none;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: bold;
   font-family: arial;
   line-height: 18px;
   text-shadow: black 1px 1px 0px, #B5B5B5 1px 2px 0px;
   outline: 0;
+  width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  
 }
 
 div#right-sidebar input[type='email'] {
