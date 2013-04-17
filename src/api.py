@@ -429,7 +429,7 @@ def get_database_name():
       db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
   
   if not db_name:
-    db_name = 'play_jupo_com'
+    db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
   if db_name not in get_database_names():
     # Ensure indexes
@@ -2995,7 +2995,11 @@ def new_comment(session_id, message, ref_id,
   mentions = get_mentions(message)
   mentions = [long(i.get('id')) for i in mentions]
   mentions.append(user_id)
-    
+  
+  # send notification mail
+  for uid in mentions:
+    pass
+  
   # send notification
   info = db.stream.find_one({'_id': long(ref_id)})
 
