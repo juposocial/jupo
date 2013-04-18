@@ -2282,7 +2282,7 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
                              mode='view',
                              owner=owner,
                              feed=feed)
-      msg = feed.message
+      msg = filters.clean(feed.message)
       if not msg or \
         (msg and str(msg).strip()[0] == '{' and str(msg).strip()[-1] == '}'):
         title = ''
@@ -2307,7 +2307,7 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
         description = feed.details.size
       else:
         
-        msg = feed.message
+        msg = filters.clean(feed.message)
         if not msg or \
           (msg and str(msg).strip()[0] == '{' and str(msg).strip()[-1] == '}'):
           title = ''
