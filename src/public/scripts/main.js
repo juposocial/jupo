@@ -964,21 +964,21 @@ $(document).ready(function(e) {
         textarea.css('background', '#fff');
       },
       success: function(resp) {
-        var offset_top = null;
-        var last_comment = $('#' + feed_id + ' li.comment:last');
-        
-        if (last_comment.length == 0) {
-          if ($('#' + feed_id).length != 0) {
-            offset_top = $('#' + feed_id).offset().top
-          }
-          
-        } else {
-          offset_top = last_comment.offset().top
-        }
-        
-        if (offset_top != null) {
-          $('body').scrollTop(offset_top - 250);
-        }
+        // var offset_top = null;
+        // var last_comment = $('#' + feed_id + ' li.comment:last');
+//         
+        // if (last_comment.length == 0) {
+          // if ($('#' + feed_id).length != 0) {
+            // offset_top = $('#' + feed_id).offset().top
+          // }
+//           
+        // } else {
+          // offset_top = last_comment.offset().top
+        // }
+//         
+        // if (offset_top != null) {
+          // $('body').scrollTop(offset_top - 250);
+        // }
         
         
         submit_button.val(submit_button_text);
