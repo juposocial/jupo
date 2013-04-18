@@ -1546,6 +1546,14 @@ padding: 5px 0;
 margin-top: 15px;
 }
 
+header nav .account-info a {
+  padding: 0 !important;
+}
+
+header nav .account-info a:hover .username {
+  text-decoration: underline;
+}
+
 header nav ul.dropdown-menu a {
   padding: 5px 15px;
   font-size: 11px;

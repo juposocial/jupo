@@ -64,9 +64,13 @@
             <div class='arrow-top-border'></div>
             <div class='arrow-top'></div>
             <div class='account-info'>
-              <img class='small-avatar lfloat' src='{{ owner.avatar }}'>
-              <span class='username'>{{ owner.name}}</span>
-              <span>{{ owner.email}}</span>
+              <a href='/user/{{ owner.id }}' class='async'>
+                <img class='small-avatar lfloat' src='{{ owner.avatar }}'>
+              </a>
+              <a href='/user/{{ owner.id }}' class='async'>
+                <span class='username'>{{ owner.name}}</span>
+                <span>{{ owner.email}}</span>
+              </a>
               {% if owner.last_login %}
               <div class='history'>
                 <span>Last login:</span>
@@ -101,7 +105,7 @@
               
             </li>
             {% endif %}
-            <li><a href='/user/{{ owner.id }}' class='async profile'>View Profile</a></li>
+            <li><a href='/user/{{ owner.id }}/update_profile' class='popup'>Account Settings</a></li>
             <li>
               <a id='pick-avatar'>Change Profile Picture</a>
               
