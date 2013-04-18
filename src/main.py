@@ -117,6 +117,7 @@ def render_homepage(session_id, title, **kwargs):
                                   stats=stats,
                                   debug=settings.DEBUG,
                                   logo_text=logo_text,
+                                  domain=hostname,
                                   **kwargs))
   if owner:
     if not request.cookies.get('channel_id'):

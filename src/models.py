@@ -438,7 +438,9 @@ class User(Model):
       
       if info:
         info['unread_notifications'] = api.get_unread_notifications_count(user_id=self.id, db_name=db_name)
-        info['url'] = 'http://' + db_name.replace('_', '.') + '/'
+        info['domain'] = db_name.replace('_', '.')
+        info['url'] = 'http://%s/' % info['domain']
+        
         networks_list.append(info)
       
     return networks_list

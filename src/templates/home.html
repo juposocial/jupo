@@ -85,11 +85,13 @@
               
               <ul class='networks-list'>
                 {% for network in owner.networks %}
+                  {% if network.domain != domain %}
                   <li>
                     <a href='{{ network.url }}?session_id={{ owner.session_id }}' target='_blank'>
                       <span class='unread  {% if network.unread_notifications == 0 %}grey{% endif %}'>{{ network.unread_notifications }}</span> {{ network.name }} 
                     </a>
                   </li>
+                  {% endif %}
                 {% endfor %}
                 
                 
