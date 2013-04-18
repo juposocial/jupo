@@ -1690,6 +1690,7 @@ def get_notifications(session_id, limit=25):
   notifications = [Notification(i, offset, db_name) for i in notifications]
   results = odict()
   
+  user_ids = {}
   for i in notifications:
     if not i.details.id: # deleted post
       continue
@@ -1708,12 +1709,12 @@ def get_notifications(session_id, limit=25):
     
     if not results[i.date].has_key(id):
       results[i.date][id] = [i]
-      user_ids = [i.sender.id]
+      user_ids[id] = [i.sender.id]
     else:
-      # chống trùng 
-      if i.sender.id not in user_ids:
+      # prevent duplicate
+      if i.sender.id not in user_ids[id]:
         results[i.date][id].append(i)
-        user_ids.append(i.sender.id)
+        user_ids[id].append(i.sender.id)
         
 #    print id, user_ids
       
