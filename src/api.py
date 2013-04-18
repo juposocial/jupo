@@ -182,12 +182,13 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       else:
         subject = "New comment to %s's post" % (post.owner.name)
     else:
-      if len(post.message) > 30:
+      post_msg = filters.clean(post.message)
+      if len(post_msg) > 30:
         subject = "New comment to %s's post: \"%s\"" \
-                % (post.owner.name, post.message[:30] + '...') 
+                % (post.owner.name, post_msg[:30] + '...') 
       else:
         subject = "New comment to %s's post: \"%s\"" \
-                % (post.owner.name, post.message) 
+                % (post.owner.name, post_msg) 
     
     template = app.CURRENT_APP.jinja_env.get_template('email/new_comment.html')
     body = template.render(domain=domain, email=to_addresses, user=user, post=post)
@@ -199,9 +200,11 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     msg['Subject']= Header(subject, "utf-8")
     msg['From'] = settings.SMTP_SENDER
     msg['X-MC-Track'] = 'opens,clicks'
+    
     if post:
       mail_id = '%s-%s' % (post.id, db_name)
       mail_id = base64.b64encode(smaz.compress(mail_id)).replace('/', '-').rstrip('=')
+      
       reply_to = 'post%s@%s' % (mail_id, settings.EMAIL_REPLY_TO_DOMAIN)
       msg['Reply-To'] = Header(reply_to, "utf-8")
       
@@ -212,6 +215,7 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     MAIL.sendmail(settings.SMTP_SENDER, 
                   to_addresses, msg.as_string()) 
     MAIL.quit()
+    
     return True
   else:
     return False
@@ -3031,6 +3035,8 @@ def new_comment(session_id, message, ref_id,
     info['comments'].append(comment)
   else:
     info['comments'] = [comment]
+    
+  # TODO: reply to notification?
     
   
   for uid in mentions:
