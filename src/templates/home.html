@@ -229,6 +229,7 @@
   {% else %}
     {% assets filter="jsmin", 
               output="lib.js",
+              'scripts/disable_console_log.js',
               'scripts/detect_timezone.min.js',
               'scripts/jquery.caret.js',
               'scripts/plupload.js',
