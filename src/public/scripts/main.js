@@ -1914,6 +1914,8 @@ $(document).ready(function(e) {
         success: function(data) {
           
           if (data.next_url < 5) {
+            _this.attr('href', '#');
+          } else {
             _this.attr('href', data.next_url);
           }
           
