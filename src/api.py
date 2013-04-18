@@ -1691,7 +1691,7 @@ def get_notifications(session_id, limit=25):
   results = odict()
   
   for i in notifications:
-    if not i.details.id: # post đã xoá
+    if not i.details.id: # deleted post
       continue
     
     if not i.type:
@@ -4957,7 +4957,7 @@ def publish(user_id, event_type, info=None, db_name=None):
       <span class="likes-count">%s</span>''' % len(likes)
     
     template = app.CURRENT_APP.jinja_env.get_template('likes.html')
-    html = template.render(owner=owner, likes=likes)
+    html = template.render(owner=owner, likes=likes, item={'id': info['_id']})
     
     channel_id = get_session_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, dumps({'type': event_type,

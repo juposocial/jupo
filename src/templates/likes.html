@@ -20,7 +20,7 @@
     
     and 
     
-    <a href='#!/feed/{{ id }}' class='overlay' 
+    <a href='/feed/{{ item.id }}' class='async' 
        title='{% for i in likes[1:] %}{{ i.name }}{% if loop.index < likes_count - 1 %}, {% endif %}{% endfor %}'>
        {{ likes_count - 1 }} others</a>
   
