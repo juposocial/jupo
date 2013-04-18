@@ -79,12 +79,14 @@
               {% endif %}
               
             </div>
-            {% if owner.networks %}
+            
+            {% set networks = owner.networks %}
+            {% if networks | length > 1 %}
             <li class='networks'>
               Networks
               
               <ul class='networks-list'>
-                {% for network in owner.networks %}
+                {% for network in networks %}
                   {% if network.domain != domain %}
                   <li>
                     <a href='{{ network.url }}?session_id={{ owner.session_id }}' target='_blank'>
@@ -96,7 +98,6 @@
                 
                 
               </ul>
-              
               
             </li>
             {% endif %}
