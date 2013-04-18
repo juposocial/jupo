@@ -885,24 +885,6 @@ function stream() {
       user_id = $('a.async[data-user-id]', $(event.info)).attr('data-user-id');
       owner_id = $('header nav a[data-owner-id]').attr('data-owner-id');
       
-      var offset_top = null;
-      var last_comment = $('#' + feed_id + ' li.comment:last');
-      
-      if (last_comment.length == 0) {
-        if ($('#' + feed_id).length != 0) {
-          offset_top = $('#' + feed_id).offset().top
-        }
-        
-      } else {
-        offset_top = last_comment.offset().top
-      }
-      
-      if (offset_top != null) {
-        $('body').scrollTop(offset_top - 250);
-      }      
-      
-      
-      
           
       if ($.global.disable_realtime_update != feed_id) {
   
@@ -916,6 +898,23 @@ function stream() {
           // var quick_stats = $('.quick-stats', $(event.info));
   
           if (comment.length != 0 && $('#body #' + comment.attr('id')).length == 0) {
+            
+            
+            var offset_top = null;
+            var last_comment = $('#' + feed_id + ' li.comment:last');
+            
+            if (last_comment.length == 0) {
+              if ($('#' + feed_id).length != 0) {
+                offset_top = $('#' + feed_id).offset().top
+              }
+              
+            } else {
+              offset_top = last_comment.offset().top
+            }
+            
+            if (offset_top != null) {
+              $('body').scrollTop(offset_top - 250);
+            }  
             
             $('#body #' + feed_id + ' ul.comments').removeClass('hidden');
             $('#body #' + feed_id + ' div.comments-list').append(comment.hide().fadeIn('fast'));
@@ -996,6 +995,8 @@ function stream() {
             $('div#unread-messages').fadeIn();
           }
           refresh('ul#stream li:first');
+          
+          $('body').scrollTop(0);
         }
         setTimeout(function() {
           $.global.disable_realtime_update = null;
@@ -1009,21 +1010,6 @@ function stream() {
   
       if (event.type.indexOf('|') != -1) {
         
-        var offset_top = null;
-        var last_comment = $('#' + feed_id + ' li.comment:last');
-        
-        if (last_comment.length == 0) {
-          if ($('#' + feed_id).length != 0) {
-            offset_top = $('#' + feed_id).offset().top
-          }
-          
-        } else {
-          offset_top = last_comment.offset().top
-        }
-        
-        if (offset_top != null) {
-          $('body').scrollTop(offset_top - 250);
-        }
         
         var group_id = event.type.split('|')[0];
         
@@ -1038,6 +1024,23 @@ function stream() {
               // var quick_stats = $('.quick-stats', $(event.info));
   
               if (comment.length != 0 && $('#' + comment.attr('id')).length == 0) {
+                
+                var offset_top = null;
+                var last_comment = $('#' + feed_id + ' li.comment:last');
+                
+                if (last_comment.length == 0) {
+                  if ($('#' + feed_id).length != 0) {
+                    offset_top = $('#' + feed_id).offset().top
+                  }
+                  
+                } else {
+                  offset_top = last_comment.offset().top
+                }
+                
+                if (offset_top != null) {
+                  $('body').scrollTop(offset_top - 250);
+                }                
+                
                 $('#body #' + feed_id + ' ul.comments').removeClass('hidden');
                 $('#body #' + feed_id + ' div.comments-list').append(comment.hide().fadeIn('fast'));
                 $('#body #' + feed_id).addClass('unread');
@@ -1089,6 +1092,8 @@ function stream() {
                 $('div#unread-messages').fadeIn();
               }
               refresh('ul#stream li:first');
+              
+              $('body').scrollTop(0);
             }
   
             setTimeout(function() {
