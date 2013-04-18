@@ -1476,7 +1476,7 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
   if not user_id:
     user_id = get_user_id(facebook_id=facebook_id, email=email, db_name=db_name)
   
-  key = '%s:%s:%s:info' % (user_id, facebook_id, email)
+  key = '%s:info' % (user_id if user_id else facebook_id if facebook_id else email)
   info = cache.get(key)
   if not info:  
     if facebook_id:
