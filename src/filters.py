@@ -156,7 +156,7 @@ def autolink(text):
   s = s.replace('\r\n', '\n')
 
   
-  urls = api.URL_RE.findall(s)
+  urls = api.extract_urls(s)
   urls = list(set(urls))
   urls.sort(key=len, reverse=True)
   
@@ -371,7 +371,7 @@ def flavored_markdown(text):
 def to_embed_code(url, width=437, height=246): 
   youtube_embed_code_template = '<iframe width="%s" height="%s" src="https://www.youtube.com/embed/%s?wmode=opaque" frameborder="0" allowfullscreen></iframe>'
   if not url.startswith('http'):
-    urls = api.URL_RE.findall(url)
+    urls = api.extract_urls(url)
     if urls:
       url = urls[0]
   

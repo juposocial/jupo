@@ -36,6 +36,7 @@ from diff_match_patch import diff_match_patch
 
 from lib import cache
 from lib import encode_url
+from lib.url import extract_urls
 from lib.hot_ranking import get_score
 from lib.pbkdf2 import pbkdf2_bin # From https://github.com/mitsuhiko/python-pbkdf2
 
@@ -367,17 +368,7 @@ def get_lan_ip():
   return ip
 
 
-URL_RE = re.compile(r"(http.*?|www\..*?)\s+", re.IGNORECASE)
-WORD_RE = re.compile("""[a-zA-Z0-9ạảãàáâậầấẩẫăắằặẳẵóòọõỏôộổỗồốơờớợởỡ""" \
-                     + """éèẻẹẽêếềệểễúùụủũưựữửừứíìịỉĩýỳỷỵỹđ]+""")
-EMAIL_RE = re.compile(
-  r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"  # dot-atom
-  r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-011\013\014\016-\177])*"' # quoted-string
-  r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?$', 
-  re.IGNORECASE)  # domain
 
-def extract_urls(text):
-  return URL_RE.findall(text)
 
 #def get_tags(content):
 #  tags = re.compile('#([A-Za-z0-9_]+)').findall(content)
@@ -5200,42 +5191,5 @@ def domain_is_ok(domain_name):
     return False
  
  
-#if __name__ == '__main__':
-  
-#  print get_spelling_suggestion('Amzaon ')
-#  print make_hash('123456')
-#  try:
-#    DATABASE.stream.drop_index('timestamp_1')
-#    DATABASE.stream.drop_index('worker_1')
-#    DATABASE.stream.drop_index('status_1')
-#    DATABASE.stream.drop_index('priority_1')
-#  except OperationFailure:
-#    pass
-#  
-#  
-#  # Re-build index
-#  
-#  for i in DATABASE.stream.find():
-#    content = i.get('message')
-#    uuid = str(i.get('_id'))
-#    viewers = i.get('viewers')
-#    print viewers
-#    add_index('stream', uuid, content, viewers)
-#    
-#  for i in DATABASE.stream.find():
-#    content = i.get('version')[-1].get('content')
-#    uuid = str(i.get('_id'))
-#    viewers = i.get('viewers')
-#    add_index('doc', uuid, content, viewers)
-  
-#  from pprint import pprint
-#  r = search('7895226779c26fd88c0894a66741ebd6', 'stack')
-#  for i in r:
-#    pprint(i.to_dict())
-#    
-#  
-##  print INDEX.delete_index('5works-index')
-#
-#  print re.compile(EMAIL_REGEX).match('ara.com')
 
 
