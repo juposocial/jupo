@@ -119,9 +119,6 @@ header .button {
   -moz-transition: none;
   transition: none;
   text-shadow: 0 -1px rgba(0,0,0,0.11);
-  -webkit-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
-  -moz-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
-  box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
 }
 
 header .button:hover {
@@ -151,9 +148,6 @@ header .button.sign-up {
   border: 1px solid #920c12;
   color: #fff;
   text-shadow: 0 -1px rgba(0,0,0,0.11);
-  -webkit-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
-  -moz-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
-  box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
 }
 
 header .button.sign-up:hover {
