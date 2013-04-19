@@ -1589,9 +1589,9 @@ def autocomplete(session_id, query):
     
   if not items:
     users = db.owner.find({'email': re.compile('^%s.*' % query, 
-                                                     re.IGNORECASE)}, 
-                                {'name': True, 'email': True})\
-                          .limit(5)
+                                               re.IGNORECASE)}, 
+                          {'name': True, 'email': True})\
+                    .limit(5)
     items = [{'name': i.get('email'),
               'id': str(i.get('_id'))} \
              for i in users if i.get('_id') != user_id]
