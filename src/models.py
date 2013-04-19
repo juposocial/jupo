@@ -259,7 +259,9 @@ class User(Model):
   
   @property
   def email(self):
-    return self.info.get('email', '')
+    email_addr = self.info.get('email', '')
+    if email_addr and '@' in email_addr:
+      return email_addr
   
   @property
   def email_name(self):
@@ -274,7 +276,8 @@ class User(Model):
   @property
   def avatar(self):
     avatar = self.info.get('avatar')
-    if isinstance(avatar, str) or isinstance(avatar, unicode):
+    
+    if avatar and isinstance(avatar, str) or isinstance(avatar, unicode):
       return avatar
     elif avatar:
       attachment = api.get_attachment_info(avatar)
@@ -285,8 +288,12 @@ class User(Model):
       return '/img/' + str(avatar) + '.jpg'
     
     # try gravatar
-    email = self.email.strip().lower()
+    
     default = "https://5works.s3.amazonaws.com/images/user2.png"
+    if not self.email:
+      return default
+    
+    email = self.email.strip().lower()
     size = 50
     gravatar_url = "https://secure.gravatar.com/avatar/" + md5(email.lower()).hexdigest() + "?"
     gravatar_url += urlencode({'d':default, 's':str(size)})

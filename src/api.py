@@ -2028,6 +2028,12 @@ def get_email_addresses(session_id):
   return [i['email'].strip() for i in records]
 
 def get_user_id_from_email_address(email, db_name=None):
+  if not email:
+    return False
+  
+  if email and ('@' not in email or '.' not in email):
+    return False
+  
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -4774,16 +4780,20 @@ def people_search(query, group_id=None, db_name=None):
   
   if '@' in query:
     users = db.owner.find({'email': re.compile(query, re.IGNORECASE)})\
-                          .limit(50)
+                    .limit(50)
   else:
     users = db.owner.find({'name': re.compile(query, re.IGNORECASE)})\
-                          .limit(50)
+                    .limit(50)
     users = list(users)
-    if len(list(users)) < 5:
+    user_ids = [u['_id'] for u in users]
+    if len(list(user_ids)) < 5:
       _users = db.owner.find({'email': re.compile(query, re.IGNORECASE)})\
-                            .limit(50)
-      users.extend(_users)
-  return [User(i) for i in users]
+                       .limit(50)
+      for _user in _users:
+        if _user['_id'] not in user_ids:
+          users.append(_user)
+          user_ids.append(_user['_id'])
+  return [User(i) for i in users if i.get('email')]
 
 
 def search(session_id, query, type=None, ref_user_id=None, page=1):

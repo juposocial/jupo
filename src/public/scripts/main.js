@@ -1965,6 +1965,34 @@ $(document).ready(function(e) {
     query = $(this).val();
     url = $(this).parent().attr('action');
     if (query.length > 1) {
+      
+      if ($.global.people_search_not_found_last_keyword) {
+        if (query.indexOf($.global.people_search_not_found_last_keyword) != -1) {
+          if (is_valid_email(query)) {
+            
+            var code = "<li title='" + query + "' class='email'><a class='rfloat button invite' href='/invite?email=" + query;
+            
+            group_id = window.location.href.split('/group/')[1];
+            if (group_id != undefined) {
+              code += "&group_id=" + group_id;
+            }
+            
+            code += "'>Send Invite</a><img class='small-avatar lfloat' src='http://5works.s3.amazonaws.com/images/user2.png' /><strong>";
+            code += query.split('@')[0] + "</strong><span class='gray'>@" + query.split('@')[1] + "</span></li>";
+
+            $('#popup ul.people').html(code);
+            
+            
+          } else {
+            $('#popup ul.people').html($.global.people_search_not_found_last_message);
+          }
+          return false;
+        } else {
+          $.global.people_search_not_found_last_keyword = null;
+          $.global.people_search_not_found_last_message = null;
+        }
+      }
+      
       try {
         clearTimeout($.global.people_search_timeout)
       } catch (err) {}
@@ -1987,6 +2015,10 @@ $(document).ready(function(e) {
             async: true,
             success: function(resp) {
               $('#popup ul.people').html(resp);
+              if (resp.indexOf('@') == -1) {
+                $.global.people_search_not_found_last_keyword = query;
+                $.global.people_search_not_found_last_message = resp;
+              }
             }
          })
         

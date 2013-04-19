@@ -310,46 +310,34 @@ def search():
     else:
       if item_type == 'people':
         users = api.people_search(query)
-        if '@' in query:
-          new_user = api.User({'email': query})
-        else:
-          new_user = None
       else:
         q = query.lower()
         users = [i for i in owner.google_contacts \
-                 if i.email.lower().startswith(q)]
+                 if i.email and i.email.lower().startswith(q)]
         
-        if '@' in query \
-        and query.lower().strip() not in owner.to_dict().get('google_contacts'):
-          new_user = api.User({'email': query})
-        else:
-          new_user = None
           
       if group_id:
-        users = [i for i in users if i.id not in group.member_ids][:5]
-        if not users:
-          users = [i for i in api.get_coworkers(session_id) \
-                   if i.id not in group.member_ids and i.id != owner.id][:5]
+        users = [i for i in users if i.email and i.id not in group.member_ids]
       else:
-        users = [i for i in users if i.id not in owner.contact_ids][:5]
-        if not users:
-          users = [i for i in api.get_coworkers(session_id) \
-                   if i.id not in owner.contact_ids and i.id != owner.id][:5]
-      if new_user:
-        users.insert(0, new_user)
-        users = users[:5]
+        users = [i for i in users if i.email and i.id not in owner.contact_ids]
+      
         
       if users:
         return ''.join(render_template('user.html', 
                                        mode='search', 
                                        user=user, 
                                        group_id=group_id,
+                                       type=item_type,
                                        query=query,
                                        owner=owner,
-                                       title=title) for user in users)
+                                       title=title) \
+                       for user in users if user.email)
       else:
-        return ''
-      
+        if item_type == 'email':
+          return "<li>Type your friend's email address</li>"
+        else:
+          return "<li>0 results found</li>"
+        
   # search posts
   results = api.search(session_id, query, item_type, 
                        ref_user_id=ref_user_id, page=page)
