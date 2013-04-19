@@ -2556,52 +2556,54 @@ form select {
   line-height: normal;
   position: relative;
   font-family: Helvetica, arial, freesans, clean, sans-serif;
-  font-size: 11px;
   font-weight: bold;
-  color: #444;
-  text-shadow: 0 1px rgba(255, 255, 255, 0.9);
-  background-color: #E5E5E5;
-  background-image: -moz-linear-gradient(whiteSmoke, #E5E5E5);
-  background-image: -webkit-linear-gradient(whiteSmoke, #E5E5E5);
-  background-image: linear-gradient(whiteSmoke, #E5E5E5);
-  background-repeat: repeat-x;
-  border: 1px solid #DDD;
-  border-bottom-color: #BBB;
+  font-size: 11px;
+  
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  -webkit-touch-callout: none;
+  text-decoration: none;
+  
   -webkit-user-select: none;
-  -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+  font-weight: 700;
+  -webkit-border-radius: 2px;
+  border-radius: 2px;
+  background-color: #2b96f1;
+  border: solid 1px #2473b0;
+  border-bottom: 1px solid #20608f;
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #2a99ef), color-stop(1, #237bbd));
+  background: -webkit-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: -moz-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: -o-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: -ms-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  color: #fff;
+  -webkit-transition: none;
+  -moz-transition: none;
+  transition: none;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.5);
 }
 
 .button:hover {
-/*  color: white;
-  text-shadow: 0 0px 40px white;
-  border: 1px solid rgba(0, 0, 0, 0.75);*/
- 
-        color: #337797;
-        text-decoration: none;
-        background-color: #D8EAF2;
-        background-image: -moz-linear-gradient(#F0F7FA, #D8EAF2);
-        background-image: -webkit-linear-gradient(#F0F7FA, #D8EAF2);
-        background-image: linear-gradient(#F0F7FA, #D8EAF2);
-        background-repeat: repeat-x;
-        border-color: #CBE3EE;
-        border-bottom-color: #97C7DD;
+
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.5), 0 0 15px white;
 }
 
 .button:active {
-        border-color: #51A7E8;
-        box-shadow: rgba(81, 167, 232, 0.5) 0 0 5px;
-        text-decoration: none;
-        background: #D8EAF2;
-        
-  /*box-shadow:inset 0 2px 5px rgba(0, 0, 0, .5);
-  color: whitesmoke;*/
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #237bbd), color-stop(1, #2a99ef));
+  background: -webkit-linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  background: -moz-linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  background: -o-linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  background: -ms-linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  background: linear-gradient(top, #237bbd 0%, #2a99ef 100%);
+  text-shadow: 0 1px rgba(0,0,0,0.6);
+  -webkit-box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+  -moz-box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+  box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
 }
 
 .small-button {
@@ -6303,7 +6305,11 @@ margin-top: -5px;
   font-size: 14px;
   border-left: 1px solid white;
   border-right: 1px solid white;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid white;
+}
+
+#popup .networks li:nth-child(even) {
+    background: whitesmoke;
 }
 
 #popup .networks li a:hover {
@@ -6767,12 +6773,22 @@ top: 8px;
 
 #popup .people {
   margin: 10px 0 4px;
+  height: 285px;
+  overflow-y: auto;
 }
 
 #popup .people li {
   padding: 10px 20px;
-display: block;
-border-bottom: 1px solid #EEE;
+  display: block;
+  border-bottom: 1px solid #f2f2f2;
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#popup .people li:nth-child(even) {
+    background: whitesmoke;
 }
 
 #popup .people .button {
@@ -6780,6 +6796,11 @@ border-bottom: 1px solid #EEE;
   margin-top: 4px;
   width: 110px;
   text-align: center;
+  opacity: 0;
+}
+
+#popup .people li:hover .button {
+  opacity: 1;
 }
 
 #popup .people li strong {
@@ -6788,6 +6809,10 @@ border-bottom: 1px solid #EEE;
 
 #popup .people li span.gray {
   font-size: 11px;
+}
+
+#popup .people li.email {
+  line-height: 35px;
 }
 
 
