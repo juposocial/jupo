@@ -870,6 +870,9 @@ div.popup {
    * left bottom repeat-x;*/
 }
 
+
+
+
 div.popup form label {
   padding-top: 5px;
   display: block;
@@ -2269,6 +2272,9 @@ header .networks-list {
   display: block;
 }
 
+header .networks-list li a.switch-network {
+  text-indent: 20px;
+}
 
 header .networks-list li a {
   padding: 5px !important;
@@ -6277,6 +6283,52 @@ margin-top: -5px;
   padding: 3px 0;
   border-top: 1px solid #ddd;
   background: whitesmoke;
+}
+
+#popup .networks {
+  height: 300px;
+  overflow-y: auto;
+}
+
+#popup .networks li a:last {
+  border-bottom: none !important;
+}
+
+#popup .networks li a {
+  padding: 15px;
+  display: block;
+  text-align: center;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+#popup .networks li a:hover {
+  text-decoration: none;
+  color: white;
+  background-color: #2271A9;
+  background-repeat: repeat-x;
+  background-image: -moz-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#2F7EB6),color-stop(100%,#2271A9));
+  background-image: -webkit-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -ms-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -o-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2f7eb6',endColorstr='#2271a9',GradientType=0);
+  background-image: linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.25);
+}
+
+#popup .networks li a:active {
+  background: #2271A8;
+}
+
+#popup .networks li a span.url {
+  font-size: 11px;
+  display: block;
+  color: #999;
+}
+
+#popup .networks li a:hover span.url {
+  color: #cdcdcd;
 }
 
 

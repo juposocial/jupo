@@ -425,14 +425,31 @@ class User(Model):
     return [User({'_id': api.get_user_id_from_email_address(email),
                   'email': email}) for email in self.info.get('google_contacts', [])]
   
+
   
   @property
   def networks(self):
+    
+    def sortkeypicker(keynames):
+      negate = set()
+      for i, k in enumerate(keynames):
+        if k[:1] == '-':
+          keynames[i] = k[1:]
+          negate.add(k[1:])
+          
+      def getit(adict):
+        composite = [adict[k] for k in keynames]
+        for i, (k, v) in enumerate(zip(keynames, composite)):
+          if k in negate:
+            composite[i] = -v
+        return composite
+      return getit
+    
     db_names = api.get_db_names(self.email)
     networks_list = []
     for db_name in db_names:
       if db_name == 'play_jupo_com':
-        info = {'name': 'Jupo'}
+        info = {'name': 'Jupo', 'timestamp': 0}
       else:
         info = api.get_network_info(db_name)
       
@@ -443,7 +460,10 @@ class User(Model):
         
         networks_list.append(info)
       
-    return networks_list
+      
+    return sorted(networks_list, 
+                  key=sortkeypicker(['-unread_notifications', 
+                                     'name', '-timestamp']))
   
 
 class Comment(Model):

@@ -5168,12 +5168,14 @@ def add_db_name(email, db_name):
                                     upsert=True)
   return True
 
+
 def get_db_names(email):
   email = email.lower().strip()
   info = DATABASE['global']['user'].find_one({'email': email})
   if info:
     return info.get('db_names')
   return []
+
 
 def new_network(db_name, organization_name, description=None):
   if is_exists(db_name=db_name):

@@ -90,7 +90,7 @@
               Networks
               
               <ul class='networks-list'>
-                {% for network in networks %}
+                {% for network in networks[:3] %}
                   {% if network.domain != domain %}
                   <li>
                     <a href='{{ network.url }}?session_id={{ owner.session_id }}' target='_blank'>
@@ -100,6 +100,13 @@
                   {% endif %}
                 {% endfor %}
                 
+                {% if networks | length > 3 %}
+                <li>
+                    <a href='/networks' class='popup switch-network'>
+                      Switch Network...
+                    </a>
+                  </li>
+                {% endif %}
                 
               </ul>
               

@@ -1485,13 +1485,27 @@ def find_groups():
                           view='groups', 
                           title='Find Groups',
                           open_groups=open_groups)
-  return dumps({'body': body,
-                'title': 'Find Groups'})
+  resp = {'body': body,
+          'title': 'Find Groups'}
+  return Response(dumps(resp), mimetype='application/json')
   
 
 
+@app.route("/networks", methods=['OPTIONS'])
+@login_required
+def networks():
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  if not user_id:
+    abort(400)
+    
+  owner = api.get_user_info(user_id)
+  resp = {'body': render_template('networks.html', owner=owner),
+          'title': 'Networks'}
+  return Response(dumps(resp), mimetype='application/json')
+
+
 @app.route("/network/new", methods=['GET', 'POST'])
-@app.route("/networks")
 def network():
   if request.path.endswith('/new'):
     
@@ -1859,18 +1873,6 @@ def messages(page=1):
 @app.route('/message')
 def message():
   pass
-
-
-@app.route('/launchpad')
-def launchpad():
-  networks = [
-    {'name': 'Jupo', 'url': 'http://play.jupo.com'},
-    {'name': '5works', 'url': 'http://5w.jupo.com'},
-    {'name': 'JoomlArt', 'url': 'http://joomlart.jupo.com'},
-  ]
-  owner = {'name': 'Pham Tuan Anh'}
-  
-  return render_template('launchpad.html', networks=networks, owner=owner)
 
 
 @app.route("/", methods=["GET"])

@@ -1,0 +1,32 @@
+
+
+<div id="page-header" class="settings">
+  <h2>Choose a Network</h2>
+</div>
+
+<div class="networks">
+  <ul>
+    {% for network in owner.networks %}
+    <li>
+      <a href="{{ network.url }}?session_id={{ owner.session_id }}" target="_blank"> 
+        {% if network.unread_notifications %}
+          ({{ network.unread_notifications }})
+        {% endif %}
+        {{ network.name }} 
+        <span class="url">{{ network.url }}</span> 
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+
+
+
+<style>
+  .content {
+    width: 350px !important;
+  }
+
+
+</style>
