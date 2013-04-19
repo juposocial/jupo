@@ -2272,6 +2272,9 @@ header .networks-list {
 
 header .networks-list li a {
   padding: 5px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 header .networks-list .unread {

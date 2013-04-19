@@ -802,6 +802,18 @@ def google_authorized():
                                        verified=user.get('verified_email'),
                                        google_contacts=contacts,
                                        db_name=db_name)
+  
+  if db_name:
+    email = user.get('email')
+    if email:
+      db_names = api.get_db_names(email)
+      if db_name not in db_names:
+        api.add_db_name(email, db_name)
+      
+      for db in db_names:
+        if db != db_name:
+          api.update_session_id(email, session_id, db)
+  
   if domain == settings.PRIMARY_DOMAIN:
     session['session_id'] = session_id
     return redirect('/')
@@ -885,6 +897,18 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
                                            facebook_id=facebook_id,
                                            facebook_friend_ids=friend_ids,
                                            db_name=db_name)
+    
+    if db_name:
+      email = me.data.get('email')
+      if email:
+        db_names = api.get_db_names(email)
+        if db_name not in db_names:
+          api.add_db_name(email, db_name)
+        
+        for db in db_names:
+          if db != db_name:
+            api.update_session_id(email, session_id, db)
+          
     if domain == settings.PRIMARY_DOMAIN:
       session['session_id'] = session_id
       return redirect('/')
