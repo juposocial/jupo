@@ -6290,16 +6290,20 @@ margin-top: -5px;
   overflow-y: auto;
 }
 
-#popup .networks li a:last {
-  border-bottom: none !important;
+#popup .networks ul li:last-child a {
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
 }
+
 
 #popup .networks li a {
   padding: 15px;
   display: block;
   text-align: center;
   font-size: 14px;
-  border-bottom: 1px solid #f1f1f1;
+  border-left: 1px solid white;
+  border-right: 1px solid white;
+  border-bottom: 1px solid #eee;
 }
 
 #popup .networks li a:hover {
