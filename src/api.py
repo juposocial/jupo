@@ -201,6 +201,9 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     msg['Subject']= Header(subject, "utf-8")
     msg['From'] = settings.SMTP_SENDER
     msg['X-MC-Track'] = 'opens,clicks'
+    msg['X-MC-Tags'] = mail_type
+    msg['X-MC-Autotext'] = 'true'
+    
     
     if post:
       mail_id = '%s-%s' % (post.id, db_name)
