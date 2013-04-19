@@ -525,7 +525,7 @@ ul.dropdown-menu li a {
 }
 
 ul.dropdown-menu li a.unread {
-  color: #11448B;
+  color: #114495;
   background: rgba(196, 205, 224, 0.5);
 }
 
@@ -1047,7 +1047,7 @@ ul#friends-online li a img, div#members ul li a img {
 
 #left-sidebar ul li a:hover, #right-sidebar ul li a:hover {
   text-decoration: underline;
-  color: #11448B;
+  color: #114495;
   /*color: white;
   background-color: #2271A9;
   background-repeat: repeat-x;
@@ -3342,7 +3342,7 @@ ul.notifications > li > time {
 }
 
 ul.notifications span.username {
-  color: #11448B;
+  color: #114495;
 }
 
 ul.notifications a time {
@@ -3401,12 +3401,12 @@ ul.notifications header {
 
 ul.notifications header a {
   padding: 0 !important;
-  color: #11448B;
+  color: #114495;
 }
 
 ul.notifications header a:hover {
   background: none;
-  color: #11448B;
+  color: #114495;
   text-shadow: none;
   text-decoration: underline;
 }
@@ -4306,33 +4306,7 @@ div#toggle-settings a {
   color: gray;
 }
 
-a.add-to-reading-list {
-  font-size: 14px;
-  padding: 3px;
-  opacity: .8;
-  line-height: 10px;
-}
 
-a.add-to-reading-list:hover {
-  opacity: 1;
-  color: #114495 !important;
-}
-
-a.add-to-reading-list:active {
-  opacity: 0.9;
-}
-
-li.bookmark img.favicon {
-  width: 16px;
-  height: 16px;
-  padding: 17px;
-  box-shadow: 0 0 1px rgba(0, 0, 0, 0.25), 0 1px 5px 3px rgba(0, 0, 0, 0.05), 0 5px 4px -3px rgba(0, 0, 0, 0.06);
-}
-
-li.bookmark > img {
-  margin-right: 10px;
-  margin-top: 3px;
-}
 
 div.attachment img.favicon {
   width: 12px;
@@ -5188,7 +5162,7 @@ section > footer .actions a.quick-stats:hover {
 }
 
 section > footer .actions a:hover time.timeago {
-  color: #11448B;
+  color: #114495;
 }
 
 section > footer .actions a:active {
@@ -5336,7 +5310,7 @@ li.feed .spine-pointer {
  }*/
 
 a {
-  color: #11448B;
+  color: #114495;
   outline-style: none;
   text-decoration: none;
 }
@@ -5750,7 +5724,7 @@ div.box .body a strong {
 }
 
 #right-sidebar .box .header .actions a:hover {
-  color: #11448B;
+  color: #114495;
 }
 
 form.group {
@@ -5982,7 +5956,7 @@ form.new #notes a.overlay {
 
 
 #right-sidebar #history time {
-   color: #11448B;
+   color: #114495;
 }
 
 
@@ -6096,7 +6070,7 @@ form#new-file div#attachments {
   border-left: 2px solid rgba(221, 75, 57, 0.9);
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #11448B;
+  color: #114495;
   font-size: 11px;
 }
 
@@ -6426,7 +6400,7 @@ cursor: pointer;
 display: block;
 overflow: hidden;
 text-overflow: ellipsis;
-color: #11448B;
+color: #114495;
 white-space: nowrap;
 text-indent: 22px;
 }

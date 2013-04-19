@@ -862,8 +862,10 @@ def sign_in(email, password, user_agent=None, remote_addr=None):
 
   return session_id
 
-def invite(session_id, email, group_id=None):
-  db_name = get_database_name()
+
+def invite(session_id, email, group_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)

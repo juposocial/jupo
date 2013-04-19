@@ -165,20 +165,8 @@
         </div>
       </div>
 #}    
-{#
-      <div class="box">
-        <div class="no-header">
-          <div class="title">Invite Your Friends to Jupo</div>
-        </div>
-        <div class="body">
-            <form action='/invite' method='post' id='invite'>
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-              <input type='email' name='email' placeholder='Email Address' required>
-              <span class='rfloat gray'>&nbsp;</span>
-            </form>
-        </div>
-      </div>
-#}
+
+
 
     
     
@@ -202,9 +190,11 @@
 
 
 
-
-
-
+<div class="box">
+  <div class="body notice">
+      <a href='/search?type=email' class='popup'>Invite Friends to join Jupo</a>
+  </div>
+</div>
 
 <div class="box">
   <div class="header">
