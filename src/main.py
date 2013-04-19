@@ -277,27 +277,27 @@ def search():
           users = api.people_search(query, group_id)
           if users:
             users = [i for i in users \
-                     if i.id not in owner.contact_ids and i.id != owner.id][:5]
+                     if i.id not in owner.contact_ids and i.id != owner.id]
           else:
             users = [i for i in api.get_coworkers(session_id) \
-                     if i.id not in group.member_ids and i.id != owner.id][:5]
+                     if i.id not in group.member_ids and i.id != owner.id]
         else:
           users = [i for i in owner.google_contacts \
-                   if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
+                   if api.get_user_id_from_email_address(i.email) not in group.member_ids]
           
       elif group_id:
         if item_type == 'email':
           users = [i for i in owner.google_contacts \
-                   if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
+                   if api.get_user_id_from_email_address(i.email) not in group.member_ids]
         else:
           users = [i for i in api.get_coworkers(session_id) \
-                   if i.id not in group.member_ids and i.id != owner.id][:5]
+                   if i.id not in group.member_ids and i.id != owner.id]
       else:
         if item_type == 'email':
-          users = [i for i in owner.google_contacts][:5]
+          users = [i for i in owner.google_contacts]
         else:
           users = [i for i in api.get_coworkers(session_id) \
-                   if i.id not in owner.contact_ids and i.id != owner.id][:5]
+                   if i.id not in owner.contact_ids and i.id != owner.id]
       return dumps({'title': title,
                     'body': render_template('people_search.html',
                                             title=title, 

@@ -1,5 +1,5 @@
 {% if mode == 'search' %}
-      <li>
+      <li title='{{ user.email }}' class='{% if user.name == user.email %}email{% endif %}'>
         {% if user.is_registered() %}
           {% if group_id %}
           <a class='button add-member' href='/group/{{ group_id }}/add_member?user_id={{ user.id }}'>Add to Group</a>
@@ -30,10 +30,7 @@
           <strong>
             {{ user.email_name }}
           </strong>
-          <br>
-          
           <span class='gray'>@{{ user.email_domain }}</span>
-        
         {% endif %}
         
       </li>

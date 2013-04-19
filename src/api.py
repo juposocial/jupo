@@ -2033,12 +2033,20 @@ def get_user_id_from_email_address(email, db_name=None):
   db = DATABASE[db_name]
   
   email = email.lower().strip()
+  
+  key = '%s:%s:user_id' % (db_name, email)
+  uid = cache.get(key)
+  if uid:
+    return uid
+  
   record = db.owner.find_one({'email': email.split('<')[-1].rstrip('>').strip()})
   if record:
     if record.has_key('owner'):
-      return record['owner']
+      uid = record['owner']
     else:
-      return record['_id']
+      uid = record['_id']
+    cache.set(key, uid)
+    return uid
   else:
     if '<' in email:
       name = capwords(email.split('<')[0].strip('"'))
@@ -2049,6 +2057,7 @@ def get_user_id_from_email_address(email, db_name=None):
     if info:
       owner = info['owner']
       update_user(email, name=name, owner=owner)
+      cache.set(key, owner)
       return owner
     else:
       update_user(email, name=name)

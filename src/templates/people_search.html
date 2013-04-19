@@ -10,7 +10,7 @@
 
   <ul class='people'>
     {% if users %}
-      {% for user in users %}
+      {% for user in users[:50] %}
           {% include 'user.html' %}
       {% endfor %}
     {% else %}
@@ -31,7 +31,7 @@
 
   <ul class='people'>
     {% if users %}
-      {% for user in users %}
+      {% for user in users[:50] %}
           {% include 'user.html' %}
       {% endfor %}
     {% else %}
