@@ -469,51 +469,58 @@ def get_url_description(url, bypass_cache=False, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
+  
+  if '.' not in url and '/' not in url:
+    return False
+  
+  
   info = dict()
   if not url.startswith('http'):
     url = 'http://' + url
-  try:
-    url_info = db.url.find_one({'url': url})   #@UndefinedVariable
-    if (url_info and 
-        not bypass_cache and 
-        abs(utctime() - url_info.get('timestamp')) < 86400 * 90):  # only refresh if after 90 days
-        return url_info
     
+  url_info = db.url.find_one({'url': url})   
+  if (url_info and 
+      not bypass_cache and 
+      abs(utctime() - url_info.get('timestamp')) < 86400 * 90):  # only refresh if after 90 days
+      return url_info
+  
+  
+  mimetype = mimetypes.guess_type(url.rsplit('?', 1)[0])[0] 
+  if mimetype and mimetype.startswith('image'):
+    resp = requests.head(url, headers={'Accept-Encoding': ''})
+    info['size'] = int(resp.headers.get('content-length', 0))
+    info['content_type'] = resp.headers.get('content-type')    
     
-    mimetype = mimetypes.guess_type(url.rsplit('?', 1)[0])[0] 
-    if mimetype and mimetype.startswith('image'):
-      resp = requests.head(url, headers={'Accept-Encoding': ''})
-      info['size'] = int(resp.headers.get('content-length', 0))
-      info['content_type'] = resp.headers.get('content-type')    
-      
+  else:
+    if ('stackoverflow.com' in url or
+        'stackexchange.com' in url or 
+        'superuser.com' in url or
+        'serverfault.com' in url) and settings.HTTP_PROXY:
+      html = requests.get(url, proxies={'http': settings.HTTP_PROXY}).content
+      article = goose.extract(raw_html=html)
     else:
-      if ('stackoverflow.com' in url or
-          'stackexchange.com' in url or 
-          'superuser.com' in url or
-          'serverfault.com' in url) and settings.HTTP_PROXY:
-        html = requests.get(url, proxies={'http': settings.HTTP_PROXY}).content
-        article = goose.extractContent(rawHTML=html)
-      else:
-        article = goose.extractContent(url=url)
-      info = {'title': article.title,
-              'favicon': article.metaFavicon,
-              'tags': list(article.tags),
-              'description': article.metaDescription,
-              'text': article.cleanedArticleText}
-      if article.topImage:
-        info['img_src'] = article.topImage.imageSrc
-        info['img_bytes'] = article.topImage.bytes
-        info['img_size'] = (article.topImage.width, article.topImage.height)
-      
-    info['timestamp'] = utctime()
-    if not url_info:
-      info['url'] = url
-      info['_id'] = new_id()
-      db.url.insert(info)       #@UndefinedVariable
-    else:
-      db.url.update({'url': url}, {'$set': info})  #@UndefinedVariable
-  except KeyboardInterrupt:
-   db.aptureException()
+      try:
+        article = goose.extract(url=url)
+      except IOError: # stopwords for this language is not found
+        return False
+        
+    info = {'title': article.title,
+            'favicon': article.meta_favicon,
+            'tags': list(article.tags),
+            'description': article.meta_description,
+            'text': article.cleaned_text}
+    if article.top_image:
+      info['img_src'] = article.top_image.get_src()
+      info['img_bytes'] = article.top_image.bytes
+      info['img_size'] = (article.top_image.width, article.top_image.height)
+    
+  info['timestamp'] = utctime()
+  if not url_info:
+    info['url'] = url
+    info['_id'] = new_id()
+    db.url.insert(info)     
+  else:
+    db.url.update({'url': url}, {'$set': info}) 
   return info
 
 
