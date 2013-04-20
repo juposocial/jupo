@@ -711,24 +711,32 @@ li > a.active .blue-bubble, li > a:hover .blue-bubble {
 }
 
 #left-sidebar .count {
-font-size: 9px;
-font-weight: bold;
-float: right;
-color: white;
-padding: 2px 5px;
-position: absolute;
-right: 15px;
-top: 7px;
-background-color: #D14836;
-background-image: -webkit-gradient(linear,left top,left bottom,from(#DD4B39),to(#D14836));
-background-image: -webkit-linear-gradient(top,#DD4B39,#D14836);
-background-image: -moz-linear-gradient(top,#DD4B39,#D14836);
-background-image: -ms-linear-gradient(top,#DD4B39,#D14836);
-background-image: -o-linear-gradient(top,#DD4B39,#D14836);
-background-image: linear-gradient(top,#DD4B39,#D14836);
-filter: progid:DXImageTransform.Microsoft.gradient(startColorStr='#dd4b39',EndColorStr='#d14836');
-text-shadow: 0 -1px 0 #666;
-border-radius: 2px;
+  font-size: 9px;
+  font-weight: bold;
+  float: right;
+  color: white;
+  padding: 2px 5px;
+  position: absolute;
+  top: 7px;
+  border-radius: 2px;
+  
+  background-color: #f8f8f8;
+  background-image: -webkit-gradient(linear,left top,left bottom,from(#f8f8f8),to(#ececec));
+  background-image: -webkit-linear-gradient(top,#f8f8f8,#ececec);
+  background-image: -moz-linear-gradient(top,#f8f8f8,#ececec);
+  background-image: -ms-linear-gradient(top,#f8f8f8,#ececec);
+  background-image: -o-linear-gradient(top,#f8f8f8,#ececec);
+  background-image: linear-gradient(top,#f8f8f8,#ececec);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorStr='#f8f8f8',EndColorStr='#ececec');
+  color: #666;
+  text-shadow: 0 -1px 0 white;
+  border: 1px solid #ccc;
+  left: 119px;
+  min-width: 6px;
+  max-width: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
 }
 
 #left-sidebar a.no-icon, #left-sidebar a.active.no-icon {

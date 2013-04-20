@@ -1859,7 +1859,6 @@ def mark_as_read(session_id, post_id):
     
     record['read_receipts'].append({'user_id': user_id, 'timestamp': ts})
   
-    # clear fullpage cache (WSGICache)
     viewers = record.get('viewers', [])
     user_ids = set()
     for i in viewers:
@@ -2863,6 +2862,7 @@ def get_unread_feeds(session_id, timestamp, group_id=None):
 #  feeds.sort(key=lambda k: k.get('last_updated'), reverse=True)
   return [Feed(i) for i in feeds]
 
+
 def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -2877,23 +2877,28 @@ def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
   if not group.id:
     return 0
   
-  # get last viewd timestamp
-  if from_ts:
-    last_ts = float(from_ts)
-  else:
-    last_ts = 0
-    records = group.to_dict().get('recently_viewed', [])
-    records.reverse()
-    for i in records:
-      if not i:
-        continue
-      if i['user_id'] == user_id:
-        last_ts = i['timestamp']
-        break
-  
+  # get last viewed timestamp
+#  if from_ts:
+#    last_ts = float(from_ts)
+#  else:
+#    last_ts = 0
+#    records = group.to_dict().get('recently_viewed', [])
+#    records.reverse()
+#    for i in records:
+#      if not i:
+#        continue
+#      if i['user_id'] == user_id:
+#        last_ts = i['timestamp']
+#        break
+#  
+#  return db.stream.find({'viewers': group_id,
+#                         'is_removed': {"$exists": False},
+#                         'last_updated': {'$gt': last_ts}}).count()
   return db.stream.find({'viewers': group_id,
-                         'is_removed': {"$exists": False},
-                         'last_updated': {'$gt': last_ts}}).count()
+                         'owner': {'$ne': user_id},
+                         'is_removed': {'$exists': False},
+                         'message.action': {'$exists': False},
+                         'read_receipts.user_id': {'$ne': user_id}}).count()
                   
   
 
@@ -4952,6 +4957,8 @@ def publish(user_id, event_type, info=None, db_name=None):
     PUBSUB.publish(channel_id, dumps({'type': event_type,
                                       'info': {'post_id': str(info.get('_id')), 
                                                'quick_stats': quick_stats,
+                                               'owner': str(user_id),
+                                               'viewers': [str(i) for i in info.get('viewers', [])], 
                                                'text': text}}))
       
   elif event_type == 'like-comment':
@@ -5012,9 +5019,11 @@ def publish(user_id, event_type, info=None, db_name=None):
           channel_id = get_session_id(user_id, db_name=db_name)
           PUBSUB.publish(channel_id, 
                          dumps({'type': 'unread-feeds', 
+                                'viewers': [str(i) for i in feed.viewers], 
                                 'info': html_news_feed}))
           PUBSUB.publish(channel_id, 
                          dumps({'type': event_type, 
+                                'viewers': [str(i) for i in feed.viewers], 
                                 'info': html_group}))
     else:
       owner = get_user_info(user_id, db_name=db_name)

@@ -1017,6 +1017,7 @@ function stream() {
         
         
         var group_id = event.type.split('|')[0];
+        incr('#group-' + group_id + ' span.count');
         
         if (window.location.pathname.indexOf(group_id) != -1) {
           var feed_id = $(event.info).attr('id');
@@ -1112,9 +1113,20 @@ function stream() {
       }
   
     } else if (event.type == 'read-receipts') {
+      
       var text = event.info.text;
       var post_id = event.info.post_id;
       var quick_stats = event.info.quick_stats;
+      var viewers = event.info.viewers;
+      
+      // Update group unread counter
+      if (viewers && text.indexOf('Seen by you') != -1) {
+        $.each(viewers, function (index, group_id) {
+          console.log('#group-' + group_id + ' span.count');
+          decr('#group-' + group_id + ' span.count');
+        })
+      }
+      
   
       $.global._tmp = event;
   

@@ -83,7 +83,7 @@ def render_homepage(session_id, title, **kwargs):
     friends_online.sort(key=lambda k: k.last_online, reverse=True)
     groups = api.get_groups(session_id, limit=3)
     for group in groups[:3]:
-      group.unread_posts = 0 # api.get_unread_posts_count(session_id, group.id)
+      group.unread_posts = api.get_unread_posts_count(session_id, group.id)
     
     unread_notification_count = api.get_unread_notifications_count(session_id)
     
@@ -2834,6 +2834,7 @@ if __name__ == "__main__":
     
   except (IndexError, TypeError): # dev only
 
+    settings.DEBUG = True
     
     @werkzeug.serving.run_with_reloader
     def server_run_with_auto_reloader():  

@@ -101,9 +101,8 @@
         {% set groupname = _group.name | truncate(18, True) %} 
         {{ groupname }}
         
-        {% if _group.unread_posts > 0 %}
-          <span class='count'>{{ _group.unread_posts }}</span>
-        {% endif %}
+        <span class='count {% if _group.unread_posts == 0 %}hidden{% endif %}'>{{ _group.unread_posts }}</span>
+        
       </a>
     </li>
     {% endfor %}
