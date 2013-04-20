@@ -892,8 +892,7 @@ def invite(session_id, email, group_id=None, db_name=None):
                      'timestamp': utctime(),
                      'session_id': code})
   if str(group_id).isdigit():
-    db.owner.update({'_id': long(group_id),
-                     'leaders': user_id}, 
+    db.owner.update({'_id': long(group_id), 'members': user_id}, 
                     {'$addToSet': {'members': _id}})
     group = get_group_info(session_id, group_id)
   else:

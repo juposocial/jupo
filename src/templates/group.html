@@ -569,7 +569,10 @@
             <a href='#!/group/{{ group.id }}/members' class='overlay gray'>{{ group.members_count }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             {% endif %}
             
-            {% if owner.id in group.member_ids and group.id != 'public' %}
+            {% if group.id == 'public' %}
+               <br>
+               <a href='/search?type=email' class='popup'>Invite people</a>
+            {% elif owner.id in group.member_ids or group.privacy == 'open' %}
                <br>
                <a href='/search?query=&type=people&ref=group-{{ group.id }}' class='popup'>Add people</a>
              · <a href='/search?query=&type=email&ref=group-{{ group.id }}' class='popup'>Invite by Email</a>
