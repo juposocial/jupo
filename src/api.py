@@ -2316,7 +2316,7 @@ def new_feed(session_id, message, viewers,
       # send email
       u = get_user_info(id)
       
-      if '@' in u.email and (u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180)):
+      if u.email and '@' in u.email and (u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180)):
         send_mail_queue.enqueue(send_mail, u.email, mail_type='new_post',
                                 user_id=user_id, post=info, db_name=db_name)
 
@@ -3092,7 +3092,7 @@ def new_comment(session_id, message, ref_id,
       if user_id != id and id not in mentions:
         # send email notification
         u = get_user_info(id)
-        if '@' in u.email:
+        if u.email and '@' in u.email:
           if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
             send_mail_queue.enqueue(send_mail, u.email, 
                                     mail_type='new_comment', 
