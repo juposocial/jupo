@@ -87,13 +87,13 @@
       
       {% for notification in messages %}
       
-        {{ notification.sender.name }}{% if loop.index < msg_count - 1 %}, {% elif loop.index == msg_count - 1%} and {% else %}{% endif %}
+        <span class='username'>{{ notification.sender.name }}</span>{% if loop.index < msg_count - 1 %}, {% elif loop.index == msg_count - 1%} and {% else %}{% endif %}
       
       {% endfor %} 
       
       {% if key.startswith('comment') %}
       
-        commented on {% if messages[0].details.owner.id == owner.id %}your{% else %}{{ messages[0].details.owner.name }}'s{% endif %} post.
+        commented on {% if messages[0].details.owner.id == owner.id %}your{% else %}<span class='username'>{{ messages[0].details.owner.name }}</span>'s{% endif %} post.
       
       {% elif key.startswith('like') %}
         like your 
