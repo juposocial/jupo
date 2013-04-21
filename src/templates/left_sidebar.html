@@ -117,6 +117,22 @@
     </li>
 
   </ul>
+  
+  {% block online_now %}
+      
+      
+  <ul id="friends-online">
+    <div class="online-now">
+      <a href='/contacts' class='async'>Online (<span class='online-count'>0</span>)</a>
+    </div>
+  
+    {% if friends_online %}
+      {% set users = friends_online %}
+      {% include 'friends_online.html' %}
+    {% endif %}
+  </ul>
+
+  {% endblock %}
 
   {% endif %}
 

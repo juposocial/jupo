@@ -934,106 +934,45 @@ ul#groups-nav {
 
 
 
-a.online-now {
-position: fixed;
-right: 18px;
-bottom: 0;
-color: white;
-display: block;
-font-weight: bold;
-height: 28px;
-outline: none;
-padding: 4px 15px;
-z-index: 1;
-font-size: 11px;
-width: 161px;
-line-height: 30px;
-background-image: -webkit-linear-gradient(top, #32383B, #1B1E20);
-background-image: -moz-linear-gradient(top, #32383B, #1B1E20);
-background-image: -ms-linear-gradient(top, #32383B, #1B1E20);
-background-image: -o-linear-gradient(top, #32383B, #1B1E20);
-background-image: linear-gradient(top, #32383B, #1B1E20);
-text-shadow: none;
-text-indent: 10px;
-box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25);
-}
-
-a.online-now:hover {
-  
-text-decoration: none !important;
-}
 
 ul#friends-online {
-box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25);
-position: fixed;
-right: 20px;
-bottom: 36px;
+margin-top: 15px;
+margin-right: 14px;
+border-top: 1px solid #e2e2e2;
+padding-top: 10px;
+}
+
+ul#friends-online:hover {
+  right: 5px;
+}
+
+ul#friends-online li a {
+float: right;
+border-radius: 100px;
+-webkit-transition: .2s linear all;
+-moz-transition: .2s linear all;
+transition: .2s linear all;
+margin-left: 4px;
+margin-top: 2px;
+}
+
+
+
+
+ul#friends-online li a img {
+  width: 24px;
+  height: 24px;
+}
+
+ul#friends-online div.online-now {
+display: inline-block;
+float: right;
+font-size: 11px;
+right: 12px;
+padding: 4px 10px 0;
+margin-top: -25px;
 background: whitesmoke;
-padding-top: 5px;
-overflow-x: hidden;
-overflow-y: auto;
-height: 200px;
-width: 189px;
-
-}
-
-ul#friends-online a {
-padding: 10px 15px;
-display: block;
-width: 165px;
-white-space: nowrap;
-text-overflow: ellipsis;
-overflow: hidden;
-}
-
-ul#friends-online a:hover {
-  text-decoration: none !important;
-  color: white !important;
-  background-color: #2271A9;
-  background-repeat: repeat-x;
-  background-image: -moz-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#2F7EB6),color-stop(100%,#2271A9));
-  background-image: -webkit-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-  background-image: -ms-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-  background-image: -o-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2f7eb6',endColorstr='#2271a9',GradientType=0);
-  background-image: linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
-  
-  
-}
-
-/*ul#friends-online .status {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  margin: 2px;
-  float: right;
-}*/
-
-/*ul#friends-online .online img {
-  opacity: 0.95;
-}
-
-ul#friends-online .online img:hover {
-  opacity: 0.99;
-}
-
-ul#friends-online .online img:active {
-  opacity: 1;
-}*/
-
-ul#friends-online .away img {
-  opacity: 0.65;
-}
-
-ul#friends-online .away a:hover img {
-  opacity: 1;
-}
-
-
-ul#friends-online .away a {
-  color: #666;
+position: absolute;
 }
 
 
@@ -1047,9 +986,6 @@ div#members ul, div#references ul {
 
 
 ul#friends-online li a img, div#members ul li a img {
-  border-radius: 100px;
-  width: 20px;
-  height: 20px;
   box-shadow: 0 0 1px rgba(0, 0, 0, 0.25), 0 1px 5px 3px rgba(0, 0, 0, 0.05), 0 5px 4px -3px rgba(0, 0, 0, 0.06);
 }
 
