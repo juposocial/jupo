@@ -2877,19 +2877,19 @@ def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
   if not group.id:
     return 0
   
-  # get last viewed timestamp
-#  if from_ts:
-#    last_ts = float(from_ts)
-#  else:
-#    last_ts = 0
-#    records = group.to_dict().get('recently_viewed', [])
-#    records.reverse()
-#    for i in records:
-#      if not i:
-#        continue
-#      if i['user_id'] == user_id:
-#        last_ts = i['timestamp']
-#        break
+#   get last viewed timestamp
+  if from_ts:
+    last_ts = float(from_ts)
+  else:
+    last_ts = 0
+    records = group.to_dict().get('recently_viewed', [])
+    records.reverse()
+    for i in records:
+      if not i:
+        continue
+      if i['user_id'] == user_id:
+        last_ts = i['timestamp']
+        break
 #  
 #  return db.stream.find({'viewers': group_id,
 #                         'is_removed': {"$exists": False},
@@ -2897,6 +2897,7 @@ def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
   return db.stream.find({'viewers': group_id,
                          'owner': {'$ne': user_id},
                          'is_removed': {'$exists': False},
+                         'last_updated': {'$gt': last_ts},
                          'message.action': {'$exists': False},
                          'read_receipts.user_id': {'$ne': user_id}}).count()
                   
