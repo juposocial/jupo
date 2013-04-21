@@ -329,7 +329,7 @@ def friendly_format(ts, offset=None, short=False):
     ts = ts + int(offset)
   
   if short:
-    now = datetime.today()
+    now = datetime.fromtimestamp(utctime() + int(offset))
     ts = datetime.fromtimestamp(int(ts))
     delta = datetime(now.year, now.month, now.day, 23, 59, 59) - ts
     

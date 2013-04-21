@@ -1232,6 +1232,8 @@ $(document).ready(function(e) {
     
     $(this).addClass('active');
     
+    $('.count', $(this)).fadeOut().remove();
+    
     var href = $(this).attr('href');
     
     var rel = $(this).attr('rel');
