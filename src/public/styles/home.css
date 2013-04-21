@@ -935,9 +935,8 @@ ul#groups-nav {
 
 
 
-ul#friends-online {
-margin-top: 15px;
-margin-right: 14px;
+ul#friends-online, ul#groups-nav {
+margin-top: 25px;
 border-top: 1px solid #e2e2e2;
 padding-top: 10px;
 }
@@ -964,17 +963,25 @@ ul#friends-online li a img {
   height: 24px;
 }
 
-ul#friends-online div.online-now {
-display: inline-block;
-float: right;
-font-size: 11px;
-right: 12px;
-padding: 4px 10px 0;
-margin-top: -25px;
-background: whitesmoke;
-position: absolute;
+ul#friends-online div.online-now,
+ul#groups-nav div.groups {
+  display: inline-block;
+  float: right;
+  font-size: 11px;
+  right: 12px;
+  padding: 4px 10px 0;
+  margin-top: -25px;
+  background: whitesmoke;
+  position: absolute;
 }
 
+ul#friends-online div.online-now a,
+ul#groups-nav div.groups a {
+  color: #333;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 9px;
+}
 
 div#members {
   min-height: 70px;

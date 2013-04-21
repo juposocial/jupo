@@ -4544,6 +4544,18 @@ def get_following_users(user_id):
   return [i['_id'] for i in users]
   
 
+def get_groups_count(user_id):
+  if not user_id:
+    return 0
+  
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  return db.owner.find({"members": user_id}).count()
+  
+  
+  
+
 def get_groups(session_id, limit=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
