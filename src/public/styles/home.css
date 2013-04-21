@@ -6737,20 +6737,20 @@ line-height: 25px;
 }
 
 #popup #page-header.search form {
-  width: 200px;
+  width: 225px;
   position: absolute;
 right: 10px;
 top: 8px;
 }
 
 #popup #page-header.search input[type='text'] {
-  width: 150px;
-  border: 1px solid #CCC;
+  width: 180px;
+  border: none;
   border-radius: 20px;
-  padding: 8px 15px;
+  padding: 9px 15px 8px;
   background: white;
   color: #333;
-  box-shadow: inset 0 1px 1px #666;
+  box-shadow: inset 0 1px 1px #666,inset 0 -1px 1px rgba(0, 0, 0, 0.2);
 }
 
 #popup .people {
