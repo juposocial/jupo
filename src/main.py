@@ -267,6 +267,9 @@ def search():
         title = 'Add people to group'
       else:
         title = 'Invite your friends'
+    elif ref == 'everyone':
+      title = 'Invite your friends'
+      group_id = group = None
     else:
       group_id = group = None
       title = 'Add Contacts'
