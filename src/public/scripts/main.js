@@ -38,7 +38,8 @@ $(document).ready(function(e) {
 
 
 
-  $('.online-now .online-count').html($('#friends-online li.status.online').length);
+  $('.online-now .online-count').html($('#friends-online li.status.online').length + $('#friends-online li.status.away').length);
+      
   
   // nginx push
   var channel_id;

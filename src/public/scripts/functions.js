@@ -829,12 +829,12 @@ function stream() {
       }
           
       $('ul#friends-online #user-' + user.id).remove();
-      if (user.status == 'online') {
+      if (user.status != 'offline') {
         $('ul#friends-online').prepend(event.info);
       }
       
       
-      $('.online-now .online-count').html($('#friends-online li.status.online').length);
+      $('.online-now .online-count').html($('#friends-online li.status.online').length + $('#friends-online li.status.away').length);
       
       refresh('ul#friends-online');
   

@@ -934,11 +934,14 @@ ul#groups-nav {
 
 
 
-
 ul#friends-online, ul#groups-nav {
-margin-top: 25px;
-border-top: 1px solid #e2e2e2;
-padding-top: 10px;
+  margin-top: 25px;
+  border-top: 1px solid #e2e2e2;
+  padding-top: 10px;
+}
+
+ul#friends-online {
+  margin-right: 14px;
 }
 
 ul#friends-online:hover {
@@ -946,14 +949,15 @@ ul#friends-online:hover {
 }
 
 ul#friends-online li a {
-float: right;
-border-radius: 100px;
--webkit-transition: .2s linear all;
--moz-transition: .2s linear all;
-transition: .2s linear all;
-margin-left: 4px;
-margin-top: 2px;
+  float: right;
+  border-radius: 100px;
+  -webkit-transition: .2s linear all;
+  -moz-transition: .2s linear all;
+  transition: .2s linear all;
+  margin-left: 4px;
+  margin-top: 2px;
 }
+
 
 
 

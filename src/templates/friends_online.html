@@ -2,7 +2,7 @@
 
 {% for user in users %}
   {% set status = user.status %}
-  {% if status == 'online' %}
+  {% if status in ['online', 'away'] %}
     <li class='status {{ status}}' id='user-{{ user.id }}'>
         <a href='/user/{{ user.id }}' title='{{ user.name }}<br>{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}' class='async'>
           <img src="{{ user.avatar }}" class='medium-avatar'>
