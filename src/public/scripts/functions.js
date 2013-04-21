@@ -828,10 +828,8 @@ function stream() {
         
       }
           
-      if (user.status == 'offline') {
-        $('ul#friends-online #user-' + user.id).remove();
-      } else {
-        $('ul#friends-online #user-' + user.id).remove();
+      $('ul#friends-online #user-' + user.id).remove();
+      if (user.status == 'online') {
         $('ul#friends-online').prepend(event.info);
       }
       

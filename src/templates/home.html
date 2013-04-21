@@ -180,18 +180,7 @@
 {% endblock %}
 
 
-{% block online_now %}
-    <a class="online-now"><i class='friends-online'></i> Online (<span class='online-count'>0</span>)</a>
-    
-    
-    <ul id="friends-online" class='hidden'>
-      {% if friends_online %}
-        {% set users = friends_online %}
-        {% include 'friends_online.html' %}
-      {% endif %}
-    </ul>
 
-{% endblock %}
 
 {% block stylesheets %}
 

@@ -92,8 +92,11 @@
   {% endcache %}
 
   <ul id="groups-nav">
+    <div class="groups">
+      <a href='/groups' class='async'>Groups ({{ owner.groups_count }})</a>
+    </div>
 
-    {% for _group in groups[:2] %}
+    {% for _group in groups[:3] %}
     <li id='group-{{ _group.uuid }}'>
       <a href="/group/{{ _group.uuid }}" class='{% if group and view == "group" and group.id == _group.id %}active async{% else %}async{% endif %}' {% if groupname | length == 21 %}title="{{ _group.name }}"{% endif %}> 
         
@@ -107,16 +110,33 @@
     </li>
     {% endfor %}
 
+{#
     <li id='see-all'>
       <a href="/groups" class='{% if view == "groups" %}active async{% else %}async{% endif %} no-icon'> See All Groups </a>
     </li>
-
+#}
 
     <li id='new-group'>
       <a href="/group/new" class='no-icon popup'> + New Group </a>
     </li>
 
   </ul>
+  
+  {% block online_now %}
+      
+      
+  <ul id="friends-online">
+    <div class="online-now">
+      <a href='/contacts' class='async'>Online (<span class='online-count'>0</span>)</a>
+    </div>
+  
+    {% if friends_online %}
+      {% set users = friends_online %}
+      {% include 'friends_online.html' %}
+    {% endif %}
+  </ul>
+
+  {% endblock %}
 
   {% endif %}
 

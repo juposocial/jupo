@@ -55,6 +55,14 @@ $(document).ready(function(e) {
     gravity: 's',  
     live: true
   });
+  
+  $('#friends-online .status a').tipsy({
+    gravity: 's',  
+    delayIn: 500,
+    html: true,
+    live: true
+  });
+  
 
   // show default image until the image is loaded by the browser
   // $('img.small-avatar, img.medium-avatar').after(function () {

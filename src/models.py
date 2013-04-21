@@ -379,6 +379,10 @@ class User(Model):
     return api.get_groups(self.info.get('session_id'))
   
   @property
+  def groups_count(self):
+    return api.get_groups_count(self.id)
+  
+  @property
   def followers(self):
 #    return [api.get_user_info(user_id) for user_id in self.info.get('followers', [])] 
     return self.info.get('followers', [])
