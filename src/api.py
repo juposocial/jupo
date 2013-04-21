@@ -67,7 +67,7 @@ except ImportError:
 from models import (User, Group, Browser,
                     Comment, Feed, File, Note,
                     Version, Notification, Attachment, Reminder,
-                    URL, Result, Event)
+                    URL, Result, Event, Message)
 
 import app
 import filters
@@ -420,6 +420,7 @@ def get_database_names():
   db_names = cache.get(key)
   if not db_names:
     db_names = DATABASE.database_names()
+    db_names = list(db_names)
     cache.set(key, db_names)
   return db_names
 
@@ -433,7 +434,8 @@ def get_database_name():
   if not db_name:
     db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
-  if db_name not in get_database_names():
+  db_names = get_database_names()
+  if db_name not in db_names:
     # Ensure indexes
     DATABASE[db_name].owner.ensure_index('session_id', background=True)
     DATABASE[db_name].owner.ensure_index('email', background=True)
@@ -1339,6 +1341,7 @@ def get_coworkers(session_id, limit=100):
         _ids.add(member.id)
   coworkers = sorted(coworkers, 
                      key=lambda user: last_online(user.id), reverse=True)
+  coworkers = list(coworkers)
   cache.set(key, coworkers, 3600)
   return coworkers[:limit]
 
@@ -5245,5 +5248,75 @@ def domain_is_ok(domain_name):
     return False
  
  
+
+def new_message(session_id, user_id, message, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  if not str(user_id).isdigit():
+    return False
+  
+  user_id = int(user_id)
+  info = {'from': owner_id,
+          'to': user_id,
+          'msg': message,
+          'ts': utctime()}
+  
+  msg_id = db.message.insert(info)
+  info['_id'] = msg_id
+  return Message(info, db_name=db_name)
+
+
+def get_messages(session_id, user_id, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  if not str(user_id).isdigit():
+    return False
+  
+  user_id = int(user_id)
+  
+  records = db.message.find({'$or': [{'from': owner_id}, {'to': user_id}]})\
+                      .sort('ts', -1)\
+                      .limit(50)
+  
+  records = list(records)
+  records.reverse()
+  
+  messages = []
+  last_msg = None
+  for record in records:
+    print record
+    if last_msg and record.get('from') == last_msg.get('from') and (record.get('ts') - last_msg.get('ts')) < 120:
+      last_msg['msg'] += '<br>' + record.get('msg')
+      last_msg['ts'] = record.get('ts')
+    else:
+      if last_msg:
+        messages.append(last_msg)
+      last_msg = record
+  
+  messages.append(last_msg)
+  return [Message(i, db_name=db_name) for i in messages]
+      
+    
+  
+  
+  
+
+
+
+
+
+
 
 

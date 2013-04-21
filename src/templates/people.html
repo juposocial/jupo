@@ -14,7 +14,7 @@
       {% for user in owner.contacts %}
         {% if user.id %}
             <li>
-              <a href='/user/{{ user.id }}' class='async'>
+              <a href='/user/{{ user.id }}/messages' class='chat'>
                 <img class='small-avatar lfloat' src='{{ user.avatar }}' />
                 <div class='title'>
                   {{ user.name }} <i class='{{ user.status }}'></i>

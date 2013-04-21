@@ -1,0 +1,28 @@
+<div class="inflow">
+  <div class="fixed">
+
+    <div class="chatbox" title='{{ user.name }}' id='chat-{{ user.id }}'>
+      <div class="header">
+        <a href="#" class="close-icon close" title="Close Chat"></a>
+        {{ user.name }}
+
+      </div>
+      <ul class="messages">
+        {% for message in messages %}
+          {% include "message.html" %}
+        {% endfor %}
+        
+      </ul>
+      <div class="status hidden">
+        * is typing...
+      </div>
+
+      <form action='/user/{{ user.id }}/new_message' method='post'>
+        <textarea name='message' placeholder='Write a message...'></textarea>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+

@@ -1,0 +1,99 @@
+  div.inflow {
+    width: 260px;
+    height: 9999px;
+    float: right;
+    position: relative;
+    margin-right: 50px;
+    margin-left: -38px;
+  }
+  div.fixed {
+    position: fixed;
+    bottom: 0;
+    margin-left: 15px
+  }
+
+  .chatbox {
+    background: white;
+    width: 260px;
+    height: 285px;
+    -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, .3);
+    border: 1px solid rgba(0, 0, 0, .3);
+    border-width: 0 1px;
+  }
+
+  .chatbox .header {
+    background-color: #6d84b4;
+    border: 1px solid rgba(0, 39, 121, .76);
+    border-bottom: none;
+    cursor: pointer;
+    height: 25px;
+    color: white;
+    text-shadow: 0 -1px 0 rgba(0, 39, 121, 1);
+    font-weight: bold;
+    padding: 0 10px;
+    font-size: 11px;
+    line-height: 23px;
+    margin: -1px;
+  }
+
+  .chatbox .header .close-icon {
+    margin: 5px -5px 0 0;
+  }
+
+  .chatbox .messages {
+    padding: 5px 7px 0;
+    font-size: 11px;
+    line-height: 15px;
+    height: 224px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .chatbox .message {
+    border-bottom: 1px solid #f2f2f2;
+    position: relative;
+    padding: 4px 0 5px;
+    overflow: hidden;
+  }
+
+  .chatbox .message .small-avatar {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .chatbox .message .ts {
+    font-size: 9px;
+    color: gray;
+    opacity: 0;
+  }
+
+  .chatbox .message:hover .ts {
+    opacity: 1;
+  }
+  
+  .chatbox .message .content {
+    margin-left: 40px;
+  }
+
+  .chatbox form textarea {
+    position: absolute;
+    bottom: 0;
+    margin: 0;
+    resize: none;
+    border: 0;
+    border-top: 1px solid #ccc;
+    height: 20px;
+    padding: 5px 7px;
+    width: 246px;
+  }
+
+  .chatbox .status {
+    position: absolute;
+    bottom: 30px;
+    padding: 4px 7px 6px;
+    font-size: 11px;
+    color: gray;
+    text-align: right;
+    width: 246px;
+    background: rgba(255, 255, 255, 0.85);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }

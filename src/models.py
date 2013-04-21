@@ -1292,33 +1292,30 @@ class Result(Model):
   
 
 class Message(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info
+    self.db_name = db_name
     
   @property
   def sender(self):
-    user_id = self.info.get('sender')
-    return api.get_user_info(user_id)
+    user_id = self.info.get('from')
+    return api.get_user_info(user_id, db_name=self.db_name)
   
   @property
   def receiver(self):
-    user_id = self.info.get('receiver')
-    return api.get_user_info(user_id)
+    user_id = self.info.get('to')
+    return api.get_user_info(user_id, db_name=self.db_name)
   
   @property
-  def message(self):
-    message = self.info.get('message')
+  def content(self):
+    message = self.info.get('msg')
     if isinstance(message, int): # is file
       return api.get_attachment_info(message)
     return message
   
   @property
-  def date(self):
-    d = api.datetime.fromtimestamp(int(self.info.get('timestamp')))
-    n = api.datetime.now()
-    if n.day == d.day and n.month == d.month and n.year == d.year:
-      return 'Today'
-    return d.strftime('%A, %B %d, %Y')
+  def timestamp(self):
+    return self.info.get('ts', 0)
   
   def is_file(self):    
     message = self.info.get('message')

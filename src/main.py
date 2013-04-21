@@ -1226,7 +1226,8 @@ def favicon():
 @app.route('/user/<int:user_id>/complete_profile', methods=['POST'])
 @app.route('/user/<int:user_id>/follow', methods=['POST'])
 @app.route('/user/<int:user_id>/unfollow', methods=['POST'])
-@app.route('/user/<int:user_id>/<view>', methods=['OPTIONS'])
+@app.route('/user/<int:user_id>/new_message', methods=['POST'])
+@app.route('/user/<int:user_id>/<view>', methods=['GET', 'OPTIONS'])
 @login_required
 @line_profile
 def user(user_id=None, page=1, view=None):
@@ -1372,21 +1373,16 @@ def user(user_id=None, page=1, view=None):
     json = dumps({'body': body, 'title': 'Intelliview'})
     return Response(json, mimetype='application/json')
   
-  elif view == 'new_message':    
-    view = 'new_message'
-    title = user.name
-        
-    if request.method == "OPTIONS":   
-      
-      body = render_template('message.html', 
-                             view=view, 
-                             user=user,
-                             owner=owner,
-                             title=title)
-      
-      json = dumps({"body": body, 
-                    "title": title})
-      return Response(json, mimetype='application/json')
+  elif view == 'messages':
+    messages = api.get_messages(session_id, user_id)
+    return render_template('chat.html', messages=messages, user=user)
+  
+  
+  elif request.path.endswith('/new_message'):    
+    msg = request.form.get('message')
+    message = api.new_message(session_id, user_id, msg)
+    
+    return render_template('message.html', message=message, user=owner)
     
 
   else:
@@ -1441,11 +1437,10 @@ def user(user_id=None, page=1, view=None):
 
 @app.route("/contacts", methods=["GET", "OPTIONS"])
 @login_required
-@line_profile
 def contacts():
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
-  owner = api.get_owner_info(session_id)
+  owner = api.get_user_info(user_id)
   suggested_friends = api.get_friend_suggestions(owner.to_dict())
   coworkers = api.get_coworkers(session_id)
 #  groups = api.get_groups(session_id)
@@ -1832,7 +1827,7 @@ def group(group_id=None, view='group', page=1):
 
 @app.route('/messages', methods=["GET", "OPTIONS"])
 @app.route('/messages/page<int:page>', methods=["GET", "OPTIONS"])
-def messages(page=1):
+def messages(user_id=None, page=1):
   session_id = session.get("session_id")
   messages = api.get_direct_messages(session_id, page=page)
   if request.method == 'GET':
@@ -2837,6 +2832,11 @@ if __name__ == "__main__":
     
   except (IndexError, TypeError): # dev only
 
+    from gevent.pywsgi import WSGIServer
+    from gevent import monkey
+    monkey.patch_all()
+
+    
     settings.DEBUG = True
     
     @werkzeug.serving.run_with_reloader
@@ -2864,15 +2864,15 @@ if __name__ == "__main__":
       
       toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
       
+
       
-      server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+      server = WSGIServer(('0.0.0.0', 8888), app)
       try:
         print 'Serving HTTP on 0.0.0.0 port 8888...'
-        server.start()
+        server.serve_forever()
       except KeyboardInterrupt:
         print '\nGoodbye.'
         server.stop()
-      
 
 
 

@@ -1953,6 +1953,107 @@ $(document).ready(function(e) {
     
   })
   
+    
+
+  $('#main').on('click', 'a.chat', function() {
+
+    var href = $(this).attr('href');
+    var user_id = href.split('/')[2];
+
+    if ($('#chat #chat-' + user_id).length > 0) {
+      return false;
+    }
+
+    $.get(href, function(html) {
+
+      box = $(html)
+      var box_id = $('.chatbox', box).attr('id')
+
+      if ($('#chat #chat-' + box_id).length == 0) {
+
+        $('#chat').prepend(html);
+
+        $('#chat #' + box_id + ' textarea').focus();
+
+      }
+
+    });
+    return false;
+
+  })
+
+  
+  
+  
+  
+  
+  $('#chat').on('click', 'a.close', function() {
+
+    $(this).parents('.inflow').remove();
+
+    return false;
+
+  })
+  
+  
+  
+  $('#chat').on('keydown', 'textarea', function(e) {
+    if (e.keyCode == 13) {    // Enter
+      console.log(e.keyCode)
+        if (e.ctrlKey || e.shiftKey) {
+            var val = this.value;
+            if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
+                var start = this.selectionStart;
+                this.value = val.slice(0, start) + "\n" + val.slice(this.selectionEnd);
+                this.selectionStart = this.selectionEnd = start + 1;
+            } else if (document.selection && document.selection.createRange) {
+                this.focus();
+                var range = document.selection.createRange();
+                range.text = "\r\n";
+                range.collapse(false);
+                range.select();
+            }
+            $(this).trigger('change'); // update textarea height
+        }
+        else {
+          
+            $(this).parents('form').trigger('submit');  
+          
+        }
+        return false;
+    } 
+  })
+  
+  $('#chat').on('submit', '.chatbox form', function() {
+    
+    var _this = $(this);
+    var _boxchat = _this.parents('.chatbox');
+    
+    $('.status', _boxchat).html('Sending...').fadeIn();
+    
+    $.ajax({
+      type: "POST",
+      headers: {
+        'X-CSRFToken': get_cookie('_csrf_token')
+      },
+      url: $(this).attr('action'),
+      data: $(this).serializeArray(),
+      success: function(html) {
+        
+        $('textarea', _this).val('').focus();
+        $('.status', _boxchat).fadeOut().html('');
+        $('.messages').append(html)
+        
+        
+      }
+    });
+    
+    return false;
+    
+    
+  })
+  
+
   
   
   
