@@ -11,20 +11,12 @@ function start_chat(user_id) {
   $.get(href, function(html) {
     hide_loading();
     
-    box = $(html)
-    var box_id = $('.chatbox', box).attr('id')
+    $('#chat').prepend(html);
 
-    if ($('#chat #chat-' + box_id).length == 0) {
-
-      $('#chat').prepend(html);
-
-      $('#chat #' + box_id + ' textarea').focus();
-      
-      setTimeout(function() {
-        $('#chat #' + box_id + ' .messages').scrollTop(99999);
-        }, 10)
-    }
-
+    $('#chat #chat-' + user_id + ' .messages').animate({
+        scrollTop: 99999
+    }, 'fast');
+    
   });
 }
 
