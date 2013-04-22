@@ -1,13 +1,13 @@
 
 <li class="message" id="message-{{ message.id }}" data-ts="{{ message.timestamp }}" data-sender-id="{{ message.sender.id }}" data-receiver-id="{{ message.receiver.id }}" data-msg-ids="{{ message.message_ids }}">
-  <div class="rfloat ts">
+  <div class="ts">
     {{ message.time }}
   </div>
   <a href="/user/{{ message.sender.id }}" title="{{ message.sender.name }}" class="async lfloat"> 
     <img class="small-avatar" src="{{ message.sender.avatar }}"> 
   </a>
   <div class="content">
-    {{ message.content | safe }}
+    {{ message.content | autoemoticon | autolink | safe }}
   </div>
 </li>
 
