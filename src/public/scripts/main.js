@@ -1952,37 +1952,14 @@ $(document).ready(function(e) {
     return false;
     
   })
-  
-    
+
 
   $('#main').on('click', 'a.chat', function() {
     
     var href = $(this).attr('href');
     var user_id = href.split('/')[2];
 
-    if ($('#chat #chat-' + user_id).length > 0) {
-      return false;
-    }
-
-    show_loading();
-    $.get(href, function(html) {
-      hide_loading();
-      
-      box = $(html)
-      var box_id = $('.chatbox', box).attr('id')
-
-      if ($('#chat #chat-' + box_id).length == 0) {
-
-        $('#chat').prepend(html);
-
-        $('#chat #' + box_id + ' textarea').focus();
-        
-        setTimeout(function() {
-          $('#chat #' + box_id + ' .messages').scrollTop(99999);
-        }, 10)
-      }
-
-    });
+    start_chat(user_id);
     return false;
 
   })
@@ -2029,12 +2006,15 @@ $(document).ready(function(e) {
     } 
   })
   
+  
+  
   $('#chat').on('submit', '.chatbox form', function() {
     
     var _this = $(this);
     var _boxchat = _this.parents('.chatbox');
+    var last_msg = $('li.message:last', _boxchat);
     
-    $('.status', _boxchat).html('Sending...').fadeIn();
+    $('.status', _boxchat).html('Sending...').fadeIn('fast');
     
     $.ajax({
       type: "POST",
@@ -2043,11 +2023,28 @@ $(document).ready(function(e) {
       },
       url: $(this).attr('action'),
       data: $(this).serializeArray(),
-      success: function(html) {
+      dataType: "html",
+      success: function(data) {
         
+        $('.status', _boxchat).fadeOut('fast');
         $('textarea', _this).val('').focus();
-        $('.status', _boxchat).fadeOut().html('');
-        $('.messages', _boxchat).append(html);
+        
+        var msg = $(data);
+
+        var msg_id = msg.attr('id').split('-')[1];
+        var msg_ts = msg.data('ts');
+        var sender_id = msg.attr('data-sender-id');
+        
+        if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+          var content = $('.content', msg).html();
+          $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+          $(last_msg).data('ts', msg_ts);
+          $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+          
+        } else {
+          $('.messages', _boxchat).append(data);
+        }
+        
         
         setTimeout(function() {
           $('.messages', _boxchat).scrollTop(99999);

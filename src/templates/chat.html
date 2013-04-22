@@ -18,7 +18,7 @@
           {% include "message.html" %}
         {% endfor %}
         
-        {% if messages[-1].date != 'Today' %}
+        {% if not messages or messages[-1].date != 'Today' %}
           <div class='title' title='Today'>Today</div>
         {% endif %}
         

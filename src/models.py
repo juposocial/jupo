@@ -1326,6 +1326,10 @@ class Message(Model):
   def time(self):
     return api.friendly_format(self.timestamp, short=True).split(' at ')[-1]
   
+  @property
+  def message_ids(self):
+    return ','.join([str(i) for i in self.info.get('msg_ids', [self.id])])
+  
   def get_date(self, short=False):
     return api.friendly_format(self.timestamp, short=short).split(' at ')[0]
   

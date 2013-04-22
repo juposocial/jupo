@@ -1380,9 +1380,9 @@ def user(user_id=None, page=1, view=None):
   
   elif request.path.endswith('/new_message'):    
     msg = request.form.get('message')
-    message = api.new_message(session_id, user_id, msg)
+    html = api.new_message(session_id, user_id, msg)
     
-    return render_template('message.html', message=message, user=owner)
+    return html
     
 
   else:

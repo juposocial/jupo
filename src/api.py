@@ -5009,6 +5009,7 @@ def publish(user_id, event_type, info=None, db_name=None):
                                       'info': {'post_id': str(info.get('_id')), 
                                                'quick_stats': quick_stats,
                                                'html': html}}))
+    
   
   elif 'unread-feeds' in event_type:
     template = app.CURRENT_APP.jinja_env.get_template('feed.html')
@@ -5051,7 +5052,14 @@ def publish(user_id, event_type, info=None, db_name=None):
       PUBSUB.publish(channel_id, 
                      dumps({'type': 'unread-feeds', 'info': html}))
       
-  else: # unread-notifications/typing-status
+  elif event_type == 'new-message':
+    html = info.replace('\n', '')
+    channel_id = get_session_id(user_id, db_name=db_name)
+    PUBSUB.publish(channel_id, 
+                   dumps({'type': event_type, 
+                          'info': {'html': html}}))  
+      
+  else: # unread-notifications/typing-status/new-message
     channel_id = get_session_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, 
                    dumps({'type': event_type, 'info': info}))  
@@ -5262,7 +5270,8 @@ def new_message(session_id, user_id, message, db_name=None):
     return False
   
   user_id = int(user_id)
-  info = {'from': owner_id,
+  info = {'_id': new_id(),
+          'from': owner_id,
           'to': user_id,
           'msg': message,
           'ts': utctime()}
@@ -5270,7 +5279,16 @@ def new_message(session_id, user_id, message, db_name=None):
   msg_id = db.message.insert(info)
   info['_id'] = msg_id
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
-  return Message(info, utcoffset=utcoffset, db_name=db_name)
+  
+  msg = Message(info, utcoffset=utcoffset, db_name=db_name)
+  
+  template = app.CURRENT_APP.jinja_env.get_template('message.html')
+  html = template.render(message=msg).replace('\n', '')
+  push_queue.enqueue(publish, user_id, 'new-message', 
+                     info=html, db_name=db_name)
+  push_queue.enqueue(publish, owner_id, 'new-message', 
+                     info=html, db_name=db_name)
+  return html
 
 
 def get_messages(session_id, user_id, page=1, db_name=None):
@@ -5301,12 +5319,15 @@ def get_messages(session_id, user_id, page=1, db_name=None):
     if last_msg and record.get('from') == last_msg.get('from') and (record.get('ts') - last_msg.get('ts')) < 120:
       last_msg['msg'] += '<br>' + record.get('msg')
       last_msg['ts'] = record.get('ts')
+      last_msg['msg_ids'].append(record.get('_id'))
     else:
       if last_msg:
         messages.append(last_msg)
       last_msg = record
+      last_msg['msg_ids'] = [record['_id']]
   
-  messages.append(last_msg)
+  if last_msg:
+    messages.append(last_msg)
   
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
   return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]

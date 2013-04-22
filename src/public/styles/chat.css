@@ -106,6 +106,5 @@ border: 1px solid #ccc;
     color: gray;
     text-align: right;
     width: 246px;
-    background: rgba(255, 255, 255, 0.85);
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    text-shadow: 0 0 10px white;
   }
