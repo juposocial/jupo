@@ -1215,7 +1215,7 @@ def set_status(session_id, status):
   
   if '|' in status:
     uid, status = status.split('|')
-    user = get_user_info(int(uid))
+    user = get_user_info(user_id)
     if status:
       text = user.name + ' ' + status
     else:
