@@ -401,7 +401,9 @@ class User(Model):
   
   @property
   def contacts(self):
-    return [api.get_user_info(user_id) for user_id in self.contact_ids]
+    users = [api.get_user_info(user_id) for user_id in self.contact_ids]
+    users.sort(key=lambda k: k.last_online, reverse=True)
+    return users
   
   @property
   def following_details(self):
@@ -1292,38 +1294,54 @@ class Result(Model):
   
 
 class Message(Model):
-  def __init__(self, info):
+  def __init__(self, info, utcoffset=0, db_name=None):
     self.info = info
+    self.db_name = db_name
+    self.utcoffset = int(utcoffset)
     
   @property
   def sender(self):
-    user_id = self.info.get('sender')
-    return api.get_user_info(user_id)
+    user_id = self.info.get('from')
+    return api.get_user_info(user_id, db_name=self.db_name)
   
   @property
   def receiver(self):
-    user_id = self.info.get('receiver')
-    return api.get_user_info(user_id)
+    user_id = self.info.get('to')
+    return api.get_user_info(user_id, db_name=self.db_name)
   
   @property
-  def message(self):
-    message = self.info.get('message')
+  def content(self):
+    message = self.info.get('msg')
     if isinstance(message, int): # is file
       return api.get_attachment_info(message)
     return message
   
   @property
+  def timestamp(self):
+    return self.info.get('ts', 0) + self.utcoffset
+    
+  @property
   def date(self):
-    d = api.datetime.fromtimestamp(int(self.info.get('timestamp')))
-    n = api.datetime.now()
-    if n.day == d.day and n.month == d.month and n.year == d.year:
-      return 'Today'
-    return d.strftime('%A, %B %d, %Y')
+    return api.friendly_format(self.timestamp, short=True).split(' at ')[0]
+  
+  @property
+  def time(self):
+    return api.friendly_format(self.timestamp, short=True).split(' at ')[-1]
+  
+  @property
+  def message_ids(self):
+    return ','.join([str(i) for i in self.info.get('msg_ids', [self.id])])
+  
+  def get_date(self, short=False):
+    return api.friendly_format(self.timestamp, short=short).split(' at ')[0]
   
   def is_file(self):    
     message = self.info.get('message')
     if api.is_snowflake_id(message):
       return True
+    
+  def is_unread(self):
+    return self.info.get('is_unread')
     
   
 

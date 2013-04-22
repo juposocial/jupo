@@ -1952,7 +1952,148 @@ $(document).ready(function(e) {
     return false;
     
   })
+
+
+  $('#main').on('click', 'a.chat', function() {
+    
+    var href = $(this).attr('href');
+    var user_id = href.split('/')[2];
+
+    start_chat(user_id);
+    
+    $(this).removeClass('unread');
+    return false;
+
+  })
+
   
+  
+  $('#chat').on('mouseenter', '.chatbox.unread', function() {
+    var _this = $(this);
+    var user_id = _this.attr('id').split('-')[1] 
+    
+    var url = '/chat/' + user_id + '/mark_as_read';
+    
+    $.ajax({
+      type: "POST",
+      headers: {
+        'X-CSRFToken': get_cookie('_csrf_token')
+      },
+      url: url,
+      success: function() {
+        _this.removeClass('unread');
+      }
+    })
+    
+    
+  })
+  
+  
+  $('#chat').on('click', 'a.close', function() {
+
+    $(this).parents('.inflow').remove();
+
+    return false;
+
+  })
+  
+  
+  
+  $('#chat').on('keydown', 'textarea', function(e) {
+    if (e.keyCode == 13) {    // Enter
+      console.log(e.keyCode)
+        if (e.ctrlKey || e.shiftKey) {
+            var val = this.value;
+            if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
+                var start = this.selectionStart;
+                this.value = val.slice(0, start) + "\n" + val.slice(this.selectionEnd);
+                this.selectionStart = this.selectionEnd = start + 1;
+            } else if (document.selection && document.selection.createRange) {
+                this.focus();
+                var range = document.selection.createRange();
+                range.text = "\r\n";
+                range.collapse(false);
+                range.select();
+            }
+            // $(this).trigger('change'); // update textarea height
+        }
+        else {
+          
+            $(this).parents('form').trigger('submit');  
+          
+        }
+        return false;
+    } else {
+      _this = $(this);
+      var user_id = _this.parents('.chatbox').attr('id').split('-')[1];
+      
+      try {
+        clearTimeout($.global.chat_typing_timeout)
+      } catch (err) {}
+      
+      update_status(user_id + '|is typing...');
+      
+      $.global.chat_typing_timeout = setTimeout(function() {
+        if (_this.val() != '') {
+          update_status(user_id + '|has entered text');
+        } else {
+          update_status(user_id + '|');
+        }
+      }, 2000)
+      
+    }
+  })
+  
+  
+  
+  $('#chat').on('submit', '.chatbox form', function() {
+    
+    var _this = $(this);
+    var _boxchat = _this.parents('.chatbox');
+    var last_msg = $('li.message:last', _boxchat);
+    
+    $.ajax({
+      type: "POST",
+      headers: {
+        'X-CSRFToken': get_cookie('_csrf_token')
+      },
+      url: $(this).attr('action'),
+      data: $(this).serializeArray(),
+      dataType: "html",
+      success: function(data) {
+        
+        $('textarea', _this).val('').focus();
+        
+        var msg = $(data);
+
+        var msg_id = msg.attr('id').split('-')[1];
+        var msg_ts = msg.data('ts');
+        var sender_id = msg.attr('data-sender-id');
+        
+        if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+          var content = $('.content', msg).html();
+          $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+          $(last_msg).data('ts', msg_ts);
+          $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+          
+        } else {
+          $('.messages', _boxchat).append(data);
+        }
+        
+        
+        setTimeout(function() {
+          $('.messages', _boxchat).scrollTop(99999);
+        }, 10)
+        
+      }
+    });
+    
+    return false;
+    
+    
+  })
+  
+
   
   
   

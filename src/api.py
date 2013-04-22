@@ -67,7 +67,7 @@ except ImportError:
 from models import (User, Group, Browser,
                     Comment, Feed, File, Note,
                     Version, Notification, Attachment, Reminder,
-                    URL, Result, Event)
+                    URL, Result, Event, Message)
 
 import app
 import filters
@@ -319,7 +319,7 @@ def utctime():
   return float(datetime.utcnow().strftime('%s.%f'))
 
 
-def friendly_format(ts, offset=None, short=False):
+def friendly_format(ts, offset=0, short=False):
   try:
     ts = float(ts)
   except TypeError:
@@ -420,6 +420,7 @@ def get_database_names():
   db_names = cache.get(key)
   if not db_names:
     db_names = DATABASE.database_names()
+    db_names = list(db_names)
     cache.set(key, db_names)
   return db_names
 
@@ -433,7 +434,8 @@ def get_database_name():
   if not db_name:
     db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
-  if db_name not in get_database_names():
+  db_names = get_database_names()
+  if db_name not in db_names:
     # Ensure indexes
     DATABASE[db_name].owner.ensure_index('session_id', background=True)
     DATABASE[db_name].owner.ensure_index('email', background=True)
@@ -1212,10 +1214,14 @@ def set_status(session_id, status):
     return False
   
   if '|' in status:
-    parts = status.split('|')
-    publish(parts[1], 'typing-status', 
-            {"conversation": '%s|%s' % (parts[1], parts[0]),
-                                        "status": parts[2]})
+    uid, status = status.split('|')
+    user = get_user_info(user_id)
+    if status:
+      text = user.name + ' ' + status
+    else:
+      text = ''
+    push_queue.enqueue(publish, int(uid), 'typing-status', 
+                       {'user_id': str(user_id), 'text': text}, db_name=db_name)
   else:
     key = 'status:%s' % user_id
     cache.set(key, status)
@@ -1339,6 +1345,7 @@ def get_coworkers(session_id, limit=100):
         _ids.add(member.id)
   coworkers = sorted(coworkers, 
                      key=lambda user: last_online(user.id), reverse=True)
+  coworkers = list(coworkers)
   cache.set(key, coworkers, 3600)
   return coworkers[:limit]
 
@@ -5006,6 +5013,7 @@ def publish(user_id, event_type, info=None, db_name=None):
                                       'info': {'post_id': str(info.get('_id')), 
                                                'quick_stats': quick_stats,
                                                'html': html}}))
+    
   
   elif 'unread-feeds' in event_type:
     template = app.CURRENT_APP.jinja_env.get_template('feed.html')
@@ -5048,7 +5056,14 @@ def publish(user_id, event_type, info=None, db_name=None):
       PUBSUB.publish(channel_id, 
                      dumps({'type': 'unread-feeds', 'info': html}))
       
-  else: # unread-notifications/typing-status
+  elif event_type == 'new-message':
+    html = info.replace('\n', '')
+    channel_id = get_session_id(user_id, db_name=db_name)
+    PUBSUB.publish(channel_id, 
+                   dumps({'type': event_type, 
+                          'info': {'html': html}}))  
+      
+  else: # unread-notifications/typing-status/new-message
     channel_id = get_session_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, 
                    dumps({'type': event_type, 'info': info}))  
@@ -5192,11 +5207,14 @@ def ensure_index(db_name=None):
   db.stream.ensure_index('history.attachment_id', background=True)
   db.stream.ensure_index('is_removed', background=True)
   
-  db.reminder.ensure_index('owner')
-  db.reminder.ensure_index('checked')
+  db.reminder.ensure_index('owner', background=True)
+  db.reminder.ensure_index('checked', background=True)
   
-  db.status.ensure_index('user_id')
-  db['s3'].ensure_index('name')
+  db.message.ensure_index('from', background=True)
+  db.message.ensure_index('to', background=True)
+  
+  db.status.ensure_index('user_id', background=True)
+  db['s3'].ensure_index('name', background=True)
   
   db.url.ensure_index('url', background=True)
   return True
@@ -5245,5 +5263,160 @@ def domain_is_ok(domain_name):
     return False
  
  
+
+def new_message(session_id, user_id, message, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  if not str(user_id).isdigit():
+    return False
+  
+  user_id = int(user_id)
+  info = {'_id': new_id(),
+          'from': owner_id,
+          'to': user_id,
+          'msg': message,
+          'ts': utctime()}
+  
+  msg_id = db.message.insert(info)
+  info['_id'] = msg_id
+  
+  update_last_viewed(owner_id, user_id, db_name=db_name)
+  
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
+  msg = Message(info, utcoffset=utcoffset, db_name=db_name)
+  
+  template = app.CURRENT_APP.jinja_env.get_template('message.html')
+  html = template.render(message=msg).replace('\n', '')
+  push_queue.enqueue(publish, user_id, 'new-message', 
+                     info=html, db_name=db_name)
+  push_queue.enqueue(publish, owner_id, 'new-message', 
+                     info=html, db_name=db_name)
+  return html
+
+
+def get_messages(session_id, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  messages = []
+  records = db.message.find({'owner': owner_id})
+  for record in records:
+    user_id = record.get('user_id')
+    msg = db.message.find({'$or': [{'from': user_id, 'to': owner_id},
+                                   {'from': owner_id, 'to': user_id}]})\
+                    .sort('ts', -1)\
+                    .limit(1)
+    if msg:
+      msg = msg[0]
+      
+      if msg.get('to') == owner_id:
+        last_viewed = get_last_viewed(owner_id, user_id, db_name=db_name)
+        
+        if last_viewed < msg.get('ts'):
+          msg['is_unread'] = True
+          
+      messages.append(msg)
+  
+  messages.sort(key=lambda k: k.get('ts'), reverse=1)
+  
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
+  return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+      
+
+
+def get_last_viewed(owner_id, user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  info = db.message.find_one({'owner': owner_id, 'user_id': user_id})
+  if info:
+    return info.get('last_viewed')
+  else:
+    return 0
+  
+
+def update_last_viewed(owner_id, user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  db.message.update({'owner': owner_id, 'user_id': user_id}, 
+                    {'$set': {'last_viewed': utctime()}}, upsert=True)
+  
+  ts = utctime() + int(get_utcoffset(owner_id, db_name=db_name))
+  ts = friendly_format(ts, short=True)
+  if ts.startswith('Today'):
+    ts = ts.split(' at ')[-1]
+  push_queue.enqueue(publish, user_id, 
+                     event_type='seen-by', 
+                     info={'user_id': str(owner_id),
+                           'html': 'Seen %s' % ts}, 
+                     db_name=db_name)
+  return True
+
+def get_chat_history(session_id, user_id, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  if not str(user_id).isdigit():
+    return False
+  
+  user_id = int(user_id)
+  
+  records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
+                                     {'from': user_id, 'to': owner_id}]})\
+                      .sort('ts', -1)\
+                      .limit(50)
+  
+  records = list(records)
+  records.reverse()
+  
+  messages = []
+  last_msg = None
+  for record in records:
+    print record
+    if last_msg and record.get('from') == last_msg.get('from') and (record.get('ts') - last_msg.get('ts')) < 120:
+      last_msg['msg'] += '<br>' + record.get('msg')
+      last_msg['ts'] = record.get('ts')
+      last_msg['msg_ids'].append(record.get('_id'))
+    else:
+      if last_msg:
+        messages.append(last_msg)
+      last_msg = record
+      last_msg['msg_ids'] = [record['_id']]
+  
+  if last_msg:
+    messages.append(last_msg)
+  
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
+  return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+      
+    
+  
+  
+  
+
+
+
+
+
+
 
 

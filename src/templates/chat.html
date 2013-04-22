@@ -1,0 +1,46 @@
+<div class="inflow"> 
+  <div class="positioner">
+  <div class="fixed">
+
+    <div class="chatbox unread" id='chat-{{ user.id }}'>
+      <div class="header">
+        <a href="#" class="close-icon close" title="Close Chat"></a>
+        
+        <i class='{{ user.status }}'></i>
+        <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>
+
+      </div>
+      <ul class="messages">
+        {% set last_title = None %}
+        {% for message in messages %}
+          {% if message.date != last_title %}
+            <div class='title' title='{{ message.get_date(short=False) }}'>{{ message.date }}</div>
+            {% set last_title = message.date %}
+          {% endif %}
+          
+          {% include "message.html" %}
+        {% endfor %}
+
+        {% if not messages or messages[-1].date != 'Today' %}
+          <div class='title' title='Today'>Today</div>
+        {% endif %}
+        
+      </ul>
+      
+              
+      {% if messages[-1].sender.id == owner.id and messages[-1].timestamp < last_viewed %}
+        <div class="status">Seen {{ last_viewed_friendly_format }}</div>
+      {% else %}
+        <div class="status hidden"></div>
+      {% endif %}
+
+      <form action='/chat/{{ user.id }}/new_message' method='post'>
+        <textarea name='message' placeholder='Write a message...' autofocus required></textarea>
+      </form>
+    </div>
+
+  </div>
+  </div>
+</div>
+
+
