@@ -2032,8 +2032,6 @@ $(document).ready(function(e) {
     var _boxchat = _this.parents('.chatbox');
     var last_msg = $('li.message:last', _boxchat);
     
-    $('.status', _boxchat).html('Sending...').fadeIn('fast');
-    
     $.ajax({
       type: "POST",
       headers: {
@@ -2044,7 +2042,6 @@ $(document).ready(function(e) {
       dataType: "html",
       success: function(data) {
         
-        $('.status', _boxchat).fadeOut('fast');
         $('textarea', _this).val('').focus();
         
         var msg = $(data);

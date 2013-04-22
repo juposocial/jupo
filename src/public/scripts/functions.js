@@ -1262,9 +1262,7 @@ function stream() {
         $('.messages', boxchat).append(_msg);
       }
       
-      if ($('div.status', boxchat).html().indexOf('Sending...') == -1) {
-        $('div.status', boxchat).fadeOut('fast');
-      }
+      $('div.status', boxchat).fadeOut('fast');
       
       setTimeout(function() {
         $('.messages', boxchat).scrollTop(99999);
