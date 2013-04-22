@@ -5285,8 +5285,10 @@ def new_message(session_id, user_id, message, db_name=None):
   
   msg_id = db.message.insert(info)
   info['_id'] = msg_id
-  utcoffset = get_utcoffset(owner_id, db_name=db_name)
   
+  update_last_viewed(owner_id, user_id, db_name=db_name)
+  
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
   msg = Message(info, utcoffset=utcoffset, db_name=db_name)
   
   template = app.CURRENT_APP.jinja_env.get_template('message.html')
@@ -5298,7 +5300,73 @@ def new_message(session_id, user_id, message, db_name=None):
   return html
 
 
-def get_messages(session_id, user_id, page=1, db_name=None):
+def get_messages(session_id, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  messages = []
+  records = db.message.find({'owner': owner_id})
+  for record in records:
+    user_id = record.get('user_id')
+    msg = db.message.find({'$or': [{'from': user_id, 'to': owner_id},
+                                   {'from': owner_id, 'to': user_id}]})\
+                    .sort('ts', -1)\
+                    .limit(1)
+    if msg:
+      msg = msg[0]
+      
+      if msg.get('to') == owner_id:
+        last_viewed = get_last_viewed(owner_id, user_id, db_name=db_name)
+        
+        if last_viewed < msg.get('ts'):
+          msg['is_unread'] = True
+          
+      messages.append(msg)
+  
+  messages.sort(key=lambda k: k.get('ts'), reverse=1)
+  
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
+  return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+      
+
+
+def get_last_viewed(owner_id, user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  info = db.message.find_one({'owner': owner_id, 'user_id': user_id})
+  if info:
+    return info.get('last_viewed')
+  else:
+    return 0
+  
+
+def update_last_viewed(owner_id, user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  db.message.update({'owner': owner_id, 'user_id': user_id}, 
+                    {'$set': {'last_viewed': utctime()}}, upsert=True)
+  
+  ts = utctime() + int(get_utcoffset(owner_id, db_name=db_name))
+  ts = friendly_format(ts, short=True)
+  if ts.startswith('Today'):
+    ts = ts.split(' at ')[-1]
+  push_queue.enqueue(publish, user_id, 
+                     event_type='seen-by', 
+                     info={'user_id': str(owner_id),
+                           'html': 'Seen %s' % ts}, 
+                     db_name=db_name)
+  return True
+
+def get_chat_history(session_id, user_id, page=1, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]

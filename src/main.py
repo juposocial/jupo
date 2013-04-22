@@ -1226,7 +1226,6 @@ def favicon():
 @app.route('/user/<int:user_id>/complete_profile', methods=['POST'])
 @app.route('/user/<int:user_id>/follow', methods=['POST'])
 @app.route('/user/<int:user_id>/unfollow', methods=['POST'])
-@app.route('/user/<int:user_id>/new_message', methods=['POST'])
 @app.route('/user/<int:user_id>/<view>', methods=['GET', 'OPTIONS'])
 @login_required
 @line_profile
@@ -1372,17 +1371,6 @@ def user(user_id=None, page=1, view=None):
                            feeds=posts)
     json = dumps({'body': body, 'title': 'Intelliview'})
     return Response(json, mimetype='application/json')
-  
-  elif view == 'messages':
-    messages = api.get_messages(session_id, user_id)
-    return render_template('chat.html', messages=messages, user=user)
-  
-  
-  elif request.path.endswith('/new_message'):    
-    msg = request.form.get('message')
-    html = api.new_message(session_id, user_id, msg)
-    
-    return html
     
 
   else:
@@ -1432,7 +1420,7 @@ def user(user_id=None, page=1, view=None):
                              coworkers=coworkers,
                              user=user,
                              feeds=feeds, view=view)
-
+  
 
 
 @app.route("/contacts", methods=["GET", "OPTIONS"])
@@ -1825,40 +1813,69 @@ def group(group_id=None, view='group', page=1):
 #      resp.set_cookie('last_g%s' % group_id, api.utctime())
       return resp
 
-@app.route('/messages', methods=["GET", "OPTIONS"])
-@app.route('/messages/page<int:page>', methods=["GET", "OPTIONS"])
-def messages(user_id=None, page=1):
-  session_id = session.get("session_id")
-  messages = api.get_direct_messages(session_id, page=page)
-  if request.method == 'GET':
-    return render_homepage(session_id, 'Direct Messages',
-                           view='messages',
-                           feeds=messages)
-  else:
-    owner = api.get_owner_info(session_id)
-    if page > 1:
-      posts = []
-      for feed in messages:
-        if feed.id not in owner.unfollow_posts:
-          posts.append(render(feed, "feed", owner, 'messages')) 
-      if len(messages) == 0:
-        posts.append(render_template('more.html', more_url=None))
-      else:
-        posts.append(render_template('more.html', 
-                                     more_url='/messages/page%d' % (page+1)))
-      
-      return ''.join(posts)
-    else:
-      body = render_template('messages.html', 
-                             view='messages',
-                             feeds=messages, owner=owner)
-      return Response(dumps({'body': body,
-                             'title': 'Direct Messages | Jupo'}))
-      
 
-@app.route('/message')
-def message():
-  pass
+@app.route('/chat/<int:user_id>', methods=['GET', 'OPTIONS'])
+@app.route('/chat/<int:user_id>/<action>', methods=['POST'])
+def chat(user_id, action=None):
+  session_id = session.get("session_id")
+  
+  if action == 'new_message':    
+    msg = request.form.get('message')
+    html = api.new_message(session_id, user_id, msg)
+    
+    return html
+  
+  elif action == 'mark_as_read':
+    owner_id = api.get_user_id(session_id)
+    api.update_last_viewed(owner_id, user_id)
+    return 'OK'
+    
+  else:
+    user = api.get_user_info(user_id)
+    owner_id = api.get_user_id(session_id)
+    
+    last_viewed = api.get_last_viewed(user_id, owner_id) \
+                + int(api.get_utcoffset(owner_id))
+                
+    last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
+    if last_viewed_friendly_format.startswith('Today'):
+      last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
+      
+                
+    messages = api.get_chat_history(session_id, user_id)
+    return render_template('chat.html', 
+                           owner={'id': owner_id},
+                           last_viewed=last_viewed,
+                           last_viewed_friendly_format=last_viewed_friendly_format,
+                           messages=messages, user=user)
+    
+    
+
+@app.route("/messages", methods=['GET', 'OPTIONS'])
+def messages():
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+  suggested_friends = api.get_friend_suggestions(owner.to_dict())
+  coworkers = api.get_coworkers(session_id)
+  
+  messages = api.get_messages(session_id)
+
+  if request.method == 'GET':
+    return render_homepage(session_id, 'Messages',
+                           suggested_friends=suggested_friends,
+                           coworkers=coworkers,
+                           messages=messages,
+                           view='messages')
+  else:
+    body = render_template('messages.html',
+                           suggested_friends=suggested_friends,
+                           coworkers=coworkers,
+                           messages=messages,
+                           owner=owner)
+    resp = Response(dumps({'body': body,
+                           'title': 'Messages'}))
+    return resp      
 
 
 @app.route("/", methods=["GET"])

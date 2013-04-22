@@ -1338,6 +1338,9 @@ class Message(Model):
     if api.is_snowflake_id(message):
       return True
     
+  def is_unread(self):
+    return self.info.get('is_unread')
+    
   
 
 class ESResult(Model):

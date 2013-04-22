@@ -5,7 +5,7 @@ function start_chat(user_id) {
       return false;
   }
   
-  var href = '/user/' + user_id + '/messages';
+  var href = '/chat/' + user_id;
 
   show_loading();
   $.get(href, function(html) {
@@ -1223,6 +1223,13 @@ function stream() {
 
     }
     
+    else if (event.type == 'seen-by') {
+      var msg = event.info.html;
+      var user_id = event.info.user_id;
+      
+      $('#chat-' + user_id + ' div.status').html(msg).fadeIn('fast');
+    }
+    
     else if (event.type == 'new-message') {
       var msg = event.info.html;
             
@@ -1237,6 +1244,10 @@ function stream() {
         user_id = receiver_id;
       } else {
         user_id = sender_id;
+      }
+      
+      if (sender_id != owner_id) {
+        $('#chat-' + user_id).addClass('unread');
       }
       
       

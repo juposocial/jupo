@@ -1,8 +1,8 @@
 <div class="inflow"> 
-  <div class="positioner"><!-- may not be needed: see notes below-->
+  <div class="positioner">
   <div class="fixed">
 
-    <div class="chatbox" id='chat-{{ user.id }}'>
+    <div class="chatbox unread" id='chat-{{ user.id }}'>
       <div class="header">
         <a href="#" class="close-icon close" title="Close Chat"></a>
         
@@ -20,15 +20,21 @@
           
           {% include "message.html" %}
         {% endfor %}
-        
+
         {% if not messages or messages[-1].date != 'Today' %}
           <div class='title' title='Today'>Today</div>
         {% endif %}
         
       </ul>
-      <div class="status hidden"></div>
+      
+              
+      {% if messages[-1].sender.id == owner.id and messages[-1].timestamp < last_viewed %}
+        <div class="status">Seen {{ last_viewed_friendly_format }}</div>
+      {% else %}
+        <div class="status hidden"></div>
+      {% endif %}
 
-      <form action='/user/{{ user.id }}/new_message' method='post'>
+      <form action='/chat/{{ user.id }}/new_message' method='post'>
         <textarea name='message' placeholder='Write a message...' autofocus required></textarea>
       </form>
     </div>

@@ -37,6 +37,14 @@
 }
 
 
+.msg-reply-icon {
+  background-image: url('/public/images/msg-reply.png?v2');
+  background-repeat: no-repeat;
+  display: inline-block;
+  height: 9px;
+  width: 9px;
+}
+
 .welcome-icon {
   background-image: url('/public/images/tmp/r9ad093yvZ9.png');
   background-repeat: no-repeat;

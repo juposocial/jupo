@@ -12,10 +12,12 @@ div.inflow {
   margin-right: 50px;
   margin-left: -38px;
 }
+
 div.positioner {
   position: absolute;
   right: 0;
-}/*may not be needed: see below*/
+}
+
 div.fixed {
   position: fixed;
   bottom: 0;

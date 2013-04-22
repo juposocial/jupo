@@ -226,7 +226,15 @@
         <div class="title">Last Activities</div>
       </div>
       <div class="body" id='owners'>
-      {% cache "last_activities:%s:%s" % (owner.id, coworkers[1].last_online) %}  
+      
+      {% if coworkers | length > 1 %}
+        {% set key = "last_activities:%s:%s" % (owner.id, coworkers[1].last_online) %}
+      {% else %}
+        {% set key = "last_activities:%s:%s" % (owner.id, coworkers[0].last_online) %}
+      {% endif %}
+        
+      
+      {% cache key %}  
         <ul>
         {% for user in coworkers[:5] %}
           <li>

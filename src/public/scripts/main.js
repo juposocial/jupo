@@ -1960,13 +1960,33 @@ $(document).ready(function(e) {
     var user_id = href.split('/')[2];
 
     start_chat(user_id);
+    
+    $(this).removeClass('unread');
     return false;
 
   })
 
   
   
-  
+  $('#chat').on('mouseenter', '.chatbox.unread', function() {
+    var _this = $(this);
+    var user_id = _this.attr('id').split('-')[1] 
+    
+    var url = '/chat/' + user_id + '/mark_as_read';
+    
+    $.ajax({
+      type: "POST",
+      headers: {
+        'X-CSRFToken': get_cookie('_csrf_token')
+      },
+      url: url,
+      success: function() {
+        _this.removeClass('unread');
+      }
+    })
+    
+    
+  })
   
   
   $('#chat').on('click', 'a.close', function() {
