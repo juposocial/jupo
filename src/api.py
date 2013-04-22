@@ -5203,11 +5203,14 @@ def ensure_index(db_name=None):
   db.stream.ensure_index('history.attachment_id', background=True)
   db.stream.ensure_index('is_removed', background=True)
   
-  db.reminder.ensure_index('owner')
-  db.reminder.ensure_index('checked')
+  db.reminder.ensure_index('owner', background=True)
+  db.reminder.ensure_index('checked', background=True)
   
-  db.status.ensure_index('user_id')
-  db['s3'].ensure_index('name')
+  db.message.ensure_index('from', background=True)
+  db.message.ensure_index('to', background=True)
+  
+  db.status.ensure_index('user_id', background=True)
+  db['s3'].ensure_index('name', background=True)
   
   db.url.ensure_index('url', background=True)
   return True
