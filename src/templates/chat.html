@@ -1,10 +1,13 @@
-<div class="inflow">
+<div class="inflow"> 
+  <div class="positioner"><!-- may not be needed: see notes below-->
   <div class="fixed">
 
     <div class="chatbox" id='chat-{{ user.id }}'>
       <div class="header">
         <a href="#" class="close-icon close" title="Close Chat"></a>
-        {{ user.name }}
+        
+        <i class='{{ user.status }}'></i>
+        <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>
 
       </div>
       <ul class="messages">
@@ -32,6 +35,7 @@
       </form>
     </div>
 
+  </div>
   </div>
 </div>
 
