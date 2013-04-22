@@ -26,9 +26,7 @@
         {% endif %}
         
       </ul>
-      <div class="status hidden">
-        * is typing...
-      </div>
+      <div class="status hidden"></div>
 
       <form action='/user/{{ user.id }}/new_message' method='post'>
         <textarea name='message' placeholder='Write a message...' autofocus required></textarea>
