@@ -1292,9 +1292,10 @@ class Result(Model):
   
 
 class Message(Model):
-  def __init__(self, info, db_name=None):
+  def __init__(self, info, utcoffset=0, db_name=None):
     self.info = info
     self.db_name = db_name
+    self.utcoffset = int(utcoffset)
     
   @property
   def sender(self):
@@ -1315,7 +1316,18 @@ class Message(Model):
   
   @property
   def timestamp(self):
-    return self.info.get('ts', 0)
+    return self.info.get('ts', 0) + self.utcoffset
+    
+  @property
+  def date(self):
+    return api.friendly_format(self.timestamp, short=True).split(' at ')[0]
+  
+  @property
+  def time(self):
+    return api.friendly_format(self.timestamp, short=True).split(' at ')[-1]
+  
+  def get_date(self, short=False):
+    return api.friendly_format(self.timestamp, short=short).split(' at ')[0]
   
   def is_file(self):    
     message = self.info.get('message')

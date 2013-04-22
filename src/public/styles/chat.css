@@ -49,6 +49,14 @@
     overflow-y: auto;
   }
 
+  .chatbox .messages .title {
+    text-align: center;
+background: whitesmoke;
+padding: 5px 0;
+margin: 0 -7px;
+color: gray;
+  }
+  
   .chatbox .message {
     border-bottom: 1px solid #f2f2f2;
     position: relative;
@@ -73,6 +81,8 @@
   .chatbox .message .content {
     margin-left: 40px;
   }
+  
+  
 
   .chatbox form textarea {
     position: absolute;

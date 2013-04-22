@@ -319,7 +319,7 @@ def utctime():
   return float(datetime.utcnow().strftime('%s.%f'))
 
 
-def friendly_format(ts, offset=None, short=False):
+def friendly_format(ts, offset=0, short=False):
   try:
     ts = float(ts)
   except TypeError:
@@ -5269,7 +5269,8 @@ def new_message(session_id, user_id, message, db_name=None):
   
   msg_id = db.message.insert(info)
   info['_id'] = msg_id
-  return Message(info, db_name=db_name)
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
+  return Message(info, utcoffset=utcoffset, db_name=db_name)
 
 
 def get_messages(session_id, user_id, page=1, db_name=None):
@@ -5306,7 +5307,9 @@ def get_messages(session_id, user_id, page=1, db_name=None):
       last_msg = record
   
   messages.append(last_msg)
-  return [Message(i, db_name=db_name) for i in messages]
+  
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
+  return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
       
     
   

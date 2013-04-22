@@ -1956,7 +1956,7 @@ $(document).ready(function(e) {
     
 
   $('#main').on('click', 'a.chat', function() {
-
+    
     var href = $(this).attr('href');
     var user_id = href.split('/')[2];
 
@@ -1964,8 +1964,10 @@ $(document).ready(function(e) {
       return false;
     }
 
+    show_loading();
     $.get(href, function(html) {
-
+      hide_loading();
+      
       box = $(html)
       var box_id = $('.chatbox', box).attr('id')
 
@@ -1974,6 +1976,7 @@ $(document).ready(function(e) {
         $('#chat').prepend(html);
 
         $('#chat #' + box_id + ' textarea').focus();
+        $('#chat #' + box_id + ' .messages').scrollTop(99999);
 
       }
 
@@ -2042,7 +2045,8 @@ $(document).ready(function(e) {
         
         $('textarea', _this).val('').focus();
         $('.status', _boxchat).fadeOut().html('');
-        $('.messages').append(html)
+        $('.messages', _boxchat).append(html);
+        $('.messages', _boxchat).scrollTop(99999);
         
         
       }

@@ -1,10 +1,10 @@
 
         <li class='message'>
           <div class='rfloat ts' data-timestamp='{{ message.timestamp }}'>
-            {{ message.timestamp | friendly_format(short=True) }}
+            {{ message.time }}
           </div>
           <a href='/user/{{ message.sender.id }}' title='{{ message.sender.name }}' class='async lfloat'> 
-            <img class='small-avatar' src='{{ user.avatar }}'> 
+            <img class='small-avatar' src='{{ message.sender.avatar }}'> 
           </a>
           <div class='content'>
             {{ message.content | safe }}

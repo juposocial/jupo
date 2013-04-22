@@ -1,16 +1,26 @@
 <div class="inflow">
   <div class="fixed">
 
-    <div class="chatbox" title='{{ user.name }}' id='chat-{{ user.id }}'>
+    <div class="chatbox" id='chat-{{ user.id }}'>
       <div class="header">
         <a href="#" class="close-icon close" title="Close Chat"></a>
         {{ user.name }}
 
       </div>
       <ul class="messages">
+        {% set last_title = None %}
         {% for message in messages %}
+          {% if message.date != last_title %}
+            <div class='title' title='{{ message.get_date(short=False) }}'>{{ message.date }}</div>
+            {% set last_title = message.date %}
+          {% endif %}
+          
           {% include "message.html" %}
         {% endfor %}
+        
+        {% if messages[-1].date != 'Today' %}
+          <div class='title' title='Today'>Today</div>
+        {% endif %}
         
       </ul>
       <div class="status hidden">
