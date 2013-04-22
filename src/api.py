@@ -5305,7 +5305,8 @@ def get_messages(session_id, user_id, page=1, db_name=None):
   
   user_id = int(user_id)
   
-  records = db.message.find({'$or': [{'from': owner_id}, {'to': user_id}]})\
+  records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
+                                     {'from': user_id, 'to': owner_id}]})\
                       .sort('ts', -1)\
                       .limit(50)
   
