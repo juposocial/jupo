@@ -1,18 +1,21 @@
 div#chat {
   position: absolute;
-right: 300px;
-z-index: 3;
+  right: 300px;
+  z-index: 3;
 }
 
 div.inflow {
   width: 260px;
-  height: 9999px;
-  float: right;
+  height: 1;
+  float: left;
   position: relative;
   margin-right: 50px;
   margin-left: -38px;
 }
-div.positioner {position: absolute; right: 0;} /*may not be needed: see below*/
+div.positioner {
+  position: absolute;
+  right: 0;
+}/*may not be needed: see below*/
 div.fixed {
   position: fixed;
   bottom: 0;
