@@ -1995,7 +1995,7 @@ $(document).ready(function(e) {
                 range.collapse(false);
                 range.select();
             }
-            $(this).trigger('change'); // update textarea height
+            // $(this).trigger('change'); // update textarea height
         }
         else {
           
@@ -2003,7 +2003,25 @@ $(document).ready(function(e) {
           
         }
         return false;
-    } 
+    } else {
+      _this = $(this);
+      var user_id = _this.parents('.chatbox').attr('id').split('-')[1];
+      
+      try {
+        clearTimeout($.global.chat_typing_timeout)
+      } catch (err) {}
+      
+      update_status(user_id + '|is typing...');
+      
+      $.global.chat_typing_timeout = setTimeout(function() {
+        if (_this.val() != '') {
+          update_status(user_id + '|has entered text');
+        } else {
+          update_status(user_id + '|');
+        }
+      }, 2000)
+      
+    }
   })
   
   

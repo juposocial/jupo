@@ -891,12 +891,15 @@ function stream() {
       
     } else if (event.type == 'typing-status') {
       console.log(event.info);
-      if (window.location.href.indexOf(event.info.conversation) != -1) {
-        if (event.info.status == 'typing') {
-          show_typing();
+      var chatbox = $('#chat-' + event.info.user_id)
+      if (chatbox.length != 0) {
+        if (event.info.text != '') {
+          $('div.status', chatbox).html(event.info.text).fadeIn('fast');
         } else {
-          stop_typing();
+          $('div.status', chatbox).fadeOut('fast');
         }
+        
+        
       }
     } else if (event.type == 'unread-feeds' && window.location.pathname.indexOf('/group/') == -1) {
   
@@ -1257,6 +1260,10 @@ function stream() {
         }
       } else {
         $('.messages', boxchat).append(_msg);
+      }
+      
+      if ($('div.status', boxchat).html().indexOf('Sending...') == -1) {
+        $('div.status', boxchat).fadeOut('fast');
       }
       
       setTimeout(function() {

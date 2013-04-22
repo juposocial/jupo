@@ -6,7 +6,7 @@ div#chat {
 
 div.inflow {
   width: 260px;
-  height: 1;
+  height: 1px;
   float: left;
   position: relative;
   margin-right: 50px;
@@ -112,12 +112,12 @@ div.fixed {
 }
 
 .chatbox .status {
-  position: absolute;
-  bottom: 30px;
-  padding: 4px 7px 6px;
-  font-size: 11px;
-  color: gray;
-  text-align: right;
-  width: 246px;
-  text-shadow: 0 0 10px white;
+position: absolute;
+bottom: 28px;
+padding: 4px 7px 6px;
+font-size: 11px;
+color: grey;
+text-align: right;
+width: 246px;
+text-shadow: 0 2px 10px #eee;
 }

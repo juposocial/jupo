@@ -1214,10 +1214,14 @@ def set_status(session_id, status):
     return False
   
   if '|' in status:
-    parts = status.split('|')
-    publish(parts[1], 'typing-status', 
-            {"conversation": '%s|%s' % (parts[1], parts[0]),
-                                        "status": parts[2]})
+    uid, status = status.split('|')
+    user = get_user_info(int(uid))
+    if status:
+      text = user.name + ' ' + status
+    else:
+      text = ''
+    push_queue.enqueue(publish, int(uid), 'typing-status', 
+                       {'user_id': str(user_id), 'text': text}, db_name=db_name)
   else:
     key = 'status:%s' % user_id
     cache.set(key, status)
