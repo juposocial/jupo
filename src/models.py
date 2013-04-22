@@ -401,7 +401,9 @@ class User(Model):
   
   @property
   def contacts(self):
-    return [api.get_user_info(user_id) for user_id in self.contact_ids]
+    users = [api.get_user_info(user_id) for user_id in self.contact_ids]
+    users.sort(key=lambda k: k.last_online, reverse=True)
+    return users
   
   @property
   def following_details(self):

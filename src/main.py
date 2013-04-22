@@ -1430,19 +1430,17 @@ def contacts():
   user_id = api.get_user_id(session_id)
   owner = api.get_user_info(user_id)
   suggested_friends = api.get_friend_suggestions(owner.to_dict())
-  coworkers = api.get_coworkers(session_id)
-#  groups = api.get_groups(session_id)
+#  coworkers = api.get_coworkers(session_id)
 
   if request.method == 'GET':
     return render_homepage(session_id, 'Contacts',
                            suggested_friends=suggested_friends,
-                           coworkers=coworkers,
+#                           coworkers=coworkers,
                            view='people')
   else:
     body = render_template('people.html',
-#                           groups=groups, 
                            suggested_friends=suggested_friends,
-                           coworkers=coworkers,
+#                           coworkers=coworkers,
                            owner=owner)
     resp = Response(dumps({'body': body,
                            'title': 'Contacts'}))
