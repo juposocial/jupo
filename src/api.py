@@ -12,6 +12,7 @@ import socket
 import base64
 import hashlib
 import logging
+import calendar
 import requests
 import mimetypes
 
@@ -74,6 +75,7 @@ import filters
 import settings
 
 requests.adapters.DEFAULT_RETRIES = 3
+months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
 
 # switch from the default ASCII to UTF-8 encoding
 reload(sys)
