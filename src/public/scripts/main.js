@@ -1976,8 +1976,10 @@ $(document).ready(function(e) {
         $('#chat').prepend(html);
 
         $('#chat #' + box_id + ' textarea').focus();
-        $('#chat #' + box_id + ' .messages').scrollTop(99999);
-
+        
+        setTimeout(function() {
+          $('#chat #' + box_id + ' .messages').scrollTop(99999);
+        }, 10)
       }
 
     });
@@ -2046,8 +2048,10 @@ $(document).ready(function(e) {
         $('textarea', _this).val('').focus();
         $('.status', _boxchat).fadeOut().html('');
         $('.messages', _boxchat).append(html);
-        $('.messages', _boxchat).scrollTop(99999);
         
+        setTimeout(function() {
+          $('.messages', _boxchat).scrollTop(99999);
+        }, 10)
         
       }
     });
