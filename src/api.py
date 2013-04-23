@@ -1216,10 +1216,10 @@ def set_status(session_id, status):
     return False
   
   if '|' in status:
-    uid, status = status.split('|')
+    uid, _status = status.split('|')
     user = get_user_info(user_id)
-    if status:
-      text = user.name + ' ' + status
+    if _status:
+      text = user.name + ' ' + _status
     else:
       text = ''
     push_queue.enqueue(publish, int(uid), 'typing-status', 
@@ -5395,7 +5395,7 @@ def get_chat_history(session_id, user_id, page=1, db_name=None):
   for record in records:
     print record
     if last_msg and record.get('from') == last_msg.get('from') and (record.get('ts') - last_msg.get('ts')) < 120:
-      last_msg['msg'] += '<br>' + record.get('msg')
+      last_msg['msg'] += '\n' + record.get('msg')
       last_msg['ts'] = record.get('ts')
       last_msg['msg_ids'].append(record.get('_id'))
     else:

@@ -7,7 +7,7 @@
     <img class="small-avatar" src="{{ message.sender.avatar }}"> 
   </a>
   <div class="content">
-    {{ message.content | autoemoticon | autolink | safe }}
+    {{ message.content | autolink | autoemoticon | nl2br | safe }}
   </div>
 </li>
 
