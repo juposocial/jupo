@@ -1,12 +1,16 @@
 
-
-{% for user in users %}
+{% for user in friends_online %}
   {% set status = user.status %}
-  {% if status in ['online', 'away'] %}
-    <li class='status {{ status}}' id='user-{{ user.id }}'>
-        <a href='/chat/{{ user.id }}' title='{{ user.name }}<br>{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}' class='chat'>
-          <img src="{{ user.avatar }}" class='medium-avatar'>
-        </a>
-    </li>
-  {% endif %}
+  
+  <li class='status {{ status}}' id='user-{{ user.id }}'>
+      <a href='/chat/{{ user.id }}' title='{{ user.name }}<br>{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}' class='chat'>
+        <img src="{{ user.avatar }}" class='medium-avatar'>
+      </a>
+  </li>
 {% endfor %}
+
+
+<div class='empty {% if friends_online %}hidden{% endif %}'>
+  No one is available to chat
+</div>
+

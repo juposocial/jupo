@@ -981,8 +981,13 @@ ul#friends-online div.online-now a,
 ul#groups-nav div.groups a {
   color: #333;
   font-weight: bold;
-  text-transform: uppercase;
-  font-size: 9px;
+  font-size: 10px;
+}
+
+ul#friends-online div.empty {
+  font-size: 10px;
+  text-align: right;
+  color: gray;
 }
 
 div#members {
@@ -5089,6 +5094,7 @@ section > footer {
   margin: 7px -15px 0;
   font-size: 11px;
   box-shadow: inset 0 5px 5px -4px rgba(34, 113, 168, 0.35);
+  color: #444;
 }
 
 /*#overlay li.feed:not(.note) section > article {
@@ -5178,8 +5184,7 @@ img.medium-avatar:hover {
 }
 
 img.medium-avatar:active {
-  margin-top: 1px;
-  opacity: 0.99;
+  opacity: 0.9;
 }
 
 li.feed > a {

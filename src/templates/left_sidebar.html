@@ -55,7 +55,6 @@
   {% else %}
 
 
-  {% cache 'main-nav:%s' % view, 86400 %}
   <ul id="main-nav">
     <li id='welcome'>
       <a href="/welcome" class="{% if view == 'welcome' %}active async{% else %}async{% endif %}"> Welcome </a>
@@ -93,7 +92,6 @@
     </li>
 
   </ul>
-  {% endcache %}
 
   <ul id="groups-nav">
     <div class="groups">
@@ -131,13 +129,10 @@
       
   <ul id="friends-online">
     <div class="online-now">
-      <a href='/contacts' class='async'>Online (<span class='online-count'>0</span>)</a>
+      <a href='/messages' class='async'>Chat (<span class='online-count'>0</span>)</a>
     </div>
   
-    {% if friends_online %}
-      {% set users = friends_online %}
-      {% include 'friends_online.html' %}
-    {% endif %}
+    {% include 'friends_online.html' %}
   </ul>
 
   {% endblock %}

@@ -855,8 +855,14 @@ function stream() {
         $('ul#friends-online').prepend(event.info);
       }
       
+      var online_count = $('#friends-online li.status.online').length + $('#friends-online li.status.away').length;
+      $('.online-now .online-count').html(online_count);
       
-      $('.online-now .online-count').html($('#friends-online li.status.online').length + $('#friends-online li.status.away').length);
+      if (online_count == 0) {
+        $('#friends-online div.empty').removeClass('hidden');
+      } else {
+        $('#friends-online div.empty').addClass('hidden');
+      }
       
       refresh('ul#friends-online');
   
@@ -994,7 +1000,8 @@ function stream() {
             if (user_id != owner_id) {
               
                   show_notification(avatar, username, msg, 10000, function() {
-                    window.open('/post/' + feed_id.split('-')[1] + '#' + comment.attr('id'), '_blank', 'width=550px,height=300,resizable=0,alwaysRaised=1,location=0,links=0,scrollbars=0,toolbar=0')
+                    // window.open('/post/' + feed_id.split('-')[1] + '#' + comment.attr('id'), '_blank', 'width=550px,height=300,resizable=0,alwaysRaised=1,location=0,links=0,scrollbars=0,toolbar=0')
+                    window.focus();
                   })
             }
       

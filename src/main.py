@@ -79,7 +79,8 @@ def render_homepage(session_id, title, **kwargs):
     owner = None
 #  friends_online = api.get_online_coworkers(session_id)
   if owner:
-    friends_online = owner.contacts
+    friends_online = [i for i in owner.contacts \
+                      if i.status in ['online', 'away']]
     friends_online.sort(key=lambda k: k.last_online, reverse=True)
     groups = api.get_groups(session_id, limit=3)
     for group in groups[:3]:

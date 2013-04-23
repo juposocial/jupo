@@ -5210,6 +5210,8 @@ def ensure_index(db_name=None):
   
   db.message.ensure_index('from', background=True)
   db.message.ensure_index('to', background=True)
+  db.message.ensure_index('owner', background=True)
+  db.message.ensure_index('user_id', background=True)
   
   db.status.ensure_index('user_id', background=True)
   db['s3'].ensure_index('name', background=True)
