@@ -757,7 +757,7 @@ $(document).ready(function(e) {
     // Reset attachments container
     $('div#attachments', form).empty();
 
-    $("textarea", form).css('height', 'auto');
+    $("textarea", form).css('height', '');
 
     $.ajax({
       type: "POST",
@@ -1007,7 +1007,7 @@ $(document).ready(function(e) {
         // Clear and reset comment box
         $('#' + comments_list_id + " form.new-comment input[name='reply_to']").val('');
         $('#' + comments_list_id + " form.new-comment textarea.mention").val('').focus();
-        $('#' + comments_list_id + " form.new-comment textarea.mention").css('height', '26px');
+        // $('#' + comments_list_id + " form.new-comment textarea.mention").css('height', '26px');
         // reset textarea height
 
         $('#' + comments_list_id + ' form.new-comment div.attachments').empty();
@@ -1078,7 +1078,7 @@ $(document).ready(function(e) {
       mention_textarea.caretToEnd();
     }
     // $('li.new-comment textarea', comments_list).elastic();
-    mention_textarea.css('height', '26px');
+    // mention_textarea.css('height', '26px');
 
     preload_autocomplete();
     
@@ -2066,6 +2066,7 @@ $(document).ready(function(e) {
         
         $('textarea', _this).attr("readonly", false);
         $('textarea', _this).val('').focus();
+        $("textarea", _this).css('height', "");
         
         var msg = $(data);
 

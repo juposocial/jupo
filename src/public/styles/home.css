@@ -2345,18 +2345,20 @@ form.new textarea {
 
 form.new #message textarea.mention {
   width: 100%;
+  padding: 4px 5px;
+  height: 26px;
+  min-height: 26px;
+  max-height: 250px;
   display: block;
   overflow: hidden;
   position: relative;
   outline: 0;
   box-shadow: none;
   resize: none;
-  padding: 3px 5px;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
   background: transparent;
-  height: 26px;
 }
 
 form.new input[type='submit']:focus {
@@ -5889,7 +5891,7 @@ li.note section header, li.hide-article section header  {
 
 
 form.new #notes a.overlay {
-  padding: 6px 10px;
+  padding: 6px 10px 5px;
   display: block;
 }
 

@@ -12,7 +12,9 @@ function start_chat(user_id) {
     hide_loading();
     
     $('#chat').prepend(html);
-
+    
+    $('#chat #chat-' + user_id + ' form textarea').elastic();
+  
     $('#chat #chat-' + user_id + ' .messages').animate({
         scrollTop: 99999
     }, 'fast');
@@ -1783,8 +1785,6 @@ function refresh(element) {
   $('div.tipsy').remove();
 
   $(element + " img.medium-avatar, img.small-avatar, img.micro-avatar").fixBroken();
-  
-  // $(element + ' > form.new .mentions-input-box textarea').css('height', '28px');
   
   
   // remove custome style (in email) if exists

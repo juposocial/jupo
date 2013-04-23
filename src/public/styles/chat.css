@@ -120,6 +120,8 @@ div.fixed {
   height: 20px;
   padding: 5px 7px;
   width: 246px;
+  max-height: 75px;
+  line-height: 16px;
 }
 
 .chatbox .status {
