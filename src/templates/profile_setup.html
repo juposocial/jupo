@@ -62,7 +62,7 @@
 
 {% block stylesheets %}
 
-  {% assets filter="cssmin", 
+  {% assets filters="cssmin", 
             output="post.css",
             "styles/normalize.css",
             "styles/animations.css",
@@ -77,7 +77,7 @@
 
   <script type='text/javascript' src='//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
   
-  {% assets filter="jspacker", 
+  {% assets filters="jspacker", 
             output="lib.js",
             'scripts/disable_console_log.js',
             'scripts/detect_timezone.min.js',
@@ -109,7 +109,7 @@
 
 {% block bottom_scripts %}
 
-  {% assets filter="jspacker", 
+  {% assets filters="jspacker", 
             output="post.js",
             "scripts/main.js" %}
             

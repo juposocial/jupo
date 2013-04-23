@@ -195,7 +195,7 @@
   
   
   {% else %}
-    {% assets filter="cssmin", 
+    {% assets filters="cssmin", 
               output="style.css",
               "styles/normalize.css",
               "styles/animations.css",
@@ -231,7 +231,7 @@
     <script type='text/javascript' src='/public/scripts/functions.js'></script>
   
   {% else %}
-    {% assets filter="jsmin", 
+    {% assets filters="jsmin", 
               output="lib.js",
               'scripts/disable_console_log.js',
               'scripts/detect_timezone.min.js',
@@ -268,7 +268,7 @@
     <script type='text/javascript' src='/public/scripts/guiders-1.2.7.js'></script>
     
   {% else %}  
-    {% assets filter="jsmin", 
+    {% assets filters="jsmin", 
               output="core.js",
               "scripts/main.js",
               "scripts/guiders-1.2.7.js" %}
