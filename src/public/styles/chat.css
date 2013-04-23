@@ -139,3 +139,117 @@ div.fixed {
   line-height: 14px;
   border-top-left-radius: 5px;
 }
+
+
+
+
+
+
+@-moz-keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+@-webkit-keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+@-o-keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+@-ms-keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+@keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+
+.chatbox.unread .header {
+  -webkit-animation: bgflash 2s infinite;
+  -moz-animation: bgflash 2s infinite;
+  -o-animation: bgflash 2s infinite;
+  animation: bgflash 2s infinite;
+  
+}

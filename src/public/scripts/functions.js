@@ -842,7 +842,7 @@ function stream() {
           else {
             $.global.offline_notification_timer_done = true;
             show_notification(user.avatar, user.name, 'is ' + user.status, 5000, function() {
-              window.open('/user/' + user.id);
+              window.focus();
             })
           }
         }
@@ -1250,6 +1250,25 @@ function stream() {
       
       if (sender_id != owner_id) {
         $('#chat-' + user_id).addClass('unread');
+        
+        
+        var username = $('a.async[title]', msg).attr('title');
+        var avatar = $('a.async[title] img.small-avatar', msg).attr('src');
+        var message_content = $('div.content', msg).html();
+        
+        // flashing message in the browser title bar
+        $.titleAlert(username + " messaged you", {
+            requireBlur: true,
+            stopOnFocus: true,
+            duration: 0,
+            interval: 2000
+        });
+        
+        // show desktop notification
+        show_notification(avatar, username, message_content, 5000, function() {
+          window.focus();
+        })
+        
       }
       
       

@@ -1814,6 +1814,7 @@ def group(group_id=None, view='group', page=1):
 
 @app.route('/chat/<int:user_id>', methods=['GET', 'OPTIONS'])
 @app.route('/chat/<int:user_id>/<action>', methods=['POST'])
+@login_required
 def chat(user_id, action=None):
   session_id = session.get("session_id")
   
@@ -1850,6 +1851,8 @@ def chat(user_id, action=None):
     
 
 @app.route("/messages", methods=['GET', 'OPTIONS'])
+@login_required
+@line_profile
 def messages():
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
