@@ -2052,6 +2052,8 @@ $(document).ready(function(e) {
     var _boxchat = _this.parents('.chatbox');
     var last_msg = $('li.message:last', _boxchat);
     
+    $('textarea', _this).attr('readonly', 'readonly')
+    
     $.ajax({
       type: "POST",
       headers: {
@@ -2062,6 +2064,7 @@ $(document).ready(function(e) {
       dataType: "html",
       success: function(data) {
         
+        $('textarea', _this).attr("readonly", false);
         $('textarea', _this).val('').focus();
         
         var msg = $(data);

@@ -105,6 +105,11 @@ div.fixed {
   color: #444;
 }
 
+.chatbox form textarea[readonly] {
+  background: #eee;
+  color: #999;
+}
+
 .chatbox form textarea {
   position: absolute;
   bottom: 0;
