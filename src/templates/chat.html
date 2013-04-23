@@ -28,7 +28,7 @@
       </ul>
       
               
-      {% if messages[-1].sender.id == owner.id and messages[-1].timestamp < last_viewed %}
+      {% if messages and (messages[-1].sender.id == owner.id) and (messages[-1].timestamp < last_viewed) %}
         <div class="status">Seen {{ last_viewed_friendly_format }}</div>
       {% else %}
         <div class="status hidden"></div>

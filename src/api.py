@@ -5315,6 +5315,7 @@ def get_messages(session_id, page=1, db_name=None):
                                    {'from': owner_id, 'to': user_id}]})\
                     .sort('ts', -1)\
                     .limit(1)
+    msg = list(msg)
     if msg:
       msg = msg[0]
       
