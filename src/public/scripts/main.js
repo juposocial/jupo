@@ -1968,6 +1968,8 @@ $(document).ready(function(e) {
       $('html').trigger('click');
     }
     
+    close_popup();
+    
     return false;
 
   })

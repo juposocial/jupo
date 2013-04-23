@@ -1,0 +1,39 @@
+<div id="page-header" class='search'>
+  <form action='/search?type=people' method='post'>
+    <input autofocus type='text' name='query' placeholder="Search people">
+
+  </form>
+  <h2>Contacts</h2>
+</div>
+
+<ul class='people'>
+  {% set contacts = owner.contacts %}
+  {% if contacts %}
+    {% for user in contacts %}
+      {% if user.email %}
+    
+        <li>
+          <a class='button chat' href='/chat/{{ user.id }}'>Start Chat</a>
+      
+          <img class='small-avatar lfloat' src='{{ user.avatar }}'>
+      
+          <a href='/user/{{ user.id }}' class='async user'> {{ user.name }} </a>
+          <i class='{{ user.status }}'></i>
+          <br>
+      
+          {% set last_online = user.last_online %}
+          <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>
+            {{ last_online | friendly_format(owner.utcoffset, short=True) }}
+          </time>
+      
+        </li>
+    
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <li>
+      Your contact list is empty. <a href="/search?type=email&ref=everyone" class="popup">Invite people by Email</a>
+    </li>
+  {% endif %}
+</ul>
+

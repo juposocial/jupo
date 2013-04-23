@@ -1433,22 +1433,11 @@ def contacts():
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
   owner = api.get_user_info(user_id)
-  suggested_friends = api.get_friend_suggestions(owner.to_dict())
-#  coworkers = api.get_coworkers(session_id)
-
-  if request.method == 'GET':
-    return render_homepage(session_id, 'Contacts',
-                           suggested_friends=suggested_friends,
-#                           coworkers=coworkers,
-                           view='people')
-  else:
-    body = render_template('people.html',
-                           suggested_friends=suggested_friends,
-#                           coworkers=coworkers,
-                           owner=owner)
-    resp = Response(dumps({'body': body,
-                           'title': 'Contacts'}))
-    return resp      
+  body = render_template('contacts.html',
+                         owner=owner)
+  return Response(dumps({'body': body,
+                         'title': 'Contacts'}), 
+                  mimetype='application/json')  
   
   
 @app.route('/find_groups', methods=['OPTIONS'])
