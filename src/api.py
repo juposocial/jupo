@@ -1727,13 +1727,9 @@ def get_notifications(session_id, limit=25):
         results[i.date][id].append(i)
         user_ids[id].append(i.sender.id)
         
-#    print id, user_ids
-      
-      
     
-    
-        
   return results
+
   
 def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   if not db_name:
@@ -5334,9 +5330,53 @@ def get_messages(session_id, page=1, db_name=None):
   
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
   return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
-      
 
 
+def get_unread_messages_count(session_id, user_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  if user_id:
+    user_id = int(user_id)
+    last_viewed = get_last_viewed(owner_id, user_id, db_name=db_name)
+    return db.message.find({'$or': [{'from': user_id, 'to': owner_id},
+                                    {'from': owner_id, 'to': user_id}],
+                            'ts': {'$gt': last_viewed}}).count()
+  
+  else:
+    count = 0
+    records = db.message.find({'owner': owner_id})
+    for record in records:
+      user_id = record.get('user_id')
+      count += get_unread_messages_count(session_id, user_id, db_name=db_name)
+    return count
+  
+
+def get_unread_messages(session_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  out = []
+  records = db.message.find({'owner': owner_id})
+  for record in records:
+    uid = record.get('user_id')
+    count = get_unread_messages_count(session_id, uid, db_name=db_name)
+    if count > 0:
+      out.append({'sender': get_user_info(uid, db_name=db_name), 
+                  'unread_count': count})
+  return out
+    
+    
 def get_last_viewed(owner_id, user_id, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -5411,7 +5451,6 @@ def get_chat_history(session_id, user_id, page=1, db_name=None):
   return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
       
     
-  
   
   
 

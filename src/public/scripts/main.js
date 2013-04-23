@@ -1954,7 +1954,7 @@ $(document).ready(function(e) {
   })
 
 
-  $('#main').on('click', 'a.chat', function() {
+  $('#global').on('click', 'a.chat', function() {
     
     var href = $(this).attr('href');
     var user_id = href.split('/')[2];
@@ -1962,6 +1962,12 @@ $(document).ready(function(e) {
     start_chat(user_id);
     
     $(this).removeClass('unread');
+    
+    // hide notification center 
+    if ($('nav ul.notifications').is(':visible')) {
+      $('html').trigger('click');
+    }
+    
     return false;
 
   })

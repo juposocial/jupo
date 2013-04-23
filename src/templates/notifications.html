@@ -9,7 +9,7 @@
 </header>
 
 
-  {% if not notifications %}
+  {% if not notifications and not unread_messages %}
   
     <ul>
        <span class="empty">You have no new notifications</span> 
@@ -18,6 +18,20 @@
   {% else %}
  
     <ul> 
+      
+        {% if unread_messages %}
+          {% for message in unread_messages %}
+            <li>  
+              <a href='/chat/{{ message.sender.id }}' class='chat'>
+                <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>    
+                <span class='username'>{{ message.sender.name }}</span><br>
+                <span class='info'>{{ message.unread_count }} unread chat messages</span>
+             
+              </a>
+            </li>
+          {% endfor %}
+        {% endif %}
+      
         {% autoescape on %}
             
           {% for title, items in notifications.iteritems() %}

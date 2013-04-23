@@ -85,7 +85,9 @@ def render_homepage(session_id, title, **kwargs):
     for group in groups[:3]:
       group.unread_posts = api.get_unread_posts_count(session_id, group.id)
     
-    unread_notification_count = api.get_unread_notifications_count(session_id)
+    unread_messages_count = api.get_unread_messages_count(session_id)
+    unread_notification_count = api.get_unread_notifications_count(session_id)\
+                              + unread_messages_count
     
   else:
     friends_online = []
@@ -113,6 +115,7 @@ def render_homepage(session_id, title, **kwargs):
                                   title=title, 
                                   groups=groups,
                                   friends_online=friends_online,
+                                  unread_messages_count=unread_messages_count,
                                   unread_notification_count=unread_notification_count,
                                   stats=stats,
                                   debug=settings.DEBUG,
@@ -2677,16 +2680,19 @@ def notifications():
   session_id = session.get("session_id")
     
   notifications = api.get_notifications(session_id)
+  unread_messages = api.get_unread_messages(session_id)
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
     body = render_template('notifications.html',
                            owner=owner, 
+                           unread_messages=unread_messages,
                            notifications=notifications)
     resp = {'body': body,
             'title': 'Notifications'}
     
-    unread_count = api.get_unread_notifications_count(session_id)
+    unread_count = api.get_unread_notifications_count(session_id) \
+                 + api.get_unread_messages_count(session_id)
     
     if unread_count:
       #  mark as read luôn các notifications không quan trọng
@@ -2700,6 +2706,7 @@ def notifications():
   else:
     return render_homepage(session_id, 'Notifications',
                            notifications=notifications,
+                           unread_messages=unread_messages,
                            view='notifications')
 
 

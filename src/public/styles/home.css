@@ -3276,6 +3276,15 @@ div#overlay #close {
   top: 35px;
 }
 
+ul.notifications a.chat span.username {
+  font-size: 12px;
+}
+
+ul.notification a.chat span.info {
+  float: left;
+  margin-top: -2px;
+}
+
 
 ul.notifications li > a {
   padding: 5px 25px 5px 55px !important;
@@ -3283,6 +3292,7 @@ ul.notifications li > a {
   border: 1px solid transparent;
   overflow: hidden;
   font-size: 11px;
+  min-height: 36px;
 }
 
 ul.notifications img.small-avatar {
