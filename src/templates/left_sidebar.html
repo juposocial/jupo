@@ -133,6 +133,11 @@
     </div>
   
     {% include 'friends_online.html' %}
+    
+    <div class='empty {% if friends_online %}hidden{% endif %}'>
+      No one is available to chat
+    </div>
+    
   </ul>
 
   {% endblock %}
