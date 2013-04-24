@@ -820,12 +820,16 @@ $(document).ready(function(e) {
       update_form.removeClass('hidden');
       $('#' + comment_id + ' div.message').addClass('hidden')
       $('#' + comment_id + ' div.footer').addClass('hidden');
-      text = $('#' + comment_id + ' textarea[name="message"]').data('prefill');
-      $('#' + comment_id + ' textarea._elastic').val(text);
+      text = $('.raw-message', update_form).text();
+      setTimeout(function() {
+        $('textarea.mention', update_form).val(text);
+        $('textarea.mention', update_form).mentionsInput("update");
+        $('textarea.mention', update_form).focus();
+      }, 10)
+      
+      
     }
     
-    $('textarea.mention', update_form).mentionsInput("update");
-    $('textarea.mention', update_form).focus();
   })
   
   
@@ -838,7 +842,6 @@ $(document).ready(function(e) {
     });
     
     var textarea = $('textarea.mention', this);
-    textarea.css('background', '#f1f1f1');
     textarea.attr('readonly', 'readonly');
     
     
@@ -856,10 +859,9 @@ $(document).ready(function(e) {
       success: function(text) {
         
         textarea.attr("readonly", false);
-        textarea.attr('background', '#fff');
         
         $('#' + comment_id + ' div.message .text').html(text);
-        $('#' + comment_id + ' div.update-comment textarea[name="message"]').data('prefill', text);
+        $('#' + comment_id + ' div.update-comment .raw-comment').html(text);
         
         $('#' + comment_id + ' div.update-comment').addClass('hidden');
         $('#' + comment_id + ' a.update-comment').removeClass('hidden');
@@ -933,7 +935,6 @@ $(document).ready(function(e) {
     submit_button.attr('disabled', 'disabled');
     
     var textarea = $('textarea.mention', this);
-    textarea.css('background', '#f1f1f1');
     textarea.attr('readonly', 'readonly');
     
     comments_list_id = $(this).parents('ul.comments').attr('id');
@@ -970,7 +971,6 @@ $(document).ready(function(e) {
         submit_button.val(submit_button_text);
         submit_button.attr('disabled', false);
         textarea.attr("readonly", false);
-        textarea.css('background', '#fff');
       },
       success: function(resp) {
         // var offset_top = null;
@@ -993,7 +993,8 @@ $(document).ready(function(e) {
         submit_button.val(submit_button_text);
         submit_button.attr('disabled', false);
         textarea.attr("readonly", false);
-        textarea.css('background', '#fff');
+        textarea.css('height', '');
+        textarea.mentionsInput('reset');
         
         // remove read-receipts
         // $('#body #' + feed_id + ' a.quick-stats .receipt-icon').remove();
@@ -2006,10 +2007,13 @@ $(document).ready(function(e) {
   })
   
   
+  $('#chat').on('resize', 'textarea._elastic', function(e) {
+    console.log('resized')
+  })
+  
   
   $('#chat').on('keydown', 'textarea', function(e) {
     if (e.keyCode == 13) {    // Enter
-      console.log(e.keyCode)
         if (e.ctrlKey || e.shiftKey) {
             var val = this.value;
             if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
@@ -2023,7 +2027,6 @@ $(document).ready(function(e) {
                 range.collapse(false);
                 range.select();
             }
-            // $(this).trigger('change'); // update textarea height
         }
         else {
           

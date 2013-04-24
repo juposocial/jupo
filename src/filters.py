@@ -183,7 +183,7 @@ def autolink(text):
         
   for url in urls:
     s = s.replace(md5(url).hexdigest(), url)
-    if len(url) > 70 and not url.startswith('http'):
+    if len(url) > 70 and url.startswith('http'):
       s = s.replace(md5(url[:70] + '...').hexdigest(), url[:70] + '...')
       
   
@@ -441,7 +441,12 @@ def friendly_format(ts, offset=None, short=False):
     ts = ts + int(offset)
   
   if short:
-    now = datetime.today()
+    now = api.utctime()
+    if offset:
+      now = now + int(offset)
+    
+    now = datetime.fromtimestamp(now)
+    
     ts = datetime.fromtimestamp(int(ts))
     delta = datetime(now.year, now.month, now.day, 23, 59, 59) - ts
     

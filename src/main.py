@@ -97,10 +97,8 @@ def render_homepage(session_id, title, **kwargs):
   else:
     friends_online = []
     groups = []
+    unread_messages_count = 0
     unread_notification_count = 0
-#  if owner:
-#    owner.recent_notes = api.get_notes(session_id, limit=3)
-#    owner.recent_files = api.get_files(session_id, limit=3)
   
   if kwargs.has_key('stats'):  
     stats = kwargs.pop('stats')
@@ -2050,7 +2048,6 @@ def news_feed(page=1):
 
 
 @app.route("/feed/new", methods=['POST'])
-@app.route("/feed/<int:owner_id>/new", methods=['POST'])
 @app.route("/feed/<int:feed_id>", methods=['GET', 'OPTIONS'])
 @app.route("/post/<int:feed_id>", methods=['GET'])
 @app.route("/feed/<int:feed_id>/<action>", methods=["POST"])
@@ -2061,7 +2058,7 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
 @line_profile
-def feed_actions(feed_id=None, action=None, owner_id=None, 
+def feed_actions(feed_id=None, action=None, 
                  message_id=None, domain=None, comment_id=None):
   session_id = session.get("session_id")
   
@@ -2274,6 +2271,9 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
                            message, feed_id, attachments, 
                            reply_to=reply_to,
                            from_addr=from_addr)
+    
+    if not info:
+      abort(400)
     
     item = {'id': feed_id}
     html = render_template('comment.html', 

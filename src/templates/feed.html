@@ -456,7 +456,7 @@
                   {% if url.raw_size %}<span class='gray'>({{ url.size }})</span>{% endif %}
                 </div>
           </div>
-        {% elif ('www.youtube.com/' in feed.message or 'youtu.be/' in feed.message) and '</iframe>' not in feed.message %}
+        {% elif (('www.youtube.com/' in feed.message and '?v=' in feed.message) or 'youtu.be/' in feed.message) and '</iframe>' not in feed.message %}
           <div class='embed-code'>
             {% autoescape on %}
               {{ url.url | to_embed_code(475, 267) }}

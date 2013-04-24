@@ -3039,7 +3039,9 @@ def new_comment(session_id, message, ref_id,
   
   # send notification
   info = db.stream.find_one({'_id': long(ref_id)})
-
+  if not info:
+    return False
+  
   owner_id = info.get('owner')
   viewers = info.get('viewers')
   
@@ -3602,7 +3604,8 @@ def new_note(session_id, title, content, attachments=None, viewers=None):
   if not user_id:
     return False
   
-  viewers = [long(i) for i in viewers]
+  viewers = [long(i) if str(i).isdigit() else 'public' for i in viewers]
+  
   viewers.append(user_id)
   viewers = list(set(viewers))
   
@@ -3997,7 +4000,7 @@ def new_file(session_id, attachment_id, viewers=None):
   
   if viewers:
     viewers = [long(user) if user != 'public' else 'public' \
-               for user in viewers ]
+               for user in viewers]
   else:
     viewers = []
   viewers.append(user_id)
@@ -5107,11 +5110,13 @@ def like(session_id, item_id, post_id=None):
     return False
   
   db.like.insert({'user_id': user_id,
-                        'item_id': item_id,
-                        'timestamp': utctime()})
+                  'item_id': item_id,
+                  'timestamp': utctime()})
   
     
-  record = get_record(post_id)
+  record = get_record(post_id, db_name=db_name)
+  if not record:
+    return False
   
   viewers = record.get('viewers', [])
   viewers.append(user_id)
@@ -5160,8 +5165,9 @@ def unlike(session_id, item_id, post_id=None):
   
   db.like.remove({'user_id': user_id, 'item_id': item_id})
   
-    
-  record = get_record(post_id)
+  record = get_record(post_id, db_name=db_name)
+  if not record:
+    return False
   
   viewers = record.get('viewers', [])
   viewers.append(user_id)

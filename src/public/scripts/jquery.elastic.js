@@ -103,7 +103,6 @@
 
         // Sets a given height and overflow state on the textarea
         function setHeightAndOverflow(height, overflow) {
-
           var curratedHeight = Math.floor(parseInt(height, 10));
           if ($textarea.height() !== curratedHeight) {
             $textarea.css({'height': curratedHeight + 'px','overflow':overflow});
@@ -119,7 +118,7 @@
 
           // Get curated content from the textarea.
           var textareaContent = $textarea.val().replace(/&/g, '&amp;').replace(/ {2}/g, '&nbsp;').replace(/<|>/g, '&gt;').replace(/\n/g, '<br />');
-          
+
           // Compare curated content with curated twin.
           var twinContent = $twin.html().replace(/<br>/ig, '<br />');
 
@@ -129,9 +128,9 @@
             $twin.html(textareaContent + '&nbsp;');
 
             // Change textarea height if twin plus the height of one line differs more than 3 pixel from textarea height
-            if(Math.abs($twin.height() - $textarea.height()) > 3){
+            if (Math.abs($twin.outerHeight() + lineHeight - $textarea.outerHeight()) > 3) {
 
-              var goalheight = $twin.height();
+              var goalheight = $twin.outerHeight();
               if (goalheight >= maxheight) {
                 setHeightAndOverflow(maxheight, 'auto');
               } else if (goalheight <= minheight) {

@@ -15,7 +15,9 @@
         
         
             <textarea class="mention"></textarea>
-            <textarea name="message" class="marked-up hidden" data-prefill='{{ comment.message | safe }}'></textarea>
+            
+            <span class='raw-message hidden'>{{ comment.message | safe }}</span>
+            <textarea name="message" class="marked-up hidden"></textarea>
       </form>
       
       
@@ -111,7 +113,7 @@
           <div class="file-attachment">
                 <a href='{{ url.url }}' rel="gallery"><img src='{{ url.url }}' width="200" title='{{ url.basename }}'/></a>
           </div>
-        {% elif ('www.youtube.com/' in comment.message or 'youtu.be/' in comment.message) and '</iframe>' not in comment.message %}
+        {% elif (('www.youtube.com/' in comment.message and '?v=' in comment.message) or 'youtu.be/' in comment.message) and '</iframe>' not in comment.message %}
           <div class='embed-code'>
             {% autoescape on %}
               {{ url.url | to_embed_code }}

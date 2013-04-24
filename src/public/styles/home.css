@@ -312,6 +312,10 @@ font-size: 14px;
 line-height: 30px;
 }
 
+#page-header.user div.title {
+  line-height: 14px;
+}
+
 #page-header div.title .img {
   min-width: 16px;
   display: inline-block;
@@ -2350,7 +2354,7 @@ form.new textarea {
 
 form.new #message textarea.mention {
   width: 100%;
-  padding: 4px 5px;
+  padding: 3px 5px;
   height: 26px;
   min-height: 26px;
   max-height: 250px;
@@ -2896,6 +2900,10 @@ li.comment div.embed-code iframe {
 li.comment a.remove-comment, li.comment a.update-comment {
   float: right;
   position: relative;
+}
+
+ul.comments textarea.mention[readonly] {
+  background: whitesmoke;
 }
 
 li.comment a.remove-comment i.close-icon, 

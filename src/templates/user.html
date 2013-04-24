@@ -302,7 +302,7 @@
 </form>
 
 {% else%}
-<div id="page-header">
+<div id="page-header" class='user'>
 
       
         <a href='/user/{{ user.id }}' class='async'>
@@ -413,7 +413,13 @@
             {% else %}
             <a href="/user/{{ owner.id }}/change_password" class='popup'>Set Account Password</a>
             {% endif %}
+          
+          {% else %}
+            <br>
+            <a href='/chat/{{ user.id }}' class='chat'>Chat with {{ user.name }}</a>
           {% endif %}
+          
+          
           
         </div>
       </div>

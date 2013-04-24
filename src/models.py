@@ -242,7 +242,10 @@ class Model:
   
   @property
   def liked_user_ids(self):
-    return api.get_liked_user_ids(self.id)
+    if self.id:
+      return api.get_liked_user_ids(self.id)
+    else:
+      return []
   
   @property
   def liked_by(self):
