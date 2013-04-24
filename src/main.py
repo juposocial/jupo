@@ -82,7 +82,11 @@ def render_homepage(session_id, title, **kwargs):
     friends_online = [i for i in owner.contacts \
                       if i.status in ['online', 'away']]
     friends_online.sort(key=lambda k: k.last_online, reverse=True)
-    groups = api.get_groups(session_id, limit=3)
+    if not kwargs.has_key('groups'):
+      groups = api.get_groups(session_id, limit=3)
+    else:
+      groups = kwargs.pop('groups')
+    
     for group in groups[:3]:
       group.unread_posts = api.get_unread_posts_count(session_id, group.id)
     
@@ -1439,21 +1443,6 @@ def contacts():
                          'title': 'Contacts'}), 
                   mimetype='application/json')  
   
-  
-@app.route('/find_groups', methods=['OPTIONS'])
-def find_groups():
-  session_id = session.get("session_id")
-  owner = api.get_owner_info(session_id)
-  open_groups = api.get_open_groups()
-  body = render_template('groups.html', 
-                          owner=owner,
-                          view='groups', 
-                          title='Find Groups',
-                          open_groups=open_groups)
-  resp = {'body': body,
-          'title': 'Find Groups'}
-  return Response(dumps(resp), mimetype='application/json')
-  
 
 
 @app.route("/networks", methods=['OPTIONS'])
@@ -1669,21 +1658,19 @@ def group(group_id=None, view='group', page=1):
     
   if not group_id:
     groups = api.get_groups(session_id)
-    if not groups:
-      open_groups = api.get_open_groups()
-    else:
-      open_groups = []
+    featured_groups = api.get_featured_groups(session_id)
+    
     if request.method == 'GET':
       return render_homepage(session_id, 'Groups',
-                             open_groups=open_groups,
+                             groups=groups,
+                             featured_groups=featured_groups,
                              view='groups')
 
     else:
-      owner = api.get_owner_info(session_id)
       body = render_template('groups.html', 
                              view='groups',
                              owner=owner,
-                             open_groups=open_groups,
+                             featured_groups=featured_groups,
                              groups=groups)
       resp = Response(dumps({'body': body,
                              'title': 'Groups'}))

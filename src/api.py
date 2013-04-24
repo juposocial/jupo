@@ -4590,12 +4590,31 @@ def get_open_groups(user_id=None, limit=5):
   
   if user_id:
     groups = db.owner.find({'members': {'$in': [user_id]},
-                                  'privacy': 'open'})\
-                                .sort('last_updated', -1).limit(limit)
+                            'privacy': 'open'})\
+                     .sort('last_updated', -1).limit(limit)
   else:
     groups = db.owner.find({'privacy': 'open'})\
-                                .sort('last_updated', -1).limit(limit)
+                     .sort('last_updated', -1).limit(limit)
   return [Group(i) for i in groups]
+
+
+def get_featured_groups(session_id, limit=5):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = get_user_id(session_id)
+  
+  groups = db.owner.find({'privacy': 'open'})\
+                   .sort('last_updated', -1).limit(limit*2)
+  
+  featured_groups = []
+  for group in groups:
+    if user_id not in group.get('members'):
+      featured_groups.append(Group(group))
+  
+  return featured_groups
+  
+  
   
 
 def get_group_member_ids(group_id):

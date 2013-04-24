@@ -5924,6 +5924,18 @@ form.new #notes a.overlay {
   line-height: 16px;
 }
 
+#right-sidebar #groups i.group-icon { 
+  margin: 5px 5px 0 0;
+  
+}
+
+
+#right-sidebar #groups a:hover span.name { 
+  text-decoration: underline;
+  
+}
+
+
 
 #right-sidebar #history time {
    color: #114495;
