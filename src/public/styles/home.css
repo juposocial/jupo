@@ -6345,12 +6345,17 @@ margin-top: -5px;
 
 /* Reminder */
 ul.reminders {
-  margin: 10px 20px 50px 0;
-  background-color: white;
-  width: 525px;
-  padding: 15px 30px 25px;
-  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(34, 113, 168, 0.7);
+width: 525px;
+margin-bottom: 100px;
+box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+border-bottom: 1px solid rgba(34, 113, 168, 0.7);
+margin-top: 15px;
+}
+
+ul.reminders li {
+border-bottom: 1px solid rgba(34, 113, 168, 0.07);
+background: white;
+padding: 6px 20px 5px;
 }
 
 ul.reminders li.done {
@@ -6363,7 +6368,6 @@ ul.reminders li.done {
 
 ul.reminders label {
   line-height: 22px;
-  margin-top: 5px;
   cursor: pointer;
   display: block;
   overflow: hidden;
@@ -6385,10 +6389,9 @@ ul.reminders input[type="checkbox"] {
 }
 
 ul.reminders form input {
-  width: 520px;
-  border: 0;
-  border-bottom: 1px dotted #CCC;
-  padding: 4px;
+width: 475px;
+border: 0;
+height: 20px;
 }
 
 #body ul.messages {
