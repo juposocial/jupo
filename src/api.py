@@ -1004,6 +1004,9 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
                           link=None, locale=None, timezone=None, 
                           verified=None, facebook_id=None, 
                           facebook_friend_ids=None, db_name=None):
+  if not email:
+    return False
+
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]

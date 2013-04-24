@@ -163,7 +163,10 @@ def autolink(text):
   for url in urls:
     hash_string = md5(url).hexdigest()
     info = api.get_url_info(url)
-    if len(url) > 70:
+    if not url.startswith('http'):
+      s = s.replace(url, '<a href="http://%s/" target="_blank" title="%s">%s</a>' % (hash_string, info.title if info.title else hash_string, hash_string))
+    
+    elif len(url) > 70:
       u = url[:70]
         
       for template in ['%s ', ' %s', '\n%s', '%s\n', '%s.', '%s,']:
@@ -180,7 +183,7 @@ def autolink(text):
         
   for url in urls:
     s = s.replace(md5(url).hexdigest(), url)
-    if len(url) > 70:
+    if len(url) > 70 and not url.startswith('http'):
       s = s.replace(md5(url[:70] + '...').hexdigest(), url[:70] + '...')
       
   
