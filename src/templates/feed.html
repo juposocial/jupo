@@ -424,7 +424,7 @@
           <div class="file-attachment {% if 'image' in file.mimetype %}image{% endif %}">
             {% if 'image' in file.mimetype %}
               {% if feed.attachments | length == 1 %}
-              <a href='/attachment/{{ file.id }}.png?rel={{ feed.id }}' target='_blank' rel='gallery' class="lfloat"><img src='/img/500_250/{{ file.id }}.png' width="500" height="250" alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
+              <a href='/attachment/{{ file.id }}.png?rel={{ feed.id }}' target='_blank' rel='gallery' class="lfloat"><img src='/attachment/{{ file.id }}.png?rel={{ feed.id }}' alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
               {% else %}
               <a href='/attachment/{{ file.id }}.png?rel={{ feed.id }}' target='_blank' rel='gallery' class="lfloat"><img src='/img/{% if loop.index == 1 %}325_171{% else %}160_82{% endif %}/{{ file.id }}.png' {% if loop.index == 1 %}width="325" height="171"{% else %}width="160" height="82"{% endif %} alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
               
@@ -449,7 +449,7 @@
         
         {% if url.is_image() %}
           <div class="file-attachment">
-                <a href='{{ url.url }}' rel="gallery" target="_blank"><img src='{{ url.url }}' width="500" title='{{ url.basename }}'/></a>
+                <a href='{{ url.url }}' rel="gallery" target="_blank"><img src='{{ url.url }}' title='{{ url.basename }}'/></a>
 
                 <div class="title image-name">
                   <a href='{{ url.url }}' target='_blank' title='{{ url.basename }}'>{{ url.basename  | truncate(60, True) }}</a> 

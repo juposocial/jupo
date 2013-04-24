@@ -2773,10 +2773,17 @@ div.file-attachment:not(.image) {
 
 div.file-attachment > div.title {
   text-indent: 8px;
+  white-space: nowrap;
 }
 
 div.file-attachment a[rel='gallery'] img {
   display: block;
+  max-width: 500px;
+  width: auto;
+}
+
+ul.comments div.file-attachment a[rel='gallery'] img {
+  max-width: 400px;
 }
 
 div.file-attachment a[rel='gallery'] {
@@ -2784,6 +2791,8 @@ div.file-attachment a[rel='gallery'] {
   position: relative;
   float: left;
   margin: 4px 8px 3px 0;
+  max-height: 200px;
+  overflow: hidden;
 }
 
 div.file-attachment a[rel='gallery']::before {
