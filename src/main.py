@@ -2298,6 +2298,8 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
         title = ''
       else:
         title = msg if len(msg)<= 50 else msg[:50] + '...'
+        title = title.decode('utf-8', 'ignore').encode('utf-8')
+        
       json = dumps({'body': body, 'title': title})
       return Response(json, mimetype='application/json')
     else:
@@ -2323,6 +2325,8 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
           title = ''
         else:
           title = msg if len(msg)<= 50 else msg[:50] + '...'
+          title = title.decode('utf-8', 'ignore').encode('utf-8')
+            
 
         if feed.urls:
           url = feed.urls[0]
