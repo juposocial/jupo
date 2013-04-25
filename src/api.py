@@ -188,7 +188,8 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       post_msg = filters.clean(post.message)
       if len(post_msg) > 30:
         subject = "New comment to %s's post: \"%s\"" \
-                % (post.owner.name, post_msg[:30] + '...') 
+                % (post.owner.name, post_msg[:30] + '...')
+        subject = subject.decode('utf-8', 'ignore').encode('utf-8') 
       else:
         subject = "New comment to %s's post: \"%s\"" \
                 % (post.owner.name, post_msg) 
@@ -701,7 +702,7 @@ def move_to_s3(fid, db_name=None):
     if not isinstance(fid, ObjectId):
       fid = ObjectId(fid)
     f = datastore.get(fid)
-    filename = f._filename
+    filename = f.filename
     s3write(filename, f.read(), overwrite=True, content_type=f.content_type)
     datastore.delete(fid)
   db['s3'].update({'name': filename}, {'$set': {'exists': True}})
