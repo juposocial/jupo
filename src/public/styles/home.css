@@ -3393,6 +3393,8 @@ ul.notifications header {
 ul.notifications header a {
   padding: 0 !important;
   color: #114495;
+  position: absolute;
+  right: 15px;
 }
 
 ul.notifications header a:hover {
@@ -3400,6 +3402,11 @@ ul.notifications header a:hover {
   color: #114495;
   text-shadow: none;
   text-decoration: underline;
+}
+
+ul.notifications header a:active {
+  color: #333;
+  margin-top: 1px;
 }
 
 ul.notifications > ul > ul {

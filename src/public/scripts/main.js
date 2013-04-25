@@ -1162,7 +1162,6 @@ $(document).ready(function(e) {
         url: $(this).attr('href')
       })
       $('#unread-notification-counter').html('0');
-      $('#unread-notification-counter').fadeOut('fast');
       $('#unread-notification-counter').addClass('grey');
       
       $('ul.notifications a.unread').removeClass('unread');
