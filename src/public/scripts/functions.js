@@ -1,7 +1,7 @@
   
     
 function start_chat(user_id) {
-  if ($('#chat #chat-' + user_id).length > 0) {
+  if ($('#chat-' + user_id).length > 0) {
       return false;
   }
   
@@ -11,10 +11,14 @@ function start_chat(user_id) {
   $.get(href, function(html) {
     hide_loading();
     
+    if ($('#chat-' + user_id).length > 0) {
+        return false;
+    }
+    
     $('#chat').prepend(html);
     
     
-    var textbox = $('#chat #chat-' + user_id + ' form textarea');
+    var textbox = $('#chat-' + user_id + ' form textarea');
     var last_textbox_height = textbox.height();
     
     textbox.elastic();
@@ -35,7 +39,7 @@ function start_chat(user_id) {
     
     })
   
-    $('#chat #chat-' + user_id + ' .messages').animate({
+    $('#chat-' + user_id + ' .messages').animate({
         scrollTop: 99999
     }, 'fast');
     
