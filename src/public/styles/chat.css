@@ -111,7 +111,7 @@ div.fixed {
   color: #444;
 }
 
-.chatbox form textarea[readonly] {
+.chatbox form.gray-bg {
   background: #eee;
   color: #999;
 }
@@ -133,6 +133,7 @@ div.fixed {
   max-height: 75px;
   line-height: 16px;
   padding: 0 7px;
+  background: transparent;
 }
 
 .chatbox .status {
@@ -152,8 +153,11 @@ div.fixed {
 }
 
 
-
-
+.chatbox.minimize {
+  position: absolute;
+  bottom: -256px;
+  width: 235px;
+}
 
 
 @-moz-keyframes bgflash {

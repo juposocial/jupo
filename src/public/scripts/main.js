@@ -2007,8 +2007,8 @@ $(document).ready(function(e) {
   })
   
   
-  $('#chat').on('resize', 'textarea._elastic', function(e) {
-    console.log('resized')
+  $('#chat').on('click', '.chatbox .header', function(e) {
+    $(this).parent().toggleClass('minimize')
   })
   
   
@@ -2064,6 +2064,7 @@ $(document).ready(function(e) {
     var last_msg = $('li.message:last', _boxchat);
     
     $('textarea', _this).attr('readonly', 'readonly')
+    $('form', _boxchat).addClass('gray-bg')
     
     $.ajax({
       type: "POST",
@@ -2074,7 +2075,7 @@ $(document).ready(function(e) {
       data: $(this).serializeArray(),
       dataType: "html",
       success: function(data) {
-        
+        $('form', _boxchat).removeClass('gray-bg');
         $('textarea', _this).attr("readonly", false);
         $('textarea', _this).val('').focus();
         $("textarea", _this).css('height', "");
