@@ -3,10 +3,10 @@
   <div class="fixed">
 
     <div class="chatbox unread" id='chat-{{ user.id }}'>
-      <div class="header">
+      <div class="header" title='Toggle Minimize'>
         <a href="#" class="close-icon close" title="Close Chat"></a>
         
-        <i class='{{ user.status }}'></i>
+        <i class='{{ user.status }} user-{{ user.id }}-status'></i>
         <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>
 
       </div>

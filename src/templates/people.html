@@ -17,7 +17,7 @@
               <a href='/chat/{{ user.id }}' class='chat'>
                 <img class='small-avatar lfloat' src='{{ user.avatar }}' />
                 <div class='title'>
-                  {{ user.name }} <i class='{{ user.status }}'></i>
+                  {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status'></i>
                 </div>
                 {% set last_online = user.last_online %}
                 {% if last_online %}
@@ -53,7 +53,7 @@
               <a href='/user/{{ user.id }}' class='async'>
                 <img class='small-avatar lfloat' src='{{ user.avatar }}' />
                 <div class='title'>
-                  {{ user.name }} <i class='{{ user.status }}'></i>
+                  {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status'></i>
                 </div>
                 {% set last_online = user.last_online %}
                 {% if last_online %}

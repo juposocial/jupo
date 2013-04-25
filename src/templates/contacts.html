@@ -18,7 +18,7 @@
           <img class='small-avatar lfloat' src='{{ user.avatar }}'>
       
           <a href='/user/{{ user.id }}' class='async user'> {{ user.name }} </a>
-          <i class='{{ user.status }}'></i>
+          <i class='{{ user.status }}  user-{{ user.id }}-status'></i>
           <br>
       
           {% set last_online = user.last_online %}

@@ -173,12 +173,12 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     user = get_user_info(user_id, db_name=db_name)
     post = Feed(post)
     if post.is_system_message():
-      if post.message.action == 'added':
+      if post.message.get('action') == 'added':
         subject = 'New comment to "%s added %s to %s group."' \
                 % (post.owner.name, 
                    post.message.user.name, 
                    post.message.group.name)
-      elif post.message.action == 'created':
+      elif post.message.get('action') == 'created':
         subject = 'New comment to "%s created %s group."' \
                 % (post.owner.name, 
                    post.message.group.name)
@@ -1215,13 +1215,13 @@ def set_status(session_id, status):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
   
   if '|' in status:
     uid, _status = status.split('|')
-    user = get_user_info(user_id)
+    user = get_user_info(user_id, db_name=db_name)
     if _status:
       text = user.name + ' ' + _status
     else:
@@ -4954,17 +4954,18 @@ def get_spelling_suggestion(keyword):
     crawler_queue.enqueue(get_google_spelling_suggestion, keyword)
 
 #===============================================================================
-# Nginx Push
+# Push
 #===============================================================================
 def publish(user_id, event_type, info=None, db_name=None):    
   if event_type == 'friends-online':
     template = app.CURRENT_APP.jinja_env.get_template('friends_online.html')
-    
-    user_ids = get_coworker_ids(user_id, db_name=db_name)
-    if user_id in user_ids:
-      user_ids.remove(user_id)
+  
     owner = get_user_info(user_id, db_name=db_name)
     owner.status = info
+    
+    user_ids = owner.contact_ids
+    if user_id in user_ids:
+      user_ids.remove(user_id)
         
     item = {'type': event_type,
             'user': {'id': str(owner.id),
@@ -4972,10 +4973,11 @@ def publish(user_id, event_type, info=None, db_name=None):
                      'avatar': owner.avatar,
                      'status': info},
             'info': template.render(owner=owner,
-                                    users=[owner])}
+                                    friends_online=[owner])}
         
     data = dumps(item)
     for user_id in user_ids:
+      print user_id
       channel_id = get_session_id(user_id, db_name=db_name)
       PUBSUB.publish(channel_id, data)
         

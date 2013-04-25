@@ -835,6 +835,7 @@ function stream() {
   }
   
   source.onmessage = function(e) {
+    console.log(e);
     var event = window.JSON.parse(e.data);
     console.log(event);
   
@@ -842,6 +843,8 @@ function stream() {
       user = event.user;
       element = $('ul#friends-online #user-' + user.id);
       
+      // Update user status led
+      $('.user-' + user.id + '-status').removeClass('online offline away').addClass(user.status);
       
       if ((element.length == 0 && user.status == 'online') || user.status == 'offline') {
         
@@ -1280,7 +1283,9 @@ function stream() {
       }
       
       if (sender_id != owner_id) {
-        $('#chat-' + user_id).addClass('unread');
+        if ($('#chat-' + user_id + ' textarea._elastic').is(':focus') == false) {
+          $('#chat-' + user_id).addClass('unread');  
+        } 
         
         
         var username = $('a.async[title]', msg).attr('title');
