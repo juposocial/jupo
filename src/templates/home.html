@@ -180,7 +180,6 @@
 
 
 
-
 {% block stylesheets %}
 
   {% if debug == True %}
@@ -279,6 +278,23 @@
     {% endassets %}
   
   {% endif %}
+  
+  
+  
+
+  {% if unread_messages_count > 0 %}
+      
+    <script>
+      {% for message in unread_messages %}
+        start_chat('{{ message.sender.id }}')
+      {% endfor %}
+    </script>
+      
+  {% endif %}
+  
+  
+  
+  
    
   <script type="text/javascript">
       if (top.location.href != self.location.href)

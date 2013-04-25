@@ -74,7 +74,7 @@
       <a href="/messages" class="{% if view == 'messages' %}active async{% else %}async{% endif %}"> 
         <i class="messages-icon"></i> 
         Messages 
-        <span class='count {% if unread_messages_count == 0 %}hidden{% endif %}'>{{ unread_messages_count }}</span>
+        <span class='count {% if unread_messages_count == 0 or view == "messages" %}hidden{% endif %}'>{{ unread_messages_count }}</span>
       </a>
     </li>
 

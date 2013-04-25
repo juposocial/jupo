@@ -764,6 +764,8 @@ function decr(id, value) {
   if (value == 0) {
     item.hide();
   }
+  
+  return value;
 }
 
 function get_doc_height() {
@@ -835,16 +837,16 @@ function stream() {
   }
   
   source.onmessage = function(e) {
-    console.log(e);
     var event = window.JSON.parse(e.data);
-    console.log(event);
   
     if (event.type == 'friends-online') {
       user = event.user;
       element = $('ul#friends-online #user-' + user.id);
       
       // Update user status led
-      $('.user-' + user.id + '-status').removeClass('online offline away').addClass(user.status);
+      if (user.status.indexOf('|') == -1) {
+        $('.user-' + user.id + '-status').removeClass('online offline away').addClass(user.status);
+      }
       
       if ((element.length == 0 && user.status == 'online') || user.status == 'offline') {
         

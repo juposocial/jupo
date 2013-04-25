@@ -18,7 +18,7 @@
       {% set user = message.sender %}
     {% endif %}
     <li>
-      <a href='/chat/{{ user.id }}' class='chat {% if message.is_unread() %}unread{% endif %}'>
+      <a href='/chat/{{ user.id }}' class='chat {% if message.is_unread() %}unread{% endif %} user-{{ user.id }}'>
         <img class='small-avatar lfloat' src='{{ user.avatar }}' />
         <div class='title'>
           {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status' title='{{ user.last_online | friendly_format(owner.utcoffset) }}' ></i>

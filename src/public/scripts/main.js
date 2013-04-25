@@ -1962,11 +1962,33 @@ $(document).ready(function(e) {
 
     start_chat(user_id);
     
-    $(this).removeClass('unread');
+    $('a.chat.user-' + user_id).removeClass('unread');
     
     // hide notification center 
     if ($('nav ul.notifications').is(':visible')) {
       $('html').trigger('click');
+      
+      // update unread notifications counter
+      var unread_notifications_count = decr('#unread-notification-counter', $(this).data('unread-count'));
+      
+      var title = document.title;
+      var pattern = /^\(.*?\) /gi;
+      var count = title.match(pattern);
+      if (unread_notifications_count != 0) {
+        $('#unread-notification-counter').removeClass('grey');
+        if (count == null) {
+          document.title = '(' + $('#unread-notification-counter').html() + ') ' + title;
+        } else {
+          document.title = title.replace(count, '(' + $('#unread-notification-counter').html() + ') ');
+        }
+      } else {
+        $('#unread-notification-counter').addClass('grey');
+        if (count != null) {
+          document.title = title.replace(count, '');
+        }
+      }
+      
+      
     }
     
     close_popup();

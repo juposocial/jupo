@@ -77,7 +77,7 @@ def render_homepage(session_id, title, **kwargs):
       owner = None
   else:
     owner = None
-#  friends_online = api.get_online_coworkers(session_id)
+    
   if owner:
     friends_online = [i for i in owner.contacts \
                       if i.status in ['online', 'away']]
@@ -90,9 +90,10 @@ def render_homepage(session_id, title, **kwargs):
     for group in groups[:3]:
       group.unread_posts = api.get_unread_posts_count(session_id, group.id)
     
-    unread_messages_count = api.get_unread_messages_count(session_id)
+    unread_messages = api.get_unread_messages(session_id)
+    unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
     unread_notification_count = api.get_unread_notifications_count(session_id)\
-                              + unread_messages_count
+#                               + unread_messages_count
     
   else:
     friends_online = []
@@ -118,6 +119,7 @@ def render_homepage(session_id, title, **kwargs):
                                   title=title, 
                                   groups=groups,
                                   friends_online=friends_online,
+                                  unread_messages=unread_messages,
                                   unread_messages_count=unread_messages_count,
                                   unread_notification_count=unread_notification_count,
                                   stats=stats,

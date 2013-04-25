@@ -22,9 +22,9 @@
         {% if unread_messages %}
           {% for message in unread_messages %}
             <li>  
-              <a href='/chat/{{ message.sender.id }}' class='chat'>
+              <a href='/chat/{{ message.sender.id }}' class='chat' data-unread-count="{{ message.unread_count }}">
                 <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>    
-                <span class='username'>{{ message.sender.name }}</span><br>
+                <span class='username'>{{ message.sender.name }}</span>
                 <span class='info'>{{ message.unread_count }} unread chat messages</span>
              
               </a>

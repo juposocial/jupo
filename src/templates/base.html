@@ -78,7 +78,11 @@
             <div id='message' class='hidden' onclick='$(this).hide();'></div>
             
             
-            <div id='chat'></div>
+            <div id='chat'>
+              {% block chat %}
+              
+              {% endblock %}
+            </div>
         </div>
         {% endblock %}
                   
