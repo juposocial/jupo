@@ -2029,6 +2029,7 @@ $(document).ready(function(e) {
       url: url,
       success: function() {
         _this.removeClass('unread');
+        $('a.chat.user-' + user_id).removeClass('unread');
       }
     })
     

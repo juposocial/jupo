@@ -1229,6 +1229,7 @@ def set_status(session_id, status):
       text = ''
     push_queue.enqueue(publish, int(uid), 'typing-status', 
                        {'user_id': str(user_id), 'text': text}, db_name=db_name)
+    status = 'online'
   else:
     key = 'status:%s' % user_id
     cache.set(key, status)
@@ -4960,6 +4961,30 @@ def get_spelling_suggestion(keyword):
 #===============================================================================
 # Push
 #===============================================================================
+def is_valid_channel_id(session_id, channel_id):
+  if session_id == channel_id:
+    return False
+  
+  db_name = get_database_name()
+  key = hashlib.md5('%s|%s' % (db_name, session_id)).hexdigest()
+  if key == channel_id:
+    return True
+  else:
+    return False
+  
+
+def get_channel_id(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+    
+  if str(user_id).isdigit():
+    session_id = get_session_id(user_id, db_name=db_name)
+  else:
+    session_id = user_id
+    
+  return hashlib.md5('%s|%s' % (db_name, session_id)).hexdigest()
+    
+
 def publish(user_id, event_type, info=None, db_name=None):    
   if event_type == 'friends-online':
     template = app.CURRENT_APP.jinja_env.get_template('friends_online.html')
@@ -4981,8 +5006,7 @@ def publish(user_id, event_type, info=None, db_name=None):
         
     data = dumps(item)
     for user_id in user_ids:
-      print user_id
-      channel_id = get_session_id(user_id, db_name=db_name)
+      channel_id = get_channel_id(user_id, db_name=db_name)
       PUBSUB.publish(channel_id, data)
         
   elif event_type == 'read-receipts':
@@ -5003,7 +5027,7 @@ def publish(user_id, event_type, info=None, db_name=None):
     
     text = template.render(owner=owner, read_receipts=read_receipts)
     
-    channel_id = get_session_id(user_id, db_name=db_name)
+    channel_id = get_channel_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, dumps({'type': event_type,
                                       'info': {'post_id': str(info.get('_id')), 
                                                'quick_stats': quick_stats,
@@ -5020,7 +5044,7 @@ def publish(user_id, event_type, info=None, db_name=None):
       msg = '%s like this.' % (', '.join([user.name for user in info['likes']]))
       
     
-    channel_id = get_session_id(user_id, db_name=db_name)
+    channel_id = get_channel_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, dumps({'type': event_type,
                                       'info': {'comment_id': str(info['_id']),
                                                'likes_count': likes_count,
@@ -5038,7 +5062,7 @@ def publish(user_id, event_type, info=None, db_name=None):
     template = app.CURRENT_APP.jinja_env.get_template('likes.html')
     html = template.render(owner=owner, likes=likes, item={'id': info['_id']})
     
-    channel_id = get_session_id(user_id, db_name=db_name)
+    channel_id = get_channel_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, dumps({'type': event_type,
                                       'info': {'post_id': str(info.get('_id')), 
                                                'quick_stats': quick_stats,
@@ -5067,7 +5091,7 @@ def publish(user_id, event_type, info=None, db_name=None):
                                            owner=owner, 
                                            view='news_feed')
           
-          channel_id = get_session_id(user_id, db_name=db_name)
+          channel_id = get_channel_id(user_id, db_name=db_name)
           PUBSUB.publish(channel_id, 
                          dumps({'type': 'unread-feeds', 
                                 'viewers': [str(i) for i in feed.viewers], 
@@ -5082,19 +5106,19 @@ def publish(user_id, event_type, info=None, db_name=None):
                              owner=owner, 
                              view='news_feed')
       
-      channel_id = get_session_id(user_id, db_name=db_name)
+      channel_id = get_channel_id(user_id, db_name=db_name)
       PUBSUB.publish(channel_id, 
                      dumps({'type': 'unread-feeds', 'info': html}))
       
   elif event_type == 'new-message':
     html = info.replace('\n', '')
-    channel_id = get_session_id(user_id, db_name=db_name)
+    channel_id = get_channel_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, 
                    dumps({'type': event_type, 
                           'info': {'html': html}}))  
       
   else: # unread-notifications/typing-status/new-message
-    channel_id = get_session_id(user_id, db_name=db_name)
+    channel_id = get_channel_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, 
                    dumps({'type': event_type, 'info': info}))  
     

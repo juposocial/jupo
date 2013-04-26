@@ -128,8 +128,8 @@ def render_homepage(session_id, title, **kwargs):
                                   domain=hostname,
                                   **kwargs))
   if owner:
-    if not request.cookies.get('channel_id'):
-      resp.set_cookie('channel_id', session_id)
+    if not api.is_valid_channel_id(session_id, request.cookies.get('channel_id')):
+      resp.set_cookie('channel_id', api.get_channel_id(user_id))
   else:
     resp.delete_cookie('channel_id')
   
@@ -160,7 +160,9 @@ def stream():
   session_id = session.get('session_id')
   if not session_id:
     abort(400)
-  resp = Response(event_stream(session_id),
+  
+  channel_id = request.cookies.get('channel_id')
+  resp = Response(event_stream(channel_id),
                   mimetype="text/event-stream")
   resp.headers['X-Accel-Buffering'] = 'no'
   return resp
@@ -624,10 +626,10 @@ def authentication(action=None):
       session['session_id'] = session_id
       if back_to:
         resp = redirect(back_to)
-        resp.set_cookie('channel_id', session_id) 
+        resp.set_cookie('channel_id', api.get_channel_id(session_id)) 
       else:
         resp = redirect('/news_feed')  
-        resp.set_cookie('channel_id', session_id)
+        resp.set_cookie('channel_id', api.get_channel_id(session_id))
       return resp
     else:
       message = 'Wrong email address and password combination.'
