@@ -14,6 +14,18 @@ $(document).ready(function(e) {
     $.global.clear_autosave = {};
     $.global.preload = {};
   }
+  
+  // restore chat windows
+  if (localStorage.getItem('chats') != undefined) {
+    user_ids = localStorage['chats'].split(',');
+    for (var i = 0; i < user_ids.length; i++) {
+      var user_id = user_ids[i];
+      
+      if (user_id != '' && isNaN(user_id) == false) {
+        start_chat(user_id);
+      }
+    }
+  }
 
   $.global.title = 'Jupo';
   $.global.history = [];
@@ -2025,9 +2037,11 @@ $(document).ready(function(e) {
   
   
   $('#chat').on('click', 'a.close', function() {
-
-    $(this).parents('.inflow').remove();
-
+    
+    var user_id = $(this).attr('data-user-id');
+    
+    close_chat(user_id);
+    
     return false;
 
   })

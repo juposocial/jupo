@@ -4,7 +4,7 @@
 
     <div class="chatbox unread" id='chat-{{ user.id }}'>
       <div class="header" title='Toggle Minimize'>
-        <a href="#" class="close-icon close" title="Close Chat"></a>
+        <a href="#" class="close-icon close" title="Close Chat" data-user-id='{{ user.id }}'></a>
         
         <i class='{{ user.status }} user-{{ user.id }}-status'></i>
         <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>
