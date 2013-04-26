@@ -30,7 +30,8 @@ from uuid import uuid4, UUID
 from string import capwords
 from urllib2 import urlopen
 from simplejson import dumps
-from datetime import datetime
+from time import mktime
+from datetime import datetime, timedelta
 from httplib import CannotSendRequest
 from pyelasticsearch import ElasticSearch, ElasticHttpNotFoundError
 from diff_match_patch import diff_match_patch
@@ -4295,6 +4296,9 @@ def new_group(session_id, name, privacy="closed", members=None, about=None, emai
   db.owner.insert(info)
   group_id = info['_id']
   
+  key = '%s:groups' % user_id
+  cache.delete(key)
+  
   if email_addrs:
     for email in email_addrs:
       invite_queue.enqueue(invite, session_id, email, group_id)
@@ -5331,7 +5335,7 @@ def new_message(session_id, user_id, message, db_name=None):
   return html
 
 
-def get_messages(session_id, page=1, db_name=None):
+def get_messages(session_id, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5456,6 +5460,16 @@ def get_chat_history(session_id, user_id, page=1, db_name=None):
   
   user_id = int(user_id)
   
+#   
+#   now = datetime.fromtimestamp(utctime())
+#   ts = now - timedelta(days=int(days))
+#   ts = mktime(datetime(ts.year, ts.month, ts.day, 0, 0, 0).timetuple())
+  
+#   records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
+#                                      {'from': user_id, 'to': owner_id}],
+#                              'ts': {'$gte': ts}})\
+#                       .sort('ts', -1)
+
   records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
                                      {'from': user_id, 'to': owner_id}]})\
                       .sort('ts', -1)\
