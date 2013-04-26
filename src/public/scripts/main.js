@@ -2070,9 +2070,9 @@ $(document).ready(function(e) {
             }
         }
         else {
-          
+          if ($.trim(this.value).length > 0) {
             $(this).parents('form').trigger('submit');  
-          
+          }
         }
         return false;
     } else {
