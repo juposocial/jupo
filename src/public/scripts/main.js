@@ -1684,6 +1684,11 @@ $(document).ready(function(e) {
     $('header nav ul.dropdown-menu').addClass('hidden');
     $('header nav .dropdown-menu-active').removeClass('dropdown-menu-active');
     
+    
+    // Hide contacts search
+    $('#friends-online form input').val('');
+    $('#friends-online div.results').html('').addClass('hidden');
+    
     // if (!$.global.mouse_inside_overlay && !$('#body').is(":visible") && e.target.nodeName != 'SELECT') {
 // 
       // close_overlay();
@@ -2132,7 +2137,70 @@ $(document).ready(function(e) {
   
 
   
-  
+  $('#friends-online').on('keyup', 'form input', function(e) {
+    
+    if (e.keyCode == 27) {    // ESC
+      
+      $('#friends-online div.results').html('').addClass('hidden');
+      $('#friends-online form input').val('');
+      return false;
+      
+    }
+      
+    var query = $(this).val();
+    if (query != '') {
+      ids = [];
+      html = '';
+      
+      for (i in $.global.coworkers) {
+          var id;
+          var item;
+          item = $.global.coworkers[i];
+          id = item.id;
+          _query = khong_dau(query).toLowerCase();
+          if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) == 0) {
+            ids.push(id);
+            if (item.type == 'user') {
+              html += '<li><a class="chat" href="/chat/' + item.id + '"><img class="micro-avatar" src="' + item.avatar + '"> ' + item.name + '</a></li>';
+            }
+            
+            if (ids.length >= 3) {
+              break;
+            }
+            
+          }
+      }
+      
+      if (ids.length < 3) {
+      
+        for (i in $.global.coworkers) {
+            var id;
+            var item;
+            item = $.global.coworkers[i];
+            id = item.id;
+            _query = khong_dau(query).toLowerCase();
+            if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) > -1) {
+              ids.push(id);
+              if (item.type == 'user') {
+                html += '<li><a class="chat" href="/chat/' + item.id + '"><img class="micro-avatar" src="' + item.avatar + '"> ' + item.name + '</a></li>';
+              }
+              
+              if (ids.length >= 3) {
+                break;
+              }
+              
+            }
+        }
+      }
+      
+      if (ids.length == 0) {
+        html = '<li><div class="empty">No results found</div></li>';
+      }
+      // html += '<li><a class="popup" href="/search?type=people&query=' + query + '">&nbsp;Search all people for <strong>' + query + '</strong></a></li>';
+      
+      $('#friends-online .results').html(html).removeClass('hidden');
+    }
+  })
   
   
   

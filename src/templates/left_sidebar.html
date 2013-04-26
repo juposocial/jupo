@@ -128,11 +128,22 @@
       
       
   <ul id="friends-online">
-    <div class="online-now">
+    <div class="online-now hidden">
       <a href='/contacts' class='popup'>Chat (<span class='online-count'>0</span>)</a>
     </div>
   
-    {% include 'friends_online.html' %}
+    <form>
+      <input type='search' name='query' placeholder="Search...">
+    </form>
+    
+  
+    <div class='friends'>
+      <div class='results hidden'></div>
+      
+      <div class='online'>
+      {% include 'friends_online.html' %}
+      </div>
+    </div>
     
     <div class='empty {% if friends_online %}hidden{% endif %}'>
       No one is available to chat

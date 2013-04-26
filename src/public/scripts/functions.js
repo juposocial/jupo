@@ -889,7 +889,7 @@ function stream() {
           
       $('ul#friends-online #user-' + user.id).remove();
       if (user.status != 'offline') {
-        $('ul#friends-online').prepend(event.info);
+        $('ul#friends-online div.online').prepend(event.info);
       }
       
       var online_count = $('#friends-online li.status.online').length + $('#friends-online li.status.away').length;

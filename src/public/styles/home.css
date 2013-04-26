@@ -946,11 +946,7 @@ ul#friends-online {
   margin-right: 14px;
 }
 
-ul#friends-online:hover {
-  right: 5px;
-}
-
-ul#friends-online li a {
+ul#friends-online li.status a {
   float: right;
   border-radius: 100px;
   -webkit-transition: .2s linear all;
@@ -961,8 +957,68 @@ ul#friends-online li a {
 }
 
 
+ul#friends-online form input {
+  width: 110px;
+  font-size: 11px;
+  float: right;
+  background: white;
+  padding: 3px 10px;
+  border: 1px solid #e2e2e2;
+  text-align: right;
+  margin-bottom: 6px;
+  margin-right: -5px;
+}
 
+ul#friends-online div.friends {
+  position: relative;
+}
 
+ul#friends-online div.results {
+  background: whitesmoke;
+  font-size: 11px;
+  overflow: hidden;
+  float: right;
+  position: absolute;
+  top: 30px;
+  right: -4px;
+  min-height: 40px;
+  width: 130px;
+}
+
+ul#friends-online div.results img {
+  float: right;
+  width: 20px;
+  height: 20px;
+  margin-left: 5px;
+}
+
+ul#friends-online div.results a {
+  padding: 5px 3px;
+  float: right;
+  text-decoration: none !important;
+  width: 124px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+
+ul#friends-online div.results a:hover {
+  color: white;
+  background-color: #2271A9;
+  background-repeat: repeat-x;
+  background-image: -moz-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#2F7EB6),color-stop(100%,#2271A9));
+  background-image: -webkit-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -ms-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -o-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2f7eb6',endColorstr='#2271a9',GradientType=0);
+  background-image: linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.25);
+  width: 100%;
+border-radius: 2px;
+text-align: right;
+}
 
 ul#friends-online li a img {
   width: 24px;
