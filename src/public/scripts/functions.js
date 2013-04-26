@@ -1868,6 +1868,11 @@ function refresh(element) {
   preload_autocomplete();
 
   $('div.tipsy').remove();
+  
+  $(element + " .post-stats a.async").tipsy({
+    gravity: 's',  
+    live: true
+  });
 
   $(element + " img.medium-avatar, img.small-avatar, img.micro-avatar").fixBroken();
   

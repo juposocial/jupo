@@ -1094,6 +1094,19 @@ ul#friends-online li a img, div#members ul li a img {
  color: black;
 }
 
+#right-sidebar .post-stats {
+  margin: 0 1px;
+}
+
+#right-sidebar .post-stats a {
+  padding: 3px;
+}
+
+
+#right-sidebar .post-stats a img {
+  margin: 0;
+}
+
 #right-sidebar {
   position: absolute;
   right: 0;
@@ -1451,28 +1464,21 @@ img.micro-avatar {
   vertical-align: middle;
   margin-right: 2px;
   margin-top: -2px;
-/*  -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-  -moz-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);*/
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
 }
 
 img.small-avatar {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   margin-right: 7px;
-  margin-top: 2px;
-/*  -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-  -moz-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);*/
+  margin-top: 1px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
 }
 
 img.medium-avatar {
   width: 50px;
   height: 50px;
-/*  -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-  -moz-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);*/
-  /*background: white;*/
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
 }
 
 div#global > footer {
@@ -5265,6 +5271,10 @@ li.feed > a > img {
   width: 40px;
   height: 40px;
   margin-top: 2px;
+}
+
+img.small-avatar:active {
+  opacity: 0.9;
 }
 
 img.medium-avatar:hover {

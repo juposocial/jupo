@@ -1072,7 +1072,31 @@ class Feed(Model):
   @property
   def pinned_by(self):
     return self.info.get('pinned', [])
-      
+  
+  @property
+  def stats(self):
+    info = {}
+    for comment in self.info.get('comments', []):
+      user_id = comment.get('owner')
+      if info.has_key(user_id):
+        info[user_id] += 1
+      else:
+        info[user_id] = 1
+    
+    owner_id = self.info.get('owner')
+    if info.has_key(owner_id):
+      info[owner_id] += 1
+    else:
+      info[owner_id] = 1
+    
+    out = []
+    for user_id in info.keys():
+      out.append({'user': api.get_user_info(user_id),
+                  'post_count': info[user_id]})
+    
+    out.sort(key=lambda k: k['post_count'], reverse=True)
+    return out
+    
 
 
 class History(Model):
