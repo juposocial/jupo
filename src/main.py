@@ -1806,6 +1806,16 @@ def chat(user_id, action=None):
     
     return html
   
+  elif action == 'new_file':
+    file = request.files.get('file')
+    filename = file.filename
+    attachment_id = api.new_attachment(session_id, 
+                                       file.filename, 
+                                       file.stream.read())
+    
+    html = api.new_message(session_id, user_id, attachment_id)
+    return html
+  
   elif action == 'mark_as_read':
     owner_id = api.get_user_id(session_id)
     api.update_last_viewed(owner_id, user_id)

@@ -1338,9 +1338,12 @@ class Message(Model):
   
   @property
   def content(self):
+    if self.info.has_key('text'):
+      return self.info.get('text')
+    
     message = self.info.get('msg')
-    if isinstance(message, int): # is file
-      return api.get_attachment_info(message)
+    if isinstance(message, int) or isinstance(message, long): # is file
+      return api.get_attachment_info(message, db_name=self.db_name)
     return message
   
   @property
@@ -1363,7 +1366,10 @@ class Message(Model):
     return api.friendly_format(self.timestamp, short=short).split(' at ')[0]
   
   def is_file(self):    
-    message = self.info.get('message')
+    if self.info.has_key('text'):
+      return False
+    
+    message = self.info.get('msg')
     if api.is_snowflake_id(message):
       return True
     

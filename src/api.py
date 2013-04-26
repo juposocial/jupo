@@ -3922,8 +3922,9 @@ def get_file_info(session_id, file_id):
                                    'viewers': {'$in': viewers}})
   return File(info)
 
-def get_attachment_info(attachment_id):
-  db_name = get_database_name()
+def get_attachment_info(attachment_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not is_snowflake_id(attachment_id):
@@ -5505,9 +5506,15 @@ def get_chat_history(session_id, user_id, page=1, db_name=None):
   messages = []
   last_msg = None
   for record in records:
-    print record
+    msg = record.get('msg')
     if last_msg and record.get('from') == last_msg.get('from') and (record.get('ts') - last_msg.get('ts')) < 120:
-      last_msg['msg'] += '\n' + record.get('msg')
+      if is_snowflake_id(msg):
+        attachment = get_attachment_info(msg, db_name=db_name)
+        msg = "<a href='/attachment/%s' target='_blank' title='%s (%s)'>%s (%s)</a>"\
+            % (attachment.id, attachment.name, attachment.size, 
+               attachment.name[:20] + '...' if len(attachment.name) > 20 else attachment.name, attachment.size)
+          
+      last_msg['text'] += '\n' + msg
       last_msg['ts'] = record.get('ts')
       last_msg['msg_ids'].append(record.get('_id'))
     else:
@@ -5515,6 +5522,14 @@ def get_chat_history(session_id, user_id, page=1, db_name=None):
         messages.append(last_msg)
       last_msg = record
       last_msg['msg_ids'] = [record['_id']]
+      
+      if is_snowflake_id(msg):
+        attachment = get_attachment_info(msg, db_name=db_name)
+        last_msg['text'] = "<a href='/attachment/%s' target='_blank' title='%s (%s)'>%s (%s)</a>"\
+            % (attachment.id, attachment.name, attachment.size, 
+               attachment.name[:20] + '...' if len(attachment.name) > 20 else attachment.name, attachment.size)
+      else:
+        last_msg['text'] = msg
   
   if last_msg:
     messages.append(last_msg)

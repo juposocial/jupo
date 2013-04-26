@@ -30,7 +30,13 @@
           {% if message.sender.id == owner.id %}
             <i class='msg-reply-icon'></i>
           {% endif %}
-          {{ message.content | autoemoticon | safe }}
+          
+          {% if message.is_file() %}
+            {% set attachment = message.content %}
+            {{ attachment.name }} ({{ attachment.size }})
+          {% else %}
+            {{ message.content | autoemoticon | safe }}
+          {% endif %}
         </div>
       </a>
     </li>

@@ -7,7 +7,12 @@
     <img class="small-avatar" src="{{ message.sender.avatar }}"> 
   </a>
   <div class="content">
-    {{ message.content | autolink | autoemoticon | nl2br | safe }}
+    {% if message.is_file() %}
+      {% set attachment = message.content %}
+      <a href='/attachment/{{ attachment.id }}' target='_blank' title="{{ attachment.name }} ({{ attachment.size }})">{{ attachment.name | truncate(20, True) }} ({{ attachment.size }})</a>
+    {% else %}
+      {{ message.content | autolink | autoemoticon | nl2br | safe }}
+    {% endif %}
   </div>
 </li>
 

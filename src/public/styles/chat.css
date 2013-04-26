@@ -52,6 +52,11 @@ div.fixed {
   margin: 6px -4px 0 0;
 }
 
+.chatbox .header #chatbox-pick-file {
+  font-weight: normal;
+  margin-right: 10px;
+}
+
 .chatbox .title {
   color: white;
   text-shadow: none;
