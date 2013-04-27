@@ -1,0 +1,275 @@
+div#chat {
+  position: absolute;
+  right: 300px;
+  z-index: 3;
+}
+
+div.inflow {
+  width: 260px;
+  height: 1px;
+  float: left;
+  position: relative;
+  margin-right: 50px;
+  margin-left: -38px;
+}
+
+div.positioner {
+  position: absolute;
+  right: 0;
+}
+
+div.fixed {
+  position: fixed;
+  bottom: 0;
+  margin-left: 15px
+}
+
+.chatbox {
+  background: white;
+  width: 260px;
+  height: 285px;
+  -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, .3);
+  border: 1px solid rgba(0, 0, 0, .3);
+  border-width: 0 1px;
+}
+
+.chatbox .header {
+  border: 1px solid rgba(29, 49, 91, .3);
+  border-bottom: 1px solid rgba(29, 49, 91, .2);
+  cursor: pointer;
+  height: 28px;
+  color: #333;
+  font-weight: bold;
+  padding: 0 10px;
+  font-size: 11px;
+  line-height: 28px;
+  margin: 0 -1px;
+  background: #ebeef4;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .5);
+}
+
+.chatbox .header .close-icon {
+  margin: 6px -4px 0 0;
+}
+
+.chatbox .header #chatbox-pick-file {
+  font-weight: normal;
+  margin-right: 10px;
+}
+
+.chatbox .title {
+  color: white;
+  text-shadow: none;
+  display: block;
+}
+
+.chatbox .messages {
+  padding: 0 7px;
+  font-size: 11px;
+  line-height: 16px;
+  height: 225px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.chatbox .messages .title {
+  text-align: center;
+  background: whitesmoke;
+  padding: 3px 0;
+  margin: -1px -8px 6px;
+  color: grey;
+}
+
+.chatbox .message {
+  border-bottom: 1px solid #f2f2f2;
+  position: relative;
+  padding: 5px 0;
+  overflow: hidden;
+}
+
+.chatbox ul.messages li.message:last-child {
+  margin-bottom: 5px;
+  border-bottom: 1px solid transparent;
+}
+
+.chatbox .message .small-avatar {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chatbox .message .ts {
+  font-size: 9px;
+  color: gray;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  background: white;
+  padding: 0 3px;
+  margin-top: 1px;
+}
+
+.chatbox .message:hover .ts {
+  opacity: 1;
+}
+
+.chatbox .message .content {
+  margin-left: 40px;
+  color: #444;
+}
+
+.chatbox form.gray-bg {
+  background: #eee;
+  color: #999;
+}
+
+.chatbox form {
+  padding: 5px 0 4px;
+  border-top: 1px solid #ccc;
+  bottom: 0;
+  position: absolute;
+  background: white;
+}
+
+.chatbox form textarea {
+  margin: 0;
+  resize: none;
+  border: 0;
+  height: 20px;
+  width: 246px;
+  max-height: 75px;
+  line-height: 16px;
+  padding: 0 7px;
+  background: transparent;
+}
+
+.chatbox .status {
+  position: absolute;
+  bottom: 31px;
+  padding: 0 5px;
+  font-size: 9px;
+  color: #999;
+  text-align: right;
+  right: 5px;
+  background: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 14px;
+  border-top-left-radius: 5px;
+}
+
+
+.chatbox.minimize {
+  position: absolute;
+  bottom: -256px;
+  width: 235px;
+}
+
+
+@-moz-keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+@-webkit-keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+@-o-keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+@-ms-keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+@keyframes bgflash {
+  0% {
+    background: rgb(217, 226, 245);
+  }
+  5% {
+    background: #ebeef4;
+  }
+  10% {
+    background: rgb(217, 226, 245);
+  }
+  15% {
+    background: #ebeef4;
+  }
+  20% {
+    background: rgb(217, 226, 245);
+  }
+  100% {
+    background: rgb(217, 226, 245);
+  }
+}
+
+.chatbox.unread .header {
+  -webkit-animation: bgflash 2s infinite;
+  -moz-animation: bgflash 2s infinite;
+  -o-animation: bgflash 2s infinite;
+  animation: bgflash 2s infinite;
+  
+}

@@ -3,7 +3,6 @@
 #@PydevCodeAnalysisIgnore
 
 from datetime import timedelta
-from gevent import spawn, joinall
 from flask import Flask, render_template
 from werkzeug.contrib.cache import MemcachedCache
 
@@ -82,18 +81,27 @@ CURRENT_APP.url_map.converters['snowflake_id'] = SnowflakeIDConverter
 FEED_TEMPLATE = CURRENT_APP.jinja_env.get_template('feed.html')
 NOTE_TEMPLATE = CURRENT_APP.jinja_env.get_template('note.html')
 FILE_TEMPLATE = CURRENT_APP.jinja_env.get_template('file.html')
+COMMENT_TEMPLATE = CURRENT_APP.jinja_env.get_template('comment.html')
 
 def render(info, post_type, owner, viewport=None, mode=None, **kwargs): 
   if isinstance(info, list):
-    jobs = [spawn(_render, i, post_type, owner, viewport, mode) for i in info]
-    joinall(jobs)
-    return ''.join([i.value for i in jobs if i.value])
+    return ''.join([_render(i, post_type, owner, 
+                            viewport, mode, **kwargs) \
+                    for i in info])
   else:
-    return _render(info, post_type, owner, viewport, mode, **kwargs)
+    return _render(info, post_type, owner, 
+                   viewport, mode, **kwargs)
 
 
 
 def _render(info, post_type, owner, viewport, mode=None, **kwargs):  
+  
+  if post_type == 'comment':
+    return COMMENT_TEMPLATE.render(comment=info, 
+                                   owner=owner, 
+                                   viewport=viewport, 
+                                   mode=mode, **kwargs)
+    
   owner_id = 'public' if (not owner or not owner.id) else owner.id
   
   if post_type in ['note', 'feed', 'file']:
@@ -138,17 +146,18 @@ def _render(info, post_type, owner, viewport, mode=None, **kwargs):
                                   owner=owner, 
                                   view=viewport, 
                                   mode=mode, **kwargs)
-    
     else:
       html = FEED_TEMPLATE.render(feed=info, 
                                   owner=owner, 
                                   view=viewport, 
                                   mode=mode, **kwargs)
+    
     cache.set(key, html, 86400, namespace)
   else:
     hit = True
 
-  html = html.replace('<li id="post', '<li data-key="%s" data-namespace="%s" data-cache-status="%s" id="post' % (key, namespace, "HIT" if hit else "MISS"))
+  html = html.replace('<li id="post', 
+                      '<li data-key="%s" data-namespace="%s" data-cache-status="%s" id="post' % (key, namespace, "HIT" if hit else "MISS"))
     
   return html
 

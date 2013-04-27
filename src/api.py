@@ -2,9 +2,6 @@
 # pylint: disable-msg=W0311, E0611, E1101
 # @PydevCodeAnalysisIgnore
 
-from gevent import monkey
-monkey.patch_socket()
-
 import os
 import re
 import sys
@@ -15,6 +12,7 @@ import socket
 import base64
 import hashlib
 import logging
+import calendar
 import requests
 import mimetypes
 
@@ -32,13 +30,15 @@ from uuid import uuid4, UUID
 from string import capwords
 from urllib2 import urlopen
 from simplejson import dumps
-from datetime import datetime
+from time import mktime
+from datetime import datetime, timedelta
 from httplib import CannotSendRequest
 from pyelasticsearch import ElasticSearch, ElasticHttpNotFoundError
 from diff_match_patch import diff_match_patch
 
 from lib import cache
 from lib import encode_url
+from lib.url import extract_urls
 from lib.hot_ranking import get_score
 from lib.pbkdf2 import pbkdf2_bin # From https://github.com/mitsuhiko/python-pbkdf2
 
@@ -60,8 +60,6 @@ from validate_email import validate_email
 
 from flask import request
 
-
-# Ordered Dictionary for conversation history processing
 try:
   from collections import OrderedDict as odict
 except ImportError:
@@ -71,37 +69,29 @@ except ImportError:
 from models import (User, Group, Browser,
                     Comment, Feed, File, Note,
                     Version, Notification, Attachment, Reminder,
-                    URL, Result, Event)
+                    URL, Result, Event, Message)
 
 import app
 import filters
 import settings
 
 requests.adapters.DEFAULT_RETRIES = 3
+months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
 
 # switch from the default ASCII to UTF-8 encoding
 reload(sys)
-sys.setdefaultencoding("utf-8") #@UndefinedVariable
+sys.setdefaultencoding("utf-8")
 
 
 DATABASE = MongoDB(settings.MONGOD_SERVERS, use_greenlets=True)
-DATABASE['global'].user.ensure_index('email')
-
-pool = ConnectionPool(host=settings.REDIS_SERVER.split(':')[0], 
-                      port=int(settings.REDIS_SERVER.split(':')[1]), db=0)
-PUBSUB = Redis(connection_pool=pool)
+DATABASE['global'].user.ensure_index('email', background=True)
+DATABASE['global'].spelling_suggestion.ensure_index('keyword', background=True)
 
 INDEX = ElasticSearch('http://%s/' % settings.ELASTICSEARCH_SERVER)
 
-PINGPONG = Redis(host=settings.REDIS_SERVER.split(':')[0], 
-                 port=int(settings.REDIS_SERVER.split(':')[1]), db=10)
-QUEUE = Redis(host=settings.REDIS_SERVER.split(':')[0], 
-              port=int(settings.REDIS_SERVER.split(':')[1]), db=11)
-FORGOT_PASSWORD = Redis(host=settings.REDIS_SERVER.split(':')[0], 
-                        port=int(settings.REDIS_SERVER.split(':')[1]), db=13)
+host, port = settings.REDIS_SERVER.split(':')
+FORGOT_PASSWORD = Redis(host=host, port=int(port), db=1)
 
-goose = Goose()
-dmp = diff_match_patch()
 
 if settings.AWS_KEY and settings.S3_BUCKET_NAME:
   s3_conn = S3Connection(settings.AWS_KEY, settings.AWS_SECRET, is_secure=False)
@@ -109,19 +99,38 @@ if settings.AWS_KEY and settings.S3_BUCKET_NAME:
 else:
   BUCKET = None
 
-use_connection(QUEUE)
-default_queue = Queue('default')
-low_priority_queue = Queue('low')
-high_priority_queue = Queue('high')
+goose = Goose()
+dmp = diff_match_patch()
+
+host, port = settings.REDIS_PINGPONG_SERVER.split(':')
+PINGPONG = Redis(host=host, port=int(port), db=0)
+
+host, port = settings.REDIS_PUBSUB_SERVER.split(':')
+pool = ConnectionPool(host=host, port=int(port), db=0)
+PUBSUB = Redis(connection_pool=pool)
+
+host, port = settings.REDIS_TASKQUEUE_SERVER.split(':')
+TASKQUEUE = Redis(host=host, port=int(port), db=0)
+
+use_connection(TASKQUEUE)
+push_queue = Queue('push')
+index_queue = Queue('index')
 crawler_queue = Queue('urls')
+invite_queue = Queue('invite')
 send_mail_queue = Queue('send_mail')
 move_to_s3_queue = Queue('move_to_s3')
+notification_queue = Queue('notification')
 
 
 def send_mail(to_addresses, subject=None, body=None, mail_type=None, 
               user_id=None, post=None, db_name=None, **kwargs):
   if not settings.SMTP_HOST:
     return False
+  
+  if not db_name:
+    db_name = get_database_name()
+    
+  domain = db_name.replace('_', '.')
 
   if mail_type == 'thanks':    
     subject = 'Thanks for Joining the Jupo Waiting List'
@@ -136,50 +145,58 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       subject = "%s has invited you to Jupo" % (kwargs.get('user').name)
       
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
-    body = template.render(**kwargs)
+    body = template.render(domain=domain, **kwargs)
     
   elif mail_type == 'forgot_password':
     subject = 'Reset your Jupo password'
     template = app.CURRENT_APP.jinja_env.get_template('email/reset_password.html')
-    body = template.render(email=to_addresses, **kwargs)
+    body = template.render(email=to_addresses, domain=domain, **kwargs)
     
   elif mail_type == 'welcome':
     subject = 'Welcome to Jupo!'
     body = None
     
+  elif mail_type == 'mentions':
+    user = get_user_info(user_id, db_name=db_name)
+    post = Feed(post)
+    subject = '%s mentioned you in a comment.' % user.name
+    template = app.CURRENT_APP.jinja_env.get_template('email/new_comment.html')
+    body = template.render(domain=domain, user=user, post=post)
+    
   elif mail_type == 'new_post':
-    user = get_user_info(user_id)
+    user = get_user_info(user_id, db_name=db_name)
     post = Feed(post)
     subject = '%s shared a post with you' % user.name
     template = app.CURRENT_APP.jinja_env.get_template('email/new_post.html')
-    body = template.render(email=to_addresses, user=user, post=post)
+    body = template.render(domain=domain, email=to_addresses, user=user, post=post)
     
   elif mail_type == 'new_comment':
-    user = get_user_info(user_id)
+    user = get_user_info(user_id, db_name=db_name)
     post = Feed(post)
-#      subject = '%s commented on a post' % user.name
     if post.is_system_message():
-      if post.message.action == 'added':
+      if post.message.get('action') == 'added':
         subject = 'New comment to "%s added %s to %s group."' \
                 % (post.owner.name, 
                    post.message.user.name, 
                    post.message.group.name)
-      elif post.message.action == 'created':
+      elif post.message.get('action') == 'created':
         subject = 'New comment to "%s created %s group."' \
                 % (post.owner.name, 
                    post.message.group.name)
       else:
         subject = "New comment to %s's post" % (post.owner.name)
     else:
-      if len(post.message) > 30:
+      post_msg = filters.clean(post.message)
+      if len(post_msg) > 30:
         subject = "New comment to %s's post: \"%s\"" \
-                % (post.owner.name, post.message[:30] + '...') 
+                % (post.owner.name, post_msg[:30] + '...')
+        subject = subject.decode('utf-8', 'ignore').encode('utf-8') 
       else:
         subject = "New comment to %s's post: \"%s\"" \
-                % (post.owner.name, post.message) 
+                % (post.owner.name, post_msg) 
     
     template = app.CURRENT_APP.jinja_env.get_template('email/new_comment.html')
-    body = template.render(email=to_addresses, user=user, post=post)
+    body = template.render(domain=domain, email=to_addresses, user=user, post=post)
     
   
   if to_addresses and subject and body:
@@ -188,14 +205,15 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     msg['Subject']= Header(subject, "utf-8")
     msg['From'] = settings.SMTP_SENDER
     msg['X-MC-Track'] = 'opens,clicks'
+    msg['X-MC-Tags'] = mail_type
+    msg['X-MC-Autotext'] = 'true'
+    
+    
     if post:
-#        reply_to = "%s's post <post-%s@reply.jupo.com>" \
-#                 % (post.last_action.owner.name, post.id)
-      if not db_name:
-        db_name = get_database_name()
       mail_id = '%s-%s' % (post.id, db_name)
       mail_id = base64.b64encode(smaz.compress(mail_id)).replace('/', '-').rstrip('=')
-      reply_to = 'post%s@%s' % (mail_id, settings.REPLY_EMAIL_DOMAIN)
+      
+      reply_to = 'post%s@%s' % (mail_id, settings.EMAIL_REPLY_TO_DOMAIN)
       msg['Reply-To'] = Header(reply_to, "utf-8")
       
     MAIL = SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
@@ -205,6 +223,7 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     MAIL.sendmail(settings.SMTP_SENDER, 
                   to_addresses, msg.as_string()) 
     MAIL.quit()
+    
     return True
   else:
     return False
@@ -304,7 +323,7 @@ def utctime():
   return float(datetime.utcnow().strftime('%s.%f'))
 
 
-def friendly_format(ts, offset=None, short=False):
+def friendly_format(ts, offset=0, short=False):
   try:
     ts = float(ts)
   except TypeError:
@@ -314,7 +333,7 @@ def friendly_format(ts, offset=None, short=False):
     ts = ts + int(offset)
   
   if short:
-    now = datetime.today()
+    now = datetime.fromtimestamp(utctime() + int(offset))
     ts = datetime.fromtimestamp(int(ts))
     delta = datetime(now.year, now.month, now.day, 23, 59, 59) - ts
     
@@ -356,19 +375,7 @@ def get_lan_ip():
   return ip
 
 
-URL_RE = re.compile(r"(http.*?|www\..*?)\s+", re.IGNORECASE)
-WORD_RE = re.compile("""[a-zA-Z0-9ạảãàáâậầấẩẫăắằặẳẵóòọõỏôộổỗồốơờớợởỡ""" \
-                     + """éèẻẹẽêếềệểễúùụủũưựữửừứíìịỉĩýỳỷỵỹđ]+""")
-EMAIL_RE = re.compile(
-  r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"  # dot-atom
-  r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-011\013\014\016-\177])*"' # quoted-string
-  r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?$', 
-  re.IGNORECASE)  # domain
 
-def extract_urls(text):
-  matches = URL_RE.findall(text)
-  urls = [i[0] for i in matches]
-  return urls
 
 #def get_tags(content):
 #  tags = re.compile('#([A-Za-z0-9_]+)').findall(content)
@@ -417,6 +424,7 @@ def get_database_names():
   db_names = cache.get(key)
   if not db_names:
     db_names = DATABASE.database_names()
+    db_names = list(db_names)
     cache.set(key, db_names)
   return db_names
 
@@ -428,9 +436,10 @@ def get_database_name():
       db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
   
   if not db_name:
-    db_name = 'play_jupo_com'
+    db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
-  if db_name not in get_database_names():
+  db_names = get_database_names()
+  if db_name not in db_names:
     # Ensure indexes
     DATABASE[db_name].owner.ensure_index('session_id', background=True)
     DATABASE[db_name].owner.ensure_index('email', background=True)
@@ -447,8 +456,7 @@ def get_database_name():
     DATABASE[db_name].stream.ensure_index('is_removed', background=True)
     
     DATABASE[db_name].url.ensure_index('url', background=True)
-    DATABASE[db_name].hashtag.ensure_index('name', background=True)
-    DATABASE[db_name].spelling_suggestion.ensure_index('keyword', background=True)
+#    DATABASE[db_name].hashtag.ensure_index('name', background=True)
 
   return db_name
 
@@ -462,55 +470,63 @@ def get_url_info(url):
     return URL({"url": url})
 
 
-def get_url_description(url, bypass_cache=False):  
-  db_name = get_database_name()
+def get_url_description(url, bypass_cache=False, db_name=None):
+  if not db_name:  
+    db_name = get_database_name()
   db = DATABASE[db_name]
+  
+  
+  if '.' not in url and '/' not in url:
+    return False
+  
   
   info = dict()
   if not url.startswith('http'):
     url = 'http://' + url
-  try:
-    url_info = db.url.find_one({'url': url})   #@UndefinedVariable
-    if (url_info and 
-        not bypass_cache and 
-        abs(utctime() - url_info.get('timestamp')) < 86400 * 90):  # only refresh if after 90 days
-        return url_info
     
+  url_info = db.url.find_one({'url': url})   
+  if (url_info and 
+      not bypass_cache and 
+      abs(utctime() - url_info.get('timestamp')) < 86400 * 90):  # only refresh if after 90 days
+      return url_info
+  
+  
+  mimetype = mimetypes.guess_type(url.rsplit('?', 1)[0])[0] 
+  if mimetype and mimetype.startswith('image'):
+    resp = requests.head(url, headers={'Accept-Encoding': ''})
+    info['size'] = int(resp.headers.get('content-length', 0))
+    info['content_type'] = resp.headers.get('content-type')    
     
-    mimetype = mimetypes.guess_type(url.rsplit('?', 1)[0])[0] 
-    if mimetype and mimetype.startswith('image'):
-      resp = requests.head(url, headers={'Accept-Encoding': ''})
-      info['size'] = int(resp.headers.get('content-length', 0))
-      info['content_type'] = resp.headers.get('content-type')    
-      
+  else:
+    if ('stackoverflow.com' in url or
+        'stackexchange.com' in url or 
+        'superuser.com' in url or
+        'serverfault.com' in url) and settings.HTTP_PROXY:
+      html = requests.get(url, proxies={'http': settings.HTTP_PROXY}).content
+      article = goose.extract(raw_html=html)
     else:
-      if ('stackoverflow.com' in url or
-          'stackexchange.com' in url or 
-          'superuser.com' in url or
-          'serverfault.com' in url) and settings.HTTP_PROXY:
-        html = requests.get(url, proxies={'http': settings.HTTP_PROXY}).content
-        article = goose.extractContent(rawHTML=html)
-      else:
-        article = goose.extractContent(url=url)
-      info = {'title': article.title,
-              'favicon': article.metaFavicon,
-              'tags': list(article.tags),
-              'description': article.metaDescription,
-              'text': article.cleanedArticleText}
-      if article.topImage:
-        info['img_src'] = article.topImage.imageSrc
-        info['img_bytes'] = article.topImage.bytes
-        info['img_size'] = (article.topImage.width, article.topImage.height)
-      
-    info['timestamp'] = utctime()
-    if not url_info:
-      info['url'] = url
-      info['_id'] = new_id()
-      db.url.insert(info)       #@UndefinedVariable
-    else:
-      db.url.update({'url': url}, {'$set': info})  #@UndefinedVariable
-  except KeyboardInterrupt:
-   db.aptureException()
+      try:
+        article = goose.extract(url=url)
+      except IOError: # stopwords for this language is not found
+        return False
+        
+    info = {'title': article.title,
+            'favicon': article.meta_favicon,
+            'tags': list(article.tags),
+            'description': article.meta_description,
+            'text': article.cleaned_text}
+    if article.top_image:
+      info['img_src'] = article.top_image.get_src()
+      info['img_bytes'] = article.top_image.bytes
+      info['img_size'] = (article.top_image.width, article.top_image.height)
+    
+  info['timestamp'] = utctime()
+  if not url_info:
+    info['url'] = url
+    info['_id'] = new_id()
+    db.url.insert(info)     
+  else:
+    db.url.update({'url': url}, {'$set': info}) 
   return info
 
 
@@ -581,8 +597,9 @@ def get_friend_suggestions(user_info):
 
   
 
-def get_user_id(session_id=None, facebook_id=None, email=None):
-  db_name = get_database_name()
+def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not session_id and not facebook_id and not email:
@@ -616,8 +633,12 @@ def get_session_id(user_id, db_name=None):
   if user_id and user_id != 'public':
     user = db.owner.find_one({"_id": long(user_id)}, {'session_id': True,
                                                       'password': True})
+    if not user:
+      return False
+    
     if user.has_key('session_id'):
       return user.get("session_id")
+    
     elif not user.has_key('password'): # user chưa tồn tại, tạo tạm 1 session_id
       session_id = hashlib.md5('%s|%s' % (user_id, utctime())).hexdigest()
       db.owner.update({'_id': user['_id']}, 
@@ -682,7 +703,7 @@ def move_to_s3(fid, db_name=None):
     if not isinstance(fid, ObjectId):
       fid = ObjectId(fid)
     f = datastore.get(fid)
-    filename = f._filename
+    filename = f.filename
     s3write(filename, f.read(), overwrite=True, content_type=f.content_type)
     datastore.delete(fid)
   db['s3'].update({'name': filename}, {'$set': {'exists': True}})
@@ -847,8 +868,10 @@ def sign_in(email, password, user_agent=None, remote_addr=None):
 
   return session_id
 
-def invite(session_id, email, group_id=None):
-  db_name = get_database_name()
+
+def invite(session_id, email, group_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
@@ -875,8 +898,7 @@ def invite(session_id, email, group_id=None):
                      'timestamp': utctime(),
                      'session_id': code})
   if str(group_id).isdigit():
-    db.owner.update({'_id': long(group_id),
-                     'leaders': user_id}, 
+    db.owner.update({'_id': long(group_id), 'members': user_id}, 
                     {'$addToSet': {'members': _id}})
     group = get_group_info(session_id, group_id)
   else:
@@ -971,8 +993,12 @@ def sign_in_with_google(email, name, gender, avatar,
                                 'password': {'$exists': True}}, {'_id': True})
       if user:
         user_id = user['_id']
-        new_notification(session_id, user_id, 
-                         'google_friend_just_joined', None, None)
+        notification_queue.enqueue(new_notification, 
+                                   session_id, 
+                                   user_id, 
+                                   'google_friend_just_joined', 
+                                   None, None, 
+                                   db_name=db_name)
 
   return session_id
 
@@ -980,6 +1006,9 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
                           link=None, locale=None, timezone=None, 
                           verified=None, facebook_id=None, 
                           facebook_friend_ids=None, db_name=None):
+  if not email:
+    return False
+
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -1038,8 +1067,10 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
     for i in notify_list:
       user_id = get_user_id(facebook_id=i)
       if user_id:
-        new_notification(session_id, user_id, 
-                         'facebook_friend_just_joined', None, None)
+        notification_queue.enqueue(new_notification, 
+                                   session_id, user_id, 
+                                   'facebook_friend_just_joined', 
+                                   None, None, db_name=db_name)
   
   return session_id
   
@@ -1185,22 +1216,29 @@ def set_status(session_id, status):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
   
   if '|' in status:
-    parts = status.split('|')
-    publish(parts[1], 'typing-status', 
-            {"conversation": '%s|%s' % (parts[1], parts[0]),
-                                        "status": parts[2]})
+    uid, _status = status.split('|')
+    user = get_user_info(user_id, db_name=db_name)
+    if _status:
+      text = user.name + ' ' + _status
+    else:
+      text = ''
+    push_queue.enqueue(publish, int(uid), 'typing-status', 
+                       {'user_id': str(user_id), 'text': text}, db_name=db_name)
+    status = 'online'
   else:
     key = 'status:%s' % user_id
     cache.set(key, status)
     db.status.update({'user_id': user_id},
                      {'$set': {'status': status,
                                'timestamp': utctime()}}, upsert=True)
-    spawn(publish, user_id, 'friends-online', status)
+    push_queue.enqueue(publish, user_id, 
+                       'friends-online', status, 
+                       db_name=db_name)
   
   key = '%s:status' % user_id
   cache.set(key, status, 86400)
@@ -1221,14 +1259,14 @@ def check_status(user_id):
   status = cache.get(key)
   if not status:
     user = db.status.find_one({'user_id': user_id}, 
-                                    {'status': True})
+                              {'status': True})
     if not user:
       status = 'offline'
     else:
       status = user.get('status', 'offline')
       if status != 'offline':
         pingpong_ts = get_pingpong_timestamp(user_id)
-        if pingpong_ts and utctime() - pingpong_ts > 150:  # mất tín hiệu hơn 120 giây -> coi như offline
+        if pingpong_ts and utctime() - pingpong_ts > 150:  # lost ping pong signal > 150 secs -> offline
           status = 'offline'
     cache.set(key, status, 86400)
 
@@ -1251,7 +1289,7 @@ def last_online(user_id):
   ts = cache.get(key)
   if not ts:
     user = db.status.find_one({'user_id': long(user_id)}, 
-                                    {'timestamp': True})
+                              {'timestamp': True})
     if user:
       ts = user.get('timestamp')
       cache.set(key, ts, 86400)
@@ -1315,6 +1353,7 @@ def get_coworkers(session_id, limit=100):
         _ids.add(member.id)
   coworkers = sorted(coworkers, 
                      key=lambda user: last_online(user.id), reverse=True)
+  coworkers = list(coworkers)
   cache.set(key, coworkers, 3600)
   return coworkers[:limit]
 
@@ -1352,8 +1391,9 @@ def get_contacts(session_id):
   return [get_user_info(i) for i in contact_ids]
 
 
-def get_coworker_ids(user_id):
-  db_name = get_database_name()
+def get_coworker_ids(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   groups = db.owner.find({"members": user_id}, {'members': True})
@@ -1419,8 +1459,9 @@ def update_utcoffset(session_id, offset):
     cache.set('utcoffset', offset, namespace=user_id)
   return True
 
-def get_utcoffset(user_id):
-  db_name = get_database_name()
+def get_utcoffset(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not str(user_id).isdigit():
@@ -1435,8 +1476,9 @@ def get_utcoffset(user_id):
       return 0
   return offset
 
-def get_user_info(user_id=None, facebook_id=None, email=None):
-  db_name = get_database_name()
+def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if user_id and not is_snowflake_id(user_id):
@@ -1449,9 +1491,9 @@ def get_user_info(user_id=None, facebook_id=None, email=None):
     return User({})
   
   if not user_id:
-    user_id = get_user_id(facebook_id=facebook_id, email=email)
+    user_id = get_user_id(facebook_id=facebook_id, email=email, db_name=db_name)
   
-  key = '%s:%s:%s:info' % (user_id, facebook_id, email)
+  key = '%s:info' % (user_id if user_id else facebook_id if facebook_id else email)
   info = cache.get(key)
   if not info:  
     if facebook_id:
@@ -1473,15 +1515,16 @@ def get_user_info(user_id=None, facebook_id=None, email=None):
   return User(info) if info else User({})
 
 
-def get_owner_info(session_id=None, uuid=None):
-  db_name = get_database_name()
+def get_owner_info(session_id=None, uuid=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not session_id and not uuid:
     return User({})
   
   elif session_id:
-    user_id = get_user_id(session_id)
+    user_id = get_user_id(session_id, db_name=db_name)
     key = '%s:info' % user_id
     info = cache.get(key)
     if not info:
@@ -1537,7 +1580,7 @@ def autocomplete(session_id, query):
   
   if query.startswith('#'):
     hashtags = db.hashtag.find({'name': re.compile('^' + query, 
-                                                         re.IGNORECASE)}).limit(5)
+                                                   re.IGNORECASE)}).limit(5)
     items = [{'name': i.get('name'), 
               'id': str(i.get('_id'))} for i in hashtags]
   else:
@@ -1560,9 +1603,9 @@ def autocomplete(session_id, query):
     
   if not items:
     users = db.owner.find({'email': re.compile('^%s.*' % query, 
-                                                     re.IGNORECASE)}, 
-                                {'name': True, 'email': True})\
-                          .limit(5)
+                                               re.IGNORECASE)}, 
+                          {'name': True, 'email': True})\
+                    .limit(5)
     items = [{'name': i.get('email'),
               'id': str(i.get('_id'))} \
              for i in users if i.get('_id') != user_id]
@@ -1578,11 +1621,13 @@ def is_removed(feed_id):
     return False
   return True
 
-def new_notification(session_id, receiver, type, ref_id=None, comment_id=None):
-  db_name = get_database_name()
+def new_notification(session_id, receiver, type, 
+                     ref_id=None, comment_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
-  sender = get_user_id(session_id)
+  sender = get_user_id(session_id, db_name=db_name)
   if not sender:
     return False
   
@@ -1596,26 +1641,28 @@ def new_notification(session_id, receiver, type, ref_id=None, comment_id=None):
           'timestamp': utctime()}
   notification_id = db.notification.insert(info)
   
-  spawn(publish, receiver, 'unread-notifications', 
-        get_unread_notifications_count(user_id=receiver))
-  
-  
   key = '%s:%s:unread_count' % (receiver, db_name)
   cache.delete(key)
   
+  unread_notifications_count = get_unread_notifications_count(user_id=receiver, 
+                                                              db_name=db_name)
+  push_queue.enqueue(publish, receiver, 'unread-notifications', 
+                     unread_notifications_count, db_name=db_name)
+  
   return notification_id
 
-def get_unread_notifications(session_id):
-  db_name = get_database_name()
+def get_unread_notifications(session_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   notifications = db.notification.find({'receiver': user_id,
                                         'is_unread': True})\
                                  .sort('timestamp', -1)
 
   offset = get_utcoffset(user_id)
-  notifications = [Notification(i, offset) for i in notifications]
+  notifications = [Notification(i, offset, db_name) for i in notifications]
       
   results = odict()
   for i in notifications:
@@ -1638,7 +1685,7 @@ def get_unread_notifications(session_id):
       results[i.date][id] = [i]
       user_ids = [i.sender.id]
     else:
-      # chống trùng 
+      # duplicate prevention 
       if i.sender.id not in user_ids:
         results[i.date][id].append(i)
         user_ids.append(i.sender.id)
@@ -1657,11 +1704,12 @@ def get_notifications(session_id, limit=25):
                                  .limit(limit)
 
   offset = get_utcoffset(user_id)
-  notifications = [Notification(i, offset) for i in notifications]
+  notifications = [Notification(i, offset, db_name) for i in notifications]
   results = odict()
   
+  user_ids = {}
   for i in notifications:
-    if not i.details.id: # post đã xoá
+    if not i.details.id: # deleted post
       continue
     
     if not i.type:
@@ -1678,20 +1726,16 @@ def get_notifications(session_id, limit=25):
     
     if not results[i.date].has_key(id):
       results[i.date][id] = [i]
-      user_ids = [i.sender.id]
+      user_ids[id] = [i.sender.id]
     else:
-      # chống trùng 
-      if i.sender.id not in user_ids:
+      # prevent duplicate
+      if i.sender.id not in user_ids[id]:
         results[i.date][id].append(i)
-        user_ids.append(i.sender.id)
+        user_ids[id].append(i.sender.id)
         
-#    print id, user_ids
-      
-      
     
-    
-        
   return results
+
   
 def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   if not db_name:
@@ -1699,20 +1743,19 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   db = DATABASE[db_name]
   
   if not user_id:
-    user_id = get_user_id(session_id)
-  
+    user_id = get_user_id(session_id, db_name=db_name)
   
   key = '%s:%s:unread_count' % (user_id, db_name)
   count = cache.get(key)
   if count is not None:
     return count 
-    
+  
   notifications = db.notification.find({'receiver': user_id,
                                         'is_unread': True})\
                                  .sort('timestamp', -1)
 
-  offset = get_utcoffset(user_id)
-  notifications = [Notification(i, offset) for i in notifications]
+  offset = get_utcoffset(user_id, db_name=db_name)
+  notifications = [Notification(i, offset, db_name) for i in notifications]
       
   count = 0
   results = odict()
@@ -1720,7 +1763,7 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   
     
   for i in notifications:
-    if not i.details.id: # post đã xoá
+    if not i.details.id: # deleted post 
       continue
     
     if not i.type:
@@ -1740,7 +1783,7 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
       user_ids = [i.sender.id]
       count += 1
     else:
-      # chống trùng 
+      # duplicate prevention
       if i.sender.id not in user_ids:
         results[i.date][id].append(i)
         user_ids.append(i.sender.id)
@@ -1827,7 +1870,6 @@ def mark_as_read(session_id, post_id):
     
     record['read_receipts'].append({'user_id': user_id, 'timestamp': ts})
   
-    # clear fullpage cache (WSGICache)
     viewers = record.get('viewers', [])
     user_ids = set()
     for i in viewers:
@@ -1842,13 +1884,15 @@ def mark_as_read(session_id, post_id):
         
     for _id in user_ids:
       cache.clear(_id)
-      spawn(publish, _id, 'read-receipts', record)
+      push_queue.enqueue(publish, _id, 'read-receipts', record, db_name=db_name)
     
     # update notification
     mark_notification_as_read(session_id, ref_id=post_id)
     
-    spawn(publish, user_id, 'unread-notifications', 
-          get_unread_notifications_count(user_id=user_id))
+    unread_notifications_count = get_unread_notifications_count(user_id=user_id,
+                                                                db_name=db_name)
+    push_queue.enqueue(publish, user_id, 'unread-notifications', 
+                       unread_notifications_count, db_name=db_name)
     
     
     clear_html_cache(post_id)
@@ -1995,17 +2039,31 @@ def get_email_addresses(session_id):
   return [i['email'].strip() for i in records]
 
 def get_user_id_from_email_address(email, db_name=None):
+  if not email:
+    return False
+  
+  if email and ('@' not in email or '.' not in email):
+    return False
+  
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
   email = email.lower().strip()
+  
+  key = '%s:%s:user_id' % (db_name, email)
+  uid = cache.get(key)
+  if uid:
+    return uid
+  
   record = db.owner.find_one({'email': email.split('<')[-1].rstrip('>').strip()})
   if record:
     if record.has_key('owner'):
-      return record['owner']
+      uid = record['owner']
     else:
-      return record['_id']
+      uid = record['_id']
+    cache.set(key, uid)
+    return uid
   else:
     if '<' in email:
       name = capwords(email.split('<')[0].strip('"'))
@@ -2016,6 +2074,7 @@ def get_user_id_from_email_address(email, db_name=None):
     if info:
       owner = info['owner']
       update_user(email, name=name, owner=owner)
+      cache.set(key, owner)
       return owner
     else:
       update_user(email, name=name)
@@ -2131,16 +2190,18 @@ def new_post_from_email(message_id, receivers, sender,
         parent = db.stream.find_one({'message_id': ref})
         if parent:
           clear_html_cache(parent['_id'])
-          spawn(update_index, parent['_id'], 
-                text, viewers, is_comment=True)
+          index_queue.enqueue(update_index, parent['_id'], 
+                              text, viewers, is_comment=True)
           info = parent
           
           for id in info['viewers']:
             cache.clear(id)
             if is_group(id):
-              spawn(publish, user_id, '%s|unread-feeds' % id, info)
+              push_queue.enqueue(publish, user_id, 
+                                 '%s|unread-feeds' % id, info, db_name=db_name)
             else:
-              spawn(publish, id, 'unread-feeds', info)
+              push_queue.enqueue(publish, id, 
+                                 'unread-feeds', info, db_name=db_name)
           
   else:
     if not db.stream.find_one({'message_id': message_id}):
@@ -2161,7 +2222,7 @@ def new_post_from_email(message_id, receivers, sender,
       text = '%s\n\n%s' % (subject, text)
       
       
-      spawn(add_index, info['_id'], text, viewers, 'email')
+      index_queue.enqueue(add_index, info['_id'], text, viewers, 'email')
   
       # send notification
       for id in viewers:
@@ -2172,7 +2233,8 @@ def new_post_from_email(message_id, receivers, sender,
 #        else: # update last_updated
           db.owner.update({'_id': id},
                                 {'$set': {'last_updated': utctime()}})
-          spawn(publish, user_id, '%s|unread-feeds' % id, info)
+          push_queue.enqueue(publish, user_id, 
+                             '%s|unread-feeds' % id, info, db_name=db_name)
           
   return True
 
@@ -2245,32 +2307,35 @@ def new_feed(session_id, message, viewers,
     if urls:
       info['urls'] = urls
       for url in urls:
-        crawler_queue.enqueue(get_url_description, url)
+        crawler_queue.enqueue(get_url_description, url, db_name=db_name)
       
   db.stream.insert(info)
   
-  spawn(add_index, info['_id'], message, viewers, 'post')
+  index_queue.enqueue(add_index, info['_id'], message, viewers, 'post')
   
   
   # send notification
   for id in viewers:
     if not is_group(id) and id != user_id:
-      spawn(new_notification, session_id, id, 'message', info.get('_id'))
-      spawn(publish, id, 'unread-feeds', info)
+      notification_queue.enqueue(new_notification, 
+                                 session_id, id, 'message', 
+                                 info.get('_id'), db_name=db_name)
+      push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
 
       # send email
       u = get_user_info(id)
       
-      if '@' in u.email and (u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180)):
+      if u.email and '@' in u.email and (u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180)):
         send_mail_queue.enqueue(send_mail, u.email, mail_type='new_post',
                                 user_id=user_id, post=info, db_name=db_name)
 
     elif id == user_id:
-      spawn(publish, id, 'unread-feeds', info)
+      push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
     else: # set group last_updated time
       db.owner.update({'_id': id},
                             {'$set': {'last_updated': utctime()}})
-      spawn(publish, user_id, '%s|unread-feeds' % id, info)
+      push_queue.enqueue(publish, user_id, 
+                         '%s|unread-feeds' % id, info, db_name=db_name)
 
       
   # clear wsgimiddleware cache
@@ -2310,11 +2375,13 @@ def set_viewers(session_id, feed_id, viewers):
   new_users = [i for i in viewers if not is_group(i) and i not in feed['viewers']]
   for i in new_users:
     if i != user_id:
-      spawn(new_notification, session_id, i, 'message', _id)
+      notification_queue.enqueue(new_notification, 
+                                 session_id, i, 'message', 
+                                 _id, db_name=db_name)
 
   
   clear_html_cache(feed_id)
-  spawn(update_viewers, feed_id, viewers)
+  index_queue.enqueue(update_viewers, feed_id, viewers)
   return True
 
 def reshare(session_id, feed_id, viewers):
@@ -2359,14 +2426,16 @@ def reshare(session_id, feed_id, viewers):
   new_users = [i for i in viewers if not is_group(i) and i not in feed['viewers']]
   for i in new_users:
     if i != user_id:
-      spawn(new_notification, session_id, i, 'message', _id)
+      notification_queue.enqueue(new_notification, 
+                                 session_id, i, 'message', 
+                                 _id, db_name=db_name)
       
       u = get_user_info(i)
       send_mail_queue.enqueue(send_mail, 
                               u.email, mail_type='new_post', 
                               user_id=user_id, post=feed, db_name=db_name)
       
-  spawn(update_viewers, feed_id, viewers)
+  index_queue.enqueue(update_viewers, feed_id, viewers)
 
   clear_html_cache(feed_id) 
 
@@ -2388,7 +2457,8 @@ def remove_feed(session_id, feed_id):
                            {'$set': {'is_removed': True}})
     
     for user_id in post.viewer_ids:
-      spawn(publish, user_id, 'remove', {'post_id': str(feed_id)})
+      push_queue.enqueue(publish, user_id, 'remove', 
+                         {'post_id': str(feed_id)}, db_name=db_name)
   
 
   return feed_id
@@ -2443,7 +2513,7 @@ def get_feed(session_id, feed_id, group_id=None):
     viewers.append(user_id)
     viewers.append('public')
     info = db.stream.find_one({'_id': long(feed_id),
-                                     'viewers': {'$in': viewers}})
+                               'viewers': {'$in': viewers}})
   return Feed(info)
 
 def unread_count(session_id, timestamp):
@@ -2454,12 +2524,12 @@ def unread_count(session_id, timestamp):
   groups = db.owner.find({'members': user_id})
   group_ids = [i.get('_id') for i in groups]
   feeds = db.stream.find({'$or': [{'viewers': {'$in': group_ids}},
-                                          {'owner': user_id}],
-                                'timestamp': {'$gt': timestamp}}).count()
+                                  {'owner': user_id}],
+                          'timestamp': {'$gt': timestamp}}).count()
                                           
   docs = db.stream.find({'$or': [{'viewers': {'$in': group_ids}},
-                                    {'owner': user_id}],
-                            'timestamp': {'$gt': timestamp}}).count()
+                                 {'owner': user_id}],
+                         'timestamp': {'$gt': timestamp}}).count()
   return feeds + docs
 
 def get_public_posts(session_id=None, user_id=None, page=1):
@@ -2605,8 +2675,8 @@ def get_focus_feeds(session_id, page=1):
   
   user_id = get_user_id(session_id)
   feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'viewers': user_id,
-                                'priority': {'$exists': True}})\
+                          'viewers': user_id,
+                          'priority': {'$exists': True}})\
                          .sort('last_updated', -1)\
                          .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                          .limit(settings.ITEMS_PER_PAGE)
@@ -2618,13 +2688,24 @@ def get_user_posts(session_id, user_id, page=1):
   
   user_id = long(user_id)
   owner_id = get_user_id(session_id)
-  groups_list_1 = get_group_ids(owner_id)
-  groups_list_2 = get_group_ids(user_id)
-  viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
-  viewers.append('public')
-
-  feeds = db.stream.find({'owner': user_id, 
-                          'viewers': {'$in': viewers},
+#  groups_list_1 = get_group_ids(owner_id)
+#  groups_list_2 = get_group_ids(user_id)
+#  viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
+#  viewers.append('public')
+#
+#  feeds = db.stream.find({'$or': [{'owner': user_id, 'viewers': {'$in': viewers}}, 
+#                                  {'$and': [{'viewers': user_id}, 
+#                                            {'viewers': owner_id}]}],
+#                          'is_removed': {'$exists': False}})\
+#                         .sort('last_updated', -1)\
+#                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+#                         .limit(settings.ITEMS_PER_PAGE)
+                         
+                         
+  feeds = db.stream.find({'$or': [{'viewers': 'public', 'owner': user_id},
+                                  {'$and': [{'viewers': user_id}, 
+                                            {'viewers': owner_id}]}],
+                          'message.action': {'$exists': False},
                           'is_removed': {'$exists': False}})\
                          .sort('last_updated', -1)\
                          .skip((page - 1) * settings.ITEMS_PER_PAGE)\
@@ -2763,7 +2844,6 @@ def get_feeds(session_id, group_id=None, page=1,
     if not include_archived_posts:
       query['archived_by'] = {'$nin': [user_id]}
         
-        
     feeds = db.stream.find(query)\
                      .sort('last_updated', -1)\
                      .skip((page - 1) * settings.ITEMS_PER_PAGE)\
@@ -2793,12 +2873,13 @@ def get_unread_feeds(session_id, timestamp, group_id=None):
 #  feeds.sort(key=lambda k: k.get('last_updated'), reverse=True)
   return [Feed(i) for i in feeds]
 
+
 def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return 0
   
@@ -2807,7 +2888,7 @@ def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
   if not group.id:
     return 0
   
-  # get last viewd timestamp
+#   get last viewed timestamp
   if from_ts:
     last_ts = float(from_ts)
   else:
@@ -2820,10 +2901,16 @@ def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
       if i['user_id'] == user_id:
         last_ts = i['timestamp']
         break
-  
+#  
+#  return db.stream.find({'viewers': group_id,
+#                         'is_removed': {"$exists": False},
+#                         'last_updated': {'$gt': last_ts}}).count()
   return db.stream.find({'viewers': group_id,
-                         'is_removed': {"$exists": False},
-                         'last_updated': {'$gt': last_ts}}).count()
+                         'owner': {'$ne': user_id},
+                         'is_removed': {'$exists': False},
+                         'last_updated': {'$gt': last_ts},
+                         'message.action': {'$exists': False},
+                         'read_receipts.user_id': {'$ne': user_id}}).count()
                   
   
 
@@ -2925,7 +3012,7 @@ def new_comment(session_id, message, ref_id,
 #  if not message:
 #    return False
 
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
   
@@ -2951,24 +3038,28 @@ def new_comment(session_id, message, ref_id,
   mentions = get_mentions(message)
   mentions = [long(i.get('id')) for i in mentions]
   mentions.append(user_id)
-    
+  mentions = list(set(mentions))
+  
   # send notification
   info = db.stream.find_one({'_id': long(ref_id)})
-
+  if not info:
+    return False
+  
   owner_id = info.get('owner')
   viewers = info.get('viewers')
   
   new_mentions = [i for i in mentions if i not in viewers and i != user_id]
 
   if user_id != owner_id:
-    spawn(new_notification, session_id, owner_id, 'comment', 
-          ref_id, comment['_id'])
+    notification_queue.enqueue(new_notification, 
+                               session_id, owner_id, 'comment', 
+                               ref_id, comment['_id'], db_name=db_name)
     
   db.stream.update({"_id": long(ref_id)}, 
-                          {"$push": {"comments": comment},
-                           "$addToSet": {'viewers': {"$each": mentions}},
-                           "$set": {'last_updated': ts},
-                           '$unset': {'archived_by': 1}})
+                   {"$push": {"comments": comment},
+                    "$addToSet": {'viewers': {"$each": mentions}},
+                    "$set": {'last_updated': ts},
+                    '$unset': {'archived_by': 1}})
   
   
   
@@ -2982,46 +3073,64 @@ def new_comment(session_id, message, ref_id,
   else:
     info['comments'] = [comment]
     
+  # TODO: reply to notification?
+    
+  
+  for uid in mentions:
+    if uid != user_id:
+      notification_queue.enqueue(new_notification, 
+                                 session_id, uid, 'mention', 
+                                 ref_id, comment['_id'], db_name=db_name)
+      u = get_user_info(uid)
+      send_mail_queue.enqueue(send_mail, u.email, 
+                              mail_type='mentions', 
+                              user_id=user_id, post=info, 
+                              db_name=db_name)
+    
   
   receivers = [info.get('owner')]
   if info.get('comments'):
     for i in info.get('comments'):
-      if i.get('owner') != user_id and i.get('owner') not in receivers:
+      if i.get('owner') != user_id and i.get('owner') not in mentions and i.get('owner') not in receivers:
         receivers.append(i.get('owner'))
-        spawn(new_notification, session_id, i.get('owner'), 
-              'comment', ref_id, comment['_id'])
+        notification_queue.enqueue(new_notification, 
+                                   session_id, i.get('owner'), 
+                                   'comment', ref_id, 
+                                   comment['_id'], db_name=db_name)
 
   for id in info['viewers']:
     cache.clear(id)
     if is_group(id):
-      spawn(publish, user_id, '%s|unread-feeds' % id, info)
+      push_queue.enqueue(publish, user_id, 
+                         '%s|unread-feeds' % id, info, db_name=db_name)
     else:
-      spawn(publish, id, 'unread-feeds', info)
+      push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
       
       
-      if user_id != id:
+      if user_id != id and id not in mentions:
         # send email notification
         u = get_user_info(id)
-        if '@' in u.email and \
-          (id in new_mentions or \
-           u.status == 'offline' or \
-           (u.status == 'away' and utctime() - u.last_online > 180)):
-          spawn(send_mail, u.email, mail_type='new_comment', 
-                user_id=user_id, post=info, db_name=db_name)
+        if u.email and '@' in u.email:
+          if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
+            send_mail_queue.enqueue(send_mail, u.email, 
+                                    mail_type='new_comment', 
+                                    user_id=user_id, post=info, 
+                                    db_name=db_name)
   
   urls = extract_urls(message)
   if urls:
     for url in urls:
-      crawler_queue.enqueue(get_url_description, url)
+      crawler_queue.enqueue(get_url_description, url, db_name=db_name)
       
-  spawn(update_index, ref_id, message, viewers, is_comment=True)
-  #TODO: notify mentioned users
-  
+  index_queue.enqueue(update_index, ref_id, message, viewers, is_comment=True)
   
   # upate unread notifications
   mark_notification_as_read(session_id, ref_id=ref_id)
-  spawn(publish, user_id, 'unread-notifications', 
-        get_unread_notifications_count(user_id=user_id))
+  
+  unread_notifications_count = get_unread_notifications_count(user_id=user_id,
+                                                              db_name=db_name)
+  push_queue.enqueue(publish, user_id, 'unread-notifications', 
+                     unread_notifications_count, db_name=db_name)
   
   
   clear_html_cache(ref_id)
@@ -3047,21 +3156,24 @@ def remove_comment(session_id, comment_id, post_id=None):
   comment_id = long(comment_id)
   
   record = db.stream.find_and_modify({'$and': [{'comments.owner': user_id},
-                                                     {'comments._id': comment_id}]},
-                                            {'$set': {'comments.$.is_removed': True}})
+                                               {'comments._id': comment_id}]},
+                                     {'$set': {'comments.$.is_removed': True}})
   if not record:
     record = db.stream.find_and_modify({'$and': [{'owner': user_id},
-                                                       {'comments._id': comment_id}]},
-                                             {'$set': {'comments.$.is_removed': True}})
+                                                 {'comments._id': comment_id}]},
+                                       {'$set': {'comments.$.is_removed': True}})
   
   for _id in record.get('viewers'):
     cache.clear(_id)
-    spawn(publish, _id, 'unread-notifications', 
-          get_unread_notifications_count(user_id=user_id))
-    
+    push_queue.enqueue(publish, _id, 'unread-notifications', 
+                       get_unread_notifications_count(user_id=user_id, 
+                                                       db_name=db_name), 
+                       db_name=db_name)
+                  
     # Note: phải ép comment_id về str vì javascript không xử lý được số int lớn 
     # như số id của comment_id (id do snowflake sinh ra)
-    spawn(publish, _id, 'remove', {'comment_id': str(comment_id)})
+    push_queue.enqueue(publish, _id, 'remove', 
+                       {'comment_id': str(comment_id)}, db_name=db_name)
   clear_html_cache(record['_id'])
     
   return True
@@ -3111,9 +3223,11 @@ def update_comment(session_id, comment_id, message, post_id=None):
     
     # Note: phải ép comment_id về str vì javascript không xử lý được số int lớn 
     # như số id của comment_id (id do snowflake sinh ra)
-    spawn(publish, _id, 'update', {'comment_id': str(comment_id),
-                                   'text': text,
-                                   'changes': diff(original_message, message)})
+    push_queue.enqueue(publish, _id, 
+                       'update', {'comment_id': str(comment_id),
+                                  'text': text,
+                                  'changes': diff(original_message, message)}, 
+                       db_name=db_name)
 
   clear_html_cache(record['_id'])
   return True
@@ -3493,7 +3607,8 @@ def new_note(session_id, title, content, attachments=None, viewers=None):
   if not user_id:
     return False
   
-  viewers = [long(i) for i in viewers]
+  viewers = [long(i) if str(i).isdigit() else 'public' for i in viewers]
+  
   viewers.append(user_id)
   viewers = list(set(viewers))
   
@@ -3513,7 +3628,7 @@ def new_note(session_id, title, content, attachments=None, viewers=None):
   
   db.stream.insert(info)
   
-  spawn(add_index, info['_id'], content, viewers, 'doc')
+  index_queue.enqueue(add_index, info['_id'], content, viewers, 'doc')
   
   return info['_id']
 
@@ -3556,12 +3671,14 @@ def update_note(session_id, doc_id, title, content, attachments=None, viewers=No
   
   db.stream.update({'_id': doc_id, 'viewers': {'$in': members}}, query)
   
-  spawn(update_index, doc_id, content, viewers)
+  index_queue.enqueue(update_index, doc_id, content, viewers)
   
   receivers = [i for i in viewers if not is_group(i)]
   for receiver in receivers:
     if receiver != user_id:
-      new_notification(session_id, receiver, type='update', ref_id=doc_id)
+      notification_queue.enqueue(new_notification, 
+                                 session_id, receiver, 
+                                 type='update', ref_id=doc_id, db_name=db_name)
       
   clear_html_cache(doc_id)
   
@@ -3805,8 +3922,9 @@ def get_file_info(session_id, file_id):
                                    'viewers': {'$in': viewers}})
   return File(info)
 
-def get_attachment_info(attachment_id):
-  db_name = get_database_name()
+def get_attachment_info(attachment_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not is_snowflake_id(attachment_id):
@@ -3886,7 +4004,7 @@ def new_file(session_id, attachment_id, viewers=None):
   
   if viewers:
     viewers = [long(user) if user != 'public' else 'public' \
-               for user in viewers ]
+               for user in viewers]
   else:
     viewers = []
   viewers.append(user_id)
@@ -3906,7 +4024,7 @@ def new_file(session_id, attachment_id, viewers=None):
   
   name = get_attachment_info(attachment_id).name
   
-  spawn(add_index, file_id, name, viewers, 'file')
+  index_queue.enqueue(add_index, file_id, name, viewers, 'file')
   
   return file_id
 
@@ -4180,9 +4298,12 @@ def new_group(session_id, name, privacy="closed", members=None, about=None, emai
   db.owner.insert(info)
   group_id = info['_id']
   
+  key = '%s:groups' % user_id
+  cache.delete(key)
+  
   if email_addrs:
     for email in email_addrs:
-      spawn(invite, session_id, email, group_id)
+      invite_queue.enqueue(invite, session_id, email, group_id)
   
   new_feed(session_id, {'action': 'created',
                         'group_id': group_id}, [group_id])
@@ -4305,7 +4426,7 @@ def add_to_contacts(session_id, user_id):
   if not uid:
     return False
   db.owner.update({'_id': uid},
-                        {'$addToSet': {'contacts': long(user_id)}})
+                  {'$addToSet': {'contacts': long(user_id)}})
   
   # TODO: send notification
   new_notification(session_id, user_id, 'add_contact')
@@ -4441,6 +4562,18 @@ def get_following_users(user_id):
   return [i['_id'] for i in users]
   
 
+def get_groups_count(user_id):
+  if not user_id:
+    return 0
+  
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  return db.owner.find({"members": user_id}).count()
+  
+  
+  
+
 def get_groups(session_id, limit=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
@@ -4467,12 +4600,31 @@ def get_open_groups(user_id=None, limit=5):
   
   if user_id:
     groups = db.owner.find({'members': {'$in': [user_id]},
-                                  'privacy': 'open'})\
-                                .sort('last_updated', -1).limit(limit)
+                            'privacy': 'open'})\
+                     .sort('last_updated', -1).limit(limit)
   else:
     groups = db.owner.find({'privacy': 'open'})\
-                                .sort('last_updated', -1).limit(limit)
+                     .sort('last_updated', -1).limit(limit)
   return [Group(i) for i in groups]
+
+
+def get_featured_groups(session_id, limit=5):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = get_user_id(session_id)
+  
+  groups = db.owner.find({'privacy': 'open'})\
+                   .sort('last_updated', -1).limit(limit*2)
+  
+  featured_groups = []
+  for group in groups:
+    if user_id not in group.get('members'):
+      featured_groups.append(Group(group))
+  
+  return featured_groups
+  
+  
   
 
 def get_group_member_ids(group_id):
@@ -4529,7 +4681,7 @@ def is_public(group_id):
   return True if info and info.get('privacy') == 'open' else False
 
 
-def get_group_info(session_id, group_id):
+def get_group_info(session_id, group_id, db_name=None):
   if group_id == 'public':
     info = {'name': 'Public',
             'members': get_group_member_ids(group_id),
@@ -4541,10 +4693,11 @@ def get_group_info(session_id, group_id):
   else:
     group_id = long(group_id)
   
-  db_name = get_database_name()
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
     
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   info = db.owner.find_one({"_id": group_id, 
                             'members': user_id})
   if not info:
@@ -4683,16 +4836,20 @@ def people_search(query, group_id=None, db_name=None):
   
   if '@' in query:
     users = db.owner.find({'email': re.compile(query, re.IGNORECASE)})\
-                          .limit(50)
+                    .limit(50)
   else:
     users = db.owner.find({'name': re.compile(query, re.IGNORECASE)})\
-                          .limit(50)
+                    .limit(50)
     users = list(users)
-    if len(list(users)) < 5:
+    user_ids = [u['_id'] for u in users]
+    if len(list(user_ids)) < 5:
       _users = db.owner.find({'email': re.compile(query, re.IGNORECASE)})\
-                            .limit(50)
-      users.extend(_users)
-  return [User(i) for i in users]
+                       .limit(50)
+      for _user in _users:
+        if _user['_id'] not in user_ids:
+          users.append(_user)
+          user_ids.append(_user['_id'])
+  return [User(i) for i in users if i.get('email')]
 
 
 def search(session_id, query, type=None, ref_user_id=None, page=1):
@@ -4776,47 +4933,69 @@ def _jupo_stats():
   
   
 def get_google_spelling_suggestion(query):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
+  db = DATABASE['global']
   
   url = 'http://www.google.com/search?q=%s&start=0&hl=en' % quote(str(query))
   html = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/534.16 (KHTML, like Gecko) Ubuntu/10.10 Chromium/10.0.648.133 Chrome/10.0.648.133 Safari/534.16',
                                     'Referer': 'http://www.google.com/'}).content
-  suggestions = re.compile('spell=1" class=spell>(.*?)</a>').findall(html)
+  suggestions = re.compile('class="spell".*?>(.*?)</a>').findall(html)
   if suggestions:
-    suggestion = suggestions[0]
-    db.spelling_suggestion.insert({'keyword': query.lower().strip(), 
-                                         'suggestion': suggestion})
-    return suggestion
+    text = suggestions[0]
+    suggestion = re.findall('<i>(.*?)</i>', text)[0]
+    if suggestion:
+      db.spelling_suggestion.insert({'keyword': query.lower().strip(), 
+                                     'suggestion': suggestion})
+      return suggestion
 
 def get_spelling_suggestion(keyword):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
+  db = DATABASE['global']
   
   keyword = keyword.lower().strip()
   info = db.spelling_suggestion.find_one({'keyword': keyword})
   if info:
     suggestion = info.get('suggestion')
-    return {'text': suggestion.replace('<b>', '')\
-                              .replace('</b>', '')\
-                              .replace('<i>', '')\
-                              .replace('</i>', ''),
-            'html': suggestion}
+    return {'text': suggestion,
+            'html': '<b><i>%s</i></b>' % suggestion}
   else:
-    low_priority_queue.enqueue(get_google_spelling_suggestion, keyword)
+    crawler_queue.enqueue(get_google_spelling_suggestion, keyword)
 
 #===============================================================================
-# Nginx Push
+# Push
 #===============================================================================
-def publish(user_id, event_type, info=None):    
+def is_valid_channel_id(session_id, channel_id):
+  if session_id == channel_id:
+    return False
+  
+  db_name = get_database_name()
+  key = hashlib.md5('%s|%s' % (db_name, session_id)).hexdigest()
+  if key == channel_id:
+    return True
+  else:
+    return False
+  
+
+def get_channel_id(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+    
+  if str(user_id).isdigit():
+    session_id = get_session_id(user_id, db_name=db_name)
+  else:
+    session_id = user_id
+    
+  return hashlib.md5('%s|%s' % (db_name, session_id)).hexdigest()
+    
+
+def publish(user_id, event_type, info=None, db_name=None):    
   if event_type == 'friends-online':
     template = app.CURRENT_APP.jinja_env.get_template('friends_online.html')
+  
+    owner = get_user_info(user_id, db_name=db_name)
+    owner.status = info
     
-    user_ids = get_coworker_ids(user_id)
+    user_ids = owner.contact_ids
     if user_id in user_ids:
       user_ids.remove(user_id)
-    owner = get_user_info(user_id)
-    owner.status = info
         
     item = {'type': event_type,
             'user': {'id': str(owner.id),
@@ -4824,22 +5003,22 @@ def publish(user_id, event_type, info=None):
                      'avatar': owner.avatar,
                      'status': info},
             'info': template.render(owner=owner,
-                                    users=[owner])}
+                                    friends_online=[owner])}
         
     data = dumps(item)
     for user_id in user_ids:
-      channel_id = get_session_id(user_id)
+      channel_id = get_channel_id(user_id, db_name=db_name)
       PUBSUB.publish(channel_id, data)
         
   elif event_type == 'read-receipts':
-    owner = get_user_info(user_id)
+    owner = get_user_info(user_id, db_name=db_name)
     template = app.CURRENT_APP.jinja_env.get_template('read_receipts.html')
     
     read_receipts = []
     last_updated = info.get('last_updated')
     for i in info.get('read_receipts'):
       if i.get('timestamp') > last_updated:
-        read_receipts.append({'user': get_user_info(i['user_id']),
+        read_receipts.append({'user': get_user_info(i['user_id'], db_name=db_name),
                               'timestamp': i['timestamp']})
     read_receipts.sort(key=lambda k: k.get('timestamp'), reverse=True)
     
@@ -4849,22 +5028,24 @@ def publish(user_id, event_type, info=None):
     
     text = template.render(owner=owner, read_receipts=read_receipts)
     
-    channel_id = get_session_id(user_id)
+    channel_id = get_channel_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, dumps({'type': event_type,
                                       'info': {'post_id': str(info.get('_id')), 
                                                'quick_stats': quick_stats,
+                                               'owner': str(user_id),
+                                               'viewers': [str(i) for i in info.get('viewers', [])], 
                                                'text': text}}))
       
   elif event_type == 'like-comment':
     likes_count = len(info['likes'])
     
     if likes_count == 1:
-      msg = '%s likes this.' % (info['likes'][0].user.name)
+      msg = '%s likes this.' % (info['likes'][0].name)
     else:
       msg = '%s like this.' % (', '.join([user.name for user in info['likes']]))
       
     
-    channel_id = get_session_id(user_id)
+    channel_id = get_channel_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, dumps({'type': event_type,
                                       'info': {'comment_id': str(info['_id']),
                                                'likes_count': likes_count,
@@ -4872,7 +5053,7 @@ def publish(user_id, event_type, info=None):
                                          
     
   elif event_type == 'likes':
-    owner = get_user_info(user_id)
+    owner = get_user_info(user_id, db_name=db_name)
     likes = info['likes']
     
     quick_stats = '''
@@ -4880,13 +5061,14 @@ def publish(user_id, event_type, info=None):
       <span class="likes-count">%s</span>''' % len(likes)
     
     template = app.CURRENT_APP.jinja_env.get_template('likes.html')
-    html = template.render(owner=owner, likes=likes)
+    html = template.render(owner=owner, likes=likes, item={'id': info['_id']})
     
-    channel_id = get_session_id(user_id)
+    channel_id = get_channel_id(user_id, db_name=db_name)
     PUBSUB.publish(channel_id, dumps({'type': event_type,
                                       'info': {'post_id': str(info.get('_id')), 
                                                'quick_stats': quick_stats,
                                                'html': html}}))
+    
   
   elif 'unread-feeds' in event_type:
     template = app.CURRENT_APP.jinja_env.get_template('feed.html')
@@ -4895,28 +5077,51 @@ def publish(user_id, event_type, info=None):
     if '|' in event_type:
       group_id = event_type.split('|')[0]
       if is_group(group_id):
-        session_id = get_session_id(user_id)
-        members = get_group_info(session_id, int(group_id)).members
+        session_id = get_session_id(user_id, db_name=db_name)
+        members = get_group_info(session_id, 
+                                 int(group_id), 
+                                 db_name=db_name).members
         members = set([str(user.id) for user in members])
         for user_id in members:
-          owner = get_user_info(user_id)
+          owner = get_user_info(user_id, db_name=db_name)
           # TODO: sử dụng _render ở dưới đến tận dụng cache?
-          html_group = template.render(feed=feed, owner=owner, view='group')
-          html_news_feed = template.render(feed=feed, owner=owner, view='news_feed')
+          html_group = template.render(feed=feed, 
+                                       owner=owner, 
+                                       view='group')
+          html_news_feed = template.render(feed=feed, 
+                                           owner=owner, 
+                                           view='news_feed')
           
-          channel_id = get_session_id(user_id)
-          PUBSUB.publish(channel_id, dumps({'type': 'unread-feeds', 'info': html_news_feed}))
-          PUBSUB.publish(channel_id, dumps({'type': event_type, 'info': html_group}))
+          channel_id = get_channel_id(user_id, db_name=db_name)
+          PUBSUB.publish(channel_id, 
+                         dumps({'type': 'unread-feeds', 
+                                'viewers': [str(i) for i in feed.viewers], 
+                                'info': html_news_feed}))
+          PUBSUB.publish(channel_id, 
+                         dumps({'type': event_type, 
+                                'viewers': [str(i) for i in feed.viewers], 
+                                'info': html_group}))
     else:
-      owner = get_user_info(user_id)
-      html = template.render(feed=feed, owner=owner, view='news_feed')
+      owner = get_user_info(user_id, db_name=db_name)
+      html = template.render(feed=feed, 
+                             owner=owner, 
+                             view='news_feed')
       
-      channel_id = get_session_id(user_id)
-      PUBSUB.publish(channel_id, dumps({'type': 'unread-feeds', 'info': html}))
+      channel_id = get_channel_id(user_id, db_name=db_name)
+      PUBSUB.publish(channel_id, 
+                     dumps({'type': 'unread-feeds', 'info': html}))
       
-  else: # unread-notifications/typing-status
-    channel_id = get_session_id(user_id)
-    PUBSUB.publish(channel_id, dumps({'type': event_type, 'info': info}))  
+  elif event_type == 'new-message':
+    html = info.replace('\n', '')
+    channel_id = get_channel_id(user_id, db_name=db_name)
+    PUBSUB.publish(channel_id, 
+                   dumps({'type': event_type, 
+                          'info': {'html': html}}))  
+      
+  else: # unread-notifications/typing-status/new-message
+    channel_id = get_channel_id(user_id, db_name=db_name)
+    PUBSUB.publish(channel_id, 
+                   dumps({'type': event_type, 'info': info}))  
     
   return True
 
@@ -4937,11 +5142,13 @@ def like(session_id, item_id, post_id=None):
     return False
   
   db.like.insert({'user_id': user_id,
-                        'item_id': item_id,
-                        'timestamp': utctime()})
+                  'item_id': item_id,
+                  'timestamp': utctime()})
   
     
-  record = get_record(post_id)
+  record = get_record(post_id, db_name=db_name)
+  if not record:
+    return False
   
   viewers = record.get('viewers', [])
   viewers.append(user_id)
@@ -4951,22 +5158,28 @@ def like(session_id, item_id, post_id=None):
     likes = [get_user_info(i) for i in  get_liked_user_ids(post_id)]
     record['likes'] = likes
     for uid in viewers:
-      spawn(publish, uid, 'likes', record)
+      push_queue.enqueue(publish, uid, 'likes', record, db_name=db_name)
     
     if record['owner'] != user_id:
-      new_notification(session_id, record['owner'], 'like', post_id)
+      notification_queue.enqueue(new_notification, 
+                                 session_id, 
+                                 record['owner'], 
+                                 'like', post_id, db_name=db_name)
   else: # comment like
     for comment in record['comments']:
       if comment['_id'] == item_id:
         if user_id != comment['owner']:
-          new_notification(session_id, comment['owner'], 
-                           'like', post_id, comment['_id'])
+          notification_queue.enqueue(new_notification, 
+                                     session_id, 
+                                     comment['owner'], 
+                                     'like', post_id, 
+                                     comment['_id'], db_name=db_name)
         break
     
     likes = [get_user_info(i) for i in  get_liked_user_ids(item_id)]
     comment['likes'] = likes
     for uid in viewers:
-      spawn(publish, uid, 'like-comment', comment)
+      push_queue.enqueue(publish, uid, 'like-comment', comment, db_name=db_name)
         
     
   clear_html_cache(post_id)
@@ -4984,8 +5197,9 @@ def unlike(session_id, item_id, post_id=None):
   
   db.like.remove({'user_id': user_id, 'item_id': item_id})
   
-    
-  record = get_record(post_id)
+  record = get_record(post_id, db_name=db_name)
+  if not record:
+    return False
   
   viewers = record.get('viewers', [])
   viewers.append(user_id)
@@ -4994,7 +5208,7 @@ def unlike(session_id, item_id, post_id=None):
     likes = [get_user_info(i) for i in  get_liked_user_ids(post_id)]
     record['likes'] = likes
     for uid in viewers:
-      spawn(publish, uid, 'likes', record)
+      push_queue.enqueue(publish, uid, 'likes', record, db_name=db_name)
   else:
     
     for comment in record['comments']:
@@ -5004,7 +5218,7 @@ def unlike(session_id, item_id, post_id=None):
     likes = [get_user_info(i) for i in  get_liked_user_ids(item_id)]
     comment['likes'] = likes
     for uid in viewers:
-      spawn(publish, uid, 'like-comment', comment)  
+      push_queue.enqueue(publish, uid, 'like-comment', comment, db_name=db_name)  
       
   clear_html_cache(post_id)
     
@@ -5051,14 +5265,18 @@ def ensure_index(db_name=None):
   db.stream.ensure_index('history.attachment_id', background=True)
   db.stream.ensure_index('is_removed', background=True)
   
-  db.reminder.ensure_index('owner')
-  db.reminder.ensure_index('checked')
+  db.reminder.ensure_index('owner', background=True)
+  db.reminder.ensure_index('checked', background=True)
   
-  db.status.ensure_index('user_id')
-  db['s3'].ensure_index('name')
+  db.message.ensure_index('from', background=True)
+  db.message.ensure_index('to', background=True)
+  db.message.ensure_index('owner', background=True)
+  db.message.ensure_index('user_id', background=True)
+  
+  db.status.ensure_index('user_id', background=True)
+  db['s3'].ensure_index('name', background=True)
   
   db.url.ensure_index('url', background=True)
-  db.spelling_suggestion.ensure_index('keyword', background=True)
   return True
 
 
@@ -5070,12 +5288,14 @@ def add_db_name(email, db_name):
                                     upsert=True)
   return True
 
+
 def get_db_names(email):
   email = email.lower().strip()
   info = DATABASE['global']['user'].find_one({'email': email})
   if info:
     return info.get('db_names')
   return []
+
 
 def new_network(db_name, organization_name, description=None):
   if is_exists(db_name=db_name):
@@ -5103,42 +5323,228 @@ def domain_is_ok(domain_name):
     return False
  
  
-#if __name__ == '__main__':
+
+def new_message(session_id, user_id, message, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
   
-#  print get_spelling_suggestion('Amzaon ')
-#  print make_hash('123456')
-#  try:
-#    DATABASE.stream.drop_index('timestamp_1')
-#    DATABASE.stream.drop_index('worker_1')
-#    DATABASE.stream.drop_index('status_1')
-#    DATABASE.stream.drop_index('priority_1')
-#  except OperationFailure:
-#    pass
-#  
-#  
-#  # Re-build index
-#  
-#  for i in DATABASE.stream.find():
-#    content = i.get('message')
-#    uuid = str(i.get('_id'))
-#    viewers = i.get('viewers')
-#    print viewers
-#    add_index('stream', uuid, content, viewers)
-#    
-#  for i in DATABASE.stream.find():
-#    content = i.get('version')[-1].get('content')
-#    uuid = str(i.get('_id'))
-#    viewers = i.get('viewers')
-#    add_index('doc', uuid, content, viewers)
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
   
-#  from pprint import pprint
-#  r = search('7895226779c26fd88c0894a66741ebd6', 'stack')
-#  for i in r:
-#    pprint(i.to_dict())
-#    
-#  
-##  print INDEX.delete_index('5works-index')
-#
-#  print re.compile(EMAIL_REGEX).match('ara.com')
+  if not str(user_id).isdigit():
+    return False
+  
+  user_id = int(user_id)
+  info = {'_id': new_id(),
+          'from': owner_id,
+          'to': user_id,
+          'msg': message,
+          'ts': utctime()}
+  
+  msg_id = db.message.insert(info)
+  info['_id'] = msg_id
+  
+  update_last_viewed(owner_id, user_id, db_name=db_name)
+  
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
+  msg = Message(info, utcoffset=utcoffset, db_name=db_name)
+  
+  template = app.CURRENT_APP.jinja_env.get_template('message.html')
+  html = template.render(message=msg).replace('\n', '')
+  push_queue.enqueue(publish, user_id, 'new-message', 
+                     info=html, db_name=db_name)
+  push_queue.enqueue(publish, owner_id, 'new-message', 
+                     info=html, db_name=db_name)
+  return html
+
+
+def get_messages(session_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  messages = []
+  records = db.message.find({'owner': owner_id})
+  for record in records:
+    user_id = record.get('user_id')
+    msg = db.message.find({'$or': [{'from': user_id, 'to': owner_id},
+                                   {'from': owner_id, 'to': user_id}]})\
+                    .sort('ts', -1)\
+                    .limit(1)
+    msg = list(msg)
+    if msg:
+      msg = msg[0]
+      
+      if msg.get('to') == owner_id:
+        last_viewed = get_last_viewed(owner_id, user_id, db_name=db_name)
+        
+        if last_viewed < msg.get('ts'):
+          msg['is_unread'] = True
+          
+      messages.append(msg)
+  
+  messages.sort(key=lambda k: k.get('ts'), reverse=1)
+  
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
+  return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+
+
+def get_unread_messages_count(session_id, user_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  if user_id:
+    user_id = int(user_id)
+    last_viewed = get_last_viewed(owner_id, user_id, db_name=db_name)
+    return db.message.find({'$or': [{'from': user_id, 'to': owner_id},
+                                    {'from': owner_id, 'to': user_id}],
+                            'ts': {'$gt': last_viewed}}).count()
+  
+  else:
+    count = 0
+    records = db.message.find({'owner': owner_id})
+    for record in records:
+      user_id = record.get('user_id')
+      count += get_unread_messages_count(session_id, user_id, db_name=db_name)
+    return count
+  
+
+def get_unread_messages(session_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  out = []
+  records = db.message.find({'owner': owner_id})
+  for record in records:
+    uid = record.get('user_id')
+    count = get_unread_messages_count(session_id, uid, db_name=db_name)
+    if count > 0:
+      out.append({'sender': get_user_info(uid, db_name=db_name), 
+                  'unread_count': count})
+  return out
+    
+    
+def get_last_viewed(owner_id, user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  info = db.message.find_one({'owner': owner_id, 'user_id': user_id})
+  if info:
+    return info.get('last_viewed')
+  else:
+    return 0
+  
+
+def update_last_viewed(owner_id, user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  db.message.update({'owner': owner_id, 'user_id': user_id}, 
+                    {'$set': {'last_viewed': utctime()}}, upsert=True)
+  
+  ts = utctime() + int(get_utcoffset(owner_id, db_name=db_name))
+  ts = friendly_format(ts, short=True)
+  if ts.startswith('Today'):
+    ts = ts.split(' at ')[-1]
+  push_queue.enqueue(publish, user_id, 
+                     event_type='seen-by', 
+                     info={'user_id': str(owner_id),
+                           'html': 'Seen %s' % ts}, 
+                     db_name=db_name)
+  return True
+
+def get_chat_history(session_id, user_id, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  owner_id = get_user_id(session_id, db_name=db_name)
+  if not owner_id:
+    return False
+  
+  if not str(user_id).isdigit():
+    return False
+  
+  user_id = int(user_id)
+  
+#   
+#   now = datetime.fromtimestamp(utctime())
+#   ts = now - timedelta(days=int(days))
+#   ts = mktime(datetime(ts.year, ts.month, ts.day, 0, 0, 0).timetuple())
+  
+#   records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
+#                                      {'from': user_id, 'to': owner_id}],
+#                              'ts': {'$gte': ts}})\
+#                       .sort('ts', -1)
+
+  records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
+                                     {'from': user_id, 'to': owner_id}]})\
+                      .sort('ts', -1)\
+                      .limit(50)
+  
+  records = list(records)
+  records.reverse()
+  
+  messages = []
+  last_msg = None
+  for record in records:
+    msg = record.get('msg')
+    if last_msg and record.get('from') == last_msg.get('from') and (record.get('ts') - last_msg.get('ts')) < 120:
+      if is_snowflake_id(msg):
+        attachment = get_attachment_info(msg, db_name=db_name)
+        msg = "<a href='/attachment/%s' target='_blank' title='%s (%s)'>%s (%s)</a>"\
+            % (attachment.id, attachment.name, attachment.size, 
+               attachment.name[:20] + '...' if len(attachment.name) > 20 else attachment.name, attachment.size)
+          
+      last_msg['text'] += '\n' + msg
+      last_msg['ts'] = record.get('ts')
+      last_msg['msg_ids'].append(record.get('_id'))
+    else:
+      if last_msg:
+        messages.append(last_msg)
+      last_msg = record
+      last_msg['msg_ids'] = [record['_id']]
+      
+      if is_snowflake_id(msg):
+        attachment = get_attachment_info(msg, db_name=db_name)
+        last_msg['text'] = "<a href='/attachment/%s' target='_blank' title='%s (%s)'>%s (%s)</a>"\
+            % (attachment.id, attachment.name, attachment.size, 
+               attachment.name[:20] + '...' if len(attachment.name) > 20 else attachment.name, attachment.size)
+      else:
+        last_msg['text'] = msg
+  
+  if last_msg:
+    messages.append(last_msg)
+  
+  utcoffset = get_utcoffset(owner_id, db_name=db_name)
+  return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+      
+    
+  
+  
+
+
+
+
+
+
 
 

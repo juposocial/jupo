@@ -14,7 +14,8 @@
     {% elif key.startswith('mention:') %}
       <a href='#!/notification/{{ message.id }}?continue=/feed/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
-        <span class='username'>{{ message.sender.name }}</span> mentioned you in a post.
+        <span class='username'>{{ message.sender.name }}</span> mentioned you in a comment: 
+        "{{ message.item.message | clean | to_text | truncate(90, True) | autoemoticon | fix_unclosed_tags | sanitize | safe }}"
       
     {% elif key.startswith('follow:') %}
       <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
@@ -86,13 +87,13 @@
       
       {% for notification in messages %}
       
-        {{ notification.sender.name }}{% if loop.index < msg_count - 1 %}, {% elif loop.index == msg_count - 1%} and {% else %}{% endif %}
+        <span class='username'>{{ notification.sender.name }}</span>{% if loop.index < msg_count - 1 %}, {% elif loop.index == msg_count - 1%} and {% else %}{% endif %}
       
       {% endfor %} 
       
       {% if key.startswith('comment') %}
       
-        commented on {% if messages[0].details.owner.id == owner.id %}your{% else %}{{ messages[0].details.owner.name }}'s{% endif %} post.
+        commented on {% if messages[0].details.owner.id == owner.id %}your{% else %}<span class='username'>{{ messages[0].details.owner.name }}</span>'s{% endif %} post.
       
       {% elif key.startswith('like') %}
         like your 

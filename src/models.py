@@ -242,7 +242,10 @@ class Model:
   
   @property
   def liked_user_ids(self):
-    return api.get_liked_user_ids(self.id)
+    if self.id:
+      return api.get_liked_user_ids(self.id)
+    else:
+      return []
   
   @property
   def liked_by(self):
@@ -255,11 +258,15 @@ class User(Model):
   
   @property
   def name(self):
-    return self.info.get('name') if self.info.get('name') else self.email
+    return self.info.get('name') \
+      if self.info.get('name') else self.email \
+      if self.email else ''
   
   @property
   def email(self):
-    return self.info.get('email', '')
+    email_addr = self.info.get('email', '')
+    if email_addr and '@' in email_addr:
+      return email_addr
   
   @property
   def email_name(self):
@@ -274,7 +281,8 @@ class User(Model):
   @property
   def avatar(self):
     avatar = self.info.get('avatar')
-    if isinstance(avatar, str) or isinstance(avatar, unicode):
+    
+    if avatar and isinstance(avatar, str) or isinstance(avatar, unicode):
       return avatar
     elif avatar:
       attachment = api.get_attachment_info(avatar)
@@ -285,8 +293,12 @@ class User(Model):
       return '/img/' + str(avatar) + '.jpg'
     
     # try gravatar
-    email = self.email.strip().lower()
+    
     default = "https://5works.s3.amazonaws.com/images/user2.png"
+    if not self.email:
+      return default
+    
+    email = self.email.strip().lower()
     size = 50
     gravatar_url = "https://secure.gravatar.com/avatar/" + md5(email.lower()).hexdigest() + "?"
     gravatar_url += urlencode({'d':default, 's':str(size)})
@@ -370,6 +382,10 @@ class User(Model):
     return api.get_groups(self.info.get('session_id'))
   
   @property
+  def groups_count(self):
+    return api.get_groups_count(self.id)
+  
+  @property
   def followers(self):
 #    return [api.get_user_info(user_id) for user_id in self.info.get('followers', [])] 
     return self.info.get('followers', [])
@@ -388,7 +404,9 @@ class User(Model):
   
   @property
   def contacts(self):
-    return [api.get_user_info(user_id) for user_id in self.contact_ids]
+    users = [api.get_user_info(user_id) for user_id in self.contact_ids]
+    users.sort(key=lambda k: k.last_online, reverse=True)
+    return users
   
   @property
   def following_details(self):
@@ -425,23 +443,45 @@ class User(Model):
     return [User({'_id': api.get_user_id_from_email_address(email),
                   'email': email}) for email in self.info.get('google_contacts', [])]
   
+
   
   @property
   def networks(self):
+    
+    def sortkeypicker(keynames):
+      negate = set()
+      for i, k in enumerate(keynames):
+        if k[:1] == '-':
+          keynames[i] = k[1:]
+          negate.add(k[1:])
+          
+      def getit(adict):
+        composite = [adict[k] for k in keynames]
+        for i, (k, v) in enumerate(zip(keynames, composite)):
+          if k in negate:
+            composite[i] = -v
+        return composite
+      return getit
+    
     db_names = api.get_db_names(self.email)
     networks_list = []
     for db_name in db_names:
       if db_name == 'play_jupo_com':
-        info = {'name': 'Jupo'}
+        info = {'name': 'Jupo', 'timestamp': 0}
       else:
         info = api.get_network_info(db_name)
       
       if info:
         info['unread_notifications'] = api.get_unread_notifications_count(user_id=self.id, db_name=db_name)
-        info['url'] = 'http://' + db_name.replace('_', '.') + '/'
+        info['domain'] = db_name.replace('_', '.')
+        info['url'] = 'http://%s/' % info['domain']
+        
         networks_list.append(info)
       
-    return networks_list
+      
+    return sorted(networks_list, 
+                  key=sortkeypicker(['-unread_notifications', 
+                                     'name', '-timestamp']))
   
 
 class Comment(Model):
@@ -1032,7 +1072,31 @@ class Feed(Model):
   @property
   def pinned_by(self):
     return self.info.get('pinned', [])
-      
+  
+  @property
+  def stats(self):
+    info = {}
+    for comment in self.info.get('comments', []):
+      user_id = comment.get('owner')
+      if info.has_key(user_id):
+        info[user_id] += 1
+      else:
+        info[user_id] = 1
+    
+    owner_id = self.info.get('owner')
+    if info.has_key(owner_id):
+      info[owner_id] += 1
+    else:
+      info[owner_id] = 1
+    
+    out = []
+    for user_id in info.keys():
+      out.append({'user': api.get_user_info(user_id),
+                  'post_count': info[user_id]})
+    
+    out.sort(key=lambda k: k['post_count'], reverse=True)
+    return out
+    
 
 
 class History(Model):
@@ -1257,38 +1321,60 @@ class Result(Model):
   
 
 class Message(Model):
-  def __init__(self, info):
+  def __init__(self, info, utcoffset=0, db_name=None):
     self.info = info
+    self.db_name = db_name
+    self.utcoffset = int(utcoffset)
     
   @property
   def sender(self):
-    user_id = self.info.get('sender')
-    return api.get_user_info(user_id)
+    user_id = self.info.get('from')
+    return api.get_user_info(user_id, db_name=self.db_name)
   
   @property
   def receiver(self):
-    user_id = self.info.get('receiver')
-    return api.get_user_info(user_id)
+    user_id = self.info.get('to')
+    return api.get_user_info(user_id, db_name=self.db_name)
   
   @property
-  def message(self):
-    message = self.info.get('message')
-    if isinstance(message, int): # is file
-      return api.get_attachment_info(message)
+  def content(self):
+    if self.info.has_key('text'):
+      return self.info.get('text')
+    
+    message = self.info.get('msg')
+    if isinstance(message, int) or isinstance(message, long): # is file
+      return api.get_attachment_info(message, db_name=self.db_name)
     return message
   
   @property
+  def timestamp(self):
+    return self.info.get('ts', 0) + self.utcoffset
+    
+  @property
   def date(self):
-    d = api.datetime.fromtimestamp(int(self.info.get('timestamp')))
-    n = api.datetime.now()
-    if n.day == d.day and n.month == d.month and n.year == d.year:
-      return 'Today'
-    return d.strftime('%A, %B %d, %Y')
+    return api.friendly_format(self.timestamp, short=True).split(' at ')[0]
+  
+  @property
+  def time(self):
+    return api.friendly_format(self.timestamp, short=True).split(' at ')[-1]
+  
+  @property
+  def message_ids(self):
+    return ','.join([str(i) for i in self.info.get('msg_ids', [self.id])])
+  
+  def get_date(self, short=False):
+    return api.friendly_format(self.timestamp, short=short).split(' at ')[0]
   
   def is_file(self):    
-    message = self.info.get('message')
+    if self.info.has_key('text'):
+      return False
+    
+    message = self.info.get('msg')
     if api.is_snowflake_id(message):
       return True
+    
+  def is_unread(self):
+    return self.info.get('is_unread')
     
   
 
@@ -1350,21 +1436,24 @@ class ESResult(Model):
   
   
 class Notification(Model):
-  def __init__(self, info, utcoffset):
+  def __init__(self, info, utcoffset, db_name):
     self.info = info if info else dict()
     self.offset = utcoffset
+    self.db_name = db_name
     
   @property
   def sender(self):
-    return api.get_user_info(self.info.get('sender'))
+    return api.get_user_info(self.info.get('sender'), db_name=self.db_name)
     
   @property
   def receiver(self):
-    return api.get_user_info(self.info.get('receiver'))
+    return api.get_user_info(self.info.get('receiver'), db_name=self.db_name)
   
   @property
   def item(self):
-    record = api.get_record(self.ref_id, self.info.get('ref_collection', 'stream'))
+    record = api.get_record(self.ref_id, 
+                            self.info.get('ref_collection', 'stream'), 
+                            db_name=self.db_name)
     if not record or record.has_key('is_removed'):
       return Feed({})
     if self.comment_id:
@@ -1388,7 +1477,8 @@ class Notification(Model):
   @property
   def details(self):
     record = api.get_record(self.ref_id, 
-                            self.info.get('ref_collection', 'stream'))
+                            self.info.get('ref_collection', 'stream'), 
+                            db_name=self.db_name)
     if not record or record.has_key('is_removed'):
       return Feed({})
     return Feed(record)

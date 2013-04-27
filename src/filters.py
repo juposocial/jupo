@@ -156,14 +156,17 @@ def autolink(text):
   s = s.replace('\r\n', '\n')
 
   
-  urls = api.URL_RE.findall(s)
+  urls = api.extract_urls(s)
   urls = list(set(urls))
   urls.sort(key=len, reverse=True)
   
   for url in urls:
     hash_string = md5(url).hexdigest()
     info = api.get_url_info(url)
-    if len(url) > 70:
+    if not url.startswith('http'):
+      s = s.replace(url, '<a href="http://%s/" target="_blank" title="%s">%s</a>' % (hash_string, info.title if info.title else hash_string, hash_string))
+    
+    elif len(url) > 70:
       u = url[:70]
         
       for template in ['%s ', ' %s', '\n%s', '%s\n', '%s.', '%s,']:
@@ -180,7 +183,7 @@ def autolink(text):
         
   for url in urls:
     s = s.replace(md5(url).hexdigest(), url)
-    if len(url) > 70:
+    if len(url) > 70 and url.startswith('http'):
       s = s.replace(md5(url[:70] + '...').hexdigest(), url[:70] + '...')
       
   
@@ -369,10 +372,11 @@ def flavored_markdown(text):
   return html  
   
 def to_embed_code(url, width=437, height=246): 
-  embed_code = ''
   youtube_embed_code_template = '<iframe width="%s" height="%s" src="https://www.youtube.com/embed/%s?wmode=opaque" frameborder="0" allowfullscreen></iframe>'
   if not url.startswith('http'):
-    url = URL_RE.findall(url)[0]
+    urls = api.extract_urls(url)
+    if urls:
+      url = urls[0]
   
   if 'www.youtube.com/' in url:      
     video_id = url.rsplit('?v=', 1)[-1].split('&', 1)[0]
@@ -381,7 +385,9 @@ def to_embed_code(url, width=437, height=246):
   elif 'youtu.be/' in url:    
     video_id = url.rsplit('/', 1)[-1].split('&', 1)[0]
     embed_code = youtube_embed_code_template % (width, height, video_id)
-  
+  else:
+    embed_code = ''
+    
   return embed_code 
   
 
@@ -435,7 +441,12 @@ def friendly_format(ts, offset=None, short=False):
     ts = ts + int(offset)
   
   if short:
-    now = datetime.today()
+    now = api.utctime()
+    if offset:
+      now = now + int(offset)
+    
+    now = datetime.fromtimestamp(now)
+    
     ts = datetime.fromtimestamp(int(ts))
     delta = datetime(now.year, now.month, now.day, 23, 59, 59) - ts
     

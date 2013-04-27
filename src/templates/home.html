@@ -24,12 +24,13 @@
   <a id='menu-toggle' class='lfloat'>
     <i class='menu-icon'></i>
   </a>
+  
 
   <div id='logo' class='lfloat'>
   {#  <a href='/welcome' class='async fire-icon logo' rel='welcome'>Jupo</a> #}
   
-    <a href='{% if owner %}/news_feed{% else %}/{% endif %}' class='async' rel='{% if owner %}news-feed{% else %}discover{% endif %}'>
-      Jupo
+    <a title='{{ logo_text }}' href='{% if owner %}/news_feed{% else %}/{% endif %}' class='async' rel='{% if owner %}news-feed{% else %}discover{% endif %}'>
+      {{ logo_text }}
     </a>
     
   </div>
@@ -63,9 +64,13 @@
             <div class='arrow-top-border'></div>
             <div class='arrow-top'></div>
             <div class='account-info'>
-              <img class='small-avatar lfloat' src='{{ owner.avatar }}'>
-              <span class='username'>{{ owner.name}}</span>
-              <span>{{ owner.email}}</span>
+              <a href='/user/{{ owner.id }}' class='async'>
+                <img class='small-avatar lfloat' src='{{ owner.avatar }}'>
+              </a>
+              <a href='/user/{{ owner.id }}' class='async'>
+                <span class='username'>{{ owner.name}}</span>
+                <span>{{ owner.email}}</span>
+              </a>
               {% if owner.last_login %}
               <div class='history'>
                 <span>Last login:</span>
@@ -78,26 +83,36 @@
               {% endif %}
               
             </div>
-            {% if owner.networks %}
+            
+            {% set networks = owner.networks %}
+            {% if networks | length > 1 %}
             <li class='networks'>
               Networks
               
               <ul class='networks-list'>
-                {% for network in owner.networks %}
+                {% for network in networks[:3] %}
+                  {% if network.domain != domain %}
                   <li>
                     <a href='{{ network.url }}?session_id={{ owner.session_id }}' target='_blank'>
                       <span class='unread  {% if network.unread_notifications == 0 %}grey{% endif %}'>{{ network.unread_notifications }}</span> {{ network.name }} 
                     </a>
                   </li>
+                  {% endif %}
                 {% endfor %}
                 
+                {% if networks | length > 3 %}
+                <li>
+                    <a href='/networks' class='popup switch-network'>
+                      Switch Network...
+                    </a>
+                  </li>
+                {% endif %}
                 
               </ul>
               
-              
             </li>
             {% endif %}
-            <li><a href='/user/{{ owner.id }}' class='async profile'>View Profile</a></li>
+            <li><a href='/user/{{ owner.id }}/update_profile' class='popup'>Account Settings</a></li>
             <li>
               <a id='pick-avatar'>Change Profile Picture</a>
               
@@ -116,7 +131,7 @@
         
         
         <a href='/news_feed' class='async'>Home</a>
-        <a href='/find_groups' class='async'>Find Groups</a>
+        <a href='/groups' class='async'>Find Groups</a>
       
         <a class="view-notifications">
           <span class='counter {% if unread_notification_count == 0 %}grey{% endif %}' id="unread-notification-counter">
@@ -159,24 +174,11 @@
       {% endif %}  
     </div>
     
-    
 
     
 {% endblock %}
 
 
-{% block online_now %}
-    <a class="online-now"><i class='friends-online'></i> Online (<span class='online-count'>0</span>)</a>
-    
-    
-    <ul id="friends-online" class='hidden'>
-      {% if friends_online %}
-        {% set users = friends_online %}
-        {% include 'friends_online.html' %}
-      {% endif %}
-    </ul>
-
-{% endblock %}
 
 {% block stylesheets %}
 
@@ -188,17 +190,19 @@
           <link rel="stylesheet" href="/public/styles/home.css">
           <link rel="stylesheet" href="/public/styles/wysihtml5.css">
           <link rel="stylesheet" href="/public/styles/jquery.notice.css">
+          <link rel="stylesheet" href="/public/styles/chat.css">
   
   
   {% else %}
-    {% assets filter="cssmin", 
+    {% assets filters="cssmin", 
               output="style.css",
               "styles/normalize.css",
               "styles/animations.css",
+              "styles/jquery.notice.css",
               "styles/icons.css",
               "styles/home.css",
               "styles/wysihtml5.css",
-              "styles/jquery.notice.css" %}
+              "styles/chat.css" %}
           <link rel="stylesheet" href="{{ ASSET_URL }}">
     {% endassets %} 
   
@@ -223,11 +227,13 @@
     <script type='text/javascript' src='/public/scripts/jquery.tokeninput.js'></script>
     <script type='text/javascript' src='/public/scripts/jquery.tipsy.js'></script>
     <script type='text/javascript' src='/public/scripts/jquery.timeago.js'></script>
+    <script type='text/javascript' src='/public/scripts/jquery.titlealert.js'></script>
     <script type='text/javascript' src='/public/scripts/functions.js'></script>
   
   {% else %}
-    {% assets filter="jsmin", 
+    {% assets filters="jsmin", 
               output="lib.js",
+              'scripts/disable_console_log.js',
               'scripts/detect_timezone.min.js',
               'scripts/jquery.caret.js',
               'scripts/plupload.js',
@@ -240,6 +246,7 @@
               'scripts/jquery.tokeninput.js',
               'scripts/jquery.tipsy.js',
               'scripts/jquery.timeago.js',
+              'scripts/jquery.titlealert.js',
               'scripts/functions.js' %}
       <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %}
@@ -262,7 +269,7 @@
     <script type='text/javascript' src='/public/scripts/guiders-1.2.7.js'></script>
     
   {% else %}  
-    {% assets filter="jsmin", 
+    {% assets filters="jsmin", 
               output="core.js",
               "scripts/main.js",
               "scripts/guiders-1.2.7.js" %}
@@ -271,6 +278,23 @@
     {% endassets %}
   
   {% endif %}
+  
+  
+  
+
+  {% if unread_messages_count > 0 %}
+      
+    <script>
+      {% for message in unread_messages %}
+        start_chat('{{ message.sender.id }}')
+      {% endfor %}
+    </script>
+      
+  {% endif %}
+  
+  
+  
+  
    
   <script type="text/javascript">
       if (top.location.href != self.location.href)

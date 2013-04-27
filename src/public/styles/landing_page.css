@@ -3,10 +3,9 @@ body {
 }
 
 div.heading {
-  font-family: 'myriad-pro-regular';
   margin-left: 10px;
-  text-shadow: 0 -1px 0 #444, 0 3px 25px rgba(0, 0, 0, 0.5);
-  width: 500px;
+  text-shadow: 0 -1px 0 #000, 0 3px 25px rgba(0, 0, 0, 0.5);
+  width: 468px;
 }
 
 button {
@@ -120,9 +119,6 @@ header .button {
   -moz-transition: none;
   transition: none;
   text-shadow: 0 -1px rgba(0,0,0,0.11);
-  -webkit-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
-  -moz-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
-  box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
 }
 
 header .button:hover {
@@ -152,9 +148,6 @@ header .button.sign-up {
   border: 1px solid #920c12;
   color: #fff;
   text-shadow: 0 -1px rgba(0,0,0,0.11);
-  -webkit-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
-  -moz-box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
-  box-shadow: 0 1px 0 0 rgba(255,255,255,0.34);
 }
 
 header .button.sign-up:hover {
@@ -192,12 +185,12 @@ h1 span {
 
 a {
   font-weight: normal;
-  font-family: myriad-pro-light;
   font-size: 15px;
   color: white;
   text-decoration: none;
   cursor: pointer;
   display: block;
+  text-align: right;
 }
 
 a:hover .text2 {
@@ -205,8 +198,7 @@ a:hover .text2 {
 }
 
 h2 {
-  font-family: 'myriad-pro-light';
-  font-size: 20px;
+  font-size: 24px;
   font-weight: normal;
   margin: 10px 0;
   color: white;
@@ -214,7 +206,6 @@ h2 {
 
 form.sign-in h2 {
   text-shadow: 0 0 1px #666, 0 1px 6px rgba(0, 0, 0, 0.75);
-  font-family: myriad-pro-light;
 }
 
 div.teaser {
@@ -322,7 +313,16 @@ footer {
   display: none;
 }
 
-img {
+header .logo img {
+  width: 80px;
+  height: 25px;
+}
+
+img.intro {
+  margin-left: -52px;
+}
+
+img.screenshot {
   width: 450px;
   margin-right: -25px;
   float: right;

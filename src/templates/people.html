@@ -5,7 +5,7 @@
           <div class="actions rfloat">
               <a href="/search?type=people" class="popup button">New Contact</a>
           </div>
-          <h2>Contacts</h2>
+          <div class='title'>Contacts</div>
     
   </div> 
       
@@ -14,10 +14,10 @@
       {% for user in owner.contacts %}
         {% if user.id %}
             <li>
-              <a href='/user/{{ user.id }}' class='async'>
+              <a href='/chat/{{ user.id }}' class='chat'>
                 <img class='small-avatar lfloat' src='{{ user.avatar }}' />
                 <div class='title'>
-                  {{ user.name }} <i class='{{ user.status }}'></i>
+                  {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status'></i>
                 </div>
                 {% set last_online = user.last_online %}
                 {% if last_online %}
@@ -33,35 +33,6 @@
   </ul>
   
   
-  
-{#
-  <div id="page-header" class='border-bottom'>
-    
-          <div class="actions rfloat">
-             <a href="/group/new" class="popup button">New Group</a>
-          </div>
-          <h2>Groups</h2>
-    
-  </div> 
-  
-  <ul class="groups">
-      {% for group in groups %}      
-      {% if (user and group.privacy == 'open') or not user %}
-      <li>
-         <a href="/group/{{ group.id }}" class='async' rel='group-{{ group.id }}'>
-           
-          <i class="group-icon"></i>
-          {{ group.name }}
-        
-          <div class='info'>
-            <span class=''>{{ group.members | length }} {% if group.privacy == 'open' %}followers{% else %}members{% endif %}</span>          
-          </div>
-        </a>
-      </li>
-      {% endif %}
-    {% endfor %}
-  </ul>
-#}  
 
 {#
 
@@ -82,7 +53,7 @@
               <a href='/user/{{ user.id }}' class='async'>
                 <img class='small-avatar lfloat' src='{{ user.avatar }}' />
                 <div class='title'>
-                  {{ user.name }} <i class='{{ user.status }}'></i>
+                  {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status'></i>
                 </div>
                 {% set last_online = user.last_online %}
                 {% if last_online %}

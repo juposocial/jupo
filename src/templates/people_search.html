@@ -10,8 +10,10 @@
 
   <ul class='people'>
     {% if users %}
-      {% for user in users %}
+      {% for user in users[:50] %}
+        {% if user.email %}
           {% include 'user.html' %}
+        {% endif %}
       {% endfor %}
     {% else %}
       <li>
@@ -23,7 +25,7 @@
 {% else %}
   <div id="page-header" class='search'>
     <form action='/search?type=people{% if group_id %}&ref=group-{{ group_id }}{% endif %}' method='post'>
-      <input autofocus type='text' name='query' placeholder="Your contact name" {% if query %}value="{{ query }}"{% endif %} >
+      <input autofocus type='text' name='query' placeholder="Search people" {% if query %}value="{{ query }}"{% endif %} >
     
     </form>
           <h2>{{ title }}</h2>
@@ -31,8 +33,10 @@
 
   <ul class='people'>
     {% if users %}
-      {% for user in users %}
+      {% for user in users[:50] %}
+        {% if user.email %}
           {% include 'user.html' %}
+        {% endif %}
       {% endfor %}
     {% else %}
       <li>

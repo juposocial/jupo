@@ -37,6 +37,14 @@
 }
 
 
+.msg-reply-icon {
+  background-image: url('/public/images/msg-reply.png?v2');
+  background-repeat: no-repeat;
+  display: inline-block;
+  height: 9px;
+  width: 9px;
+}
+
 .welcome-icon {
   background-image: url('/public/images/tmp/r9ad093yvZ9.png');
   background-repeat: no-repeat;
@@ -56,13 +64,13 @@
 }
 
 .messages-icon {
-background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAgZJREFUeNqkk0trE1EUx+/M3HQS2hraqm3SGIWAeYBUwU3BjS4UfKAL8VMIbnQjuHLXQnHhN3Cn+ABB0C8gFKRgaRTJQseYae+kk2kzz/uY8cw0KYPS2uKBH9xz7pz/uffOOVIUReh/DF+9/yHtjwJ3gCvAPDAxiPeAZeAd8BxwdgVCIYbrW8DiucZMqVKewLPT40pWxVK84Qd8rEPsYuuHeX2luf4IQg+Al4mA4InA3Xrl6MLZRmEE57JKt8+Q1uojJnaul1EkKZ/DuF4r4uqpqfJKU3/WbBknYWspFrgAi8fVakHVXSRvkv5f9wwYQrbP0a+ejybHMkqtVlBXvyYnWVbKc7ef3LxcP9O2JcW0GRJQdT9sT6B+EErnT0/iL982pjDnfN7kGJLpgV8+YALlcEaJc7FgHP00PCSQdKjfpxE4LeMUc8Y/mkbvRjafx4cRCLa2BeR+AgGxpK22Ls7ONY5gVZUPkswDGjodQuNc5VjlmhaFoRMxdokhWUY4I3N4rL1wrG3h6OvUIuZDyHsRP2Is+tTUSRvpZHF0ZvrEeKmkpisKSkPuuqFvbXGv220PGunNTiMxPvwuDrx3OvrGyPFiIuDqncAnhIWcfQf386CVXwHebisPOnFoXuy7liUCw6DU3HwNsXtAd89h+kMgMWttTUv3+77TmBqmob39V9W0/RZgAC5yJ6tSbeGaAAAAAElFTkSuQmCC);
-width: 16px;
-height: 16px;
-opacity: 0.9;
-vertical-align: baseline;
-margin-right: 2px;
-margin-top: -2px;
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAgZJREFUeNqkk0trE1EUx+/M3HQS2hraqm3SGIWAeYBUwU3BjS4UfKAL8VMIbnQjuHLXQnHhN3Cn+ABB0C8gFKRgaRTJQseYae+kk2kzz/uY8cw0KYPS2uKBH9xz7pz/uffOOVIUReh/DF+9/yHtjwJ3gCvAPDAxiPeAZeAd8BxwdgVCIYbrW8DiucZMqVKewLPT40pWxVK84Qd8rEPsYuuHeX2luf4IQg+Al4mA4InA3Xrl6MLZRmEE57JKt8+Q1uojJnaul1EkKZ/DuF4r4uqpqfJKU3/WbBknYWspFrgAi8fVakHVXSRvkv5f9wwYQrbP0a+ejybHMkqtVlBXvyYnWVbKc7ef3LxcP9O2JcW0GRJQdT9sT6B+EErnT0/iL982pjDnfN7kGJLpgV8+YALlcEaJc7FgHP00PCSQdKjfpxE4LeMUc8Y/mkbvRjafx4cRCLa2BeR+AgGxpK22Ls7ONY5gVZUPkswDGjodQuNc5VjlmhaFoRMxdokhWUY4I3N4rL1wrG3h6OvUIuZDyHsRP2Is+tTUSRvpZHF0ZvrEeKmkpisKSkPuuqFvbXGv220PGunNTiMxPvwuDrx3OvrGyPFiIuDqncAnhIWcfQf386CVXwHebisPOnFoXuy7liUCw6DU3HwNsXtAd89h+kMgMWttTUv3+77TmBqmob39V9W0/RZgAC5yJ6tSbeGaAAAAAElFTkSuQmCC);
+  width: 16px;
+  height: 16px;
+  opacity: 0.9;
+  vertical-align: baseline;
+  margin-right: 1px;
+  margin-top: -2px;
 }
 
 .ideas-icon {

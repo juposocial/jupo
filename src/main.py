@@ -2,10 +2,6 @@
 # pylint: disable-msg=W0311, W0611, E1103, E1101
 #@PydevCodeAnalysisIgnore
 
-from gevent import monkey
-monkey.patch_all()
-
-from gevent.pywsgi import WSGIServer
 from raven.contrib.flask import Sentry
  
 from flask import (Flask, request, 
@@ -81,41 +77,59 @@ def render_homepage(session_id, title, **kwargs):
       owner = None
   else:
     owner = None
-#  friends_online = api.get_online_coworkers(session_id)
-  if owner:
-    friends_online = owner.contacts
-    friends_online.sort(key=lambda k: k.last_online, reverse=True)
-    groups = api.get_groups(session_id, limit=3)
-    for group in groups[:3]:
-      group.unread_posts = 0 # api.get_unread_posts_count(session_id, group.id)
     
-    unread_notification_count = api.get_unread_notifications_count(session_id)
+  if owner:
+    friends_online = [i for i in owner.contacts \
+                      if i.status in ['online', 'away']]
+    friends_online.sort(key=lambda k: k.last_online, reverse=True)
+    if not kwargs.has_key('groups'):
+      groups = api.get_groups(session_id, limit=3)
+    else:
+      groups = kwargs.pop('groups')
+    
+    for group in groups[:3]:
+      group.unread_posts = api.get_unread_posts_count(session_id, group.id)
+    
+    unread_messages = api.get_unread_messages(session_id)
+    unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
+    unread_notification_count = api.get_unread_notifications_count(session_id)\
+#                               + unread_messages_count
     
   else:
     friends_online = []
     groups = []
+    unread_messages_count = 0
     unread_notification_count = 0
-#  if owner:
-#    owner.recent_notes = api.get_notes(session_id, limit=3)
-#    owner.recent_files = api.get_files(session_id, limit=3)
   
   if kwargs.has_key('stats'):  
     stats = kwargs.pop('stats')
   else: 
     stats = {}
+    
+  
+  hostname = request.headers.get('Host')
+  logo_text = 'Jupo'
+  if hostname != settings.PRIMARY_DOMAIN:
+    network_info = api.get_network_info(hostname.replace('.', '_'))
+    if network_info and network_info.has_key('name'):
+      logo_text = network_info['name']
 
   resp = Response(render_template('home.html', 
                                   owner=owner,
                                   title=title, 
                                   groups=groups,
                                   friends_online=friends_online,
+                                  unread_messages=unread_messages,
+                                  unread_messages_count=unread_messages_count,
                                   unread_notification_count=unread_notification_count,
                                   stats=stats,
                                   debug=settings.DEBUG,
+                                  logo_text=logo_text,
+                                  domain=hostname,
                                   **kwargs))
   if owner:
-    if not request.cookies.get('channel_id'):
-      resp.set_cookie('channel_id', session_id)
+    if not api.is_valid_channel_id(session_id, request.cookies.get('channel_id')):
+      resp.set_cookie('channel_id', api.get_channel_id(user_id))
   else:
     resp.delete_cookie('channel_id')
   
@@ -146,7 +160,9 @@ def stream():
   session_id = session.get('session_id')
   if not session_id:
     abort(400)
-  resp = Response(event_stream(session_id),
+  
+  channel_id = request.cookies.get('channel_id')
+  resp = Response(event_stream(channel_id),
                   mimetype="text/event-stream")
   resp.headers['X-Accel-Buffering'] = 'no'
   return resp
@@ -261,6 +277,9 @@ def search():
         title = 'Add people to group'
       else:
         title = 'Invite your friends'
+    elif ref == 'everyone':
+      title = 'Invite your friends'
+      group_id = group = None
     else:
       group_id = group = None
       title = 'Add Contacts'
@@ -271,27 +290,27 @@ def search():
           users = api.people_search(query, group_id)
           if users:
             users = [i for i in users \
-                     if i.id not in owner.contact_ids and i.id != owner.id][:5]
+                     if i.id not in owner.contact_ids and i.id != owner.id]
           else:
             users = [i for i in api.get_coworkers(session_id) \
-                     if i.id not in group.member_ids and i.id != owner.id][:5]
+                     if i.id not in group.member_ids and i.id != owner.id]
         else:
           users = [i for i in owner.google_contacts \
-                   if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
+                   if api.get_user_id_from_email_address(i.email) not in group.member_ids]
           
       elif group_id:
         if item_type == 'email':
           users = [i for i in owner.google_contacts \
-                   if api.get_user_id_from_email_address(i.email) not in group.member_ids][:5]
+                   if api.get_user_id_from_email_address(i.email) not in group.member_ids]
         else:
           users = [i for i in api.get_coworkers(session_id) \
-                   if i.id not in group.member_ids and i.id != owner.id][:5]
+                   if i.id not in group.member_ids and i.id != owner.id]
       else:
         if item_type == 'email':
-          users = [i for i in owner.google_contacts][:5]
+          users = [i for i in owner.google_contacts]
         else:
           users = [i for i in api.get_coworkers(session_id) \
-                   if i.id not in owner.contact_ids and i.id != owner.id][:5]
+                   if i.id not in owner.contact_ids and i.id != owner.id]
       return dumps({'title': title,
                     'body': render_template('people_search.html',
                                             title=title, 
@@ -304,46 +323,34 @@ def search():
     else:
       if item_type == 'people':
         users = api.people_search(query)
-        if '@' in query:
-          new_user = api.User({'email': query})
-        else:
-          new_user = None
       else:
         q = query.lower()
         users = [i for i in owner.google_contacts \
-                 if i.email.lower().startswith(q)]
+                 if i.email and i.email.lower().startswith(q)]
         
-        if '@' in query \
-        and query.lower().strip() not in owner.to_dict().get('google_contacts'):
-          new_user = api.User({'email': query})
-        else:
-          new_user = None
           
       if group_id:
-        users = [i for i in users if i.id not in group.member_ids][:5]
-        if not users:
-          users = [i for i in api.get_coworkers(session_id) \
-                   if i.id not in group.member_ids and i.id != owner.id][:5]
+        users = [i for i in users if i.email and i.id not in group.member_ids]
       else:
-        users = [i for i in users if i.id not in owner.contact_ids][:5]
-        if not users:
-          users = [i for i in api.get_coworkers(session_id) \
-                   if i.id not in owner.contact_ids and i.id != owner.id][:5]
-      if new_user:
-        users.insert(0, new_user)
-        users = users[:5]
+        users = [i for i in users if i.email and i.id not in owner.contact_ids]
+      
         
       if users:
         return ''.join(render_template('user.html', 
                                        mode='search', 
                                        user=user, 
                                        group_id=group_id,
+                                       type=item_type,
                                        query=query,
                                        owner=owner,
-                                       title=title) for user in users)
+                                       title=title) \
+                       for user in users if user.email)
       else:
-        return ''
-      
+        if item_type == 'email':
+          return "<li>Type your friend's email address</li>"
+        else:
+          return "<li>0 results found</li>"
+        
   # search posts
   results = api.search(session_id, query, item_type, 
                        ref_user_id=ref_user_id, page=page)
@@ -619,10 +626,10 @@ def authentication(action=None):
       session['session_id'] = session_id
       if back_to:
         resp = redirect(back_to)
-        resp.set_cookie('channel_id', session_id) 
+        resp.set_cookie('channel_id', api.get_channel_id(session_id)) 
       else:
         resp = redirect('/news_feed')  
-        resp.set_cookie('channel_id', session_id)
+        resp.set_cookie('channel_id', api.get_channel_id(session_id))
       return resp
     else:
       message = 'Wrong email address and password combination.'
@@ -796,6 +803,18 @@ def google_authorized():
                                        verified=user.get('verified_email'),
                                        google_contacts=contacts,
                                        db_name=db_name)
+  
+  if db_name:
+    email = user.get('email')
+    if email:
+      db_names = api.get_db_names(email)
+      if db_name not in db_names:
+        api.add_db_name(email, db_name)
+      
+      for db in db_names:
+        if db != db_name:
+          api.update_session_id(email, session_id, db)
+  
   if domain == settings.PRIMARY_DOMAIN:
     session['session_id'] = session_id
     return redirect('/')
@@ -879,6 +898,18 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
                                            facebook_id=facebook_id,
                                            facebook_friend_ids=friend_ids,
                                            db_name=db_name)
+    
+    if db_name:
+      email = me.data.get('email')
+      if email:
+        db_names = api.get_db_names(email)
+        if db_name not in db_names:
+          api.add_db_name(email, db_name)
+        
+        for db in db_names:
+          if db != db_name:
+            api.update_session_id(email, session_id, db)
+          
     if domain == settings.PRIMARY_DOMAIN:
       session['session_id'] = session_id
       return redirect('/')
@@ -1205,7 +1236,7 @@ def favicon():
 @app.route('/user/<int:user_id>/complete_profile', methods=['POST'])
 @app.route('/user/<int:user_id>/follow', methods=['POST'])
 @app.route('/user/<int:user_id>/unfollow', methods=['POST'])
-@app.route('/user/<int:user_id>/<view>', methods=['OPTIONS'])
+@app.route('/user/<int:user_id>/<view>', methods=['GET', 'OPTIONS'])
 @login_required
 @line_profile
 def user(user_id=None, page=1, view=None):
@@ -1350,22 +1381,6 @@ def user(user_id=None, page=1, view=None):
                            feeds=posts)
     json = dumps({'body': body, 'title': 'Intelliview'})
     return Response(json, mimetype='application/json')
-  
-  elif view == 'new_message':    
-    view = 'new_message'
-    title = user.name
-        
-    if request.method == "OPTIONS":   
-      
-      body = render_template('message.html', 
-                             view=view, 
-                             user=user,
-                             owner=owner,
-                             title=title)
-      
-      json = dumps({"body": body, 
-                    "title": title})
-      return Response(json, mimetype='application/json')
     
 
   else:
@@ -1415,53 +1430,38 @@ def user(user_id=None, page=1, view=None):
                              coworkers=coworkers,
                              user=user,
                              feeds=feeds, view=view)
-
+  
 
 
 @app.route("/contacts", methods=["GET", "OPTIONS"])
 @login_required
-@line_profile
 def contacts():
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
-  owner = api.get_owner_info(session_id)
-  suggested_friends = api.get_friend_suggestions(owner.to_dict())
-  coworkers = api.get_coworkers(session_id)
-#  groups = api.get_groups(session_id)
+  owner = api.get_user_info(user_id)
+  body = render_template('contacts.html',
+                         owner=owner)
+  return Response(dumps({'body': body,
+                         'title': 'Contacts'}), 
+                  mimetype='application/json')  
+  
 
-  if request.method == 'GET':
-    return render_homepage(session_id, 'Contacts',
-                           suggested_friends=suggested_friends,
-                           coworkers=coworkers,
-                           view='people')
-  else:
-    body = render_template('people.html',
-#                           groups=groups, 
-                           suggested_friends=suggested_friends,
-                           coworkers=coworkers,
-                           owner=owner)
-    resp = Response(dumps({'body': body,
-                           'title': 'Contacts'}))
-    return resp      
-  
-  
-@app.route('/find_groups', methods=['OPTIONS'])
-def find_groups():
+
+@app.route("/networks", methods=['OPTIONS'])
+@login_required
+def networks():
   session_id = session.get("session_id")
-  owner = api.get_owner_info(session_id)
-  open_groups = api.get_open_groups()
-  body = render_template('groups.html', 
-                          owner=owner,
-                          view='groups', 
-                          title='Find Groups',
-                          open_groups=open_groups)
-  return dumps({'body': body,
-                'title': 'Find Groups'})
-  
+  user_id = api.get_user_id(session_id)
+  if not user_id:
+    abort(400)
+    
+  owner = api.get_user_info(user_id)
+  resp = {'body': render_template('networks.html', owner=owner),
+          'title': 'Networks'}
+  return Response(dumps(resp), mimetype='application/json')
 
 
 @app.route("/network/new", methods=['GET', 'POST'])
-@app.route("/networks")
 def network():
   if request.path.endswith('/new'):
     
@@ -1660,21 +1660,19 @@ def group(group_id=None, view='group', page=1):
     
   if not group_id:
     groups = api.get_groups(session_id)
-    if not groups:
-      open_groups = api.get_open_groups()
-    else:
-      open_groups = []
+    featured_groups = api.get_featured_groups(session_id)
+    
     if request.method == 'GET':
       return render_homepage(session_id, 'Groups',
-                             open_groups=open_groups,
+                             groups=groups,
+                             featured_groups=featured_groups,
                              view='groups')
 
     else:
-      owner = api.get_owner_info(session_id)
       body = render_template('groups.html', 
                              view='groups',
                              owner=owner,
-                             open_groups=open_groups,
+                             featured_groups=featured_groups,
                              groups=groups)
       resp = Response(dumps({'body': body,
                              'title': 'Groups'}))
@@ -1795,52 +1793,82 @@ def group(group_id=None, view='group', page=1):
 #      resp.set_cookie('last_g%s' % group_id, api.utctime())
       return resp
 
-@app.route('/messages', methods=["GET", "OPTIONS"])
-@app.route('/messages/page<int:page>', methods=["GET", "OPTIONS"])
-def messages(page=1):
+
+@app.route('/chat/<int:user_id>', methods=['GET', 'OPTIONS'])
+@app.route('/chat/<int:user_id>/<action>', methods=['POST'])
+@login_required
+def chat(user_id, action=None):
   session_id = session.get("session_id")
-  messages = api.get_direct_messages(session_id, page=page)
-  if request.method == 'GET':
-    return render_homepage(session_id, 'Direct Messages',
-                           view='messages',
-                           feeds=messages)
-  else:
-    owner = api.get_owner_info(session_id)
-    if page > 1:
-      posts = []
-      for feed in messages:
-        if feed.id not in owner.unfollow_posts:
-          posts.append(render(feed, "feed", owner, 'messages')) 
-      if len(messages) == 0:
-        posts.append(render_template('more.html', more_url=None))
-      else:
-        posts.append(render_template('more.html', 
-                                     more_url='/messages/page%d' % (page+1)))
-      
-      return ''.join(posts)
-    else:
-      body = render_template('messages.html', 
-                             view='messages',
-                             feeds=messages, owner=owner)
-      return Response(dumps({'body': body,
-                             'title': 'Direct Messages | Jupo'}))
-      
-
-@app.route('/message')
-def message():
-  pass
-
-
-@app.route('/launchpad')
-def launchpad():
-  networks = [
-    {'name': 'Jupo', 'url': 'http://play.jupo.com'},
-    {'name': '5works', 'url': 'http://5w.jupo.com'},
-    {'name': 'JoomlArt', 'url': 'http://joomlart.jupo.com'},
-  ]
-  owner = {'name': 'Pham Tuan Anh'}
   
-  return render_template('launchpad.html', networks=networks, owner=owner)
+  if action == 'new_message':    
+    msg = request.form.get('message')
+    html = api.new_message(session_id, user_id, msg)
+    
+    return html
+  
+  elif action == 'new_file':
+    file = request.files.get('file')
+    filename = file.filename
+    attachment_id = api.new_attachment(session_id, 
+                                       file.filename, 
+                                       file.stream.read())
+    
+    html = api.new_message(session_id, user_id, attachment_id)
+    return html
+  
+  elif action == 'mark_as_read':
+    owner_id = api.get_user_id(session_id)
+    api.update_last_viewed(owner_id, user_id)
+    return 'OK'
+    
+  else:
+    user = api.get_user_info(user_id)
+    owner_id = api.get_user_id(session_id)
+    
+    last_viewed = api.get_last_viewed(user_id, owner_id) \
+                + int(api.get_utcoffset(owner_id))
+                
+    last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
+    if last_viewed_friendly_format.startswith('Today'):
+      last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
+      
+                
+    messages = api.get_chat_history(session_id, user_id)
+    return render_template('chat.html', 
+                           owner={'id': owner_id},
+                           last_viewed=last_viewed,
+                           last_viewed_friendly_format=last_viewed_friendly_format,
+                           messages=messages, user=user)
+    
+    
+
+@app.route("/messages", methods=['GET', 'OPTIONS'])
+@login_required
+@line_profile
+def messages():
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+  suggested_friends = api.get_friend_suggestions(owner.to_dict())
+  coworkers = api.get_coworkers(session_id)
+  
+  messages = api.get_messages(session_id)
+
+  if request.method == 'GET':
+    return render_homepage(session_id, 'Messages',
+                           suggested_friends=suggested_friends,
+                           coworkers=coworkers,
+                           messages=messages,
+                           view='messages')
+  else:
+    body = render_template('messages.html',
+                           suggested_friends=suggested_friends,
+                           coworkers=coworkers,
+                           messages=messages,
+                           owner=owner)
+    resp = Response(dumps({'body': body,
+                           'title': 'Messages'}))
+    return resp      
 
 
 @app.route("/", methods=["GET"])
@@ -2034,17 +2062,17 @@ def news_feed(page=1):
 
 
 @app.route("/feed/new", methods=['POST'])
-@app.route("/feed/<int:owner_id>/new", methods=['POST'])
 @app.route("/feed/<int:feed_id>", methods=['GET', 'OPTIONS'])
 @app.route("/post/<int:feed_id>", methods=['GET'])
 @app.route("/feed/<int:feed_id>/<action>", methods=["POST"])
 @app.route("/feed/<int:feed_id>/<int:comment_id>/<action>", methods=["POST"])
 @app.route("/feed/<int:feed_id>/starred", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/<message_id>@<domain>", methods=["GET", "OPTIONS"])
+@app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
 @line_profile
-def feed_actions(feed_id=None, action=None, owner_id=None, 
+def feed_actions(feed_id=None, action=None, 
                  message_id=None, domain=None, comment_id=None):
   session_id = session.get("session_id")
   
@@ -2140,6 +2168,7 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
                              view='discover',
                              owner=owner,
                              feed=feed)
+      
   elif request.path.endswith('/starred'):
     feed = api.get_feed(session_id, feed_id)
     users = feed.starred_by    
@@ -2147,7 +2176,39 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
     json = dumps({'body': body, 'title': 'Intelliview'})
     return Response(json, mimetype='application/json')
     
+  
+  elif request.path.endswith('/comments'):
+    limit = int(request.args.get('limit', 5))
+    last_comment_id = int(request.args.get('last'))
+    
+    post = api.get_feed(session_id, feed_id)
+    if not post.id:
+      abort(400)
+    
+    comments = []
+    for comment in post.comments:
+      if comment.id == last_comment_id:
+        break
+      else:
+        comments.append(comment)
+    
+    if len(comments) > limit:
+      comments = comments[-limit:]
       
+    html = render(comments, 'comment', 
+                  owner, None, None, 
+                  item=post, hidden=True)
+    resp = {'html': html,
+            'length': len(comments),
+            'comments_count': post.comments_count}
+    
+    if comments[0].id != post.comments[0].id:
+      resp['next_url'] = '/feed/%s/comments?last=%s' \
+                          % (feed_id, comments[0].id)
+      
+    return Response(dumps(resp), mimetype='application/json')
+  
+  
   elif action == 'remove':
     feed_id = api.remove_feed(session_id, feed_id)
     
@@ -2225,6 +2286,9 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
                            reply_to=reply_to,
                            from_addr=from_addr)
     
+    if not info:
+      abort(400)
+    
     item = {'id': feed_id}
     html = render_template('comment.html', 
                            comment=info,
@@ -2242,12 +2306,14 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
                              mode='view',
                              owner=owner,
                              feed=feed)
-      msg = feed.message
+      msg = filters.clean(feed.message)
       if not msg or \
         (msg and str(msg).strip()[0] == '{' and str(msg).strip()[-1] == '}'):
         title = ''
       else:
         title = msg if len(msg)<= 50 else msg[:50] + '...'
+        title = title.decode('utf-8', 'ignore').encode('utf-8')
+        
       json = dumps({'body': body, 'title': title})
       return Response(json, mimetype='application/json')
     else:
@@ -2266,10 +2332,16 @@ def feed_actions(feed_id=None, action=None, owner_id=None,
         title = feed.details.name
         description = feed.details.size
       else:
-        if feed.message and not isinstance(feed.message, dict):
-          title = feed.message[:50] + '...'
-        else:
+        
+        msg = filters.clean(feed.message)
+        if not msg or \
+          (msg and str(msg).strip()[0] == '{' and str(msg).strip()[-1] == '}'):
           title = ''
+        else:
+          title = msg if len(msg)<= 50 else msg[:50] + '...'
+          title = title.decode('utf-8', 'ignore').encode('utf-8')
+            
+
         if feed.urls:
           url = feed.urls[0]
           description = feed.urls[0].description
@@ -2603,16 +2675,19 @@ def notifications():
   session_id = session.get("session_id")
     
   notifications = api.get_notifications(session_id)
+  unread_messages = api.get_unread_messages(session_id)
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
     body = render_template('notifications.html',
                            owner=owner, 
+                           unread_messages=unread_messages,
                            notifications=notifications)
     resp = {'body': body,
             'title': 'Notifications'}
     
-    unread_count = api.get_unread_notifications_count(session_id)
+    unread_count = api.get_unread_notifications_count(session_id) \
+                 + api.get_unread_messages_count(session_id)
     
     if unread_count:
       #  mark as read luôn các notifications không quan trọng
@@ -2626,6 +2701,7 @@ def notifications():
   else:
     return render_homepage(session_id, 'Notifications',
                            notifications=notifications,
+                           unread_messages=unread_messages,
                            view='notifications')
 
 
@@ -2750,6 +2826,8 @@ def redirect_if_not_play_jupo():
   
 if __name__ == "__main__":
     
+  from cherrypy import wsgiserver
+
   formatter = logging.Formatter(
     '(%(asctime)-6s) %(levelname)s: %(message)s' + '\n' + '-' * 80)
   
@@ -2762,11 +2840,11 @@ if __name__ == "__main__":
     port = int(sys.argv[1])    
     
     app.debug = settings.DEBUG
-    
-    server = WSGIServer(('0.0.0.0', port), app)
+            
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
     try:
       print 'Serving HTTP on 0.0.0.0 port %s...' % port
-      server.serve_forever()
+      server.start()
     except KeyboardInterrupt:
       print '\nGoodbye.'
       server.stop()
@@ -2774,13 +2852,20 @@ if __name__ == "__main__":
     
   except (IndexError, TypeError): # dev only
 
+    from gevent.pywsgi import WSGIServer
+    from gevent import monkey
+    monkey.patch_all()
+
+    
+    settings.DEBUG = True
     
     @werkzeug.serving.run_with_reloader
-    def gevent_auto_reloader():  
+    def server_run_with_auto_reloader():  
       app.debug = True
       
       app.config['DEBUG_TB_PROFILER_ENABLED'] = True
       app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
+      app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
       app.config['DEBUG_TB_PANELS'] = [
           'flask_debugtoolbar.panels.versions.VersionDebugPanel',
           'flask_debugtoolbar.panels.timer.TimerDebugPanel',
@@ -2799,13 +2884,7 @@ if __name__ == "__main__":
       
       toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
       
-      
-#      from cherrypy import wsgiserver
-#      server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
-#      try:
-#        server.start()
-#      except KeyboardInterrupt:
-#        server.stop()
+
       
       server = WSGIServer(('0.0.0.0', 8888), app)
       try:
@@ -2814,7 +2893,7 @@ if __name__ == "__main__":
       except KeyboardInterrupt:
         print '\nGoodbye.'
         server.stop()
-    
+
 
 
 

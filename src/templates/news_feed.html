@@ -12,15 +12,36 @@
   {% endautoescape %}
   
   <div id="right-sidebar">
-     
-    {% if view != 'discover' %}
+    
+    {% set stats = feed.stats %}
+    {% if stats %}
+    <div class="box">
+      <div class="header">
+        <div class="title"><strong>In this discussion</strong></div>
+      </div>
+      <div class="body post-stats">
+        <ul>
+          {% for i in stats %}
+            <li>
+              <a href='/user/{{ i.user.id }}' class='async lfloat' title='{{ i.user.name }} ({{ i.post_count }} post{% if i.post_count != 1 %}s{% endif %})'>
+                <img class='small-avatar lfloat' src='{{ i.user.avatar }}' >
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+     </div>
+     {% endif %}
+
+     {% set seen_by = feed.seen_by %}
+     {% if seen_by %}     
      <div class="box">
       <div class="header">
         <div class="title"><strong>Seen by</strong></div>
       </div>
       <div class="body">
         <ul>
-          {% for receipt in feed.seen_by %}
+          {% for receipt in seen_by %}
             <li>
               <a href='/user/{{ receipt.user.id }}' class='async'>
                 <img class='small-avatar lfloat' src='{{ receipt.user.avatar }}' />
@@ -165,20 +186,8 @@
         </div>
       </div>
 #}    
-{#
-      <div class="box">
-        <div class="no-header">
-          <div class="title">Invite Your Friends to Jupo</div>
-        </div>
-        <div class="body">
-            <form action='/invite' method='post' id='invite'>
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-              <input type='email' name='email' placeholder='Email Address' required>
-              <span class='rfloat gray'>&nbsp;</span>
-            </form>
-        </div>
-      </div>
-#}
+
+
 
     
     
@@ -202,9 +211,11 @@
 
 
 
-
-
-
+<div class="box">
+  <div class="body notice">
+      <a href='/search?type=email&ref=everyone' class='popup'>Invite Friends to join Jupo</a>
+  </div>
+</div>
 
 <div class="box">
   <div class="header">
@@ -236,7 +247,15 @@
         <div class="title">Last Activities</div>
       </div>
       <div class="body" id='owners'>
-      {% cache "last_activities:%s:%s" % (owner.id, coworkers[1].last_online) %}  
+      
+      {% if coworkers | length > 1 %}
+        {% set key = "last_activities:%s:%s" % (owner.id, coworkers[1].last_online) %}
+      {% else %}
+        {% set key = "last_activities:%s:%s" % (owner.id, coworkers[0].last_online) %}
+      {% endif %}
+        
+      
+      {% cache key %}  
         <ul>
         {% for user in coworkers[:5] %}
           <li>

@@ -1,142 +1,90 @@
-<div id="page-header" class='new-message'>
-        
-        <img src='{{ user.avatar }}' class='micro-avatar'>
-        <a href='/user/{{ user.id }}' class='overlay'>{{ user.name }}</a>
-    
-        {% set last_online = user.last_online %}
-        {% if last_online %}
-        
-          <span class='rfloat'>Last activity:
-            <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>{{ last_online | friendly_format(owner.utcoffset, short=True) }}</time>
-          </span>
-        {% else %}
-          &nbsp;
-        {% endif %}
-        
-</div>
 
-{% include 'new.html' %}
-
-<script>
-  $(document).ready(function() {
-    setTimeout(function() {
-      $('form.new-message textarea.mention').focus();
-      $('form.new-message tr#send-to').hide();
-    }, 10);
-  })
-</script>
-  
-      
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-{#
-
-<li class='message {% if messages %}history{% endif %}'>
+<li class="message" id="message-{{ message.id }}" data-ts="{{ message.timestamp }}" data-sender-id="{{ message.sender.id }}" data-receiver-id="{{ message.receiver.id }}" data-msg-ids="{{ message.message_ids }}">
+  <div class="ts">
+    {{ message.time }}
+  </div>
+  <a href="/user/{{ message.sender.id }}" title="{{ message.sender.name }}" class="async lfloat"> 
+    <img class="small-avatar" src="{{ message.sender.avatar }}"> 
+  </a>
+  <div class="content">
     {% if message.is_file() %}
-        {% if owner.id == message.sender.id %}
-            <div class="bubbledRight {% if title and title != 'Today' %}greyBubbledRight{% endif %}" title='{{ message.timestamp | friendly_format(owner.utcoffset) }}'>
-                <a href='/attachment/{{ message.message.id }}' target='_blank'>{{ message.message.name }} ({{ message.message.size }})</a>
-            </div>
-            <img src='{{ message.sender.avatar }}' class="avatar right"  title='{{ message.sender.name }}'/>
-        {% else %}
-            <div class="bubbledLeft {% if title and title != 'Today' %}greyBubbledLeft{% endif %}" 
-                 title='{{ message.timestamp | friendly_format(owner.utcoffset) }}'>
-                 
-                 <a href='/attachment/{{ message.message.id }}' target='_blank'>
-                    {{ message.message.name }} ({{ message.message.size }})
-                 </a>
-            </div>
-            <img src='{{ message.sender.avatar }}' class="avatar left" title='{{ message.sender.name }}' />
-        {% endif %}
-    
+      {% set attachment = message.content %}
+      <a href='/attachment/{{ attachment.id }}' target='_blank' title="{{ attachment.name }} ({{ attachment.size }})">{{ attachment.name | truncate(20, True) }} ({{ attachment.size }})</a>
     {% else %}
-	    {% if owner.id == message.sender.id %}
-    			<div class="bubbledRight {% if title and title != 'Today' %}greyBubbledRight{% endif %}" title='{{ message.timestamp | friendly_format(owner.utcoffset) }}'>{% autoescape on %}{{ message.message | autolink | autoemoticon }}{% endautoescape %}</div>
-    			<img src='{{ message.sender.avatar }}' class="avatar right" title='{{ message.sender.name }}'/>
-      {% else %}
-          <div class="bubbledLeft {% if title and title != 'Today' %}greyBubbledLeft{% endif %}" title='{{ message.timestamp | friendly_format(owner.utcoffset) }}'>{% autoescape on %}{{ message.message | autolink | autoemoticon }}{% endautoescape %}</div>
-          <img src='{{ message.sender.avatar }}' class="avatar left" title='{{ message.sender.name }}' />
-      {% endif %}
+      {{ message.content | autolink | autoemoticon | nl2br | safe }}
     {% endif %}
+  </div>
 </li>
 
-#}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

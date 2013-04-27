@@ -1,5 +1,5 @@
 {% if mode == 'search' %}
-      <li>
+      <li title='{{ user.email }}' class='{% if user.name == user.email %}email{% endif %}'>
         {% if user.is_registered() %}
           {% if group_id %}
           <a class='button add-member' href='/group/{{ group_id }}/add_member?user_id={{ user.id }}'>Add to Group</a>
@@ -30,10 +30,7 @@
           <strong>
             {{ user.email_name }}
           </strong>
-          <br>
-          
           <span class='gray'>@{{ user.email_domain }}</span>
-        
         {% endif %}
         
       </li>
@@ -102,7 +99,7 @@
 
       <li class="field field-text">
         <label for="email">Email</label>
-        <input class="input-text" id="email" name="email" type="text" value="{{ owner.email }}">
+        <input class="input-text" id="email" name="email" type="text" value="{{ owner.email }}" readonly>
 
       </li>
 
@@ -305,7 +302,7 @@
 </form>
 
 {% else%}
-<div id="page-header">
+<div id="page-header" class='user'>
 
       
         <a href='/user/{{ user.id }}' class='async'>
@@ -380,9 +377,11 @@
         <div class='intro'>
             Name: {{ user.name }}
             <br>
+            {% if user.id == owner.id %}
             Email: <a href='mailto:{{ user.email }}'>{{ user.email }}</a>
             <br>
-          {% if user.birthday %}
+            {% endif %}
+          {% if user.birthday and user.birthday.year != '0' %}
             Born: {{ user.birthday.year }}
             <br>
           {% endif %}
@@ -394,10 +393,12 @@
             Phone: {{ user.phone }}
             <br>
           {% endif %}
+{#          
           {% if user.locale %}
             Locale: {{ user.locale }}
             <br>
           {% endif %}
+#}
           {% if user.introduction %}
             {{ user.introduction }}
             <br>
@@ -412,7 +413,13 @@
             {% else %}
             <a href="/user/{{ owner.id }}/change_password" class='popup'>Set Account Password</a>
             {% endif %}
+          
+          {% else %}
+            <br>
+            <a href='/chat/{{ user.id }}' class='chat'>Chat with {{ user.name }}</a>
           {% endif %}
+          
+          
           
         </div>
       </div>

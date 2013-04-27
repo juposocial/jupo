@@ -1,0 +1,119 @@
+<div class="inflow"> 
+  <div class="positioner">
+  <div class="fixed">
+
+    <div class="chatbox unread" id='chat-{{ user.id }}'>
+      <div class="header" title='Toggle Minimize'>
+        <a href="#" class="close-icon close" title="Close Chat" data-user-id='{{ user.id }}'></a>
+        <a id='chatbox-pick-file' class='rfloat' title='Select a file to send to {{ user.name }}'>+ Add file</a>
+        <div id="chatbox-file-container">
+          <div id="chatbox-filelist"></div>
+        </div>  
+        
+        <i class='{{ user.status }} user-{{ user.id }}-status'></i>
+        <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>
+
+      </div>
+      <ul class="messages">
+        {% set last_title = None %}
+        {% for message in messages %}
+          {% if message.date != last_title %}
+            <div class='title' title='{{ message.get_date(short=False) }}'>{{ message.date }}</div>
+            {% set last_title = message.date %}
+          {% endif %}
+          
+          {% include "message.html" %}
+        {% endfor %}
+
+        {% if not messages or (messages and messages[-1].date != 'Today') %}
+          <div class='title' title='Today'>Today</div>
+        {% endif %}
+        
+      </ul>
+      
+              
+      {% if messages and (messages[-1].sender.id == owner.id) and (messages[-1].timestamp < last_viewed) %}
+        <div class="status">Seen {{ last_viewed_friendly_format }}</div>
+      {% else %}
+        <div class="status hidden"></div>
+      {% endif %}
+
+      <form action='/chat/{{ user.id }}/new_message' method='post'>
+        <textarea name='message' placeholder='Write a message...' autofocus required></textarea>
+      </form>
+    </div>
+
+  </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  
+    /* File Upload */
+    $.global.uploader_chat_{{ user.id }} = new plupload.Uploader({
+          runtimes : 'html5',
+          browse_button : 'chatbox-pick-file',
+          container : 'chatbox-file-container',
+          url : '/chat/{{ user.id }}/new_file',
+          multi_selection : false,
+          // drop_element: 'intro',
+          max_file_size : '10mb',
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          }
+    });
+        
+    $.global.uploader_chat_{{ user.id }}.bind('Init', function(up, params) {});
+    $.global.uploader_chat_{{ user.id }}.init();
+    
+    
+    $.global.uploader_chat_{{ user.id }}.bind('FilesAdded', function(up, files) {
+      $.global.uploader_chat_{{ user.id }}.start();
+      update_status('{{ user.id }}|is uploading file...');
+    });
+    
+    
+    $.global.uploader_chat_{{ user.id }}.bind('UploadProgress', function(up, file) {
+      if(file.percent != 100) {
+        $('#chat-{{ user.id }} div.status').html("Uploading " + file.percent + "%").show();
+      } else {
+        $('#chat-{{ user.id }} div.status').html("Verifying...").show();
+      }
+    });
+    
+    $.global.uploader_chat_{{ user.id }}.bind('Error', function(up, err) {
+        show_error();
+    });
+    
+    
+    $.global.uploader_chat_{{ user.id }}.bind('FileUploaded', function(up, file, response) {
+        
+        $('#chat-{{ user.id }} div.status').html('').fadeOut('fast');
+        
+        
+        var last_msg = $('#chat-{{ user.id }} li.message:last');
+        var msg = $(response.response);
+
+        var msg_id = msg.attr('id').split('-')[1];
+        var msg_ts = msg.data('ts');
+        var sender_id = msg.attr('data-sender-id');
+        
+        if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+          var content = $('.content', msg).html();
+          $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+          $(last_msg).data('ts', msg_ts);
+          $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+          
+        } else {
+          $('#chat-{{ user.id }} .messages').append(response.response);
+        }
+        
+        
+        setTimeout(function() {
+          $('#chat-{{ user.id }} .messages').scrollTop(99999);
+        }, 10)
+      
+    });
+
+  
+</script>

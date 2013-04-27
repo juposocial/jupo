@@ -55,7 +55,6 @@
   {% else %}
 
 
-  {% cache 'main-nav:%s' % view, 86400 %}
   <ul id="main-nav">
     <li id='welcome'>
       <a href="/welcome" class="{% if view == 'welcome' %}active async{% else %}async{% endif %}"> Welcome </a>
@@ -72,7 +71,11 @@
     </li>
 
     <li id="people">
-      <a href="/contacts" class="{% if view == 'people' %}active async{% else %}async{% endif %}"> <i class="people-icon"></i> Contacts </a>
+      <a href="/messages" class="{% if view == 'messages' %}active async{% else %}async{% endif %}"> 
+        <i class="messages-icon"></i> 
+        Messages 
+        <span class='count {% if unread_messages_count == 0 or view == "messages" %}hidden{% endif %}'>{{ unread_messages_count }}</span>
+      </a>
     </li>
 
 
@@ -89,11 +92,13 @@
     </li>
 
   </ul>
-  {% endcache %}
 
   <ul id="groups-nav">
+    <div class="groups">
+      <a href='/groups' class='async'>Groups ({{ owner.groups_count }})</a>
+    </div>
 
-    {% for _group in groups[:2] %}
+    {% for _group in groups[:3] %}
     <li id='group-{{ _group.uuid }}'>
       <a href="/group/{{ _group.uuid }}" class='{% if group and view == "group" and group.id == _group.id %}active async{% else %}async{% endif %}' {% if groupname | length == 21 %}title="{{ _group.name }}"{% endif %}> 
         
@@ -101,23 +106,52 @@
         {% set groupname = _group.name | truncate(18, True) %} 
         {{ groupname }}
         
-        {% if _group.unread_posts > 0 %}
-          <span class='count'>{{ _group.unread_posts }}</span>
-        {% endif %}
+        <span class='count {% if _group.unread_posts == 0 %}hidden{% endif %}'>{{ _group.unread_posts }}</span>
+        
       </a>
     </li>
     {% endfor %}
 
+{#
     <li id='see-all'>
       <a href="/groups" class='{% if view == "groups" %}active async{% else %}async{% endif %} no-icon'> See All Groups </a>
     </li>
-
+#}
 
     <li id='new-group'>
       <a href="/group/new" class='no-icon popup'> + New Group </a>
     </li>
 
   </ul>
+  
+  {% block online_now %}
+      
+      
+  <ul id="friends-online">
+    <div class="online-now hidden">
+      <a href='/contacts' class='popup'>Chat (<span class='online-count'>0</span>)</a>
+    </div>
+  
+    <form>
+      <input type='search' name='query' placeholder="Search...">
+    </form>
+    
+  
+    <div class='friends'>
+      <div class='results hidden'></div>
+      
+      <div class='online'>
+      {% include 'friends_online.html' %}
+      </div>
+    </div>
+    
+    <div class='empty {% if friends_online %}hidden{% endif %}'>
+      No one is available to chat
+    </div>
+    
+  </ul>
+
+  {% endblock %}
 
   {% endif %}
 

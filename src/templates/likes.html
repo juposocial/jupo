@@ -16,11 +16,11 @@
   {% else %}
   
     <a href='/user/{{ likes[0].id }}' 
-       class='async' title='{{ likes[0].timestamp | friendly_format(owner.utcoffset, short=True) }}'>{% if likes[0].id == owner.id %}you{% else %}{{ likes[0].name }}{% endif %}</a> 
+       class='async' title='{{ likes[0].timestamp | friendly_format(owner.utcoffset, short=True) }}'>{% if likes[0].id == owner.id %}You{% else %}{{ likes[0].name }}{% endif %}</a> 
     
     and 
     
-    <a href='#!/feed/{{ id }}' class='overlay' 
+    <a href='/feed/{{ item.id }}' class='async' 
        title='{% for i in likes[1:] %}{{ i.name }}{% if loop.index < likes_count - 1 %}, {% endif %}{% endfor %}'>
        {{ likes_count - 1 }} others</a>
   

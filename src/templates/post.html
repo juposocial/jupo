@@ -32,7 +32,7 @@
 
 {% block stylesheets %}
 
-  {% assets filter="cssmin", 
+  {% assets filters="cssmin", 
             output="post.css",
             "styles/normalize.css",
             "styles/animations.css",
@@ -47,8 +47,9 @@
 
   <script type='text/javascript' src='//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
   
-  {% assets filter="jspacker", 
+  {% assets filters="jspacker", 
             output="lib.js",
+            'scripts/disable_console_log.js',
             'scripts/detect_timezone.min.js',
             'scripts/jquery.caret.js',
             'scripts/plupload.js',
@@ -61,6 +62,7 @@
             'scripts/jquery.tokeninput.js',
             'scripts/jquery.tipsy.js',
             'scripts/jquery.timeago.js',
+            'scripts/jquery.titlealert.js',
             'scripts/functions.js' %}
     <script type="text/javascript" src="{{ ASSET_URL }}"></script>
   {% endassets %}
@@ -78,7 +80,7 @@
 
 {% block bottom_scripts %}
 
-  {% assets filter="jspacker", 
+  {% assets filters="jspacker", 
             output="post.js",
             "scripts/main.js" %}
             

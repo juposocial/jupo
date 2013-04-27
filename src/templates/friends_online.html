@@ -1,9 +1,14 @@
 
-
-{% for user in users %}
-    <li class='status {{ user.status}}' id='user-{{ user.id }}'>
-        <a href='/user/{{ user.id }}' title='{{ user.name }} ({{ user.last_online | friendly_format(owner.utcoffset, short=True) }})' class='async'>
-          <img src="{{ user.avatar }}" class='micro-avatar'> {{ user.name }} <i class="{{ user.status }} rfloat"></i>
-        </a>
-    </li>
+{% for user in friends_online %}
+  {% set status = user.status %}
+  
+  <li class='status {{ status}}' id='user-{{ user.id }}'>
+      <a href='/chat/{{ user.id }}' title='{{ user.name }}<br>{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}' class='chat'>
+        <img src="{{ user.avatar }}" class='medium-avatar'>
+      </a>
+  </li>
 {% endfor %}
+
+
+
+

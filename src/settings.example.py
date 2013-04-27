@@ -3,23 +3,35 @@
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '<replace with a secret key>'
+
 DEBUG = False
 
-PRIMARY_DOMAIN = 'play.jupo.com'
 
+PRIMARY_DOMAIN = 'play.jupo.com'
 EMAIL_REPLY_TO_DOMAIN = 'reply.jupo.com'
+
 
 MONGOD_SERVERS = "127.0.0.1:27017"
 
+
 ELASTICSEARCH_SERVER = '127.0.0.1:9200'
+
 
 MEMCACHED_SERVERS = ['127.0.0.1:11211']
 
+
 REDIS_SERVER = '127.0.0.1:6379'
+REDIS_PUBSUB_SERVER = '127.0.0.1:63791'
+REDIS_PINGPONG_SERVER = '127.0.0.1:63792'
+REDIS_TASKQUEUE_SERVER = '127.0.0.1:63793'
+
 
 SNOWFLAKE_SERVER = '127.0.0.1:2300'
 
+
+HTTP_PROXY = None  
 ITEMS_PER_PAGE = 5
+
 
 # [Email Notifications]
 SMTP_HOST = 'smtp.mandrillapp.com'
@@ -28,8 +40,6 @@ SMTP_USERNAME = ''
 SMTP_PASSWORD = ''
 SMTP_SENDER = 'Jupo Team <hello@jupo.com>'
 SMTP_USE_TLS = False
-
-HTTP_PROXY = None  
 
 
 # [Use Amazon's AWS S3 file-storage service to store static and uploaded files]
@@ -46,6 +56,7 @@ S3_BUCKET_NAME = None
 GOOGLE_CLIENT_ID = None
 GOOGLE_CLIENT_SECRET = None
 GOOGLE_REDIRECT_URI = 'https://www.jupo.com/oauth/google/authorized'
+
 
 # [Login with Facebook]
 # 1. Visit https://developers.facebook.com/apps and click the 'Create New App' button.

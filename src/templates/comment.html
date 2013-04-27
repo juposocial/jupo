@@ -1,3 +1,5 @@
+
+
 <li class="comment {% if hidden %}hidden{% endif %}" id="comment-{{ comment.id }}">
     <a href="/user/{{ comment.owner.id }}" class='async' data-user-id='{{ comment.owner.id }}'>
       <img src="{{ comment.owner.avatar }}" class="small-avatar lfloat">
@@ -13,7 +15,9 @@
         
         
             <textarea class="mention"></textarea>
-            <textarea name="message" class="marked-up hidden" data-prefill='{{ comment.message | safe }}'></textarea>
+            
+            <span class='raw-message hidden'>{{ comment.message | safe }}</span>
+            <textarea name="message" class="marked-up hidden"></textarea>
       </form>
       
       
@@ -109,7 +113,7 @@
           <div class="file-attachment">
                 <a href='{{ url.url }}' rel="gallery"><img src='{{ url.url }}' width="200" title='{{ url.basename }}'/></a>
           </div>
-        {% elif ('www.youtube.com/' in comment.message or 'youtu.be/' in comment.message) and '</iframe>' not in comment.message %}
+        {% elif (('www.youtube.com/' in comment.message and '?v=' in comment.message) or 'youtu.be/' in comment.message) and '</iframe>' not in comment.message %}
           <div class='embed-code'>
             {% autoescape on %}
               {{ url.url | to_embed_code }}
@@ -180,9 +184,9 @@
       
       
       
-          
-       <span class='likes {% if not comment.liked_by %}hidden{% endif %}' title='{% if comment.liked_by %}{% for i in comment.liked_by %}{% if i.id == owner.id %}{% if loop.index == 1 %}You{% else %}you{% endif %}{% else %}{{ i.name }}{% endif %}{% if loop.index < (comment.liked_user_ids | length - 2) %}, {% elif loop.index == (comment.liked_user_ids | length - 1) %} and {% endif %}{% endfor %} likes this.{% endif %}'>
-        · <i class='like-small-icon'></i> <span class='counter' id='counter-{{ comment.id }}'>{{ comment.liked_user_ids | length }}</span>
+       {% set likes_count = comment.liked_by | length %}
+       <span class='likes {% if not comment.liked_by %}hidden{% endif %}' title='{% if likes_count != 0 %}{% for i in comment.liked_by %}{% if i.id == owner.id %}{% if loop.index == 1 %}You{% else %}you{% endif %}{% else %}{{ i.name }}{% endif %}{% if loop.index < (likes_count - 1) %}, {% elif loop.index == (likes_count - 1) %} and {% endif %}{% endfor %} like{% if likes_count == 1 %}s{% endif %} this.{% endif %}'>
+        · <i class='like-small-icon'></i> <span class='counter' id='counter-{{ comment.id }}'>{{ likes_count }}</span>
        </span>
        
     </div>
