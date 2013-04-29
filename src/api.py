@@ -69,7 +69,7 @@ except ImportError:
 from models import (User, Group, Browser,
                     Comment, Feed, File, Note,
                     Version, Notification, Attachment, Reminder,
-                    URL, Result, Event, Message)
+                    URL, Result, Event, Message, Topic)
 
 import app
 import filters
@@ -1221,14 +1221,25 @@ def set_status(session_id, status):
     return False
   
   if '|' in status:
-    uid, _status = status.split('|')
+    chat_id, _status = status.split('|')
     user = get_user_info(user_id, db_name=db_name)
     if _status:
       text = user.name + ' ' + _status
     else:
       text = ''
-    push_queue.enqueue(publish, int(uid), 'typing-status', 
-                       {'user_id': str(user_id), 'text': text}, db_name=db_name)
+    
+    if chat_id.startswith('user-'):
+      uid = int(chat_id.split('-')[1])
+      push_queue.enqueue(publish, int(uid), 'typing-status', 
+                         {'chat_id': 'user-%s' % user_id, 'text': text}, db_name=db_name)
+    else:
+      topic_id = int(chat_id.split('-')[1])
+      topic = get_topic_info(topic_id, db_name=db_name)
+      user_ids = topic.member_ids
+    
+      for uid in user_ids:
+        push_queue.enqueue(publish, int(uid), 'typing-status', 
+                           {'chat_id': chat_id, 'text': text}, db_name=db_name)
     status = 'online'
   else:
     key = 'status:%s' % user_id
@@ -1981,7 +1992,7 @@ def get_mentions(raw_text):
       tag = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)')\
               .match(user)\
               .groupdict()
-      tag['id'] = tag['id'].split(':', 1)[-1]
+      tag['type'], tag['id'] = tag['id'].split(':', 1)
       user_list.append(tag)
   return user_list
 
@@ -1991,7 +2002,7 @@ def unfollow_post(session_id, feed_id):
   
   user_id = get_user_id(session_id)
   db.owner.update({'_id': user_id}, 
-                        {'$addToSet': {'unfollow_posts': long(feed_id)}})
+                  {'$addToSet': {'unfollow_posts': long(feed_id)}})
   return feed_id
 
 def new_email(owner_id, email, password):
@@ -2003,11 +2014,11 @@ def new_email(owner_id, email, password):
     return False
       
   db.email.insert({'email': email,
-                         'password': password,
-                         'owner': long(owner_id),
-                         'last_uid': 0,
-                         'timestamp': utctime(),
-                         'last_updated': utctime()})
+                   'password': password,
+                   'owner': long(owner_id),
+                   'last_uid': 0,
+                   'timestamp': utctime(),
+                   'last_updated': utctime()})
   return True
 
 def reset_mail_fetcher():
@@ -5322,9 +5333,54 @@ def domain_is_ok(domain_name):
   except socket.gaierror:
     return False
  
- 
 
-def new_message(session_id, user_id, message, db_name=None):
+def new_topic(owner_id, user_ids, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  info = {'_id': new_id(),
+          'owner': owner_id,
+          'members': user_ids,
+          'ts': utctime()}
+  db.message.insert(info)
+  return info['_id']
+
+
+def get_topic_ids(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  records = db.message.find({'members': long(user_id)})
+  return [i['_id'] for i in records]
+    
+def get_topic_info(topic_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  info = db.message.find_one({'_id': int(topic_id)})
+  return Topic(info)
+
+def add_topic_members(topic_id, members, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  db.message.update({'_id': int(topic_id)},
+                    {'$addToSet': {'members': {"$each": members}}})
+  return True
+  
+
+def strip_mentions(text):
+  out = text
+  for i in re.findall('(@\[.*?\))', text):
+    out = out.replace(i, '')
+  return out
+  
+
+def new_message(session_id, message, user_id=None, topic_id=None, is_auto_generated=False, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5333,31 +5389,118 @@ def new_message(session_id, user_id, message, db_name=None):
   if not owner_id:
     return False
   
-  if not str(user_id).isdigit():
+  if user_id and not str(user_id).isdigit():
     return False
+
+  if user_id:
+    user_id = int(user_id)
   
-  user_id = int(user_id)
-  info = {'_id': new_id(),
-          'from': owner_id,
-          'to': user_id,
-          'msg': message,
-          'ts': utctime()}
+  if is_auto_generated:
+    mentions = []
+  else:
+    mentions = get_mentions(str(message))
+  
+  return_empty_html = False
+  if user_id and mentions and topic_id is None:
+    members = [user_id, owner_id]
+    members.extend([int(i.get('id')) for i in mentions])
+    topic_id = new_topic(owner_id, members, db_name=db_name)
+    
+    msg = '@[%s](user:%s) created @[a group conversation](topic:%s)'\
+        % (get_user_info(owner_id).name, owner_id, topic_id)
+    new_message(session_id, msg, user_id=user_id, 
+                is_auto_generated=True, db_name=db_name)
+    
+    msg = '@[%s](user:%s) added %s to this conversation' \
+        % (get_user_info(owner_id).name, owner_id, 
+           ', '.join(['@[%s](user:%s)' % (i['name'], i['id']) for i in mentions]))
+    
+    if ''.join(e for e in strip_mentions(message) if e.isalnum()):
+      new_message(session_id, msg, user_id, topic_id, 
+                  is_auto_generated=True, db_name=db_name)
+    
+    else:
+      message = msg
+      
+    info = {'_id': new_id(),
+            'topic': topic_id,
+            'from': owner_id,
+            'msg': message,
+            'ts': utctime()}
+    
+    return_empty_html = True
+    
+  
+  elif topic_id:
+    topic = get_topic_info(topic_id, db_name=db_name)
+    if owner_id not in topic.member_ids:
+      return False
+    
+    if mentions:
+      mentioned = [int(i.get('id')) for i in mentions]
+      new_members = [i for i in mentioned if i not in topic.member_ids]
+      if new_members:
+        add_topic_members(topic_id, new_members, 
+                          db_name=db_name)
+        
+        msg = '@[%s](user:%s) added %s to this conversation' \
+            % (get_user_info(owner_id).name, owner_id, 
+               ', '.join(['@[%s](user:%s)' \
+                              % (i['name'], i['id']) for i in mentions]))
+   
+        if ''.join(e for e in strip_mentions(message) if e.isalnum()):
+          new_message(session_id, msg, 
+                      user_id=user_id, topic_id=topic_id, 
+                      is_auto_generated=True, db_name=db_name)
+        else:
+          message = msg
+                    
+      
+    info = {'_id': new_id(),
+            'topic': topic_id,
+            'from': owner_id,
+            'msg': message,
+            'ts': utctime()}
+  
+  else:
+    info = {'_id': new_id(),
+            'from': owner_id,
+            'to': user_id,
+            'msg': message,
+            'ts': utctime()}
+    
+  if is_auto_generated:
+    info['auto_generated'] = True
   
   msg_id = db.message.insert(info)
   info['_id'] = msg_id
   
-  update_last_viewed(owner_id, user_id, db_name=db_name)
+  if user_id:
+    update_last_viewed(owner_id, user_id=user_id, db_name=db_name)
+  else:
+    update_last_viewed(owner_id, topic_id=topic_id, db_name=db_name)
   
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
   msg = Message(info, utcoffset=utcoffset, db_name=db_name)
   
   template = app.CURRENT_APP.jinja_env.get_template('message.html')
   html = template.render(message=msg).replace('\n', '')
-  push_queue.enqueue(publish, user_id, 'new-message', 
-                     info=html, db_name=db_name)
-  push_queue.enqueue(publish, owner_id, 'new-message', 
-                     info=html, db_name=db_name)
-  return html
+  if topic_id:
+    topic = get_topic_info(topic_id, db_name=db_name)
+    user_ids = topic.member_ids
+    for uid in user_ids:
+      push_queue.enqueue(publish, uid, 'new-message', 
+                         info=html, db_name=db_name)
+  else:
+    push_queue.enqueue(publish, user_id, 'new-message', 
+                       info=html, db_name=db_name)
+    push_queue.enqueue(publish, owner_id, 'new-message', 
+                       info=html, db_name=db_name)
+    
+  if return_empty_html:
+    return ''
+  else:
+    return html
 
 
 def get_messages(session_id, db_name=None):
@@ -5370,11 +5513,13 @@ def get_messages(session_id, db_name=None):
     return False
   
   messages = []
-  records = db.message.find({'owner': owner_id})
-  for record in records:
-    user_id = record.get('user_id')
+  users = db.message.find({'owner': owner_id,
+                           'user_id': {'$exists': True}})
+  for user in users:
+    user_id = user.get('user_id')
     msg = db.message.find({'$or': [{'from': user_id, 'to': owner_id},
-                                   {'from': owner_id, 'to': user_id}]})\
+                                   {'from': owner_id, 'to': user_id}],
+                           'topic': {'$exists': False}})\
                     .sort('ts', -1)\
                     .limit(1)
     msg = list(msg)
@@ -5388,6 +5533,16 @@ def get_messages(session_id, db_name=None):
           msg['is_unread'] = True
           
       messages.append(msg)
+      
+  topic_ids = get_topic_ids(owner_id, db_name=db_name)
+  for topic_id in topic_ids:
+    msg = db.message.find({'topic': topic_id})\
+                    .sort('ts', -1)\
+                    .limit(1)
+    msg = list(msg)
+    if msg:
+      msg = msg[0]
+      messages.append(msg)
   
   messages.sort(key=lambda k: k.get('ts'), reverse=1)
   
@@ -5395,7 +5550,7 @@ def get_messages(session_id, db_name=None):
   return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
 
 
-def get_unread_messages_count(session_id, user_id=None, db_name=None):
+def get_unread_messages_count(session_id, user_id=None, topic_id=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5410,13 +5565,25 @@ def get_unread_messages_count(session_id, user_id=None, db_name=None):
     return db.message.find({'$or': [{'from': user_id, 'to': owner_id},
                                     {'from': owner_id, 'to': user_id}],
                             'ts': {'$gt': last_viewed}}).count()
-  
+  elif topic_id:
+    topic_id = int(topic_id)
+    last_viewed = get_last_viewed(owner_id, topic_id=topic_id, db_name=db_name)
+    return db.message.find({'topic': topic_id,
+                            'ts': {'$gt': last_viewed}}).count()
+    
   else:
     count = 0
-    records = db.message.find({'owner': owner_id})
+    records = db.message.find({'owner': owner_id, 
+                               'user_id': {'$exists': True}})
     for record in records:
       user_id = record.get('user_id')
       count += get_unread_messages_count(session_id, user_id, db_name=db_name)
+      
+    records = db.message.find({'members': owner_id})
+    for record in records:
+      topic_id = record.get('_id')
+      count += get_unread_messages_count(session_id, topic_id=topic_id, db_name=db_name)
+    
     return count
   
 
@@ -5430,48 +5597,79 @@ def get_unread_messages(session_id, db_name=None):
     return False
   
   out = []
-  records = db.message.find({'owner': owner_id})
+  records = db.message.find({'owner': owner_id, 
+                             'user_id': {'$exists': True}})
   for record in records:
     uid = record.get('user_id')
     count = get_unread_messages_count(session_id, uid, db_name=db_name)
     if count > 0:
       out.append({'sender': get_user_info(uid, db_name=db_name), 
                   'unread_count': count})
+  
+  records = db.message.find({'members': owner_id})
+  for record in records:
+    topic_id = record.get('_id')
+    count = get_unread_messages_count(session_id, topic_id=topic_id, db_name=db_name)
+    if count > 0:
+      out.append({'topic': get_topic_info(topic_id, db_name=db_name), 
+                  'unread_count': count})
+      
+    
   return out
     
     
-def get_last_viewed(owner_id, user_id, db_name=None):
+def get_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  info = db.message.find_one({'owner': owner_id, 'user_id': user_id})
+  if user_id:
+    info = db.message.find_one({'owner': owner_id, 'user_id': user_id})
+  else:
+    info = db.message.find_one({'owner': owner_id, 'topic_id': topic_id})
+    
   if info:
     return info.get('last_viewed')
   else:
     return 0
   
 
-def update_last_viewed(owner_id, user_id, db_name=None):
+def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  db.message.update({'owner': owner_id, 'user_id': user_id}, 
-                    {'$set': {'last_viewed': utctime()}}, upsert=True)
+  if user_id:
+    db.message.update({'owner': owner_id, 'user_id': int(user_id)}, 
+                      {'$set': {'last_viewed': utctime()}}, upsert=True)
+  else:
+    db.message.update({'owner': owner_id, 'topic_id': int(topic_id)}, 
+                      {'$set': {'last_viewed': utctime()}}, upsert=True)
+    
   
   ts = utctime() + int(get_utcoffset(owner_id, db_name=db_name))
   ts = friendly_format(ts, short=True)
   if ts.startswith('Today'):
     ts = ts.split(' at ')[-1]
-  push_queue.enqueue(publish, user_id, 
-                     event_type='seen-by', 
-                     info={'user_id': str(owner_id),
-                           'html': 'Seen %s' % ts}, 
-                     db_name=db_name)
+    
+  info = {'html': 'Seen %s' % ts}
+  if user_id:
+    info['chat_id'] = 'user-%s' % user_id
+    push_queue.enqueue(publish, user_id, 
+                       event_type='seen-by', 
+                       info=info, 
+                       db_name=db_name)
+  else:
+    info['chat_id'] = 'topic-%s' % topic_id
+    topic = get_topic_info(topic_id)
+    for user_id in topic.member_ids:
+      push_queue.enqueue(publish, user_id, 
+                         event_type='seen-by', 
+                         info=info, 
+                         db_name=db_name)
   return True
 
-def get_chat_history(session_id, user_id, page=1, db_name=None):
+def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5480,26 +5678,27 @@ def get_chat_history(session_id, user_id, page=1, db_name=None):
   if not owner_id:
     return False
   
-  if not str(user_id).isdigit():
+  if user_id and not str(user_id).isdigit():
     return False
   
-  user_id = int(user_id)
+  if user_id:
+    user_id = int(user_id)
   
-#   
-#   now = datetime.fromtimestamp(utctime())
-#   ts = now - timedelta(days=int(days))
-#   ts = mktime(datetime(ts.year, ts.month, ts.day, 0, 0, 0).timetuple())
-  
-#   records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
-#                                      {'from': user_id, 'to': owner_id}],
-#                              'ts': {'$gte': ts}})\
-#                       .sort('ts', -1)
-
-  records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
-                                     {'from': user_id, 'to': owner_id}]})\
-                      .sort('ts', -1)\
-                      .limit(50)
-  
+    records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
+                                       {'from': user_id, 'to': owner_id}]})\
+                        .sort('ts', -1)\
+                        .limit(50)
+  else:
+    topic_id = int(topic_id)
+    
+    if topic_id not in get_topic_ids(owner_id, db_name=db_name):
+      return False
+    
+    records = db.message.find({'topic': topic_id})\
+                        .sort('ts', -1)\
+                        .limit(50)
+    
+    
   records = list(records)
   records.reverse()
   
@@ -5507,7 +5706,12 @@ def get_chat_history(session_id, user_id, page=1, db_name=None):
   last_msg = None
   for record in records:
     msg = record.get('msg')
-    if last_msg and record.get('from') == last_msg.get('from') and (record.get('ts') - last_msg.get('ts')) < 120:
+    if last_msg and \
+      not last_msg.get('auto_generated') and \
+      not record.get('auto_generated') and \
+      record.get('from') == last_msg.get('from') and \
+      (record.get('ts') - last_msg.get('ts')) < 120:
+    
       if is_snowflake_id(msg):
         attachment = get_attachment_info(msg, db_name=db_name)
         msg = "<a href='/attachment/%s' target='_blank' title='%s (%s)'>%s (%s)</a>"\

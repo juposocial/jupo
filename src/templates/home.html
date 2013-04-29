@@ -286,7 +286,11 @@
       
     <script>
       {% for message in unread_messages %}
-        start_chat('{{ message.sender.id }}')
+        {% if message.has_key('topic') %}
+          start_chat('topic-{{ message.topic_id }}')
+        {% else %}
+          start_chat('user-{{ message.sender.id }}')
+        {% endif %}
       {% endfor %}
     </script>
       

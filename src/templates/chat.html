@@ -2,28 +2,38 @@
   <div class="positioner">
   <div class="fixed">
 
-    <div class="chatbox unread" id='chat-{{ user.id }}'>
+    <div class="chatbox unread" id='chat-{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'>
       <div class="header" title='Toggle Minimize'>
-        <a href="#" class="close-icon close" title="Close Chat" data-user-id='{{ user.id }}'></a>
+        <a href="#" class="close-icon close" title="Close Chat" data-chat-id='{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'></a>
         <a id='chatbox-pick-file' class='rfloat' title='Select a file to send to {{ user.name }}'>+ Add file</a>
         <div id="chatbox-file-container">
           <div id="chatbox-filelist"></div>
         </div>  
         
+        {% if user %}
         <i class='{{ user.status }} user-{{ user.id }}-status'></i>
-        <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>
-
+        <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
+        {% else %}
+          <span class='name'>  
+            {% set members = topic.members | exclude(owner.id) %}
+            {% for member in members %}
+              {{ member.name }}{% if loop.index < (topic.members | length - 1) %}, {% endif %}
+            {% endfor %}
+          </span>
+        {% endif %}
       </div>
       <ul class="messages">
         {% set last_title = None %}
-        {% for message in messages %}
-          {% if message.date != last_title %}
-            <div class='title' title='{{ message.get_date(short=False) }}'>{{ message.date }}</div>
-            {% set last_title = message.date %}
-          {% endif %}
-          
-          {% include "message.html" %}
-        {% endfor %}
+        {% if messages %}
+          {% for message in messages %}
+            {% if message.date != last_title %}
+              <div class='title' title='{{ message.get_date(short=False) }}'>{{ message.date }}</div>
+              {% set last_title = message.date %}
+            {% endif %}
+            
+            {% include "message.html" %}
+          {% endfor %}
+        {% endif %}
 
         {% if not messages or (messages and messages[-1].date != 'Today') %}
           <div class='title' title='Today'>Today</div>
@@ -38,8 +48,10 @@
         <div class="status hidden"></div>
       {% endif %}
 
-      <form action='/chat/{{ user.id }}/new_message' method='post'>
-        <textarea name='message' placeholder='Write a message...' autofocus required></textarea>
+      <form action='/chat/{% if user %}user/{{ user.id }}{% else %}topic/{{ topic.id }}{% endif %}/new_message' method='post'>
+        <textarea class='mentions' placeholder='Write a message...' autofocus required></textarea>
+        <textarea class='hidden marked-up'
+                    name='message'></textarea>
       </form>
     </div>
 
@@ -48,13 +60,24 @@
 </div>
 
 <script type="text/javascript">
-  
-    /* File Upload */
-    $.global.uploader_chat_{{ user.id }} = new plupload.Uploader({
+
+    {% if user %}
+      {% set uploader_id = 'user_%s' % user.id %}
+      {% set chat_id = 'user-%s' % user.id %}
+    {% else %}
+      {% set uploader_id = 'topic_%s' % topic.id %}
+      {% set chat_id = 'topic-%s' % topic.id %}
+    {% endif %}
+      
+    $.global.uploader_chat_{{ uploader_id }} = new plupload.Uploader({
           runtimes : 'html5',
           browse_button : 'chatbox-pick-file',
           container : 'chatbox-file-container',
-          url : '/chat/{{ user.id }}/new_file',
+          {% if user %}
+          url : '/chat/user/{{ user.id }}/new_file',
+          {% else %}
+          url : '/chat/topic/{{ topic.id }}/new_file',
+          {% endif %}
           multi_selection : false,
           // drop_element: 'intro',
           max_file_size : '10mb',
@@ -63,35 +86,35 @@
           }
     });
         
-    $.global.uploader_chat_{{ user.id }}.bind('Init', function(up, params) {});
-    $.global.uploader_chat_{{ user.id }}.init();
+    $.global.uploader_chat_{{ uploader_id }}.bind('Init', function(up, params) {});
+    $.global.uploader_chat_{{ uploader_id }}.init();
     
     
-    $.global.uploader_chat_{{ user.id }}.bind('FilesAdded', function(up, files) {
-      $.global.uploader_chat_{{ user.id }}.start();
-      update_status('{{ user.id }}|is uploading file...');
+    $.global.uploader_chat_{{ uploader_id }}.bind('FilesAdded', function(up, files) {
+      $.global.uploader_chat_{{ uploader_id }}.start();
+      update_status('{{ chat_id }}|is uploading file...');
     });
     
     
-    $.global.uploader_chat_{{ user.id }}.bind('UploadProgress', function(up, file) {
+    $.global.uploader_chat_{{ uploader_id }}.bind('UploadProgress', function(up, file) {
       if(file.percent != 100) {
-        $('#chat-{{ user.id }} div.status').html("Uploading " + file.percent + "%").show();
+        $('#chat-{{ chat_id }} div.status').html("Uploading " + file.percent + "%").show();
       } else {
-        $('#chat-{{ user.id }} div.status').html("Verifying...").show();
+        $('#chat-{{ chat_id }} div.status').html("Verifying...").show();
       }
     });
     
-    $.global.uploader_chat_{{ user.id }}.bind('Error', function(up, err) {
+    $.global.uploader_chat_{{ uploader_id }}.bind('Error', function(up, err) {
         show_error();
     });
     
     
-    $.global.uploader_chat_{{ user.id }}.bind('FileUploaded', function(up, file, response) {
+    $.global.uploader_chat_{{ uploader_id }}.bind('FileUploaded', function(up, file, response) {
         
-        $('#chat-{{ user.id }} div.status').html('').fadeOut('fast');
+        $('#chat-{{ chat_id }} div.status').html('').fadeOut('fast');
         
         
-        var last_msg = $('#chat-{{ user.id }} li.message:last');
+        var last_msg = $('#chat-{{ chat_id }} li.message:last');
         var msg = $(response.response);
 
         var msg_id = msg.attr('id').split('-')[1];
@@ -105,12 +128,12 @@
           $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
           
         } else {
-          $('#chat-{{ user.id }} .messages').append(response.response);
+          $('#chat-{{ chat_id }} .messages').append(response.response);
         }
         
         
         setTimeout(function() {
-          $('#chat-{{ user.id }} .messages').scrollTop(99999);
+          $('#chat-{{ chat_id }} .messages').scrollTop(99999);
         }, 10)
       
     });

@@ -3,7 +3,7 @@
   {% set status = user.status %}
   
   <li class='status {{ status}}' id='user-{{ user.id }}'>
-      <a href='/chat/{{ user.id }}' title='{{ user.name }}<br>{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}' class='chat'>
+      <a href='/chat/user/{{ user.id }}' title='{{ user.name }}<br>{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}' class='chat'>
         <img src="{{ user.avatar }}" class='medium-avatar'>
       </a>
   </li>

@@ -48,6 +48,18 @@ div.fixed {
   box-shadow: inset 0 1px rgba(255, 255, 255, .5);
 }
 
+.chatbox .header .name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  width: 140px;
+  display: inline-block;
+}
+
+.chatbox .header span.name {
+  width: 150px;
+}
+
 .chatbox .header .close-icon {
   margin: 6px -4px 0 0;
 }
@@ -119,13 +131,13 @@ div.fixed {
 .chatbox form.gray-bg {
   background: #eee;
   color: #999;
+  height: 100px;
 }
 
 .chatbox form {
   padding: 5px 0 4px;
   border-top: 1px solid #ccc;
   bottom: 0;
-  position: absolute;
   background: white;
 }
 
@@ -273,3 +285,23 @@ div.fixed {
   animation: bgflash 2s infinite;
   
 }
+
+
+.chatbox .mentions-autocomplete-list {
+  top: 0;
+  margin-top: -231px;
+}
+
+.chatbox .mentions-input-box .mentions {
+padding: 0 4px;
+color: #333;
+overflow: visible;
+}
+
+.chatbox .mentions-input-box .mentions > div {
+  line-height: 16px;
+}
+
+
+
+

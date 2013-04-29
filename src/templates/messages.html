@@ -11,17 +11,32 @@
     
 <ul class="messages clearfix">
   
+  {% set msg_count = messages | length %}
   {% for message in messages %}
-    {% if message.sender.id == owner.id %}
+    {% if message.topic_id %}
+      {% set user = message.sender %}
+    {% elif message.sender.id == owner.id %}
       {% set user = message.receiver %}
     {% else %}
       {% set user = message.sender %}
     {% endif %}
     <li>
-      <a href='/chat/{{ user.id }}' class='chat {% if message.is_unread() %}unread{% endif %} user-{{ user.id }}'>
+      <a href='/chat/{% if message.topic_id %}topic/{{ message.topic_id }}{% else %}user/{{ user.id }}{% endif %}' class='chat {% if message.is_unread() %}unread{% endif %} user-{{ user.id }}'>
+        
+        <div class="ts rfloat">
+          {{ message.timestamp | friendly_format(short=True) }}
+        </div>
+        
         <img class='small-avatar lfloat' src='{{ user.avatar }}' />
         <div class='title'>
-          {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status' title='{{ user.last_online | friendly_format(owner.utcoffset) }}' ></i>
+          {% if message.topic_id %}
+            {% set receivers = message.receivers | exclude(owner.id) %}
+            {% for member in receivers %}
+                {{ member.name }}{% if loop.index < receivers | length %}, {% endif %}
+            {% endfor %}
+          {% else %}
+            {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status' title='{{ user.last_online | friendly_format(owner.utcoffset) }}' ></i>
+          {% endif %}
         </div>
 
         
@@ -35,7 +50,7 @@
             {% set attachment = message.content %}
             {{ attachment.name }} ({{ attachment.size }})
           {% else %}
-            {{ message.content | autoemoticon | safe }}
+            {{ message.content | clean | autoemoticon | safe }}
           {% endif %}
         </div>
       </a>

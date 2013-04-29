@@ -1329,12 +1329,30 @@ class Message(Model):
   @property
   def sender(self):
     user_id = self.info.get('from')
-    return api.get_user_info(user_id, db_name=self.db_name)
+    if user_id:
+      return api.get_user_info(user_id, db_name=self.db_name)
   
   @property
   def receiver(self):
     user_id = self.info.get('to')
     return api.get_user_info(user_id, db_name=self.db_name)
+  
+  @property
+  def receivers(self):
+    if self.topic_id:
+      return self.topic.members
+    else:
+      return [self.receiver]
+  
+  @property
+  def topic_id(self):
+    return self.info.get('topic')
+  
+  @property
+  def topic(self):
+    topic_id = self.info.get('topic')
+    if topic_id:
+      return api.get_topic_info(topic_id, db_name=self.db_name)
   
   @property
   def content(self):
@@ -1375,8 +1393,26 @@ class Message(Model):
     
   def is_unread(self):
     return self.info.get('is_unread')
-    
   
+  def is_auto_generated(self):
+    return self.info.get('auto_generated')
+    
+
+class Topic(Model):
+  def __init__(self, info):
+    self.info = info
+    
+  @property
+  def member_ids(self):
+    if self.info:
+      return list(set(self.info.get('members', [])))
+    else:
+      return []
+    
+  @property
+  def members(self):
+    return [api.get_user_info(user_id) for user_id in self.member_ids]
+
 
 class ESResult(Model):
   def __init__(self, info, query):
