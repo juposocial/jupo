@@ -190,11 +190,24 @@ def autolink(text):
   mentions = MENTIONS_RE.findall(s)
   if mentions:
     for mention in mentions:
-      user = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
-      user['id'] = user['id'].split(':', 1)[-1]
-      s = s.replace(mention, 
-           '<a href="/user/%s" class="async"><span class="tag">%s</span></a>' % (user.get('id'), user.get('name')))
-      
+      if '](topic:' in mention:
+        topic = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
+        topic['id'] = topic['id'].split(':', 1)[-1]
+        
+        #TODO: update topic name?
+        s = s.replace(mention, 
+             '<a href="/chat/topic/%s" class="chat">%s</a>' % (topic.get('id'), topic.get('name')))
+      elif '](user:' in mention:
+        user = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
+        user['id'] = user['id'].split(':', 1)[-1]
+        s = s.replace(mention, 
+             '<a href="/chat/user/%s" class="chat"><span class="tag">%s</span></a>' % (user.get('id'), user.get('name')))
+      else:
+        group = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
+        group['id'] = group['id'].split(':', 1)[-1]
+        s = s.replace(mention, 
+             '<a href="/group/%s" class="async"><span class="tag">%s</span></a>' % (group.get('id'), group.get('name')))
+        
 #  hashtags = re.compile('(#\[.*?\))').findall(s)
 #  if hashtags:
 #    for hashtag in hashtags:

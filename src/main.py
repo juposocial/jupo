@@ -128,8 +128,7 @@ def render_homepage(session_id, title, **kwargs):
                                   domain=hostname,
                                   **kwargs))
   if owner:
-    if not api.is_valid_channel_id(session_id, request.cookies.get('channel_id')):
-      resp.set_cookie('channel_id', api.get_channel_id(user_id))
+    resp.set_cookie('channel_id', api.get_channel_id(session_id))
   else:
     resp.delete_cookie('channel_id')
   
@@ -1794,15 +1793,18 @@ def group(group_id=None, view='group', page=1):
       return resp
 
 
-@app.route('/chat/<int:user_id>', methods=['GET', 'OPTIONS'])
-@app.route('/chat/<int:user_id>/<action>', methods=['POST'])
+@app.route('/chat/user/<int:user_id>', methods=['GET', 'OPTIONS'])
+@app.route('/chat/user/<int:user_id>/<action>', methods=['POST'])
+@app.route('/chat/topic/<int:topic_id>', methods=['GET', 'OPTIONS'])
+@app.route('/chat/topic/<int:topic_id>/<action>', methods=['POST'])
 @login_required
-def chat(user_id, action=None):
+def chat(topic_id=None, user_id=None, action=None):
   session_id = session.get("session_id")
   
   if action == 'new_message':    
     msg = request.form.get('message')
-    html = api.new_message(session_id, user_id, msg)
+    html = api.new_message(session_id, msg, 
+                           user_id=user_id, topic_id=topic_id)
     
     return html
   
@@ -1813,32 +1815,65 @@ def chat(user_id, action=None):
                                        file.filename, 
                                        file.stream.read())
     
-    html = api.new_message(session_id, user_id, attachment_id)
+    html = api.new_message(session_id, attachment_id, 
+                           user_id=user_id, topic_id=topic_id)
     return html
   
   elif action == 'mark_as_read':
     owner_id = api.get_user_id(session_id)
-    api.update_last_viewed(owner_id, user_id)
+    if user_id:
+      api.update_last_viewed(owner_id, user_id=user_id)
+    else:
+      api.update_last_viewed(owner_id, topic_id=topic_id)
+      
     return 'OK'
     
   else:
-    user = api.get_user_info(user_id)
     owner_id = api.get_user_id(session_id)
-    
-    last_viewed = api.get_last_viewed(user_id, owner_id) \
-                + int(api.get_utcoffset(owner_id))
-                
-    last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
-    if last_viewed_friendly_format.startswith('Today'):
-      last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
+    user = topic = seen_by = None
+    if user_id:
+      user = api.get_user_info(user_id)
       
-                
-    messages = api.get_chat_history(session_id, user_id)
+      last_viewed = api.get_last_viewed(user_id, owner_id) \
+                  + int(api.get_utcoffset(owner_id))
+                  
+      last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
+      if last_viewed_friendly_format.startswith('Today'):
+        last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
+      
+      messages = api.get_chat_history(session_id, user_id)
+      
+      if messages and (messages[-1].sender.id == owner_id) and (messages[-1].timestamp < last_viewed):
+        seen_by = 'Seen %s' % last_viewed_friendly_format
+        
+    else:
+      last_viewed = last_viewed_friendly_format = 0
+      topic = api.get_topic_info(topic_id)
+      messages = api.get_chat_history(session_id, topic_id=topic_id)  
+      
+      if messages:
+        utcoffset = int(api.get_utcoffset(owner_id))
+        last_viewed = {}
+        seen_by = []
+        for i in topic.member_ids:
+          ts = api.get_last_viewed(i, topic_id=topic_id) + utcoffset
+          last_viewed[i] = ts
+          if messages[-1].timestamp < ts:
+            seen_by.append(i)
+      
+      app.logger.debug(seen_by)
+      app.logger.debug(last_viewed)
+      app.logger.debug(messages[-1].timestamp)
+      if seen_by:
+        if len(seen_by) >= len(topic.member_ids) - 1:
+          seen_by = 'Seen by everyone.'
+        else:
+          seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name for i in seen_by])
+              
     return render_template('chat.html', 
                            owner={'id': owner_id},
-                           last_viewed=last_viewed,
-                           last_viewed_friendly_format=last_viewed_friendly_format,
-                           messages=messages, user=user)
+                           seen_by=seen_by,
+                           messages=messages, user=user, topic=topic)
     
     
 

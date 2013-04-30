@@ -1,44 +1,65 @@
   
 
-function close_chat(user_id) {
+function close_chat(chat_id) {
   
-  var user_ids = localStorage.getItem('chats').split(',');
-  user_ids.pop(user_id);
+  var chat_ids = localStorage.getItem('chats').split(',');
+  chat_ids.pop(chat_id);
+  
+  out = [];
+  for (var i = 0; i < chat_ids.length; i++) {
+    var chat_id = chat_ids[i];
+    
+    if (chat_id != '' && chat_id.split('-')[1] != undefined && isNaN(chat_id.split('-')[1]) == false) {
+      out.push(chat_id);
+    }
+  }
  
-  localStorage['chats'] = user_ids.join(',')
+  localStorage['chats'] = out.join(',')
   
   
-  $('#chat-' + user_id).parents('.inflow').remove();
+  $('#chat-' + chat_id).parents('.inflow').remove();
   return true;
   
 }
     
-function start_chat(user_id) {
-  if ($('#chat-' + user_id).length > 0) {
+function start_chat(chat_id) {
+  if (chat_id.indexOf('-') == -1) {
+    return false;
+  }
+  
+  if ($('#chat-' + chat_id).length > 0) {
       return false;
   }
   
-  var href = '/chat/' + user_id;
+  var href = '/chat/' + chat_id.replace('-', '/');
 
   show_loading();
   $.get(href, function(html) {
     hide_loading();
     
-    if ($('#chat-' + user_id).length > 0) {
+    if ($('#chat-' + chat_id).length > 0) {
         return false;
     }
     
-    var user_ids = localStorage.getItem('chats');
-    if (user_ids != undefined && user_ids.indexOf(user_id) == -1) {
-      localStorage['chats'] = user_ids + ',' + user_id;
+    var chat_ids = localStorage.getItem('chats');
+    if (chat_ids != undefined && chat_ids.indexOf(chat_id) == -1) {
+      localStorage['chats'] = chat_ids + ',' + chat_id;
     } else {
-      localStorage['chats'] = user_id;
+      localStorage['chats'] = chat_id;
     }
     
     $('#chat').prepend(html);
     
+      
+    $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
+      minChars: 1,
+      fullNameTrigger: false,
+      onDataRequest: function(mode, query, callback) {
+        search_mentions(query, callback)
+      }
+    });
     
-    var textbox = $('#chat-' + user_id + ' form textarea');
+    var textbox = $('#chat-' + chat_id + ' form textarea.mentions');
     var last_textbox_height = textbox.height();
     
     textbox.elastic();
@@ -46,23 +67,26 @@ function start_chat(user_id) {
     textbox.resize(function() { // resize messages panel 
       console.log('resized')
       
-      var new_height = $('#chat-' + user_id + ' .messages').height() - ($('#chat-' + user_id + ' form textarea').height() - last_textbox_height);
+      var new_height = $('#chat-' + chat_id + ' .messages').height() - ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
       
-      $('#chat-' + user_id + ' .messages').css('height', new_height + 'px');
+      $('#chat-' + chat_id + ' .messages').css('height', new_height + 'px');
       
-      last_textbox_height = $('#chat-' + user_id + ' form textarea').height();
+      last_textbox_height = $('#chat-' + chat_id + ' form textarea.mentions').height();
       
       
-      $('#chat-' + user_id + ' .messages').animate({
+      $('#chat-' + chat_id + ' .messages').animate({
           scrollTop: 99999
       }, 'fast');
     
     })
   
-    $('#chat-' + user_id + ' .messages').animate({
+    $('#chat-' + chat_id + ' .messages').animate({
         scrollTop: 99999
     }, 'fast');
     
+    setTimeout(function() {
+      $('#chat-' + chat_id + ' textarea.mentions').focus();
+    }, 50)
   });
 }
 
@@ -956,7 +980,7 @@ function stream() {
       
     } else if (event.type == 'typing-status') {
       console.log(event.info);
-      var chatbox = $('#chat-' + event.info.user_id)
+      var chatbox = $('#chat-' + event.info.chat_id)
       if (chatbox.length != 0) {
         if (event.info.text != '') {
           $('div.status', chatbox).html(event.info.text).fadeIn('fast');
@@ -1291,9 +1315,9 @@ function stream() {
     
     else if (event.type == 'seen-by') {
       var msg = event.info.html;
-      var user_id = event.info.user_id;
+      var chat_id = event.info.chat_id;
       
-      $('#chat-' + user_id + ' div.status').html(msg).fadeIn('fast');
+      $('#chat-' + chat_id + ' div.status').html(msg).fadeIn('fast');
     }
     
     else if (event.type == 'new-message') {
@@ -1304,17 +1328,23 @@ function stream() {
       
       var sender_id = msg.attr('data-sender-id');
       var receiver_id = msg.attr('data-receiver-id');
+      var topic_id = msg.attr('data-topic-id');
       
       var owner_id = $('header #menu a[data-owner-id]').attr('data-owner-id');
-      if (sender_id == owner_id) {
-        user_id = receiver_id;
-      } else {
-        user_id = sender_id;
+      
+      if (topic_id != undefined) {
+        chat_id = 'topic-' + topic_id;
+      } 
+      else if (sender_id == owner_id) {
+        chat_id = 'user-' + receiver_id;
+      } 
+      else {
+        chat_id = 'user-' + sender_id;
       }
       
       if (sender_id != owner_id) {
-        if ($('#chat-' + user_id + ' textarea._elastic').is(':focus') == false) {
-          $('#chat-' + user_id).addClass('unread');  
+        if ($('#chat-' + chat_id + ' textarea._elastic').is(':focus') == false) {
+          $('#chat-' + chat_id).addClass('unread');  
         } 
         
         
@@ -1338,11 +1368,11 @@ function stream() {
       }
       
       
-      if ($('#chat-' + user_id).length == 0) {
-        start_chat(user_id);
+      if ($('#chat-' + chat_id).length == 0) {
+        start_chat(chat_id);
       }
       
-      var boxchat = $('#chat-' + user_id);
+      var boxchat = $('#chat-' + chat_id);
       var last_msg = $('li.message:last', boxchat);
 
       var msg_id = msg.attr('id').split('-')[1];

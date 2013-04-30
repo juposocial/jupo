@@ -178,6 +178,8 @@
 
         mentionText = mentionText.replace(textSyntax, textHighlight);
         
+        elmInputBox.trigger('change');
+        
       });
 
       mentionText = mentionText.replace(/\n/g, '<br />');

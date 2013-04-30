@@ -6513,6 +6513,11 @@ height: 20px;
   margin-top: 30px;
 }
 
+#body ul.messages a.chat div.ts {
+  font-size: 11px;
+  color: #ccc;
+}
+
 ul.contacts, ul.groups {
   width: 550px;
   margin-top: 10px;
