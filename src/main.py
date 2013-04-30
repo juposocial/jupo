@@ -1830,7 +1830,7 @@ def chat(topic_id=None, user_id=None, action=None):
     
   else:
     owner_id = api.get_user_id(session_id)
-    user = topic = None
+    user = topic = seen_by = None
     if user_id:
       user = api.get_user_info(user_id)
       
@@ -1842,15 +1842,37 @@ def chat(topic_id=None, user_id=None, action=None):
         last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
       
       messages = api.get_chat_history(session_id, user_id)
+      
+      if messages and (messages[-1].sender.id == owner_id) and (messages[-1].timestamp < last_viewed):
+        seen_by = 'Seen %s' % last_viewed_friendly_format
+        
     else:
       last_viewed = last_viewed_friendly_format = 0
       topic = api.get_topic_info(topic_id)
       messages = api.get_chat_history(session_id, topic_id=topic_id)  
-                
+      
+      if messages:
+        utcoffset = int(api.get_utcoffset(owner_id))
+        last_viewed = {}
+        seen_by = []
+        for i in topic.member_ids:
+          ts = api.get_last_viewed(i, topic_id=topic_id) + utcoffset
+          last_viewed[i] = ts
+          if messages[-1].timestamp < ts:
+            seen_by.append(i)
+      
+      app.logger.debug(seen_by)
+      app.logger.debug(last_viewed)
+      app.logger.debug(messages[-1].timestamp)
+      if seen_by:
+        if len(seen_by) >= len(topic.member_ids) - 1:
+          seen_by = 'Seen by everyone.'
+        else:
+          seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name for i in seen_by])
+              
     return render_template('chat.html', 
                            owner={'id': owner_id},
-                           last_viewed=last_viewed,
-                           last_viewed_friendly_format=last_viewed_friendly_format,
+                           seen_by=seen_by,
                            messages=messages, user=user, topic=topic)
     
     

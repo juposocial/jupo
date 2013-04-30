@@ -5647,19 +5647,20 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
                       {'$set': {'last_viewed': utctime()}}, upsert=True)
     
   
-  ts = utctime() + int(get_utcoffset(owner_id, db_name=db_name))
-  ts = friendly_format(ts, short=True)
-  if ts.startswith('Today'):
-    ts = ts.split(' at ')[-1]
-    
-  info = {'html': 'Seen %s' % ts}
   if user_id:
+    ts = utctime() + int(get_utcoffset(owner_id, db_name=db_name))
+    ts = friendly_format(ts, short=True)
+    if ts.startswith('Today'):
+      ts = ts.split(' at ')[-1]
+      
+    info = {'html': 'Seen %s' % ts}
     info['chat_id'] = 'user-%s' % user_id
     push_queue.enqueue(publish, user_id, 
                        event_type='seen-by', 
                        info=info, 
                        db_name=db_name)
   else:
+    info = {'html': 'Seen %s' % get_user_info(owner_id).name}
     info['chat_id'] = 'topic-%s' % topic_id
     topic = get_topic_info(topic_id)
     for user_id in topic.member_ids:
