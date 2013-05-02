@@ -67,9 +67,11 @@ function start_chat(chat_id) {
     textbox.resize(function() { // resize messages panel 
       console.log('resized')
       
-      var new_height = $('#chat-' + chat_id + ' .messages').height() - ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
+      var delta = ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
+      var new_height = $('#chat-' + chat_id + ' .messages').height() - delta;
       
       $('#chat-' + chat_id + ' .messages').css('height', new_height + 'px');
+      $('#chat-' + chat_id + ' .status').css('bottom', parseInt($('#chat-' + chat_id + ' .status').css('bottom')) + delta + 'px');
       
       last_textbox_height = $('#chat-' + chat_id + ' form textarea.mentions').height();
       
