@@ -482,6 +482,11 @@ class User(Model):
     return sorted(networks_list, 
                   key=sortkeypicker(['-unread_notifications', 
                                      'name', '-timestamp']))
+    
+    
+  @property
+  def disabled_notifications(self):
+    return self.info.get('disabled_notifications', [])
   
 
 class Comment(Model):

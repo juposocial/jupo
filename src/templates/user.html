@@ -292,6 +292,48 @@
     </ul>
 #}    
 
+    <h2>Notifications</h2>
+    <ul class="field-set">
+      <li class="field field-checkbox">
+          <label for="comments" title="We'll only email you if we haven't seen you recently and you haven't already seen the thing we're emailing you about.">Emails when someone comments on your post</label>
+          <input {% if 'comments' not in owner.disabled_notifications %}checked="checked"{% endif %} class="input-checkbox" id="comments" name="comments" type="checkbox">
+      </li>
+      <li class="field field-checkbox">
+          <label for="share_posts" title="We'll only email you if we haven't seen you recently and you haven't already seen the thing we're emailing you about.">Emails when someone shares a post with you</label>
+          <input {% if 'share_posts' not in owner.disabled_notifications %}checked="checked"{% endif %} class="input-checkbox" id="share_posts" name="share_posts" type="checkbox">
+      </li>
+      <li class="field field-checkbox">
+          <label for="mentions" title="We'll only email you if we haven't seen you recently and you haven't already seen the thing we're emailing you about.">Emails when someone mentions you in a post or a comment</label>
+          <input {% if 'mentions' not in owner.disabled_notifications %}checked="checked"{% endif %} class="input-checkbox" id="mentions" name="mentions" type="checkbox">
+      </li>
+      
+    </ul>
+
+    <h2>Change Password</h2>
+    <ul class="field-set">
+
+      {% if owner.has_password() %}
+      <li class="field field-password">
+        <label for="current_password">Current Password</label>
+        <input class="input-password" id="current_password" name="current_password" type="password" value="">
+
+      </li>
+      {% endif %}
+
+      <li class="field field-password">
+        <label for="new_password">New Password</label>
+        <input class="input-password" id="new_password" name="new_password" type="password" value="">
+
+      </li>
+
+      <li class="field field-password">
+        <label for="confirm_new_password">Confirm</label>
+        <input class="input-password" id="confirm_new_password" name="confirm_new_password" type="password" value="">
+
+      </li>
+
+    </ul>
+
 
     
     

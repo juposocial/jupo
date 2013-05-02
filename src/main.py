@@ -1326,6 +1326,16 @@ def user(user_id=None, page=1, view=None):
               'introduction': intro}
       
     
+    disabled_notifications = []
+    if not request.form.get('comments'):
+      disabled_notifications.append('comments')
+    if not request.form.get('share_posts'):
+      disabled_notifications.append('share_posts')
+    if not request.form.get('mentions'):
+      disabled_notifications.append('mentions')  
+      
+    info['disabled_notifications'] = disabled_notifications
+    
     birthday_day = request.form.get('birthday-day')
     birthday_month = request.form.get('birthday-month')
     birthday_year = request.form.get('birthday-year')

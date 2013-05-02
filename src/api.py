@@ -2336,7 +2336,7 @@ def new_feed(session_id, message, viewers,
       # send email
       u = get_user_info(id)
       
-      if u.email and '@' in u.email and (u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180)):
+      if u.email and 'share_posts' not in u.disabled_notifications and '@' in u.email and (u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180)):
         send_mail_queue.enqueue(send_mail, u.email, mail_type='new_post',
                                 user_id=user_id, post=info, db_name=db_name)
 
@@ -2344,7 +2344,7 @@ def new_feed(session_id, message, viewers,
       push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
     else: # set group last_updated time
       db.owner.update({'_id': id},
-                            {'$set': {'last_updated': utctime()}})
+                      {'$set': {'last_updated': utctime()}})
       push_queue.enqueue(publish, user_id, 
                          '%s|unread-feeds' % id, info, db_name=db_name)
 
@@ -3093,10 +3093,11 @@ def new_comment(session_id, message, ref_id,
                                  session_id, uid, 'mention', 
                                  ref_id, comment['_id'], db_name=db_name)
       u = get_user_info(uid)
-      send_mail_queue.enqueue(send_mail, u.email, 
-                              mail_type='mentions', 
-                              user_id=user_id, post=info, 
-                              db_name=db_name)
+      if u.email and 'mentions' not in u.disabled_notifications:
+        send_mail_queue.enqueue(send_mail, u.email, 
+                                mail_type='mentions', 
+                                user_id=user_id, post=info, 
+                                db_name=db_name)
     
   
   receivers = [info.get('owner')]
@@ -3108,6 +3109,14 @@ def new_comment(session_id, message, ref_id,
                                    session_id, i.get('owner'), 
                                    'comment', ref_id, 
                                    comment['_id'], db_name=db_name)
+        
+  owner = get_user_info(user_id)
+  if owner.email and '@' in owner.email and 'comments' not in owner.disabled_notifications and user_id not in mentions:
+    if owner.status == 'offline' or (owner.status == 'away' and utctime() - owner.last_online > 180):
+      send_mail_queue.enqueue(send_mail, owner.email, 
+                              mail_type='new_comment', 
+                              user_id=user_id, post=info, 
+                              db_name=db_name)
 
   for id in info['viewers']:
     cache.clear(id)
@@ -3118,15 +3127,15 @@ def new_comment(session_id, message, ref_id,
       push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
       
       
-      if user_id != id and id not in mentions:
-        # send email notification
-        u = get_user_info(id)
-        if u.email and '@' in u.email:
-          if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
-            send_mail_queue.enqueue(send_mail, u.email, 
-                                    mail_type='new_comment', 
-                                    user_id=user_id, post=info, 
-                                    db_name=db_name)
+#       if user_id != id and id not in mentions:
+#         # send email notification
+#         u = get_user_info(id)
+#         if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
+#           if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
+#             send_mail_queue.enqueue(send_mail, u.email, 
+#                                     mail_type='new_comment', 
+#                                     user_id=user_id, post=info, 
+#                                     db_name=db_name)
   
   urls = extract_urls(message)
   if urls:
@@ -5281,8 +5290,11 @@ def ensure_index(db_name=None):
   
   db.message.ensure_index('from', background=True)
   db.message.ensure_index('to', background=True)
+  db.message.ensure_index('topic', background=True)
   db.message.ensure_index('owner', background=True)
   db.message.ensure_index('user_id', background=True)
+  db.message.ensure_index('topic_id', background=True)
+  db.message.ensure_index('members', background=True)
   
   db.status.ensure_index('user_id', background=True)
   db['s3'].ensure_index('name', background=True)
