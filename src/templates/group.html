@@ -400,9 +400,9 @@
 
           <div class='stats'>
             {% if group.id == 'public' %}
-            <a href='#!/people' class='overlay gray'>{{ group.members_count }} People</a>
+            <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
             {% else %}
-            <a href='#!/group/{{ group.id }}/members' class='overlay gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             {% endif %}
           </div>    
         </div>
@@ -536,7 +536,7 @@
         <div class='body'>
            <div class='stats'>
              
-            <a href='#!/group/{{ group.id }}/members' class='overlay gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             
             {% if group.id != 'public' and owner.id in group.member_ids %}
              · <a href='/search?query=&type=people&ref=group-{{ group.id }}' class='popup'>Add people</a>
@@ -564,9 +564,9 @@
             {% endif%}
             
             {% if group.id == 'public' %}
-            <a href='#!/people' class='overlay gray'>{{ group.members_count }} People</a>
+            <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
             {% else %}
-            <a href='#!/group/{{ group.id }}/members' class='overlay gray'>{{ group.members_count }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members_count }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             {% endif %}
             
             {% if group.id == 'public' %}

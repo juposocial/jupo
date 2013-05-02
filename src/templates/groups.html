@@ -16,32 +16,8 @@
 </div>
 
 <ul class='groups'>
-  {% if open_groups %}
-    {% for group in open_groups %}
-      {% if group.privacy == 'open' %}
-      <li>
-        <a href="/group/{{ group.id }}" class='async' rel='group-{{ group.id }}'>
-          <i class="group-icon"></i> {{ group.name }}
-        
-          <div class='info'>
-            <span>{{ group.members | length }} {% if group.privacy == 'open' %}followers{% else %}members{% endif %}</span>
-          
-          </div>
-        </a>
-        {#
-        {% if owner.id in group.administrator_ids %}
-        <a class='overlay lfloat edit-icon' href='#!/group/{{ group.uuid }}/edit' title="Edit {{ group.name }}'s Profile"></a>
-        {% endif %}
-        #}
-      </li>
-      {% endif %}
-    {% endfor %}
-    
-    
-  {% else %}
-    
     {% for group in groups %}      
-      {% if (user and group.privacy == 'open') or not user %}
+      {% if group.privacy == 'open' or owner.id in group.member_ids %}
       <li>
          <a href="/group/{{ group.id }}" class='async' rel='group-{{ group.id }}' title='{{ group.name }}'>
            
@@ -56,14 +32,6 @@
       {% endif %}
     {% endfor %}
     
-    {% if user %}
-    <li>
-      <a>
-        and {{ groups | length - user.open_groups | length }} private groups.
-      </a>
-    </li>
-    {% endif %}
-  {% endif %}
 </ul>
 
 

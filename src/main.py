@@ -263,25 +263,27 @@ def search():
   item_type = request.args.get('type')
   page = int(request.args.get('page', 1))
   ref_user_id = request.args.get('user')
+  
+  ref = request.args.get('ref')
+  if ref and 'group-' in ref:
+    group_id = ref.split('-')[1]
+    group = api.get_group_info(session_id, group_id)
+    if item_type == 'people':
+      title = 'Add people to group'
+    else:
+      title = 'Invite your friends'
+  elif ref == 'everyone':
+    title = 'Invite your friends'
+    group_id = group = None
+  else:
+    group_id = group = None
+    title = 'Add Contacts'
+  
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+    
     
   if item_type in ['people', 'email']: 
-    user_id = api.get_user_id(session_id)
-    owner = api.get_user_info(user_id)
-    
-    ref = request.args.get('ref')
-    if ref and 'group-' in ref:
-      group_id = ref.split('-')[1]
-      group = api.get_group_info(session_id, group_id)
-      if item_type == 'people':
-        title = 'Add people to group'
-      else:
-        title = 'Invite your friends'
-    elif ref == 'everyone':
-      title = 'Invite your friends'
-      group_id = group = None
-    else:
-      group_id = group = None
-      title = 'Add Contacts'
       
     if request.method == 'OPTIONS':
       if query:
@@ -310,12 +312,14 @@ def search():
         else:
           users = [i for i in api.get_coworkers(session_id) \
                    if i.id not in owner.contact_ids and i.id != owner.id]
+          
       return dumps({'title': title,
                     'body': render_template('people_search.html',
                                             title=title, 
                                             mode='search',
                                             type=item_type,
                                             group_id=group_id,
+                                            group=group,
                                             users=users,
                                             query=query, 
                                             owner=owner)})
@@ -329,9 +333,11 @@ def search():
         
           
       if group_id:
-        users = [i for i in users if i.email and i.id not in group.member_ids]
+        out = [i for i in users if i.email and i.id not in group.member_ids and i.id != owner.id]
+        out.extend([i for i in users if i.email and i.id != owner.id and i.id in group.member_ids])
+        users = out
       else:
-        users = [i for i in users if i.email and i.id not in owner.contact_ids]
+        users = [i for i in users if i.email]
       
         
       if users:
@@ -339,6 +345,7 @@ def search():
                                        mode='search', 
                                        user=user, 
                                        group_id=group_id,
+                                       group=group,
                                        type=item_type,
                                        query=query,
                                        owner=owner,
@@ -1541,12 +1548,15 @@ def network():
 @app.route("/people", methods=["GET", "OPTIONS"])
 @app.route("/groups", methods=["GET", "OPTIONS"])
 @app.route("/group/new", methods=["GET", "OPTIONS", "POST"])
-@app.route("/group/<int:group_id>/add_member", methods=["POST"])
 @app.route("/group/<int:group_id>/update", methods=["POST"])
 @app.route("/group/<int:group_id>/follow", methods=["POST"])
 @app.route("/group/<int:group_id>/unfollow", methods=["POST"])
 @app.route("/group/<int:group_id>/highlight", methods=["POST"])
 @app.route("/group/<int:group_id>/unhighlight", methods=["POST"])
+@app.route("/group/<int:group_id>/add_member", methods=["POST"])
+@app.route("/group/<int:group_id>/remove_member", methods=["POST"])
+@app.route("/group/<int:group_id>/make_admin", methods=["POST"])
+@app.route("/group/<int:group_id>/remove_as_admin", methods=["POST"])
 @app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
 @app.route("/group/<int:group_id>/page<int:page>", methods=["OPTIONS"])
 @app.route("/group/<int:group_id>/<view>", methods=["GET", "OPTIONS"])
@@ -1629,6 +1639,23 @@ def group(group_id=None, view='group', page=1):
     user_id = request.args.get('user_id')
     api.add_member(session_id, group_id, user_id)
     return 'Done' 
+  
+  elif request.path.endswith('/remove_member'):
+    user_id = request.args.get('user_id')
+    api.remove_member(session_id, group_id, user_id)
+    return 'Done' 
+  
+  elif request.path.endswith('/make_admin'):
+    user_id = request.args.get('user_id')
+    api.make_admin(session_id, group_id, user_id)
+    return 'Done' 
+  
+  elif request.path.endswith('/remove_as_admin'):
+    user_id = request.args.get('user_id')
+    api.remove_as_admin(session_id, group_id, user_id)
+    return 'Done' 
+  
+  
       
   elif request.path.endswith('/update'):
     name = request.form.get('name')
@@ -1728,16 +1755,23 @@ def group(group_id=None, view='group', page=1):
     return dumps({'body': body, 'title': 'Events'})
   
   elif view == 'members':
-    app.logger.debug('aaaaaaAAAAAAAAAAAAAAA')
+#     app.logger.debug('aaaaaaAAAAAAAAAAAAAAA')
     
-    group.docs = api.get_docs_count(group_id)
-    group.files = api.get_files_count(group_id)
+#     group.docs = api.get_docs_count(group_id)
+#     group.files = api.get_files_count(group_id)
     
     owner = api.get_owner_info(session_id)
-    body = render_template('group.html', 
-                           view='members',
-                           group=group, owner=owner)
-    return dumps({'body': body})
+#     body = render_template('group.html', 
+#                            view='members',
+#                            group=group, owner=owner)
+#     return dumps({'body': body})
+  
+    body = render_template('members.html', group=group, owner=owner)
+
+    
+    return Response(dumps({'body': body,
+                           'title': "%s's Members" % group.name}), 
+                  mimetype='application/json')  
   
   else:   
     

@@ -1,10 +1,28 @@
 {% if mode == 'search' %}
       <li title='{{ user.email }}' class='{% if user.name == user.email %}email{% endif %}'>
         {% if user.is_registered() %}
-          {% if group_id %}
-          <a class='button add-member' href='/group/{{ group_id }}/add_member?user_id={{ user.id }}'>Add to Group</a>
+          {% if group_id and owner.id in group.administrator_ids %}
+            {% if user.id in group.member_ids %}
+            <a class='button toggle sign' href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}' title='Remove user from group' data-href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' data-title='Add user to group' data-name='+'>×</a>
+            {% else %}
+            <a class='button toggle sign' href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' title='Add user to group' data-href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}' data-title='Remove user from group' data-name='×'>+</a>
+            {% endif %}
+            
+            {% if user.id in group.administrator_ids %}
+              <a class='button toggle' href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}' data-name='Make Admin' data-href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}'>Remove as Admin</a>
+            {% else %}
+              <a class='button toggle' href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}' data-name='Remove as Admin' data-href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}'>Make Admin</a>
+            {% endif %}
+            
+          {% elif group_id %}
+            {% if user.id not in group.member_ids %}
+              <a class='button toggle sign' href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' title='Add user to group' data-href='#' data-title='Added to group' data-name='<small>✓</small>'>+</a>
+            {% endif %}
+            
+            <a class='button async' href='/user/{{ user.id }}'>View Profile</a>
+            
           {% else %}
-            {% if user.id in user.contact_ids %}
+            {% if user.id in owner.contact_ids %}
             <a class='button unfollow' href='/user/{{ user.id }}/unfollow'>Remove from Contacts</a>
             {% else %}
             <a class='button follow' href='/user/{{ user.id }}/follow'>Add to Contacts</a>
@@ -16,12 +34,10 @@
         <img class='small-avatar lfloat' src='{{ user.avatar }}' />
         
         {% if user.name != user.email %}
-          <a href='/user/{{ user.id }}' class='async user'>
-            {{ user.name }}
-          </a>
+          <a href='/user/{{ user.id }}' class='async user'>{{ user.name }}</a>
           <br>
           {% if user.is_registered() %}
-          <span class='gray'>{{ user.email }}</span>
+          <span class='email'>{{ user.email }}</span>
           {% else %}
           &nbsp;
           {% endif %}

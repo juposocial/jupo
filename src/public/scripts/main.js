@@ -504,7 +504,7 @@ $(document).ready(function(e) {
     return false;
   })
 
-  $('#body, #overlay').on('click', 'a.toggle', function() {
+  $('#body, #overlay, #popup').on('click', 'a.toggle', function() {
 
     var new_class = $(this).data('class');
     var new_href = $(this).data('href');
@@ -556,17 +556,18 @@ $(document).ready(function(e) {
       }
     }
 
-    $.ajax({
-      type: "POST",
-      headers: {
-        'X-CSRFToken': get_cookie('_csrf_token')
-      },
-      url: href,
-      success: function(resp) {
-        return false;
-      }
-    });
-
+    if (href != '#') {
+      $.ajax({
+        type: "POST",
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        url: href,
+        success: function(resp) {
+          return false;
+        }
+      });
+    }
     return false;
   });
 
@@ -591,23 +592,23 @@ $(document).ready(function(e) {
     return false;
   });
 
-  $('#popup').on('click', 'a.add-member', function() {
-    var element = $(this);
-    var href = $(this).attr('href');
-    $.ajax({
-      type: "POST",
-      headers: {
-        'X-CSRFToken': get_cookie('_csrf_token')
-      },
-      url: href,
-      success: function(resp) {
-        console.log('Added');
-      }
-    });
-    href = href.replace('/remove_member', '/add_member');
-    element.replaceWith('<a href="' + href + '" class="button remove-member">Remove from Group</a>');
-    return false;
-  });
+  // $('#popup').on('click', 'a.add-member', function() {
+    // var element = $(this);
+    // var href = $(this).attr('href');
+    // $.ajax({
+      // type: "POST",
+      // headers: {
+        // 'X-CSRFToken': get_cookie('_csrf_token')
+      // },
+      // url: href,
+      // success: function(resp) {
+        // console.log('Added');
+      // }
+    // });
+    // href = href.replace('/remove_member', '/add_member');
+    // element.replaceWith('<a href="' + href + '" class="button remove-member">Remove from Group</a>');
+    // return false;
+  // });
   
   
   $('#popup').on('click', 'a.invite', function() {

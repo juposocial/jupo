@@ -4396,6 +4396,7 @@ def leave_group(session_id, group_id):
     return False
   
 def add_member(session_id, group_id, user_id):
+  # TODO: datetime user join group
   db_name = get_database_name()
   db = DATABASE[db_name]
   
@@ -4435,6 +4436,83 @@ def add_member(session_id, group_id, user_id):
                           is_new_user=is_new_user,
                           user=owner,
                           group=group, db_name=db_name)
+  
+  return True
+  
+def remove_member(session_id, group_id, user_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = long(user_id)
+  group_id = long(group_id)
+  owner_id = get_user_id(session_id)
+  if not owner_id:
+    return False
+  group_info = db.owner.find_one({'_id': long(group_id),
+                                  'leaders': owner_id})
+  if not group_info:
+    return False
+  
+  db.owner.update({'_id': group_id},
+                  {'$pull': {'members': user_id}})
+  
+  db.owner.update({'_id': group_id},
+                  {'$pull': {'leaders': user_id}})
+  
+  
+  key = '%s:groups' % user_id
+  cache.delete(key)
+  
+  return True
+  
+def make_admin(session_id, group_id, user_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = long(user_id)
+  group_id = long(group_id)
+  owner_id = get_user_id(session_id)
+  if not owner_id:
+    return False
+  group_info = db.owner.find_one({'_id': long(group_id),
+                                  'leaders': owner_id})
+  if not group_info:
+    return False
+  
+  db.owner.update({'_id': group_id},
+                  {'$addToSet': {'leaders': user_id}})
+  
+  if user_id not in group_info.get('members', []):
+    db.owner.update({'_id': group_id},
+                    {'$addToSet': {'members': user_id}})
+    
+  
+  #TODO: send notification
+  
+  key = '%s:groups' % user_id
+  cache.delete(key)
+  
+  return True
+  
+def remove_as_admin(session_id, group_id, user_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = long(user_id)
+  group_id = long(group_id)
+  owner_id = get_user_id(session_id)
+  if not owner_id:
+    return False
+  group_info = db.owner.find_one({'_id': long(group_id),
+                                  'leaders': owner_id})
+  if not group_info:
+    return False
+  
+  db.owner.update({'_id': group_id},
+                  {'$pull': {'leaders': user_id}})
+  
+  key = '%s:groups' % user_id
+  cache.delete(key)
   
   return True
     
@@ -4557,8 +4635,9 @@ def new_hook_post(service_name, key, message):
     return new_feed(session_id, str(message), viewers=[group_id])
 
 
-def get_group_ids(user_id):
-  db_name = get_database_name()
+def get_group_ids(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not user_id or not str(user_id).isdigit():
@@ -4594,8 +4673,9 @@ def get_groups_count(user_id):
   
   
 
-def get_groups(session_id, limit=None):
-  db_name = get_database_name()
+def get_groups(session_id, limit=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
