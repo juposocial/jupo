@@ -113,8 +113,8 @@
         <label for="gender">Gender</label>
         <select class="input-select" id="gender" name="gender">
           <option {% if owner.gender == "male" %}selected{% endif %} value="male">Male</option>
-          <option {% if owner.gender == "female" %}selected{% endif %}value="female">Female</option>
-          <option {% if not owner.gender %}selected{% endif %}value="">I'd rather not say</option>
+          <option {% if owner.gender == "female" %}selected{% endif %} value="female">Female</option>
+          <option {% if not owner.gender %}selected{% endif %} value="">I'd rather not say</option>
         </select>
 
       </li>

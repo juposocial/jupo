@@ -50,7 +50,7 @@
           {% elif feed.last_comments[-1].owner.id != feed.owner.id %}
             <a href="/user/{{ feed.owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.owner.email }}'{% endif %}>{{ feed.owner.name }}</a>'s
           {% else %}
-            {% if feed.last_comments[-1].owner.gender == 'male' %}his own{% elif feed.last_comments[-1].owner.gender == 'female' %}her own{% else %}a{% endif %}
+            {% if owner.gender == 'male' %}his own{% elif owner.gender == 'female' %}her own{% else %}a{% endif %}
           {% endif %}
           
           {% if feed.is_email() %}
@@ -79,7 +79,7 @@
               {% if feed.last_action.owner.id != feed.owner.id %}
                 <a href="/user/{{ feed.owner.id }}" class='async'>{{ feed.owner.name }}</a>'s
               {% else %}
-                {% if feed.last_action.owner.gender == 'male' %}his own{% else %}her own{% endif %}
+                {% if owner.gender == 'male' %}his own{% elif owner.gender == 'female' %}her own{% else %}a{% endif %}
               {% endif %}
               
               <a href='/note/{{ feed.id }}' class='async'>note</a>: "<a href='/note/{{ feed.id }}' class='async'>{{ feed.details.title }}</a>"
