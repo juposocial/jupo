@@ -5860,7 +5860,7 @@ def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=No
     messages.append(last_msg)
     
   
-  if messages[-1].get('ts', 0) > last_viewed:
+  if messages and messages[-1].get('ts', 0) > last_viewed:
     messages[-1]['is_unread'] = True
   
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
