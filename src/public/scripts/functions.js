@@ -2,6 +2,8 @@
 
 function close_chat(chat_id) {
   
+  $('#chat-' + chat_id).parents('.inflow').remove();
+  
   var chat_ids = localStorage.getItem('chats').split(',');
   chat_ids.pop(chat_id);
   
@@ -17,7 +19,6 @@ function close_chat(chat_id) {
   localStorage['chats'] = out.join(',')
   
   
-  $('#chat-' + chat_id).parents('.inflow').remove();
   return true;
   
 }

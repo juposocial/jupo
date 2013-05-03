@@ -2044,7 +2044,7 @@ $(document).ready(function(e) {
   })
   
   
-  $('#chat').on('click', 'a.close', function() {
+  $('#chat').on('click', 'div.header a.close', function() {
     
     var chat_id = $(this).attr('data-chat-id');
     
