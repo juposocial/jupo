@@ -93,7 +93,7 @@ def render_homepage(session_id, title, **kwargs):
     unread_messages = api.get_unread_messages(session_id)
     unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
     unread_notification_count = api.get_unread_notifications_count(session_id)\
-#                               + unread_messages_count
+                              + unread_messages_count
     
   else:
     friends_online = []
