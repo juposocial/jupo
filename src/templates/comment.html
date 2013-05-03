@@ -94,9 +94,7 @@
         <div class='attachments'>
         {% for attachment in comment.attachments %}
             <div>
-              <a href='/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}' target='_blank' title='{{ attachment.name }}'>
-                  {{ attachment.name | truncate(30, True) }}
-              </a>
+              <a href='/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}' target='_blank' title='{{ attachment.name }}'>{{ attachment.name | truncate(30, True) }}</a>
               <span class='gray'>({{ attachment.size }})</span>
             </div>
         {% endfor %}
