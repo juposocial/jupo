@@ -1912,7 +1912,7 @@ def chat(topic_id=None, user_id=None, action=None):
       app.logger.debug(last_viewed)
       app.logger.debug(messages[-1].timestamp)
       if seen_by:
-        if len(seen_by) >= len(topic.member_ids) - 1:
+        if len(seen_by) >= len(topic.member_ids):
           seen_by = 'Seen by everyone.'
         else:
           seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name for i in seen_by])

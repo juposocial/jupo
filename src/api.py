@@ -1238,8 +1238,9 @@ def set_status(session_id, status):
       user_ids = topic.member_ids
     
       for uid in user_ids:
-        push_queue.enqueue(publish, int(uid), 'typing-status', 
-                           {'chat_id': chat_id, 'text': text}, db_name=db_name)
+        if uid != user_id:
+          push_queue.enqueue(publish, int(uid), 'typing-status', 
+                             {'chat_id': chat_id, 'text': text}, db_name=db_name)
     status = 'online'
   else:
     key = 'status:%s' % user_id
@@ -5758,15 +5759,36 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
                        info=info, 
                        db_name=db_name)
   else:
-    info = {'html': 'Seen %s' % get_user_info(owner_id).name}
+    info = {}
     info['chat_id'] = 'topic-%s' % topic_id
     topic = get_topic_info(topic_id)
+    seen_by = []
+    for user_id in topic.member_ids:
+      last_viewed = get_last_viewed(user_id, topic_id=topic_id, db_name=db_name)
+      if last_viewed > get_last_message(topic_id).get('ts'):
+        seen_by.append(user_id)
+      
+    if len(seen_by) == len(topic.member_ids):
+      text = 'Seen by everyone'
+    else:
+      text = 'Seen by %s' % (', '.join([get_user_info(i).name for i in seen_by]))
+    
+    info['html'] = text
+    
     for user_id in topic.member_ids:
       push_queue.enqueue(publish, user_id, 
                          event_type='seen-by', 
                          info=info, 
                          db_name=db_name)
   return True
+
+def get_last_message(topic_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  msg = db.message.find({'topic': int(topic_id)}).sort('ts', -1).limit(1)
+  if msg:
+    return list(msg)[0]
 
 def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=None):
   if not db_name:
