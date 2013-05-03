@@ -2840,7 +2840,10 @@ def get_feeds(session_id, group_id=None, page=1,
       group_id = 'public'
     
     feeds = db.stream.find({'is_removed': {'$exists': False},
-                            'viewers': group_id})\
+                            'viewers': group_id,
+                            '$or': [{'comments': {'$exists': True}, 
+                                     'message.action': {'$exists': True}},
+                                    {'message.action': {'$exists': False}}]})\
                             .sort('last_updated', -1)\
                             .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                             .limit(limit)
@@ -2851,6 +2854,9 @@ def get_feeds(session_id, group_id=None, page=1,
   
     query = {'$and': [{'viewers': {'$in': viewers}},
                       {'viewers': {'$ne': [user_id]}}],
+             '$or': [{'comments': {'$exists': True}, 
+                      'message.action': {'$exists': True}},                                 
+                     {'message.action': {'$exists': False}}],
              'is_removed': {'$exists': False}}  
     if not include_archived_posts:
       query['archived_by'] = {'$nin': [user_id]}

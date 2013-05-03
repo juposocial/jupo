@@ -456,7 +456,7 @@
   
 {#  {% if owner.id in group.member_ids or owner.id in group.administrator_ids or group.privacy == 'open' %} #} 
   
-  {% if feeds or group.id == 'public' %}
+  {% if feeds != None or group.id == 'public' %}
   <ul id="stream" class='group-with-nav-disabled'>
     {% if feeds == [] %}
       <span class="empty">
@@ -465,10 +465,7 @@
     {% else %}
       {% for feed in feeds %}
         {% if feed.id not in owner.unfollow_posts %}
-          {# {% include 'feed.html' %} #}
-          {% autoescape on %}
-            {{ feed | render("feed", owner, view) }}
-          {% endautoescape %}
+            {{ feed | render("feed", owner, view) | safe }}
         {% endif %}
       {% endfor %}
     {% endif %}
