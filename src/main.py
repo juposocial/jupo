@@ -992,7 +992,7 @@ def notes(page=1):
       stream = ''
       posts = []
       for note in notes:
-        posts.append(render(note, "note", owner, view))  
+        posts.append(render(note, "note", owner, view, request=request))  
       if len(notes) == 0:
         posts.append(render_template('more.html', more_url=None))
       else:
