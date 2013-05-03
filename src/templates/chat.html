@@ -5,7 +5,7 @@
     <div class="chatbox {% if messages and messages[-1].is_unread() %}unread{% endif %}" id='chat-{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'>
       <div class="header" title='Toggle Minimize'>
         <a href="#" class="close-icon close" title="Close Chat" data-chat-id='{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'></a>
-        <a id='chatbox-pick-file' class='rfloat' title='Select a file to send to {{ user.name }}'>+ Add file</a>
+        <a id='chatbox-pick-file' class='rfloat' title='Select a file {% if user %}to send to {{ user.name }}{% endif %}'><i class='upload-icon'></i></a>
         <div id="chatbox-file-container">
           <div id="chatbox-filelist"></div>
         </div>  

@@ -31,6 +31,7 @@ div.fixed {
   -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, .3);
   border: 1px solid rgba(0, 0, 0, .3);
   border-width: 0 1px;
+  position: relative;
 }
 
 .chatbox .header {
@@ -52,21 +53,31 @@ div.fixed {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  width: 140px;
+  max-width: 140px;
   display: inline-block;
 }
 
 .chatbox .header span.name {
-  width: 150px;
+  max-width: 150px;
 }
 
 .chatbox .header .close-icon {
   margin: 6px -4px 0 0;
 }
 
-.chatbox .header #chatbox-pick-file {
-  font-weight: normal;
+
+.chatbox .header .upload-icon {
+  opacity: 0.8;
   margin-right: 10px;
+  margin-top: -2px;
+}
+
+
+.chatbox .header .upload-icon:hover {
+  opacity: 1;
+}
+.chatbox .header .upload-icon:active {
+  opacity: 0.5;
 }
 
 .chatbox .title {
@@ -160,7 +171,7 @@ div.fixed {
   font-size: 9px;
   color: #999;
   text-align: right;
-  right: 1px;
+  right: 0;
   background: white;
   white-space: nowrap;
   overflow: hidden;
@@ -174,6 +185,10 @@ div.fixed {
   position: absolute;
   bottom: -256px;
   width: 235px;
+}
+
+.chatbox.minimize .header .upload-icon {
+  display: none;
 }
 
 

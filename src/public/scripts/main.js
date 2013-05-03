@@ -2056,7 +2056,9 @@ $(document).ready(function(e) {
   
   
   $('#chat').on('click', '.chatbox .header', function(e) {
-    $(this).parent().toggleClass('minimize')
+    var chatbox_id = $(this).parent().attr('id');
+    toggle_chatbox(chatbox_id);
+    return false;
   })
   
   

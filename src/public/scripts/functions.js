@@ -1,7 +1,23 @@
   
 
+function toggle_chatbox(chatbox_id) {
+  
+  var chatbox = $('#' + chatbox_id);
+  
+  if (chatbox.hasClass('minimize')) {
+    localStorage.removeItem('state-' + chatbox_id)
+  } else {
+    localStorage['state-' + chatbox_id] = 'minimize'
+  }
+  
+  chatbox.toggleClass('minimize');
+  
+  return true;
+}
+
 function close_chat(chat_id) {
   
+  localStorage.removeItem('state-chat-' + chat_id);
   $('#chat-' + chat_id).parents('.inflow').remove();
   
   var chat_ids = localStorage.getItem('chats').split(',');
@@ -17,6 +33,7 @@ function close_chat(chat_id) {
   }
  
   localStorage['chats'] = out.join(',')
+  
   
   
   return true;
@@ -58,6 +75,10 @@ function start_chat(chat_id) {
       }
       
       $('#chat').prepend(html);
+      
+      if (localStorage.getItem('state-chat-' + chat_id) == 'minimize') {
+        toggle_chatbox('chat-' + chat_id);
+      }
       
         
       $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
