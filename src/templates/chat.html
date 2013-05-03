@@ -14,12 +14,12 @@
         <i class='{{ user.status }} user-{{ user.id }}-status'></i>
         <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
         {% else %}
-          <span class='name'>  
+        <a href='/chat/topic/{{ topic.id }}' class='chat name'>
             {% set members = topic.members | exclude(owner.id) %}
             {% for member in members %}
               {{ member.name }}{% if loop.index < (topic.members | length - 1) %}, {% endif %}
             {% endfor %}
-          </span>
+        </a>
         {% endif %}
       </div>
       <ul class="messages">

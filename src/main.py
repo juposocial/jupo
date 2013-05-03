@@ -1006,6 +1006,7 @@ def notes(page=1):
                              view=view,  
                              title=title, 
                              owner=owner,
+                             request=request,
                              reference_notes=reference_notes,
                              notes=notes)
   
@@ -1017,6 +1018,7 @@ def notes(page=1):
   else:
     return render_homepage(session_id, title,
                            view=view,
+                           request=request,
                            reference_notes=reference_notes,
                            notes=notes)
     
@@ -1373,6 +1375,7 @@ def user(user_id=None, page=1, view=None):
   elif view == 'groups':
     return dumps({'body': render_template('groups.html',
                                           user=user,
+                                          owner=owner,
                                           groups=user.groups)})
   elif view == 'followers':
     users = [api.get_user_info(user_id) for user_id in user.followers]

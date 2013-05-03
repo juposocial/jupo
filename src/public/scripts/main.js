@@ -1978,8 +1978,10 @@ $(document).ready(function(e) {
     var type = href.split('/')[2];
     var id = href.split('/')[3];
     var chat_id = type + '-' + id;
-
-    start_chat(chat_id);
+    
+    if (id != '') {
+      start_chat(chat_id);
+    }
     
     $('a.chat.' + chat_id).removeClass('unread');
     

@@ -426,7 +426,7 @@ def get_database_names():
     db_names = DATABASE.database_names()
     db_names = list(db_names)
     cache.set(key, db_names)
-  return db_names
+  return db_names if isinstance(db_names, list) else []
 
 def get_database_name():
   db_name = None
@@ -3548,7 +3548,7 @@ def get_docs_count(group_id):
                                'version': {"$exists": True}}).count()
 
 
-def get_notes(session_id, group_id=None, limit=10, page=1):
+def get_notes(session_id, group_id=None, limit=5, page=1):
   db_name = get_database_name()
   db = DATABASE[db_name]
   

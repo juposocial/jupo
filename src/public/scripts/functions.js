@@ -31,65 +31,79 @@ function start_chat(chat_id) {
       return false;
   }
   
+  var parts = chat_id.split('-');
+  if (parts.length != 2) {
+    return false;
+  }
+  
   var href = '/chat/' + chat_id.replace('-', '/');
 
   show_loading();
-  $.get(href, function(html) {
-    hide_loading();
-    
-    if ($('#chat-' + chat_id).length > 0) {
-        return false;
-    }
-    
-    var chat_ids = localStorage.getItem('chats');
-    if (chat_ids != undefined && chat_ids.indexOf(chat_id) == -1) {
-      localStorage['chats'] = chat_ids + ',' + chat_id;
-    } else {
-      localStorage['chats'] = chat_id;
-    }
-    
-    $('#chat').prepend(html);
-    
+  $.ajax({
+    url: href,
+    type: 'GET',
+    success: function(html){ 
+      hide_loading();
       
-    $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
-      minChars: 1,
-      fullNameTrigger: false,
-      onDataRequest: function(mode, query, callback) {
-        search_mentions(query, callback)
+      if ($('#chat-' + chat_id).length > 0) {
+          return false;
       }
-    });
+      
+      var chat_ids = localStorage.getItem('chats');
+      if (chat_ids != undefined && chat_ids.indexOf(chat_id) == -1) {
+        localStorage['chats'] = chat_ids + ',' + chat_id;
+      } else {
+        localStorage['chats'] = chat_id;
+      }
+      
+      $('#chat').prepend(html);
+      
+        
+      $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
+        minChars: 1,
+        fullNameTrigger: false,
+        onDataRequest: function(mode, query, callback) {
+          search_mentions(query, callback)
+        }
+      });
+      
+      var textbox = $('#chat-' + chat_id + ' form textarea.mentions');
+      var last_textbox_height = textbox.height();
+      
+      textbox.elastic();
+      
+      textbox.resize(function() { // resize messages panel 
+        console.log('resized')
+        
+        var delta = ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
+        var new_height = $('#chat-' + chat_id + ' .messages').height() - delta;
+        
+        $('#chat-' + chat_id + ' .messages').css('height', new_height + 'px');
+        $('#chat-' + chat_id + ' .status').css('bottom', parseInt($('#chat-' + chat_id + ' .status').css('bottom')) + delta + 'px');
+        
+        last_textbox_height = $('#chat-' + chat_id + ' form textarea.mentions').height();
+        
+        
+        $('#chat-' + chat_id + ' .messages').animate({
+            scrollTop: 99999
+        }, 'fast');
+      
+      })
     
-    var textbox = $('#chat-' + chat_id + ' form textarea.mentions');
-    var last_textbox_height = textbox.height();
-    
-    textbox.elastic();
-    
-    textbox.resize(function() { // resize messages panel 
-      console.log('resized')
-      
-      var delta = ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
-      var new_height = $('#chat-' + chat_id + ' .messages').height() - delta;
-      
-      $('#chat-' + chat_id + ' .messages').css('height', new_height + 'px');
-      $('#chat-' + chat_id + ' .status').css('bottom', parseInt($('#chat-' + chat_id + ' .status').css('bottom')) + delta + 'px');
-      
-      last_textbox_height = $('#chat-' + chat_id + ' form textarea.mentions').height();
-      
-      
       $('#chat-' + chat_id + ' .messages').animate({
           scrollTop: 99999
       }, 'fast');
-    
-    })
-  
-    $('#chat-' + chat_id + ' .messages').animate({
-        scrollTop: 99999
-    }, 'fast');
-    
-    setTimeout(function() {
-      $('#chat-' + chat_id + ' textarea.mentions').focus();
-    }, 50)
+      
+      setTimeout(function() {
+        $('#chat-' + chat_id + ' textarea.mentions').focus();
+      }, 50)
+    },
+    error: function(data) {
+      hide_loading();
+    }
   });
+  
+  
 }
 
 function search_mentions(query, callback) {
@@ -952,7 +966,10 @@ function stream() {
     } else if (event.type == 'unread-notifications') {
       var item = $('#unread-notification-counter');
 
-      value = parseInt(event.info);
+      var value = parseInt(event.info);
+      if (value < 0) {
+        value = 0;
+      }
 
       item.html(value);
       if (value != 0) {

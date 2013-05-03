@@ -33,7 +33,7 @@
             {% else %}
             {% set members = message.topic.members | exclude(owner.id) %}
             <li>  
-              <a href='/chat/topic/{{ message.topic_id }}' class='chat' data-unread-count="{{ message.unread_count }}">
+              <a href='/chat/topic/{{ message.topic.id }}' class='chat' data-unread-count="{{ message.unread_count }}">
                 <img src='{{ members[-1].avatar }}' class='lfloat small-avatar'>    
                 <span class='username'>
                   {% for member in members %}
