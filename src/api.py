@@ -5791,7 +5791,7 @@ def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=No
                         .sort('ts', -1)\
                         .limit(50)
     
-    
+  last_viewed = get_last_viewed(owner_id, user_id, topic_id, db_name)
   records = list(records)
   records.reverse()
   
@@ -5830,6 +5830,10 @@ def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=No
   
   if last_msg:
     messages.append(last_msg)
+    
+  
+  if messages[-1].get('ts', 0) > last_viewed:
+    messages[-1]['is_unread'] = True
   
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
   return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
