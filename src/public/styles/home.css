@@ -958,7 +958,7 @@ ul#friends-online li.status a {
 
 
 ul#friends-online form input {
-  width: 110px;
+  width: 115px;
   font-size: 11px;
   float: right;
   background: white;
@@ -986,7 +986,7 @@ ul#friends-online div.results {
   top: 30px;
   right: -4px;
   min-height: 40px;
-  width: 130px;
+  width: 135px;
 }
 
 ul#friends-online div.results img {
@@ -1007,7 +1007,8 @@ ul#friends-online div.results a {
   text-align: right;
 }
 
-ul#friends-online div.results a:hover {
+ul#friends-online div.results a:hover,
+ul#friends-online div.results a.selected {
   color: white;
   background-color: #2271A9;
   background-repeat: repeat-x;

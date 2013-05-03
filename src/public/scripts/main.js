@@ -2173,29 +2173,97 @@ $(document).ready(function(e) {
   })
   
 
+  $('#friends-online').on('submit', 'form', function(e) {
+    e.preventDefault();
+  })
+  
+  
+  
   
   $('#friends-online').on('keyup', 'form input', function(e) {
+    e.preventDefault();
     
-    if (e.keyCode == 27) {    // ESC
+    var query = $(this).val();
+    if (e.keyCode == 27 || query == '') {    // ESC
       
       $('#friends-online div.results').html('').addClass('hidden');
       $('#friends-online form input').val('');
       return false;
       
     }
+    
+        
+    if (e.keyCode === 40) { // down
+        var selected = $("#friends-online div.results a.selected"); 
+        if (selected.length == 0) {
+          $("#friends-online div.results li:first a").addClass('selected');
+        } else {
+          selected.removeClass("selected");
+
+          if (selected.parent().next().length == 0) {
+              selected.parents('div.results').children('li').first().children().addClass("selected");
+          } else {
+              selected.parent().next().children().addClass("selected");
+          }        
+        }
+        return false;
+    } else if (e.keyCode === 38) {  // up
+        var selected = $("#friends-online div.results a.selected");  
+        if (selected.length == 0) {
+          $("#friends-online div.results li:last a").addClass('selected');
+        }
+        selected.removeClass("selected");
+        if (selected.parent().prev().length == 0) {
+            selected.parents('div.results').children('li').last().children().addClass("selected");
+        } else {
+            selected.parent().prev().children().addClass("selected");
+        }
+        return false;
+    } else if (e.keyCode === 13) { // enter
+        var selected = $("#friends-online div.results a.selected");  
+        if (selected.length != 0) {
+          selected.trigger('click');
+          $('#friends-online div.results').html('').addClass('hidden');
+          $('#friends-online form input').val('');
+        }
+        return false;
       
-    var query = $(this).val();
-    if (query != '') {
-      ids = [];
-      html = '';
+    }
+    
+    
       
+    
+    ids = [];
+    html = '';
+    
+    for (i in $.global.coworkers) {
+        var id;
+        var item;
+        item = $.global.coworkers[i];
+        id = item.id;
+        _query = khong_dau(query).toLowerCase();
+        if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) == 0) {
+          ids.push(id);
+          if (item.type == 'user') {
+            html += '<li><a class="chat" href="/chat/user/' + item.id + '"><img class="micro-avatar" src="' + item.avatar + '"> ' + item.name + '</a></li>';
+          }
+          
+          if (ids.length >= 3) {
+            break;
+          }
+          
+        }
+    }
+    
+    if (ids.length < 3) {
+    
       for (i in $.global.coworkers) {
           var id;
           var item;
           item = $.global.coworkers[i];
           id = item.id;
           _query = khong_dau(query).toLowerCase();
-          if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) == 0) {
+          if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) > -1) {
             ids.push(id);
             if (item.type == 'user') {
               html += '<li><a class="chat" href="/chat/user/' + item.id + '"><img class="micro-avatar" src="' + item.avatar + '"> ' + item.name + '</a></li>';
@@ -2207,36 +2275,16 @@ $(document).ready(function(e) {
             
           }
       }
-      
-      if (ids.length < 3) {
-      
-        for (i in $.global.coworkers) {
-            var id;
-            var item;
-            item = $.global.coworkers[i];
-            id = item.id;
-            _query = khong_dau(query).toLowerCase();
-            if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) > -1) {
-              ids.push(id);
-              if (item.type == 'user') {
-                html += '<li><a class="chat" href="/chat/user/' + item.id + '"><img class="micro-avatar" src="' + item.avatar + '"> ' + item.name + '</a></li>';
-              }
-              
-              if (ids.length >= 3) {
-                break;
-              }
-              
-            }
-        }
-      }
-      
-      if (ids.length == 0) {
-        html = '<li><div class="empty">No results found</div></li>';
-      }
-      // html += '<li><a class="popup" href="/search?type=people&query=' + query + '">&nbsp;Search all people for <strong>' + query + '</strong></a></li>';
-      
-      $('#friends-online .results').html(html).removeClass('hidden');
     }
+    
+    if (ids.length == 0) {
+      html = '<li><div class="empty">No results found</div></li>';
+    }
+    // html += '<li><a class="popup" href="/search?type=people&query=' + query + '">&nbsp;Search all people for <strong>' + query + '</strong></a></li>';
+    
+    $('#friends-online .results').html(html).removeClass('hidden');
+    $('#friends-online .results li:first a').addClass('selected');
+    
     
     
   })
