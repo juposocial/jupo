@@ -17,12 +17,12 @@ $(document).ready(function(e) {
   
   // restore chat windows
   if (localStorage.getItem('chats') != undefined) {
-    user_ids = localStorage['chats'].split(',');
-    for (var i = 0; i < user_ids.length; i++) {
-      var user_id = user_ids[i];
+    chat_ids = localStorage['chats'].split(',');
+    for (var i = 0; i < chat_ids.length; i++) {
+      var chat_id = chat_ids[i];
       
-      if (user_id != '' && isNaN(user_id) == false) {
-        start_chat(user_id);
+      if (chat_id != '' && chat_id.split('-')[1] != undefined && isNaN(chat_id.split('-')[1]) == false) {
+        start_chat(chat_id);
       }
     }
   }
@@ -504,7 +504,7 @@ $(document).ready(function(e) {
     return false;
   })
 
-  $('#body, #overlay').on('click', 'a.toggle', function() {
+  $('#body, #overlay, #popup').on('click', 'a.toggle', function() {
 
     var new_class = $(this).data('class');
     var new_href = $(this).data('href');
@@ -556,17 +556,18 @@ $(document).ready(function(e) {
       }
     }
 
-    $.ajax({
-      type: "POST",
-      headers: {
-        'X-CSRFToken': get_cookie('_csrf_token')
-      },
-      url: href,
-      success: function(resp) {
-        return false;
-      }
-    });
-
+    if (href != '#') {
+      $.ajax({
+        type: "POST",
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        url: href,
+        success: function(resp) {
+          return false;
+        }
+      });
+    }
     return false;
   });
 
@@ -591,23 +592,23 @@ $(document).ready(function(e) {
     return false;
   });
 
-  $('#popup').on('click', 'a.add-member', function() {
-    var element = $(this);
-    var href = $(this).attr('href');
-    $.ajax({
-      type: "POST",
-      headers: {
-        'X-CSRFToken': get_cookie('_csrf_token')
-      },
-      url: href,
-      success: function(resp) {
-        console.log('Added');
-      }
-    });
-    href = href.replace('/remove_member', '/add_member');
-    element.replaceWith('<a href="' + href + '" class="button remove-member">Remove from Group</a>');
-    return false;
-  });
+  // $('#popup').on('click', 'a.add-member', function() {
+    // var element = $(this);
+    // var href = $(this).attr('href');
+    // $.ajax({
+      // type: "POST",
+      // headers: {
+        // 'X-CSRFToken': get_cookie('_csrf_token')
+      // },
+      // url: href,
+      // success: function(resp) {
+        // console.log('Added');
+      // }
+    // });
+    // href = href.replace('/remove_member', '/add_member');
+    // element.replaceWith('<a href="' + href + '" class="button remove-member">Remove from Group</a>');
+    // return false;
+  // });
   
   
   $('#popup').on('click', 'a.invite', function() {
@@ -1974,11 +1975,15 @@ $(document).ready(function(e) {
   $('#global').on('click', 'a.chat', function() {
     
     var href = $(this).attr('href');
-    var user_id = href.split('/')[2];
-
-    start_chat(user_id);
+    var type = href.split('/')[2];
+    var id = href.split('/')[3];
+    var chat_id = type + '-' + id;
     
-    $('a.chat.user-' + user_id).removeClass('unread');
+    if (id != '') {
+      start_chat(chat_id);
+    }
+    
+    $('a.chat.' + chat_id).removeClass('unread');
     
     // hide notification center 
     if ($('nav ul.notifications').is(':visible')) {
@@ -2017,9 +2022,11 @@ $(document).ready(function(e) {
   
   $('#chat').on('mouseenter', '.chatbox.unread', function() {
     var _this = $(this);
-    var user_id = _this.attr('id').split('-')[1] 
+    var type = _this.attr('id').split('-')[1] 
+    var id = _this.attr('id').split('-')[2] 
+    var chat_id = type + '-' + id;
     
-    var url = '/chat/' + user_id + '/mark_as_read';
+    var url = '/chat/' + type + '/' + id + '/mark_as_read';
     
     $.ajax({
       type: "POST",
@@ -2029,7 +2036,7 @@ $(document).ready(function(e) {
       url: url,
       success: function() {
         _this.removeClass('unread');
-        $('a.chat.user-' + user_id).removeClass('unread');
+        $('a.chat.' + chat_id).removeClass('unread');
       }
     })
     
@@ -2037,11 +2044,11 @@ $(document).ready(function(e) {
   })
   
   
-  $('#chat').on('click', 'a.close', function() {
+  $('#chat').on('click', 'div.header a.close', function() {
     
-    var user_id = $(this).attr('data-user-id');
+    var chat_id = $(this).attr('data-chat-id');
     
-    close_chat(user_id);
+    close_chat(chat_id);
     
     return false;
 
@@ -2049,11 +2056,14 @@ $(document).ready(function(e) {
   
   
   $('#chat').on('click', '.chatbox .header', function(e) {
-    $(this).parent().toggleClass('minimize')
+    var chatbox_id = $(this).parent().attr('id');
+    toggle_chatbox(chatbox_id);
   })
   
   
+  
   $('#chat').on('keydown', 'textarea', function(e) {
+    
     if (e.keyCode == 13) {    // Enter
         if (e.ctrlKey || e.shiftKey) {
             var val = this.value;
@@ -2077,19 +2087,22 @@ $(document).ready(function(e) {
         return false;
     } else {
       _this = $(this);
-      var user_id = _this.parents('.chatbox').attr('id').split('-')[1];
+      _chatbox = _this.parents('.chatbox');
+      var type = _chatbox.attr('id').split('-')[1];
+      var id = _chatbox.attr('id').split('-')[2];
+      var chat_id = type + '-' + id;
       
       try {
         clearTimeout($.global.chat_typing_timeout)
       } catch (err) {}
       
-      update_status(user_id + '|is typing...');
+      update_status(chat_id + '|is typing...');
       
       $.global.chat_typing_timeout = setTimeout(function() {
         if (_this.val() != '') {
-          update_status(user_id + '|has entered text');
+          update_status(chat_id + '|has entered text');
         } else {
-          update_status(user_id + '|');
+          update_status(chat_id + '|');
         }
       }, 2000)
       
@@ -2104,8 +2117,13 @@ $(document).ready(function(e) {
     var _boxchat = _this.parents('.chatbox');
     var last_msg = $('li.message:last', _boxchat);
     
-    $('textarea', _this).attr('readonly', 'readonly')
+    $('textarea.mentions', _this).attr('readonly', 'readonly')
     $('form', _boxchat).addClass('gray-bg')
+    
+    
+    $('textarea.mentions', _this).mentionsInput('val', function(text) {
+      $('textarea.marked-up', _this).val(text);
+    });
     
     $.ajax({
       type: "POST",
@@ -2117,30 +2135,34 @@ $(document).ready(function(e) {
       dataType: "html",
       success: function(data) {
         $('form', _boxchat).removeClass('gray-bg');
-        $('textarea', _this).attr("readonly", false);
-        $('textarea', _this).val('').focus();
-        $("textarea", _this).css('height', "");
+        $('textarea.mentions', _this).attr("readonly", false);
+        $('textarea.mentions', _this).val('').focus();
+        $("textarea.mentions", _this).css('height', "");
         
-        var msg = $(data);
-
-        var msg_id = msg.attr('id').split('-')[1];
-        var msg_ts = msg.data('ts');
-        var sender_id = msg.attr('data-sender-id');
+        $("textarea.mentions", _this).mentionsInput('reset');
         
-        if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-          var content = $('.content', msg).html();
-          $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
-          $(last_msg).data('ts', msg_ts);
-          $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+        if (data != '') {
+          var msg = $(data);
+  
+          var msg_id = msg.attr('id').split('-')[1];
+          var msg_ts = msg.data('ts');
+          var sender_id = msg.attr('data-sender-id');
           
-        } else {
-          $('.messages', _boxchat).append(data);
+          if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+            var content = $('.content', msg).html();
+            $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+            $(last_msg).data('ts', msg_ts);
+            $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+            
+          } else {
+            $('.messages', _boxchat).append(data);
+          }
+          
+          
+          setTimeout(function() {
+            $('.messages', _boxchat).scrollTop(99999);
+          }, 10)
         }
-        
-        
-        setTimeout(function() {
-          $('.messages', _boxchat).scrollTop(99999);
-        }, 10)
         
       }
     });
@@ -2151,32 +2173,100 @@ $(document).ready(function(e) {
   })
   
 
+  $('#friends-online').on('submit', 'form', function(e) {
+    e.preventDefault();
+  })
+  
+  
+  
   
   $('#friends-online').on('keyup', 'form input', function(e) {
+    e.preventDefault();
     
-    if (e.keyCode == 27) {    // ESC
+    var query = $(this).val();
+    if (e.keyCode == 27 || query == '') {    // ESC
       
       $('#friends-online div.results').html('').addClass('hidden');
       $('#friends-online form input').val('');
       return false;
       
     }
+    
+        
+    if (e.keyCode === 40) { // down
+        var selected = $("#friends-online div.results a.selected"); 
+        if (selected.length == 0) {
+          $("#friends-online div.results li:first a").addClass('selected');
+        } else {
+          selected.removeClass("selected");
+
+          if (selected.parent().next().length == 0) {
+              selected.parents('div.results').children('li').first().children().addClass("selected");
+          } else {
+              selected.parent().next().children().addClass("selected");
+          }        
+        }
+        return false;
+    } else if (e.keyCode === 38) {  // up
+        var selected = $("#friends-online div.results a.selected");  
+        if (selected.length == 0) {
+          $("#friends-online div.results li:last a").addClass('selected');
+        }
+        selected.removeClass("selected");
+        if (selected.parent().prev().length == 0) {
+            selected.parents('div.results').children('li').last().children().addClass("selected");
+        } else {
+            selected.parent().prev().children().addClass("selected");
+        }
+        return false;
+    } else if (e.keyCode === 13) { // enter
+        var selected = $("#friends-online div.results a.selected");  
+        if (selected.length != 0) {
+          selected.trigger('click');
+          $('#friends-online div.results').html('').addClass('hidden');
+          $('#friends-online form input').val('');
+        }
+        return false;
       
-    var query = $(this).val();
-    if (query != '') {
-      ids = [];
-      html = '';
+    }
+    
+    
       
+    
+    ids = [];
+    html = '';
+    
+    for (i in $.global.coworkers) {
+        var id;
+        var item;
+        item = $.global.coworkers[i];
+        id = item.id;
+        _query = khong_dau(query).toLowerCase();
+        if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) == 0) {
+          ids.push(id);
+          if (item.type == 'user') {
+            html += '<li><a class="chat" href="/chat/user/' + item.id + '"><img class="micro-avatar" src="' + item.avatar + '"> ' + item.name + '</a></li>';
+          }
+          
+          if (ids.length >= 3) {
+            break;
+          }
+          
+        }
+    }
+    
+    if (ids.length < 3) {
+    
       for (i in $.global.coworkers) {
           var id;
           var item;
           item = $.global.coworkers[i];
           id = item.id;
           _query = khong_dau(query).toLowerCase();
-          if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) == 0) {
+          if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) > -1) {
             ids.push(id);
             if (item.type == 'user') {
-              html += '<li><a class="chat" href="/chat/' + item.id + '"><img class="micro-avatar" src="' + item.avatar + '"> ' + item.name + '</a></li>';
+              html += '<li><a class="chat" href="/chat/user/' + item.id + '"><img class="micro-avatar" src="' + item.avatar + '"> ' + item.name + '</a></li>';
             }
             
             if (ids.length >= 3) {
@@ -2185,36 +2275,18 @@ $(document).ready(function(e) {
             
           }
       }
-      
-      if (ids.length < 3) {
-      
-        for (i in $.global.coworkers) {
-            var id;
-            var item;
-            item = $.global.coworkers[i];
-            id = item.id;
-            _query = khong_dau(query).toLowerCase();
-            if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(_query) > -1) {
-              ids.push(id);
-              if (item.type == 'user') {
-                html += '<li><a class="chat" href="/chat/' + item.id + '"><img class="micro-avatar" src="' + item.avatar + '"> ' + item.name + '</a></li>';
-              }
-              
-              if (ids.length >= 3) {
-                break;
-              }
-              
-            }
-        }
-      }
-      
-      if (ids.length == 0) {
-        html = '<li><div class="empty">No results found</div></li>';
-      }
-      // html += '<li><a class="popup" href="/search?type=people&query=' + query + '">&nbsp;Search all people for <strong>' + query + '</strong></a></li>';
-      
-      $('#friends-online .results').html(html).removeClass('hidden');
     }
+    
+    if (ids.length == 0) {
+      html = '<li><div class="empty">No results found</div></li>';
+    }
+    // html += '<li><a class="popup" href="/search?type=people&query=' + query + '">&nbsp;Search all people for <strong>' + query + '</strong></a></li>';
+    
+    $('#friends-online .results').html(html).removeClass('hidden');
+    $('#friends-online .results li:first a').addClass('selected');
+    
+    
+    
   })
   
   

@@ -958,7 +958,7 @@ ul#friends-online li.status a {
 
 
 ul#friends-online form input {
-  width: 110px;
+  width: 115px;
   font-size: 11px;
   float: right;
   background: white;
@@ -986,7 +986,7 @@ ul#friends-online div.results {
   top: 30px;
   right: -4px;
   min-height: 40px;
-  width: 130px;
+  width: 135px;
 }
 
 ul#friends-online div.results img {
@@ -1007,7 +1007,8 @@ ul#friends-online div.results a {
   text-align: right;
 }
 
-ul#friends-online div.results a:hover {
+ul#friends-online div.results a:hover,
+ul#friends-online div.results a.selected {
   color: white;
   background-color: #2271A9;
   background-repeat: repeat-x;
@@ -6513,6 +6514,11 @@ height: 20px;
   margin-top: 30px;
 }
 
+#body ul.messages a.chat div.ts {
+  font-size: 11px;
+  color: #ccc;
+}
+
 ul.contacts, ul.groups {
   width: 550px;
   margin-top: 10px;
@@ -6686,7 +6692,7 @@ header nav a.view-notifications span.counter {
 }
 
 .field-set .field-checkbox {
-  padding: 7px 0 0 25px;
+  padding: 6px 0 0 25px;
 }
 
 .field-set .field label {
@@ -6866,11 +6872,25 @@ top: 8px;
     background: whitesmoke;
 }
 
+#popup .people span.email {
+  color: #999;
+  font-size: 11px;
+  margin-top: -2px;
+  float: left;
+}
+
 #popup .people .button {
   float: right;
+  margin-left: 7px;
   margin-top: 4px;
   text-align: center;
   opacity: 0;
+}
+
+#popup .button.sign {
+  font-size: 16px;
+  line-height: 13px;
+  font-weight: normal;
 }
 
 #popup .people li:hover .button {

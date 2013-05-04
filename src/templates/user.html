@@ -1,10 +1,28 @@
 {% if mode == 'search' %}
       <li title='{{ user.email }}' class='{% if user.name == user.email %}email{% endif %}'>
         {% if user.is_registered() %}
-          {% if group_id %}
-          <a class='button add-member' href='/group/{{ group_id }}/add_member?user_id={{ user.id }}'>Add to Group</a>
+          {% if group_id and owner.id in group.administrator_ids %}
+            {% if user.id in group.member_ids %}
+            <a class='button toggle sign' href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}' title='Remove user from group' data-href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' data-title='Add user to group' data-name='+'>×</a>
+            {% else %}
+            <a class='button toggle sign' href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' title='Add user to group' data-href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}' data-title='Remove user from group' data-name='×'>+</a>
+            {% endif %}
+            
+            {% if user.id in group.administrator_ids %}
+              <a class='button toggle' href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}' data-name='Make Admin' data-href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}'>Remove as Admin</a>
+            {% else %}
+              <a class='button toggle' href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}' data-name='Remove as Admin' data-href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}'>Make Admin</a>
+            {% endif %}
+            
+          {% elif group_id %}
+            {% if user.id not in group.member_ids %}
+              <a class='button toggle sign' href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' title='Add user to group' data-href='#' data-title='Added to group' data-name='<small>✓</small>'>+</a>
+            {% endif %}
+            
+            <a class='button async' href='/user/{{ user.id }}'>View Profile</a>
+            
           {% else %}
-            {% if user.id in user.contact_ids %}
+            {% if user.id in owner.contact_ids %}
             <a class='button unfollow' href='/user/{{ user.id }}/unfollow'>Remove from Contacts</a>
             {% else %}
             <a class='button follow' href='/user/{{ user.id }}/follow'>Add to Contacts</a>
@@ -16,12 +34,10 @@
         <img class='small-avatar lfloat' src='{{ user.avatar }}' />
         
         {% if user.name != user.email %}
-          <a href='/user/{{ user.id }}' class='async user'>
-            {{ user.name }}
-          </a>
+          <a href='/user/{{ user.id }}' class='async user'>{{ user.name }}</a>
           <br>
           {% if user.is_registered() %}
-          <span class='gray'>{{ user.email }}</span>
+          <span class='email'>{{ user.email }}</span>
           {% else %}
           &nbsp;
           {% endif %}
@@ -113,8 +129,8 @@
         <label for="gender">Gender</label>
         <select class="input-select" id="gender" name="gender">
           <option {% if owner.gender == "male" %}selected{% endif %} value="male">Male</option>
-          <option {% if owner.gender == "female" %}selected{% endif %}value="female">Female</option>
-          <option {% if not owner.gender %}selected{% endif %}value="">I'd rather not say</option>
+          <option {% if owner.gender == "female" %}selected{% endif %} value="female">Female</option>
+          <option {% if not owner.gender %}selected{% endif %} value="">I'd rather not say</option>
         </select>
 
       </li>
@@ -292,6 +308,48 @@
     </ul>
 #}    
 
+    <h2>Notifications</h2>
+    <ul class="field-set">
+      <li class="field field-checkbox">
+          <label for="comments" title="We'll only email you if we haven't seen you recently and you haven't already seen the thing we're emailing you about.">Emails when someone comments on your post</label>
+          <input {% if 'comments' not in owner.disabled_notifications %}checked="checked"{% endif %} class="input-checkbox" id="comments" name="comments" type="checkbox">
+      </li>
+      <li class="field field-checkbox">
+          <label for="share_posts" title="We'll only email you if we haven't seen you recently and you haven't already seen the thing we're emailing you about.">Emails when someone shares a post with you</label>
+          <input {% if 'share_posts' not in owner.disabled_notifications %}checked="checked"{% endif %} class="input-checkbox" id="share_posts" name="share_posts" type="checkbox">
+      </li>
+      <li class="field field-checkbox">
+          <label for="mentions" title="We'll only email you if we haven't seen you recently and you haven't already seen the thing we're emailing you about.">Emails when someone mentions you in a post or a comment</label>
+          <input {% if 'mentions' not in owner.disabled_notifications %}checked="checked"{% endif %} class="input-checkbox" id="mentions" name="mentions" type="checkbox">
+      </li>
+      
+    </ul>
+
+    <h2>Change Password</h2>
+    <ul class="field-set">
+
+      {% if owner.has_password() %}
+      <li class="field field-password">
+        <label for="current_password">Current Password</label>
+        <input class="input-password" id="current_password" name="current_password" type="password" value="">
+
+      </li>
+      {% endif %}
+
+      <li class="field field-password">
+        <label for="new_password">New Password</label>
+        <input class="input-password" id="new_password" name="new_password" type="password" value="">
+
+      </li>
+
+      <li class="field field-password">
+        <label for="confirm_new_password">Confirm</label>
+        <input class="input-password" id="confirm_new_password" name="confirm_new_password" type="password" value="">
+
+      </li>
+
+    </ul>
+
 
     
     
@@ -416,7 +474,7 @@
           
           {% else %}
             <br>
-            <a href='/chat/{{ user.id }}' class='chat'>Chat with {{ user.name }}</a>
+            <a href='/chat/user/{{ user.id }}' class='chat'>Chat with {{ user.name }}</a>
           {% endif %}
           
           

@@ -400,9 +400,9 @@
 
           <div class='stats'>
             {% if group.id == 'public' %}
-            <a href='#!/people' class='overlay gray'>{{ group.members_count }} People</a>
+            <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
             {% else %}
-            <a href='#!/group/{{ group.id }}/members' class='overlay gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             {% endif %}
           </div>    
         </div>
@@ -456,7 +456,7 @@
   
 {#  {% if owner.id in group.member_ids or owner.id in group.administrator_ids or group.privacy == 'open' %} #} 
   
-  {% if feeds or group.id == 'public' %}
+  {% if feeds != None or group.id == 'public' %}
   <ul id="stream" class='group-with-nav-disabled'>
     {% if feeds == [] %}
       <span class="empty">
@@ -465,10 +465,7 @@
     {% else %}
       {% for feed in feeds %}
         {% if feed.id not in owner.unfollow_posts %}
-          {# {% include 'feed.html' %} #}
-          {% autoescape on %}
-            {{ feed | render("feed", owner, view) }}
-          {% endautoescape %}
+            {{ feed | render("feed", owner, view) | safe }}
         {% endif %}
       {% endfor %}
     {% endif %}
@@ -536,7 +533,7 @@
         <div class='body'>
            <div class='stats'>
              
-            <a href='#!/group/{{ group.id }}/members' class='overlay gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             
             {% if group.id != 'public' and owner.id in group.member_ids %}
              · <a href='/search?query=&type=people&ref=group-{{ group.id }}' class='popup'>Add people</a>
@@ -564,9 +561,9 @@
             {% endif%}
             
             {% if group.id == 'public' %}
-            <a href='#!/people' class='overlay gray'>{{ group.members_count }} People</a>
+            <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
             {% else %}
-            <a href='#!/group/{{ group.id }}/members' class='overlay gray'>{{ group.members_count }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members_count }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             {% endif %}
             
             {% if group.id == 'public' %}

@@ -93,7 +93,7 @@ def render_homepage(session_id, title, **kwargs):
     unread_messages = api.get_unread_messages(session_id)
     unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
     unread_notification_count = api.get_unread_notifications_count(session_id)\
-#                               + unread_messages_count
+                              + unread_messages_count
     
   else:
     friends_online = []
@@ -128,8 +128,7 @@ def render_homepage(session_id, title, **kwargs):
                                   domain=hostname,
                                   **kwargs))
   if owner:
-    if not api.is_valid_channel_id(session_id, request.cookies.get('channel_id')):
-      resp.set_cookie('channel_id', api.get_channel_id(user_id))
+    resp.set_cookie('channel_id', api.get_channel_id(session_id))
   else:
     resp.delete_cookie('channel_id')
   
@@ -264,25 +263,27 @@ def search():
   item_type = request.args.get('type')
   page = int(request.args.get('page', 1))
   ref_user_id = request.args.get('user')
+  
+  ref = request.args.get('ref')
+  if ref and 'group-' in ref:
+    group_id = ref.split('-')[1]
+    group = api.get_group_info(session_id, group_id)
+    if item_type == 'people':
+      title = 'Add people to group'
+    else:
+      title = 'Invite your friends'
+  elif ref == 'everyone':
+    title = 'Invite your friends'
+    group_id = group = None
+  else:
+    group_id = group = None
+    title = 'Add Contacts'
+  
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+    
     
   if item_type in ['people', 'email']: 
-    user_id = api.get_user_id(session_id)
-    owner = api.get_user_info(user_id)
-    
-    ref = request.args.get('ref')
-    if ref and 'group-' in ref:
-      group_id = ref.split('-')[1]
-      group = api.get_group_info(session_id, group_id)
-      if item_type == 'people':
-        title = 'Add people to group'
-      else:
-        title = 'Invite your friends'
-    elif ref == 'everyone':
-      title = 'Invite your friends'
-      group_id = group = None
-    else:
-      group_id = group = None
-      title = 'Add Contacts'
       
     if request.method == 'OPTIONS':
       if query:
@@ -311,12 +312,14 @@ def search():
         else:
           users = [i for i in api.get_coworkers(session_id) \
                    if i.id not in owner.contact_ids and i.id != owner.id]
+          
       return dumps({'title': title,
                     'body': render_template('people_search.html',
                                             title=title, 
                                             mode='search',
                                             type=item_type,
                                             group_id=group_id,
+                                            group=group,
                                             users=users,
                                             query=query, 
                                             owner=owner)})
@@ -330,9 +333,11 @@ def search():
         
           
       if group_id:
-        users = [i for i in users if i.email and i.id not in group.member_ids]
+        out = [i for i in users if i.email and i.id not in group.member_ids and i.id != owner.id]
+        out.extend([i for i in users if i.email and i.id != owner.id and i.id in group.member_ids])
+        users = out
       else:
-        users = [i for i in users if i.email and i.id not in owner.contact_ids]
+        users = [i for i in users if i.email]
       
         
       if users:
@@ -340,6 +345,7 @@ def search():
                                        mode='search', 
                                        user=user, 
                                        group_id=group_id,
+                                       group=group,
                                        type=item_type,
                                        query=query,
                                        owner=owner,
@@ -986,7 +992,7 @@ def notes(page=1):
       stream = ''
       posts = []
       for note in notes:
-        posts.append(render(note, "note", owner, view))  
+        posts.append(render(note, "note", owner, view, request=request))  
       if len(notes) == 0:
         posts.append(render_template('more.html', more_url=None))
       else:
@@ -1000,6 +1006,7 @@ def notes(page=1):
                              view=view,  
                              title=title, 
                              owner=owner,
+                             request=request,
                              reference_notes=reference_notes,
                              notes=notes)
   
@@ -1011,6 +1018,7 @@ def notes(page=1):
   else:
     return render_homepage(session_id, title,
                            view=view,
+                           request=request,
                            reference_notes=reference_notes,
                            notes=notes)
     
@@ -1327,6 +1335,16 @@ def user(user_id=None, page=1, view=None):
               'introduction': intro}
       
     
+    disabled_notifications = []
+    if not request.form.get('comments'):
+      disabled_notifications.append('comments')
+    if not request.form.get('share_posts'):
+      disabled_notifications.append('share_posts')
+    if not request.form.get('mentions'):
+      disabled_notifications.append('mentions')  
+      
+    info['disabled_notifications'] = disabled_notifications
+    
     birthday_day = request.form.get('birthday-day')
     birthday_month = request.form.get('birthday-month')
     birthday_year = request.form.get('birthday-year')
@@ -1357,6 +1375,7 @@ def user(user_id=None, page=1, view=None):
   elif view == 'groups':
     return dumps({'body': render_template('groups.html',
                                           user=user,
+                                          owner=owner,
                                           groups=user.groups)})
   elif view == 'followers':
     users = [api.get_user_info(user_id) for user_id in user.followers]
@@ -1532,12 +1551,15 @@ def network():
 @app.route("/people", methods=["GET", "OPTIONS"])
 @app.route("/groups", methods=["GET", "OPTIONS"])
 @app.route("/group/new", methods=["GET", "OPTIONS", "POST"])
-@app.route("/group/<int:group_id>/add_member", methods=["POST"])
 @app.route("/group/<int:group_id>/update", methods=["POST"])
 @app.route("/group/<int:group_id>/follow", methods=["POST"])
 @app.route("/group/<int:group_id>/unfollow", methods=["POST"])
 @app.route("/group/<int:group_id>/highlight", methods=["POST"])
 @app.route("/group/<int:group_id>/unhighlight", methods=["POST"])
+@app.route("/group/<int:group_id>/add_member", methods=["POST"])
+@app.route("/group/<int:group_id>/remove_member", methods=["POST"])
+@app.route("/group/<int:group_id>/make_admin", methods=["POST"])
+@app.route("/group/<int:group_id>/remove_as_admin", methods=["POST"])
 @app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
 @app.route("/group/<int:group_id>/page<int:page>", methods=["OPTIONS"])
 @app.route("/group/<int:group_id>/<view>", methods=["GET", "OPTIONS"])
@@ -1620,6 +1642,23 @@ def group(group_id=None, view='group', page=1):
     user_id = request.args.get('user_id')
     api.add_member(session_id, group_id, user_id)
     return 'Done' 
+  
+  elif request.path.endswith('/remove_member'):
+    user_id = request.args.get('user_id')
+    api.remove_member(session_id, group_id, user_id)
+    return 'Done' 
+  
+  elif request.path.endswith('/make_admin'):
+    user_id = request.args.get('user_id')
+    api.make_admin(session_id, group_id, user_id)
+    return 'Done' 
+  
+  elif request.path.endswith('/remove_as_admin'):
+    user_id = request.args.get('user_id')
+    api.remove_as_admin(session_id, group_id, user_id)
+    return 'Done' 
+  
+  
       
   elif request.path.endswith('/update'):
     name = request.form.get('name')
@@ -1719,16 +1758,23 @@ def group(group_id=None, view='group', page=1):
     return dumps({'body': body, 'title': 'Events'})
   
   elif view == 'members':
-    app.logger.debug('aaaaaaAAAAAAAAAAAAAAA')
+#     app.logger.debug('aaaaaaAAAAAAAAAAAAAAA')
     
-    group.docs = api.get_docs_count(group_id)
-    group.files = api.get_files_count(group_id)
+#     group.docs = api.get_docs_count(group_id)
+#     group.files = api.get_files_count(group_id)
     
     owner = api.get_owner_info(session_id)
-    body = render_template('group.html', 
-                           view='members',
-                           group=group, owner=owner)
-    return dumps({'body': body})
+#     body = render_template('group.html', 
+#                            view='members',
+#                            group=group, owner=owner)
+#     return dumps({'body': body})
+  
+    body = render_template('members.html', group=group, owner=owner)
+
+    
+    return Response(dumps({'body': body,
+                           'title': "%s's Members" % group.name}), 
+                  mimetype='application/json')  
   
   else:   
     
@@ -1794,15 +1840,18 @@ def group(group_id=None, view='group', page=1):
       return resp
 
 
-@app.route('/chat/<int:user_id>', methods=['GET', 'OPTIONS'])
-@app.route('/chat/<int:user_id>/<action>', methods=['POST'])
+@app.route('/chat/user/<int:user_id>', methods=['GET', 'OPTIONS'])
+@app.route('/chat/user/<int:user_id>/<action>', methods=['POST'])
+@app.route('/chat/topic/<int:topic_id>', methods=['GET', 'OPTIONS'])
+@app.route('/chat/topic/<int:topic_id>/<action>', methods=['POST'])
 @login_required
-def chat(user_id, action=None):
+def chat(topic_id=None, user_id=None, action=None):
   session_id = session.get("session_id")
   
   if action == 'new_message':    
     msg = request.form.get('message')
-    html = api.new_message(session_id, user_id, msg)
+    html = api.new_message(session_id, msg, 
+                           user_id=user_id, topic_id=topic_id)
     
     return html
   
@@ -1813,32 +1862,65 @@ def chat(user_id, action=None):
                                        file.filename, 
                                        file.stream.read())
     
-    html = api.new_message(session_id, user_id, attachment_id)
+    html = api.new_message(session_id, attachment_id, 
+                           user_id=user_id, topic_id=topic_id)
     return html
   
   elif action == 'mark_as_read':
     owner_id = api.get_user_id(session_id)
-    api.update_last_viewed(owner_id, user_id)
+    if user_id:
+      api.update_last_viewed(owner_id, user_id=user_id)
+    else:
+      api.update_last_viewed(owner_id, topic_id=topic_id)
+      
     return 'OK'
     
   else:
-    user = api.get_user_info(user_id)
     owner_id = api.get_user_id(session_id)
-    
-    last_viewed = api.get_last_viewed(user_id, owner_id) \
-                + int(api.get_utcoffset(owner_id))
-                
-    last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
-    if last_viewed_friendly_format.startswith('Today'):
-      last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
+    user = topic = seen_by = None
+    if user_id:
+      user = api.get_user_info(user_id)
       
-                
-    messages = api.get_chat_history(session_id, user_id)
+      last_viewed = api.get_last_viewed(user_id, owner_id) \
+                  + int(api.get_utcoffset(owner_id))
+                  
+      last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
+      if last_viewed_friendly_format.startswith('Today'):
+        last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
+      
+      messages = api.get_chat_history(session_id, user_id)
+      
+      if messages and (messages[-1].sender.id == owner_id) and (messages[-1].timestamp < last_viewed):
+        seen_by = 'Seen %s' % last_viewed_friendly_format
+        
+    else:
+      last_viewed = last_viewed_friendly_format = 0
+      topic = api.get_topic_info(topic_id)
+      messages = api.get_chat_history(session_id, topic_id=topic_id)  
+      
+      if messages:
+        utcoffset = int(api.get_utcoffset(owner_id))
+        last_viewed = {}
+        seen_by = []
+        for i in topic.member_ids:
+          ts = api.get_last_viewed(i, topic_id=topic_id) + utcoffset
+          last_viewed[i] = ts
+          if messages[-1].timestamp < ts:
+            seen_by.append(i)
+      
+      app.logger.debug(seen_by)
+      app.logger.debug(last_viewed)
+      app.logger.debug(messages[-1].timestamp)
+      if seen_by:
+        if len(seen_by) >= len(topic.member_ids):
+          seen_by = 'Seen by everyone.'
+        else:
+          seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name for i in seen_by])
+              
     return render_template('chat.html', 
                            owner={'id': owner_id},
-                           last_viewed=last_viewed,
-                           last_viewed_friendly_format=last_viewed_friendly_format,
-                           messages=messages, user=user)
+                           seen_by=seen_by,
+                           messages=messages, user=user, topic=topic)
     
     
 
@@ -1873,7 +1955,7 @@ def messages():
 
 @app.route("/", methods=["GET"])
 def home():
-  hostname = request.headers.get('Host', '')
+  hostname = request.headers.get('Host', '').split(':')[0]
   session_id = request.args.get('session_id')
   
   if hostname != settings.PRIMARY_DOMAIN:
@@ -2814,14 +2896,15 @@ def _update():
 # Run App
 #===============================================================================
 
-@app.before_request
-def redirect_if_not_play_jupo():
-  """Redirect www.jupo.com or jupo.com to play.jupo.com"""
-  if request.headers.get('Host') in ['www.jupo.com', 'jupo.com']:
-    url = 'http://play.jupo.com%s' % request.path
-    if request.environ.get('QUERY_STRING'):
-      url += '?' + request.environ.get('QUERY_STRING')
-    return redirect(url, code=301)
+if 'jupo.com' in settings.PRIMARY_DOMAIN:
+  @app.before_request
+  def redirect_if_not_play_jupo():
+    """Redirect www.jupo.com or jupo.com to play.jupo.com"""
+    if request.headers.get('Host') in ['www.jupo.com', 'jupo.com']:
+      url = 'http://play.jupo.com%s' % request.path
+      if request.environ.get('QUERY_STRING'):
+        url += '?' + request.environ.get('QUERY_STRING')
+      return redirect(url, code=301)
   
   
 if __name__ == "__main__":
