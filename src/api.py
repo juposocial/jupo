@@ -5804,10 +5804,11 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
     info['html'] = text
     
     for user_id in topic.member_ids:
-      push_queue.enqueue(publish, user_id, 
-                         event_type='seen-by', 
-                         info=info, 
-                         db_name=db_name)
+      if user_id != owner_id:
+        push_queue.enqueue(publish, user_id, 
+                           event_type='seen-by', 
+                           info=info, 
+                           db_name=db_name)
   return True
 
 def get_last_message(topic_id, db_name=None):
