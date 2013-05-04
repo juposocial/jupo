@@ -2134,6 +2134,8 @@ $(document).ready(function(e) {
       data: $(this).serializeArray(),
       dataType: "html",
       success: function(data) {
+        $('div.status', _boxchat).fadeOut('fast');
+
         $('form', _boxchat).removeClass('gray-bg');
         $('textarea.mentions', _this).attr("readonly", false);
         $('textarea.mentions', _this).val('').focus();
