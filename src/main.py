@@ -1955,7 +1955,7 @@ def messages():
 
 @app.route("/", methods=["GET"])
 def home():
-  hostname = request.headers.get('Host', '')
+  hostname = request.headers.get('Host', '').split(':')[0]
   session_id = request.args.get('session_id')
   
   if hostname != settings.PRIMARY_DOMAIN:

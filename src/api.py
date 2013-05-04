@@ -650,14 +650,16 @@ def is_exists(email=None, db_name=None):
     if db_name in get_database_names():
       return True
     return False
+  elif db_name == settings.PRIMARY_DOMAIN.split(':')[0].replace('.', '_'):
+    return True
   else:
     db_name = get_database_name()
     db = DATABASE[db_name]
     
     email = email.strip().lower()
     user = db.owner.find_one({"email": email, 
-                                    "password": {"$exists": True}}, 
-                                   {'_id': True})
+                              "password": {"$exists": True}}, 
+                             {'_id': True})
     if user:
       return True
     return False
