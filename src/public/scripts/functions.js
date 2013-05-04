@@ -1341,7 +1341,9 @@ function stream() {
       }
       
       else if (event.info.post_id) {
-        $('#post-' + event.info.post_id).remove();
+        if ($('#post-' + event.info.post_id + ' div.undo').length == 0) {
+          $('#post-' + event.info.post_id).remove();
+        }
       }
       
     } else if (event.type == 'update') {

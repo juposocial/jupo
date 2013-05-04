@@ -2455,7 +2455,7 @@ def reshare(session_id, feed_id, viewers):
 
   return True
 
-def remove_feed(session_id, feed_id):
+def remove_feed(session_id, feed_id, group_id=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
@@ -2464,18 +2464,25 @@ def remove_feed(session_id, feed_id):
     return False
   
   post = get_feed(session_id, feed_id)
-  if post.read_receipt_ids:
-    return False
-  else:
-    db.stream.update({'_id': long(feed_id), 'owner': user_id}, 
-                           {'$set': {'is_removed': True}})
+  
+  if group_id:
+    group_id = long(group_id)
+    if is_admin(user_id, group_id):
+      db.stream.update({'_id': long(feed_id)}, 
+                       {'$pull': {'viewers': group_id}})
+      return True
+  
+  elif not post.read_receipt_ids and user_id == post.owner.id:
+    db.stream.update({'_id': long(feed_id)}, 
+                     {'$set': {'is_removed': True}})
     
     for user_id in post.viewer_ids:
       push_queue.enqueue(publish, user_id, 'remove', 
                          {'post_id': str(feed_id)}, db_name=db_name)
+      
+    return True
   
-
-  return feed_id
+  return False
 
 def undo_remove(session_id, feed_id):
   db_name = get_database_name()
@@ -4733,8 +4740,18 @@ def get_featured_groups(session_id, limit=5):
   
   return featured_groups
   
+
+def is_admin(user_id, group_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
   
+  group = db.owner.find_one({'_id': long(group_id), 
+                             'leaders': long(user_id)})
   
+  if group:
+    return True
+  else:
+    return False
 
 def get_group_member_ids(group_id):
   db_name = get_database_name()

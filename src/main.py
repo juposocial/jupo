@@ -2292,7 +2292,8 @@ def feed_actions(feed_id=None, action=None,
   
   
   elif action == 'remove':
-    feed_id = api.remove_feed(session_id, feed_id)
+    group_id = request.args.get('group_id')
+    api.remove_feed(session_id, feed_id, group_id=group_id)
     
   elif action == 'undo_remove':
     feed_id = api.undo_remove(session_id, feed_id)

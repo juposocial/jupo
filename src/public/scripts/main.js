@@ -159,7 +159,7 @@ $(document).ready(function(e) {
     $('a.dropdown-menu-icon.active').removeClass('active');
 
     var href = $(this).attr("href");
-    feed = $(this).parents('li.feed');
+    var feed = $(this).parents('li.feed');
     
     message = '<div class="undo">' + 'This post has been removed. </strong>' + '<a class="undo" href="' + href.replace('remove', 'undo_remove') + '">Undo</a>' + '</div>';
 
@@ -189,6 +189,7 @@ $(document).ready(function(e) {
 
       }
     });
+    console.log('asdf')
     return false;
 
   });
@@ -241,7 +242,6 @@ $(document).ready(function(e) {
         }
       });
     }
-
     return false;
   })
 

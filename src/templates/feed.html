@@ -185,9 +185,11 @@
           <li><a href='/feed/{{ feed.id }}/reshare' class='forward'>Forward...</a></li>
           #}
           
-          {% if feed.owner.id == owner.id and not feed.last_read_receipt %}
-              <li><a href='/feed/{{ feed.id }}/remove' class='remove'>Remove this post</a></li>
-          {% endif %}
+          {% if view == 'group' and group and owner.id in group.administrator_ids %}
+              <li><a href='/feed/{{ feed.id }}/remove?group_id={{ group.id }}' class='remove'>Remove post from this group</a></li>
+          
+          {% elif feed.owner.id == owner.id and not feed.last_read_receipt %}
+              <li><a href='/feed/{{ feed.id }}/remove' class='remove'>Remove post</a></li>{% endif %}
           
           {% if feed.owner.id != owner.id %}
           <li><a href='/feed/{{ feed.id }}/unfollow' class='remove'>Unfollow post</a></li>

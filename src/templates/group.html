@@ -465,7 +465,7 @@
     {% else %}
       {% for feed in feeds %}
         {% if feed.id not in owner.unfollow_posts %}
-            {{ feed | render("feed", owner, view) | safe }}
+            {{ feed | render("feed", owner, view, group=group) | safe }}
         {% endif %}
       {% endfor %}
     {% endif %}
