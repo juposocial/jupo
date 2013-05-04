@@ -2896,14 +2896,15 @@ def _update():
 # Run App
 #===============================================================================
 
-@app.before_request
-def redirect_if_not_play_jupo():
-  """Redirect www.jupo.com or jupo.com to play.jupo.com"""
-  if request.headers.get('Host') in ['www.jupo.com', 'jupo.com']:
-    url = 'http://play.jupo.com%s' % request.path
-    if request.environ.get('QUERY_STRING'):
-      url += '?' + request.environ.get('QUERY_STRING')
-    return redirect(url, code=301)
+if 'jupo.com' in settings.PRIMARY_DOMAIN:
+  @app.before_request
+  def redirect_if_not_play_jupo():
+    """Redirect www.jupo.com or jupo.com to play.jupo.com"""
+    if request.headers.get('Host') in ['www.jupo.com', 'jupo.com']:
+      url = 'http://play.jupo.com%s' % request.path
+      if request.environ.get('QUERY_STRING'):
+        url += '?' + request.environ.get('QUERY_STRING')
+      return redirect(url, code=301)
   
   
 if __name__ == "__main__":
