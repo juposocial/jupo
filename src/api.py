@@ -2495,7 +2495,7 @@ def get_feed(session_id, feed_id, group_id=None):
   
   if not session_id:
     info = db.stream.find_one({'_id': long(feed_id),
-                                     'is_removed': {'$exists': False}})
+                               'is_removed': {'$exists': False}})
     if not info or info.has_key('is_removed'):
       return Feed({})
     
@@ -2521,7 +2521,7 @@ def get_feed(session_id, feed_id, group_id=None):
   
   if group_id:
     info = db.stream.find_one({'_id': long(feed_id),
-                                     'viewers': group_id})
+                               'viewers': group_id})
   else:
     viewers = get_group_ids(user_id)
     viewers.append(user_id)
@@ -5578,8 +5578,12 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
   
   if user_id:
     update_last_viewed(owner_id, user_id=user_id, db_name=db_name)
+    key = '%s:%s:unread_messages' % (db_name, user_id)
+    cache.delete(key)
   else:
     update_last_viewed(owner_id, topic_id=topic_id, db_name=db_name)
+    key = '%s:%s:unread_messages' % (db_name, topic_id)
+    cache.delete(key)
   
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
   msg = Message(info, utcoffset=utcoffset, db_name=db_name)
@@ -5697,6 +5701,11 @@ def get_unread_messages(session_id, db_name=None):
   if not owner_id:
     return False
   
+  key = '%s:%s:unread_messages' % (db_name, owner_id)
+  out = cache.get(key)
+  if out is not None:
+    return out
+  
   out = []
   records = db.message.find({'owner': owner_id, 
                              'user_id': {'$exists': True}})
@@ -5715,7 +5724,7 @@ def get_unread_messages(session_id, db_name=None):
       out.append({'topic': get_topic_info(topic_id, db_name=db_name), 
                   'unread_count': count})
       
-    
+  cache.set(key, out)
   return out
     
     
