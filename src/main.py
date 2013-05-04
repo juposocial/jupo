@@ -142,7 +142,7 @@ def event_stream(channel):
   pubsub = api.PUBSUB.pubsub()
   pubsub.subscribe(channel)
   for message in pubsub.listen():
-    yield 'data: %s\n\n' % message['data']
+    yield 'retry: 100\ndata: %s\n\n' % message['data']
     
 #===============================================================================
 # URL routing and handlers
