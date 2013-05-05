@@ -18,6 +18,7 @@ $(document).ready(function(e) {
   // restore chat windows
   if (localStorage.getItem('chats') != undefined) {
     chat_ids = localStorage['chats'].split(',');
+    console.log(chat_ids);
     for (var i = 0; i < chat_ids.length; i++) {
       var chat_id = chat_ids[i];
       

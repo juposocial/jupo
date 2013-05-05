@@ -30,8 +30,8 @@ def lines_truncate(text, lines_count=5):
   
   key = '%s:lines_truncate' % hash(text)
   out = cache.get(key, namespace="filters")
-#  if out:
-#    return out
+  if out:
+    return out
   
   raw = text
   text = _normalize_newlines(text)
@@ -61,15 +61,20 @@ def lines_truncate(text, lines_count=5):
     
   # skip blank lines (and blank lines quote)
   if len([line for line in lines if line.strip() and line.strip() != '>']) >= lines_count:
-    blank_lines = len([line for line in lines if line.strip() in ['', '>']])
+    blank_lines = len([line for line in text.split('<br>') if line.strip() in ['', '>']])
     out = ' '.join(lines[:lines_count+blank_lines])
   else:
     out = text
     
+  is_truncated = False
   if len(out) < len(text):
-    text = ' '.join(text[:len(out)].split()[0:-1]).rstrip('.') + '...'
+    text = '<br>'.join(text[:len(out)].split('<br>')[0:-1]).rstrip('.')
+    
+    is_truncated = True
+    
     if len(text) / float(len(raw)) > 0.7: # nếu còn 1 ít text thì hiện luôn, không cắt làm gì cho mệt
       text = raw
+      is_truncated = False
   
   out = text.replace('<br>', '\n')
   out = out.replace('8b0f0ea73162b7552dda3c149b6c045d', '<br>')
@@ -77,6 +82,10 @@ def lines_truncate(text, lines_count=5):
     out = out.replace(md5(i).hexdigest(), i)
   for i in links:
     out = out.replace(md5(i).hexdigest(), i)
+    
+  if is_truncated and not out.rstrip().endswith('...</a>'):
+    out = out + '...'
+    
   cache.set(key, out, namespace="filters")
   return out  
 
@@ -166,8 +175,8 @@ def autolink(text):
     if not url.startswith('http'):
       s = s.replace(url, '<a href="http://%s/" target="_blank" title="%s">%s</a>' % (hash_string, info.title if info.title else hash_string, hash_string))
     
-    elif len(url) > 70:
-      u = url[:70]
+    elif len(url) > 60:
+      u = url[:60]
         
       for template in ['%s ', ' %s', '\n%s', '%s\n', '%s.', '%s,']:
         if template % url in s:
@@ -183,8 +192,8 @@ def autolink(text):
         
   for url in urls:
     s = s.replace(md5(url).hexdigest(), url)
-    if len(url) > 70 and url.startswith('http'):
-      s = s.replace(md5(url[:70] + '...').hexdigest(), url[:70] + '...')
+    if len(url) > 60 and url.startswith('http'):
+      s = s.replace(md5(url[:60] + '...').hexdigest(), url[:60] + '...')
       
   
   mentions = MENTIONS_RE.findall(s)

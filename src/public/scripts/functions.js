@@ -1,4 +1,4 @@
-  
+
 
 function toggle_chatbox(chatbox_id) {
   
@@ -39,6 +39,7 @@ function close_chat(chat_id) {
   return true;
   
 }
+
     
 function start_chat(chat_id) {
   if (chat_id.indexOf('-') == -1) {
@@ -54,6 +55,7 @@ function start_chat(chat_id) {
     return false;
   }
   
+  
   var href = '/chat/' + chat_id.replace('-', '/');
 
   show_loading();
@@ -66,7 +68,7 @@ function start_chat(chat_id) {
       if ($('#chat-' + chat_id).length > 0) {
           return false;
       }
-      
+  
       var chat_ids = localStorage.getItem('chats');
       if (chat_ids != undefined && chat_ids.indexOf(chat_id) == -1) {
         localStorage['chats'] = chat_ids + ',' + chat_id;
@@ -75,6 +77,7 @@ function start_chat(chat_id) {
       }
       
       $('#chat').prepend(html);
+      
       
       if (localStorage.getItem('state-chat-' + chat_id) == 'minimize') {
         toggle_chatbox('chat-' + chat_id);
