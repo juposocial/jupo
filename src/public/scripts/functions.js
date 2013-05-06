@@ -1063,22 +1063,23 @@ function stream() {
   
           if (comment.length != 0 && $('#body #' + comment.attr('id')).length == 0) {
             
-            
-            var offset_top = null;
-            var last_comment = $('#' + feed_id + ' li.comment:last');
-            
-            if (last_comment.length == 0) {
-              if ($('#' + feed_id).length != 0) {
-                offset_top = $('#' + feed_id).offset().top
+            if ($('textarea:focus').length == 0) {
+              var offset_top = null;
+              var last_comment = $('#' + feed_id + ' li.comment:last');
+              
+              if (last_comment.length == 0) {
+                if ($('#' + feed_id).length != 0) {
+                  offset_top = $('#' + feed_id).offset().top
+                }
+                
+              } else {
+                offset_top = last_comment.offset().top
               }
               
-            } else {
-              offset_top = last_comment.offset().top
+              if (offset_top != null) {
+                $('body').scrollTop(offset_top - 250);
+              }  
             }
-            
-            if (offset_top != null) {
-              $('body').scrollTop(offset_top - 250);
-            }  
             
             $('#body #' + feed_id + ' ul.comments').removeClass('hidden');
             $('#body #' + feed_id + ' div.comments-list').append(comment.hide().fadeIn('fast'));
@@ -1191,21 +1192,23 @@ function stream() {
   
               if (comment.length != 0 && $('#' + comment.attr('id')).length == 0) {
                 
-                var offset_top = null;
-                var last_comment = $('#' + feed_id + ' li.comment:last');
-                
-                if (last_comment.length == 0) {
-                  if ($('#' + feed_id).length != 0) {
-                    offset_top = $('#' + feed_id).offset().top
+                if ($('textarea:focus').length == 0) {
+                  var offset_top = null;
+                  var last_comment = $('#' + feed_id + ' li.comment:last');
+                  
+                  if (last_comment.length == 0) {
+                    if ($('#' + feed_id).length != 0) {
+                      offset_top = $('#' + feed_id).offset().top
+                    }
+                    
+                  } else {
+                    offset_top = last_comment.offset().top
                   }
                   
-                } else {
-                  offset_top = last_comment.offset().top
+                  if (offset_top != null) {
+                    $('body').scrollTop(offset_top - 250);
+                  }                
                 }
-                
-                if (offset_top != null) {
-                  $('body').scrollTop(offset_top - 250);
-                }                
                 
                 $('#body #' + feed_id + ' ul.comments').removeClass('hidden');
                 $('#body #' + feed_id + ' div.comments-list').append(comment.hide().fadeIn('fast'));
