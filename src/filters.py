@@ -68,7 +68,10 @@ def lines_truncate(text, lines_count=5):
     
   is_truncated = False
   if len(out) < len(text):
-    text = '<br>'.join(text[:len(out)].split('<br>')[0:-1]).rstrip('.')
+    if '</' in text:
+      text = ' '.join(text[:len(out)].split(' ')[0:-1]).rstrip('.')
+    else:
+      text = '<br>'.join(text[:len(out)].split('<br>')[0:-1]).rstrip('.')
     
     is_truncated = True
     
