@@ -5786,6 +5786,7 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
                        event_type='seen-by', 
                        info=info, 
                        db_name=db_name)
+    
   else:
     info = {}
     info['chat_id'] = 'topic-%s' % topic_id
@@ -5809,6 +5810,9 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
                            event_type='seen-by', 
                            info=info, 
                            db_name=db_name)
+        
+  key = '%s:%s:unread_messages' % (db_name, owner_id)
+  cache.delete(key)
   return True
 
 def get_last_message(topic_id, db_name=None):

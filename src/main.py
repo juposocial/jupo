@@ -2759,6 +2759,7 @@ def notifications():
     
   notifications = api.get_notifications(session_id)
   unread_messages = api.get_unread_messages(session_id)
+  unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
@@ -2769,8 +2770,9 @@ def notifications():
     resp = {'body': body,
             'title': 'Notifications'}
     
+    
     unread_count = api.get_unread_notifications_count(session_id) \
-                 + api.get_unread_messages_count(session_id)
+                 + unread_messages_count
     
     if unread_count:
       #  mark as read luôn các notifications không quan trọng
