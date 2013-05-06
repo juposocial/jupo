@@ -1178,10 +1178,14 @@ function stream() {
         
         
         var group_id = event.type.split('|')[0];
-        incr('#group-' + group_id + ' span.count');
+        var feed = $(event.info);
+        
+        if ($('a[data-user-id]', feed).attr('data-user-id') != $('header a[data-owner-id]').attr('data-owner-id')) {
+          incr('#group-' + group_id + ' span.count');
+        }
         
         if (window.location.pathname.indexOf(group_id) != -1) {
-          var feed_id = $(event.info).attr('id');
+          var feed_id = feed.attr('id');
           if ($.global.disable_realtime_update != feed_id) {
             
   
