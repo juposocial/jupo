@@ -104,9 +104,9 @@
       {% if mode != 'view' %}
           
         {% set content = note.content | autoemoticon | sanitize %}
-        {% set summary = content | lines_truncate | fix_unclosed_tags | nl2br %}
+        {% set summary = content | lines_truncate | fix_unclosed_tags %}
         
-        {{ summary | safe }}
+        {{ summary | remove_empty_lines | nl2br | safe }}
         
         {% if note.attachments %}
           <br> 

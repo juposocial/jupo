@@ -576,7 +576,8 @@ def remove_empty_lines(html):
   if out:
     return out
   
-  if '</div>' in html:
+  if '</' in html:
+    html = html.strip().replace('\n', '')
     soup = BeautifulSoup(html)
     lines = []
     for element in soup.contents:
@@ -588,6 +589,8 @@ def remove_empty_lines(html):
       elif isinstance(element, NavigableString):
         lines.append(str(element).strip())
     out = ''.join(lines).strip()
+    while '\n\n' in out:
+      out = out.replace('\n\n', '\n')
   else:
     out = '\n'.join([line for line in html.split('\n') if line.strip()])
   cache.set(key, out, namespace="filters")
