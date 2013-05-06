@@ -845,7 +845,12 @@ function decr(id, value) {
   var item = $(id);
   var value = typeof (value) != 'undefined' ? value : 1;
   value = parseInt(item.html()) - parseInt(value);
+  
+  if (value < 0) {
+    value = 0;
+  }
   item.html(value);
+  
   if (value == 0) {
     item.hide();
   }
