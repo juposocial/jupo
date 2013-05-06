@@ -447,8 +447,6 @@ def discover(name='discover', page=1):
                            code=code, user_id=user_id)
     
   session_id = session.get("session_id")
-  if request.cookies.get('utcoffset'):
-    api.update_utcoffset(session_id, request.cookies.get('utcoffset'))
   
   
   app.logger.debug('session_id: %s' % session_id)
@@ -2022,9 +2020,6 @@ def news_feed(page=1):
     
     
   user_id = api.get_user_id(session_id)
-  
-  if request.cookies.get('utcoffset'):
-    api.update_utcoffset(user_id, request.cookies.get('utcoffset'))
   
   if user_id and request.cookies.get('redirect_to'):
     redirect_to = request.cookies.get('redirect_to')
