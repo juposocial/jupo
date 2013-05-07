@@ -905,9 +905,9 @@ function stream() {
   
   source.onopen = function(e) {
     var ts = new Date().getTime();
-    if ($.global.last_connect_timestamp != undefined && ts - $.global.last_connect_timestamp > 300000) { // 300 seconds = 5 minutes
-      window.location.href = window.location.href;
-    }
+    // if ($.global.last_connect_timestamp != undefined && ts - $.global.last_connect_timestamp > 300000) { // 300 seconds = 5 minutes
+      // window.location.href = window.location.href;
+    // }
     
     $.global.last_connect_timestamp = ts;
   }
