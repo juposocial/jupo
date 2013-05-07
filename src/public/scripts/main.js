@@ -41,12 +41,15 @@ $(document).ready(function(e) {
 
   if (window.location.href.indexOf('#comment-') != -1) {
     var comment_id = window.location.href.split('#')[1]
-    $('#' + comment_id).addClass('animate flash');
-    
-    offset_top = $('#' + comment_id).offset().top - 45;
-    $('html,body').animate({
-      scrollTop: offset_top
-    }, 'fast');
+    var comment = $('#' + comment_id)
+    if (comment.length > 0) {
+      comment.addClass('animate flash');
+      
+      offset_top = comment.offset().top - 45;
+      $('html,body').animate({
+        scrollTop: offset_top
+      }, 'fast');
+    }
   }
 
 
