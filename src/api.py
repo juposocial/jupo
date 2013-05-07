@@ -1344,6 +1344,14 @@ def get_all_users(limit=300):
   users = db.owner.find({'password': {'$exists': True}}).limit(limit)
   return [User(i) for i in users]
 
+def get_all_groups(limit=300):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  groups = db.owner.find({'members': {'$exists': True}}).limit(limit)
+  return [Group(i) for i in groups]
+  
+
 def get_coworkers(session_id, limit=100):
   if str(session_id).isdigit():
     user_id = long(session_id)

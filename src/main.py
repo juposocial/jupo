@@ -185,12 +185,18 @@ def autocomplete():
     
     if type != 'user':
       groups = api.get_groups(session_id)
+      group_ids = [i.id for i in groups]
       owners.extend(groups)
   
       items = [{'id': 'public', 
                 'name': 'Public',
                 'avatar': '/public/images/public-group.png',
                 'type': 'group'}]
+      
+      for group in api.get_all_groups():
+        if group.id not in group_ids:
+          group_ids.append(group.id)
+          owners.append(group)
       
     else:
       items = []
