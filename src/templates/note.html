@@ -56,9 +56,7 @@
 
       
       <div class="title">
-        <a {% if owner.id %}class="async" href="/note/{{ note.id }}"{% endif %}>
-          {% autoescape on %}{{ note.title }}{% endautoescape %}
-        </a>
+        <a {% if owner.id %}class="async" href="/note/{{ note.id }}"{% endif %}>{% autoescape on %}{{ note.title }}{% endautoescape %}</a>
         <br>
         <a href='/note/{{ note.id }}' class='async time'>
           <span class='saved'>Saved</span> <time class='timeago' title='{{ note.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ note.timestamp | isoformat(owner.utcoffset) }}'>{{ note.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
@@ -106,7 +104,7 @@
         {% set content = note.content | autoemoticon | sanitize %}
         {% set summary = content | lines_truncate | fix_unclosed_tags %}
         
-        {{ summary | remove_empty_lines | nl2br | safe }}
+        {{ summary | remove_empty_lines | safe }}
         
         {% if note.attachments %}
           <br> 
@@ -124,9 +122,9 @@
       {% else %}
         {% autoescape on %}
           {% if action == 'compare' %}
-           {{ note.content | sanitize | nl2br | fix_unclosed_tags }}
+           {{ note.content | sanitize | fix_unclosed_tags }}
           {% else %}
-           {{ note.content | autoemoticon | nl2br | fix_unclosed_tags | nl2br }}
+           {{ note.content | autoemoticon | sanitize | fix_unclosed_tags }}
           {% endif %}
         {% endautoescape %}        
         
