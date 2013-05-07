@@ -2116,7 +2116,6 @@ $(document).ready(function(e) {
     
     var _this = $(this);
     var _boxchat = _this.parents('.chatbox');
-    var last_msg = $('li.message:last', _boxchat);
     
     $('textarea.mentions', _this).attr('readonly', 'readonly')
     $('form', _boxchat).addClass('gray-bg')
@@ -2150,6 +2149,8 @@ $(document).ready(function(e) {
           var msg_id = msg.attr('id').split('-')[1];
           var msg_ts = msg.data('ts');
           var sender_id = msg.attr('data-sender-id');
+          
+          var last_msg = $('li.message:last', _boxchat);
           
           if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
             if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
