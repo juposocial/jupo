@@ -98,6 +98,7 @@ def render_homepage(session_id, title, **kwargs):
   else:
     friends_online = []
     groups = []
+    unread_messages = []
     unread_messages_count = 0
     unread_notification_count = 0
   
