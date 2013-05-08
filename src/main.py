@@ -447,8 +447,6 @@ def discover(name='discover', page=1):
                            code=code, user_id=user_id)
     
   session_id = session.get("session_id")
-  if request.cookies.get('utcoffset'):
-    api.update_utcoffset(session_id, request.cookies.get('utcoffset'))
   
   
   app.logger.debug('session_id: %s' % session_id)
@@ -2023,9 +2021,6 @@ def news_feed(page=1):
     
   user_id = api.get_user_id(session_id)
   
-  if request.cookies.get('utcoffset'):
-    api.update_utcoffset(user_id, request.cookies.get('utcoffset'))
-  
   if user_id and request.cookies.get('redirect_to'):
     redirect_to = request.cookies.get('redirect_to')
     if redirect_to != request.url:
@@ -2759,6 +2754,7 @@ def notifications():
     
   notifications = api.get_notifications(session_id)
   unread_messages = api.get_unread_messages(session_id)
+  unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
@@ -2769,8 +2765,9 @@ def notifications():
     resp = {'body': body,
             'title': 'Notifications'}
     
+    
     unread_count = api.get_unread_notifications_count(session_id) \
-                 + api.get_unread_messages_count(session_id)
+                 + unread_messages_count
     
     if unread_count:
       #  mark as read luôn các notifications không quan trọng

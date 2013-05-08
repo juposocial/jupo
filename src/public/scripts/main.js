@@ -1996,7 +1996,7 @@ $(document).ready(function(e) {
       var title = document.title;
       var pattern = /^\(.*?\) /gi;
       var count = title.match(pattern);
-      if (unread_notifications_count != 0) {
+      if (unread_notifications_count > 0) {
         $('#unread-notification-counter').removeClass('grey');
         if (count == null) {
           document.title = '(' + $('#unread-notification-counter').html() + ') ' + title;
@@ -2151,20 +2151,22 @@ $(document).ready(function(e) {
           var msg_ts = msg.data('ts');
           var sender_id = msg.attr('data-sender-id');
           
-          if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-            var content = $('.content', msg).html();
-            $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
-            $(last_msg).data('ts', msg_ts);
-            $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+          if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+            if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
+              var content = $('.content', msg).html();
+              $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+              $(last_msg).data('ts', msg_ts);
+              $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+              
+            } else {
+              $('.messages', _boxchat).append(data);
+            }
             
-          } else {
-            $('.messages', _boxchat).append(data);
+            setTimeout(function() {
+              $('.messages', _boxchat).scrollTop(99999);
+            }, 10)
           }
           
-          
-          setTimeout(function() {
-            $('.messages', _boxchat).scrollTop(99999);
-          }, 10)
         }
         
       }
