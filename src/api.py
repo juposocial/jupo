@@ -1373,11 +1373,13 @@ def get_coworkers(session_id, limit=100):
       if member.id not in _ids:
         coworkers.append(member)
         _ids.add(member.id)
-  coworkers = sorted(coworkers, 
-                     key=lambda user: last_online(user.id), reverse=True)
+        
   coworkers = list(coworkers)
   cache.set(key, coworkers, 3600)
-  return coworkers[:limit]
+  
+  coworkers = sorted(coworkers[:limit], 
+                     key=lambda user: last_online(user.id), reverse=True)
+  return coworkers
 
 def get_friends(session_id):
   """
@@ -1664,6 +1666,9 @@ def new_notification(session_id, receiver, type,
   notification_id = db.notification.insert(info)
   
   key = '%s:%s:unread_count' % (receiver, db_name)
+  cache.delete(key)
+  
+  key = '%s:networks' % get_email_addresses(receiver)
   cache.delete(key)
   
   unread_notifications_count = get_unread_notifications_count(user_id=receiver, 
@@ -4705,18 +4710,21 @@ def get_groups(session_id, limit=None, db_name=None):
   user_id = get_user_id(session_id)
   if not user_id:
     return []
+  
   key = '%s:groups' % user_id
   groups = cache.get(key)
-  if not groups:
+  if groups is None:
     groups = db.owner.find({"members": user_id}).sort('last_updated', -1)
     groups = list(groups)
-    cache.set(key, groups, 3600)
-  
-  groups = [Group(i) for i in groups]
-  if limit:
-    return groups[:limit]
+    cache.set(key, groups)
+
+  if not groups:
+    return []
+  elif limit:
+    return [Group(i) for i in groups[:limit]]
   else:
-    return groups
+    return [Group(i) for i in groups]
+  
 
 def get_open_groups(user_id=None, limit=5):
   db_name = get_database_name()
@@ -5449,8 +5457,62 @@ def new_network(db_name, organization_name, description=None):
 
 
 def get_network_info(db_name):
-  return DATABASE[db_name].info.find_one()
+  key = '%s:info' % db_name
+  info = cache.get(key)
+  if info is not None:
+    return info 
+  
+  info = DATABASE[db_name].info.find_one()
+  cache.set(key, info, 86400)
+  return info
 
+def get_networks(user_id, user_email=None):
+  key = '%s:networks' % user_id
+  out = cache.get(key)
+  if out is not None:
+    return out
+  
+  
+  def sortkeypicker(keynames):
+    negate = set()
+    for i, k in enumerate(keynames):
+      if k[:1] == '-':
+        keynames[i] = k[1:]
+        negate.add(k[1:])
+        
+    def getit(adict):
+      composite = [adict[k] for k in keynames]
+      for i, (k, v) in enumerate(zip(keynames, composite)):
+        if k in negate:
+          composite[i] = -v
+      return composite
+    return getit
+  
+  if user_email:
+    email = user_email
+  else:
+    email = get_email_addresses(user_id)
+  db_names = get_db_names(email)
+  networks_list = []
+  for db_name in db_names:
+    if db_name == 'play_jupo_com':
+      info = {'name': 'Jupo', 'timestamp': 0}
+    else:
+      info = get_network_info(db_name)
+    
+    if info:
+      info['unread_notifications'] = get_unread_notifications_count(user_id=user_id, db_name=db_name)
+      info['domain'] = db_name.replace('_', '.')
+      info['url'] = 'http://%s/' % info['domain']
+      
+      networks_list.append(info)
+    
+    
+  out = sorted(networks_list, 
+               key=sortkeypicker(['-unread_notifications', 
+                                  'name', '-timestamp']))
+  cache.set(key, out)
+  return out
 
 PRIMARY_IP = socket.gethostbyname(settings.PRIMARY_DOMAIN)
 def domain_is_ok(domain_name):
@@ -5601,6 +5663,10 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
   msg_id = db.message.insert(info)
   info['_id'] = msg_id
   
+  
+  key = '%s:%s:messages' % (db_name, owner_id)
+  cache.delete(key)
+  
   if user_id:
     update_last_viewed(owner_id, user_id=user_id, db_name=db_name)
     key = '%s:%s:unread_messages' % (db_name, user_id)
@@ -5642,6 +5708,11 @@ def get_messages(session_id, db_name=None):
   if not owner_id:
     return False
   
+  key = '%s:%s:messages' % (db_name, owner_id)
+  messages = cache.get(key)
+  if messages is not None:
+    return messages 
+  
   messages = []
   users = db.message.find({'owner': owner_id,
                            'user_id': {'$exists': True}})
@@ -5677,7 +5748,11 @@ def get_messages(session_id, db_name=None):
   messages.sort(key=lambda k: k.get('ts'), reverse=1)
   
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
-  return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+  
+  messages = [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+  cache.set(key, messages)
+  
+  return messages
 
 
 def get_unread_messages_count(session_id, user_id=None, topic_id=None, db_name=None):
@@ -5821,6 +5896,10 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
         
   key = '%s:%s:unread_messages' % (db_name, owner_id)
   cache.delete(key)
+  
+  key = '%s:%s:messages' % (db_name, owner_id)
+  cache.delete(key)
+  
   return True
 
 def get_last_message(topic_id, db_name=None):
