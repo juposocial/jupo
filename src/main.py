@@ -1973,17 +1973,20 @@ def home():
       return redirect('/news_feed')
   
   
-  code = request.args.get('code')
-  user_id = api.get_user_id(code)
-  if user_id:
-    session['session_id'] = code
-    owner = api.get_user_info(user_id)
-    return render_template('profile_setup.html',
-                           owner=owner,
-                           code=code, user_id=user_id)
     
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
+  
+  if not user_id:
+    code = request.args.get('code')
+    user_id = api.get_user_id(code)
+    if user_id and not session_id:
+      session['session_id'] = code
+      owner = api.get_user_info(user_id)
+      return render_template('profile_setup.html',
+                             owner=owner,
+                             code=code, user_id=user_id)
+    
   if not session_id or not user_id:
     try:
       session.pop('session_id')
