@@ -62,15 +62,15 @@
             
               
               {% set content = comment.message | autolink | autoemoticon %}
-              {% set summary = content | lines_truncate | fix_unclosed_tags %}
+              {% set summary = content | lines_truncate %}
               
               
-              <div class='text'>{{ summary | nl2br }}</div>
+              <span class='text'>{{ summary | nl2br }}</span>
               {% if content|length > (summary|length + 3) %}
               <a class='see-more'>See more</a>
-              <div class='hidden text'>
+              <span class='hidden text'>
                 {{ content | nl2br }}
-              </div>
+              </span>
               {% endif %}
               
             {% else %}
