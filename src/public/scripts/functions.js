@@ -905,10 +905,6 @@ function stream() {
   
   source.onopen = function(e) {
     var ts = new Date().getTime();
-    // if ($.global.last_connect_timestamp != undefined && ts - $.global.last_connect_timestamp > 300000) { // 300 seconds = 5 minutes
-      // window.location.href = window.location.href;
-    // }
-    
     $.global.last_connect_timestamp = ts;
   }
   
@@ -2368,6 +2364,12 @@ function isScrolledIntoView(elem) {
 }
 
 function update_status(status, async) {
+  
+  // auto reload
+  if ($.global.last_connect_timestamp != undefined && ts - $.global.last_connect_timestamp > 600000) { // 600 seconds = 10 minutes
+    window.location.href = window.location.href;
+  }
+  
   var async = typeof (async) != 'undefined' ? async : true;
   if ($.global.status != status) {
     $.global.status = status;
