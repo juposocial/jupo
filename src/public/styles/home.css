@@ -277,8 +277,6 @@ body, input, textarea {
 .emoticon {
   display: inline;
   vertical-align: middle;
-  opacity: 0.9;
-  height: 18px;
 }
 
 .hidden {

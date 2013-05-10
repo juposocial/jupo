@@ -59,9 +59,20 @@
           {% else%}
           
             {% if '\n' in comment.message %}
-              <div class='text'>
-              {{ comment.message | autolink | autoemoticon | nl2br | sanitize }}
-              </div>
+            
+              
+              {% set content = comment.message | autolink | autoemoticon %}
+              {% set summary = content | lines_truncate %}
+              
+              
+              <span class='text'>{{ summary | nl2br }}</span>
+              {% if content|length > (summary|length + 3) %}
+              <a class='see-more'>See more</a>
+              <span class='hidden text'>
+                {{ content | nl2br }}
+              </span>
+              {% endif %}
+              
             {% else %}
               <span class='text'>
               {{ comment.message | autolink | autoemoticon | sanitize }}

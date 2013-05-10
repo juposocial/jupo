@@ -126,7 +126,11 @@ def _render(info, post_type, owner, viewport, mode=None, **kwargs):
     if status:
       key = key + ':' + status
       
+      
     key += ':%s:%s' % (post_type, owner_id)
+    if kwargs.get('group'):
+      key += ':%s' % kwargs.get('group').id
+      
     namespace = info.id
     
   else:

@@ -98,6 +98,7 @@ def render_homepage(session_id, title, **kwargs):
   else:
     friends_online = []
     groups = []
+    unread_messages = []
     unread_messages_count = 0
     unread_notification_count = 0
   
@@ -142,7 +143,7 @@ def event_stream(channel):
   pubsub = api.PUBSUB.pubsub()
   pubsub.subscribe(channel)
   for message in pubsub.listen():
-    yield 'data: %s\n\n' % message['data']
+    yield 'retry: 100\ndata: %s\n\n' % message['data']
     
 #===============================================================================
 # URL routing and handlers
@@ -185,12 +186,18 @@ def autocomplete():
     
     if type != 'user':
       groups = api.get_groups(session_id)
+      group_ids = [i.id for i in groups]
       owners.extend(groups)
   
       items = [{'id': 'public', 
                 'name': 'Public',
                 'avatar': '/public/images/public-group.png',
                 'type': 'group'}]
+      
+      for group in api.get_all_groups():
+        if group.id not in group_ids:
+          group_ids.append(group.id)
+          owners.append(group)
       
     else:
       items = []
@@ -447,8 +454,6 @@ def discover(name='discover', page=1):
                            code=code, user_id=user_id)
     
   session_id = session.get("session_id")
-  if request.cookies.get('utcoffset'):
-    api.update_utcoffset(session_id, request.cookies.get('utcoffset'))
   
   
   app.logger.debug('session_id: %s' % session_id)
@@ -1968,17 +1973,20 @@ def home():
       return redirect('/news_feed')
   
   
-  code = request.args.get('code')
-  user_id = api.get_user_id(code)
-  if user_id:
-    session['session_id'] = code
-    owner = api.get_user_info(user_id)
-    return render_template('profile_setup.html',
-                           owner=owner,
-                           code=code, user_id=user_id)
     
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
+  
+  if not user_id:
+    code = request.args.get('code')
+    user_id = api.get_user_id(code)
+    if user_id and not session_id:
+      session['session_id'] = code
+      owner = api.get_user_info(user_id)
+      return render_template('profile_setup.html',
+                             owner=owner,
+                             code=code, user_id=user_id)
+    
   if not session_id or not user_id:
     try:
       session.pop('session_id')
@@ -2022,9 +2030,6 @@ def news_feed(page=1):
     
     
   user_id = api.get_user_id(session_id)
-  
-  if request.cookies.get('utcoffset'):
-    api.update_utcoffset(user_id, request.cookies.get('utcoffset'))
   
   if user_id and request.cookies.get('redirect_to'):
     redirect_to = request.cookies.get('redirect_to')
@@ -2292,7 +2297,8 @@ def feed_actions(feed_id=None, action=None,
   
   
   elif action == 'remove':
-    feed_id = api.remove_feed(session_id, feed_id)
+    group_id = request.args.get('group_id')
+    api.remove_feed(session_id, feed_id, group_id=group_id)
     
   elif action == 'undo_remove':
     feed_id = api.undo_remove(session_id, feed_id)
@@ -2758,6 +2764,7 @@ def notifications():
     
   notifications = api.get_notifications(session_id)
   unread_messages = api.get_unread_messages(session_id)
+  unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
@@ -2768,8 +2775,9 @@ def notifications():
     resp = {'body': body,
             'title': 'Notifications'}
     
+    
     unread_count = api.get_unread_notifications_count(session_id) \
-                 + api.get_unread_messages_count(session_id)
+                 + unread_messages_count
     
     if unread_count:
       #  mark as read luôn các notifications không quan trọng
@@ -2907,76 +2915,48 @@ if 'jupo.com' in settings.PRIMARY_DOMAIN:
       return redirect(url, code=301)
   
   
-if __name__ == "__main__":
+def run_app(debug=False):
     
   from cherrypy import wsgiserver
-
-  formatter = logging.Formatter(
-    '(%(asctime)-6s) %(levelname)s: %(message)s' + '\n' + '-' * 80)
+    
+  settings.DEBUG = debug
   
-  file_logger = logging.FileHandler(filename='/var/log/jupo/errors.log')
-  file_logger.setLevel(logging.ERROR)
-  file_logger.setFormatter(formatter)
-  app.logger.addHandler(file_logger)
-    
-  try:  
-    port = int(sys.argv[1])    
-    
-    app.debug = settings.DEBUG
-            
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
-    try:
-      print 'Serving HTTP on 0.0.0.0 port %s...' % port
-      server.start()
-    except KeyboardInterrupt:
-      print '\nGoodbye.'
-      server.stop()
-    
-    
-  except (IndexError, TypeError): # dev only
+  app.debug = settings.DEBUG
+  
+  app.config['DEBUG_TB_PROFILER_ENABLED'] = True
+  app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
+  app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+  app.config['DEBUG_TB_PANELS'] = [
+      'flask_debugtoolbar.panels.versions.VersionDebugPanel',
+      'flask_debugtoolbar.panels.timer.TimerDebugPanel',
+      'flask_debugtoolbar.panels.headers.HeaderDebugPanel',
+      'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel',
+      'flask_debugtoolbar.panels.template.TemplateDebugPanel',
+      'flask_debugtoolbar.panels.logger.LoggingPanel',
+      'flask_debugtoolbar_mongo.panel.MongoDebugPanel',
+      'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel',
+      'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel'
+  ]
+  app.config['DEBUG_TB_MONGO'] = {
+    'SHOW_STACKTRACES': True,
+    'HIDE_FLASK_FROM_STACKTRACES': True
+  }
+  
+  toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+  
 
-    from gevent.pywsgi import WSGIServer
-    from gevent import monkey
-    monkey.patch_all()
-
-    
-    settings.DEBUG = True
-    
-    @werkzeug.serving.run_with_reloader
-    def server_run_with_auto_reloader():  
-      app.debug = True
-      
-      app.config['DEBUG_TB_PROFILER_ENABLED'] = True
-      app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
-      app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
-      app.config['DEBUG_TB_PANELS'] = [
-          'flask_debugtoolbar.panels.versions.VersionDebugPanel',
-          'flask_debugtoolbar.panels.timer.TimerDebugPanel',
-          'flask_debugtoolbar.panels.headers.HeaderDebugPanel',
-          'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel',
-          'flask_debugtoolbar.panels.template.TemplateDebugPanel',
-          'flask_debugtoolbar.panels.logger.LoggingPanel',
-          'flask_debugtoolbar_mongo.panel.MongoDebugPanel',
-          'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel',
-          'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel'
-      ]
-      app.config['DEBUG_TB_MONGO'] = {
-        'SHOW_STACKTRACES': True,
-        'HIDE_FLASK_FROM_STACKTRACES': True
-      }
-      
-      toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
-      
-
-      
-      server = WSGIServer(('0.0.0.0', 8888), app)
-      try:
-        print 'Serving HTTP on 0.0.0.0 port 8888...'
-        server.serve_forever()
-      except KeyboardInterrupt:
-        print '\nGoodbye.'
-        server.stop()
-
+  
+  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  try:
+    print 'Serving HTTP on 0.0.0.0 port 8888...'
+    server.start()
+  except KeyboardInterrupt:
+    print '\nGoodbye.'
+    server.stop()
+  
+  
+if __name__ == "__main__":
+  run_app(debug=True)
 
 
 

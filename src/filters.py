@@ -30,8 +30,8 @@ def lines_truncate(text, lines_count=5):
   
   key = '%s:lines_truncate' % hash(text)
   out = cache.get(key, namespace="filters")
-#  if out:
-#    return out
+  if out:
+    return out
   
   raw = text
   text = _normalize_newlines(text)
@@ -61,15 +61,23 @@ def lines_truncate(text, lines_count=5):
     
   # skip blank lines (and blank lines quote)
   if len([line for line in lines if line.strip() and line.strip() != '>']) >= lines_count:
-    blank_lines = len([line for line in lines if line.strip() in ['', '>']])
+    blank_lines = len([line for line in text.split('<br>') if line.strip() in ['', '>']])
     out = ' '.join(lines[:lines_count+blank_lines])
   else:
     out = text
     
+  is_truncated = False
   if len(out) < len(text):
-    text = ' '.join(text[:len(out)].split()[0:-1]).rstrip('.') + '...'
+    if '</' in text:
+      text = ' '.join(text[:len(out)].split(' ')[0:-1]).rstrip('.')
+    else:
+      text = '<br>'.join(text[:len(out)].split('<br>')[0:-1]).rstrip('.')
+    
+    is_truncated = True
+    
     if len(text) / float(len(raw)) > 0.7: # nếu còn 1 ít text thì hiện luôn, không cắt làm gì cho mệt
       text = raw
+      is_truncated = False
   
   out = text.replace('<br>', '\n')
   out = out.replace('8b0f0ea73162b7552dda3c149b6c045d', '<br>')
@@ -77,6 +85,10 @@ def lines_truncate(text, lines_count=5):
     out = out.replace(md5(i).hexdigest(), i)
   for i in links:
     out = out.replace(md5(i).hexdigest(), i)
+    
+  if is_truncated and not out.rstrip().endswith('...</a>'):
+    out = out + '...'
+    
   cache.set(key, out, namespace="filters")
   return out  
 
@@ -166,8 +178,8 @@ def autolink(text):
     if not url.startswith('http'):
       s = s.replace(url, '<a href="http://%s/" target="_blank" title="%s">%s</a>' % (hash_string, info.title if info.title else hash_string, hash_string))
     
-    elif len(url) > 70:
-      u = url[:70]
+    elif len(url) > 60:
+      u = url[:60]
         
       for template in ['%s ', ' %s', '\n%s', '%s\n', '%s.', '%s,']:
         if template % url in s:
@@ -183,8 +195,8 @@ def autolink(text):
         
   for url in urls:
     s = s.replace(md5(url).hexdigest(), url)
-    if len(url) > 70 and url.startswith('http'):
-      s = s.replace(md5(url[:70] + '...').hexdigest(), url[:70] + '...')
+    if len(url) > 60 and url.startswith('http'):
+      s = s.replace(md5(url[:60] + '...').hexdigest(), url[:60] + '...')
       
   
   mentions = MENTIONS_RE.findall(s)
@@ -564,7 +576,8 @@ def remove_empty_lines(html):
   if out:
     return out
   
-  if '</div>' in html:
+  if '</' in html:
+    html = html.strip().replace('\n', '')
     soup = BeautifulSoup(html)
     lines = []
     for element in soup.contents:
@@ -576,6 +589,8 @@ def remove_empty_lines(html):
       elif isinstance(element, NavigableString):
         lines.append(str(element).strip())
     out = ''.join(lines).strip()
+    while '\n\n' in out:
+      out = out.replace('\n\n', '\n')
   else:
     out = '\n'.join([line for line in html.split('\n') if line.strip()])
   cache.set(key, out, namespace="filters")
@@ -779,110 +794,112 @@ SYMBOLS = {
 
   
 EMOTICONS = {
- '#-o': '<img src="https://5works.s3.amazonaws.com/emoticons/40.gif" alt="d\'oh">',
- '#:-S': '<img src="https://5works.s3.amazonaws.com/emoticons/18.gif" alt="whew!">',
- '>-)': '<img src="https://5works.s3.amazonaws.com/emoticons/61.gif" alt="alien">',
- '>:)': '<img src="https://5works.s3.amazonaws.com/emoticons/19.gif" alt="devil">',
- '>:D<': '<img src="https://5works.s3.amazonaws.com/emoticons/6.gif" alt="big hug">',
- '>:P': '<img src="https://5works.s3.amazonaws.com/emoticons/47.gif" alt="phbbbbt">',
- '<):)': '<img src="https://5works.s3.amazonaws.com/emoticons/48.gif" alt="cowboy">',
- '<:-P': '<img src="https://5works.s3.amazonaws.com/emoticons/36.gif" alt="party">',
- '<:o)': '<img src="https://5works.s3.amazonaws.com/emoticons/36.gif" alt="party">',
- '(%)': '<img src="https://5works.s3.amazonaws.com/emoticons/75.gif" alt="yin yang">',
- '(*)': '<img src="https://5works.s3.amazonaws.com/emoticons/79.gif" alt="star">',
- '(:|': '<img src="https://5works.s3.amazonaws.com/emoticons/37.gif" alt="yawn">',
- '**==': '<img src="https://5works.s3.amazonaws.com/emoticons/55.gif" alt="flag">',
- '/:)': '<img src="https://5works.s3.amazonaws.com/emoticons/23.gif" alt="raised eyebrows">',
- '8->': '<img src="https://5works.s3.amazonaws.com/emoticons/105.gif" alt="day dreaming">',
- '8-X': '<img src="https://5works.s3.amazonaws.com/emoticons/59.gif" alt="skull">',
-# '8-|': '<img src="https://5works.s3.amazonaws.com/emoticons/29.gif" alt="rolling eyes">',  # duplicate with nerd
- '8-)': '<img src="https://5works.s3.amazonaws.com/emoticons/29.gif" alt="rolling eyes">',
- '8-}': '<img src="https://5works.s3.amazonaws.com/emoticons/35.gif" alt="silly">',
- ':!!': '<img src="https://5works.s3.amazonaws.com/emoticons/110.gif" alt="hurry up!">',
- ':">': '<img src="https://5works.s3.amazonaws.com/emoticons/9.gif" alt="blushing">',
- ':>': '<img src="https://5works.s3.amazonaws.com/emoticons/15.gif" alt="smug">',
- ':(': '<img src="https://5works.s3.amazonaws.com/emoticons/2.gif" alt="sad">',
- ':-(': '<img src="https://5works.s3.amazonaws.com/emoticons/2.gif" alt="sad">',
- ':((': '<img src="https://5works.s3.amazonaws.com/emoticons/20.gif" alt="crying">',
- ":'(": '<img src="https://5works.s3.amazonaws.com/emoticons/20.gif" alt="crying">',
- ':(|)': '<img src="https://5works.s3.amazonaws.com/emoticons/51.gif" alt="monkey">',
- ':)': '<img src="https://5works.s3.amazonaws.com/emoticons/1.gif" alt="happy">',
- ':-)': '<img src="https://5works.s3.amazonaws.com/emoticons/1.gif" alt="happy">',
- ':)>-': '<img src="https://5works.s3.amazonaws.com/emoticons/67.gif" alt="peace sign">',
- ':))': '<img src="https://5works.s3.amazonaws.com/emoticons/21.gif" alt="laughing">',
- ':)]': '<img src="https://5works.s3.amazonaws.com/emoticons/100.gif" alt="on the phone">',
- ':-"': '<img src="https://5works.s3.amazonaws.com/emoticons/65.gif" alt="whistling">',
- ':-$': '<img src="https://5works.s3.amazonaws.com/emoticons/32.gif" alt="don\'t tell anyone">',
- ':$': '<img src="https://5works.s3.amazonaws.com/emoticons/32.gif" alt="don\'t tell anyone">',
- ':-#': '<img src="https://5works.s3.amazonaws.com/emoticons/32.gif" alt="don\'t tell anyone">',
- ':-&': '<img src="https://5works.s3.amazonaws.com/emoticons/31.gif" alt="sick">',
- ':-<': '<img src="https://5works.s3.amazonaws.com/emoticons/46.gif" alt="sigh">',
- ':-*': '<img src="https://5works.s3.amazonaws.com/emoticons/11.gif" alt="kiss">',
- ':-/': '<img src="https://5works.s3.amazonaws.com/emoticons/7.gif" alt="confused">',
- ':-?': '<img src="https://5works.s3.amazonaws.com/emoticons/39.gif" alt="thinking">',
- '*-)': '<img src="https://5works.s3.amazonaws.com/emoticons/39.gif" alt="thinking">',
- ':-??': '<img src="https://5works.s3.amazonaws.com/emoticons/106.gif" alt="I don\'t know">',
- ':^)': '<img src="https://5works.s3.amazonaws.com/emoticons/106.gif" alt="I don\'t know">',
- ':-B': '<img src="https://5works.s3.amazonaws.com/emoticons/26.gif" alt="nerd">',
- '8-|': '<img src="https://5works.s3.amazonaws.com/emoticons/26.gif" alt="nerd">',
- ':-O': '<img src="https://5works.s3.amazonaws.com/emoticons/13.gif" alt="surprise">',
- ':o': '<img src="https://5works.s3.amazonaws.com/emoticons/13.gif" alt="surprise">',
- ':-SS': '<img src="https://5works.s3.amazonaws.com/emoticons/42.gif" alt="nail biting">',
- ':-ss': '<img src="https://5works.s3.amazonaws.com/emoticons/42.gif" alt="nail biting">',
- ':-S': '<img src="https://5works.s3.amazonaws.com/emoticons/17.gif" alt="worried">',
- ':-s': '<img src="https://5works.s3.amazonaws.com/emoticons/17.gif" alt="worried">',
- ':s': '<img src="https://5works.s3.amazonaws.com/emoticons/17.gif" alt="worried">',
- ':-bd': '<img src="https://5works.s3.amazonaws.com/emoticons/113.gif" alt="thumbs up">',
- ':-c': '<img src="https://5works.s3.amazonaws.com/emoticons/101.gif" alt="call me">',
- ':-h': '<img src="https://5works.s3.amazonaws.com/emoticons/103.gif" alt="wave">',
- ':-q': '<img src="https://5works.s3.amazonaws.com/emoticons/112.gif" alt="thumbs down">',
- ':-t': '<img src="https://5works.s3.amazonaws.com/emoticons/104.gif" alt="time out">',
- ':-w': '<img src="https://5works.s3.amazonaws.com/emoticons/45.gif" alt="waiting">',
- ':@)': '<img src="https://5works.s3.amazonaws.com/emoticons/49.gif" alt="pig">',
- ':D': '<img src="https://5works.s3.amazonaws.com/emoticons/4.gif" alt="big grin">',
- ':-D': '<img src="https://5works.s3.amazonaws.com/emoticons/4.gif" alt="big grin">',
- ':d': '<img src="https://5works.s3.amazonaws.com/emoticons/4.gif" alt="big grin">',
- ':O)': '<img src="https://5works.s3.amazonaws.com/emoticons/34.gif" alt="clown">',
- ':P': '<img src="https://5works.s3.amazonaws.com/emoticons/10.gif" alt="tongue">',
- ':p': '<img src="https://5works.s3.amazonaws.com/emoticons/10.gif" alt="tongue">',
- ':-P': '<img src="https://5works.s3.amazonaws.com/emoticons/10.gif" alt="tongue">',
- ':^o': '<img src="https://5works.s3.amazonaws.com/emoticons/44.gif" alt="liar">',
- ':ar!': '<img src="https://5works.s3.amazonaws.com/emoticons/pirate_2.gif" alt="pirate">',
- ':x': '<img src="https://5works.s3.amazonaws.com/emoticons/8.gif" alt="love struck">',
-# '<3': '<img src="https://5works.s3.amazonaws.com/emoticons/8.gif" alt="love struck">',
- ':|': '<img src="https://5works.s3.amazonaws.com/emoticons/22.gif" alt="straight face">',
- ':-|': '<img src="https://5works.s3.amazonaws.com/emoticons/22.gif" alt="straight face">',
- ';)': '<img src="https://5works.s3.amazonaws.com/emoticons/3.gif" alt="winking">',
- ';-)': '<img src="https://5works.s3.amazonaws.com/emoticons/3.gif" alt="winking">',
- ';))': '<img src="https://5works.s3.amazonaws.com/emoticons/71.gif" alt="hee hee">',
- ';;)': '<img src="https://5works.s3.amazonaws.com/emoticons/5.gif" alt="batting eyelashes">',
- '=((': '<img src="https://5works.s3.amazonaws.com/emoticons/12.gif" alt="broken heart">',
- '=))': '<img src="https://5works.s3.amazonaws.com/emoticons/24.gif" alt="rolling on the floor">',
- '=;': '<img src="https://5works.s3.amazonaws.com/emoticons/27.gif" alt="talk to the hand">',
- '=D>': '<img src="https://5works.s3.amazonaws.com/emoticons/41.gif" alt="applause">',
- '=P~': '<img src="https://5works.s3.amazonaws.com/emoticons/38.gif" alt="drooling">',
- '@-)': '<img src="https://5works.s3.amazonaws.com/emoticons/43.gif" alt="hypnotized">',
- '@};-': '<img src="https://5works.s3.amazonaws.com/emoticons/53.gif" alt="rose">',
- 'B-)': '<img src="https://5works.s3.amazonaws.com/emoticons/16.gif" alt="cool">',
- 'I-)': '<img src="https://5works.s3.amazonaws.com/emoticons/28.gif" alt="sleepy">',
- '|-)': '<img src="https://5works.s3.amazonaws.com/emoticons/28.gif" alt="sleepy">',
- 'L-)': '<img src="https://5works.s3.amazonaws.com/emoticons/30.gif" alt="loser">',
- 'O:-)': '<img src="https://5works.s3.amazonaws.com/emoticons/25.gif" alt="angel">',
- 'X(': '<img src="https://5works.s3.amazonaws.com/emoticons/14.gif" alt="angry">',
- ':@': '<img src="https://5works.s3.amazonaws.com/emoticons/14.gif" alt="angry">',
- ':-@': '<img src="https://5works.s3.amazonaws.com/emoticons/14.gif" alt="angry">',
- 'X_X': '<img src="https://5works.s3.amazonaws.com/emoticons/109.gif" alt="I don\'t want to see">',
- '[-(': '<img src="https://5works.s3.amazonaws.com/emoticons/33.gif" alt="no talking">',
- '[-O<': '<img src="https://5works.s3.amazonaws.com/emoticons/63.gif" alt="praying">',
- '[..]': '<img src="https://5works.s3.amazonaws.com/emoticons/transformer.gif" alt="transformer*">',
- '\\:D/': '<img src="https://5works.s3.amazonaws.com/emoticons/69.gif" alt="dancing">',
- '\\m/': '<img src="https://5works.s3.amazonaws.com/emoticons/111.gif" alt="rock on!">',
- '^#(^': '<img src="https://5works.s3.amazonaws.com/emoticons/114.gif" alt="it wasn\'t me">',
- '^:)^': '<img src="https://5works.s3.amazonaws.com/emoticons/77.gif" alt="not worthy">',
- 'o=>': '<img src="https://5works.s3.amazonaws.com/emoticons/73.gif" alt="billy">',
- '~O)': '<img src="https://5works.s3.amazonaws.com/emoticons/57.gif" alt="coffee">',
- '~X(': '<img src="https://5works.s3.amazonaws.com/emoticons/102.gif" alt="at wits\' end">',
- ':-L': '<img src="https://5works.s3.amazonaws.com/emoticons/62.gif" alt="frustrated">'
+ '#-o': '<img src="http://jupo.s3.amazonaws.com/emoticons/40.gif" alt="d\'oh">',
+ '#:-S': '<img src="http://jupo.s3.amazonaws.com/emoticons/18.gif" alt="whew!">',
+ '>-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/61.gif" alt="alien">',
+ '>:)': '<img src="http://jupo.s3.amazonaws.com/emoticons/19.gif" alt="devil">',
+ '>:D<': '<img src="http://jupo.s3.amazonaws.com/emoticons/6.gif" alt="big hug">',
+ '>:P': '<img src="http://jupo.s3.amazonaws.com/emoticons/47.gif" alt="phbbbbt">',
+ '<):)': '<img src="http://jupo.s3.amazonaws.com/emoticons/48.gif" alt="cowboy">',
+ '<:-P': '<img src="http://jupo.s3.amazonaws.com/emoticons/36.gif" alt="party">',
+ '<:o)': '<img src="http://jupo.s3.amazonaws.com/emoticons/36.gif" alt="party">',
+ '(%)': '<img src="http://jupo.s3.amazonaws.com/emoticons/75.gif" alt="yin yang">',
+ '(*)': '<img src="http://jupo.s3.amazonaws.com/emoticons/79.gif" alt="star">',
+ '(:|': '<img src="http://jupo.s3.amazonaws.com/emoticons/37.gif" alt="yawn">',
+ '**==': '<img src="http://jupo.s3.amazonaws.com/emoticons/55.gif" alt="flag">',
+ '/:)': '<img src="http://jupo.s3.amazonaws.com/emoticons/23.gif" alt="raised eyebrows">',
+ '8->': '<img src="http://jupo.s3.amazonaws.com/emoticons/105.gif" alt="day dreaming">',
+ '8-X': '<img src="http://jupo.s3.amazonaws.com/emoticons/59.gif" alt="skull">',
+# '8-|': '<img src="http://jupo.s3.amazonaws.com/emoticons/29.gif" alt="rolling eyes">',  # duplicate with nerd
+ '8-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/29.gif" alt="rolling eyes">',
+ '8-}': '<img src="http://jupo.s3.amazonaws.com/emoticons/35.gif" alt="silly">',
+ ':!!': '<img src="http://jupo.s3.amazonaws.com/emoticons/110.gif" alt="hurry up!">',
+ ':">': '<img src="http://jupo.s3.amazonaws.com/emoticons/9.gif" alt="blushing">',
+ ':>': '<img src="http://jupo.s3.amazonaws.com/emoticons/15.gif" alt="smug">',
+ ':(': '<img src="http://jupo.s3.amazonaws.com/emoticons/2.gif" alt="sad">',
+ ':-(': '<img src="http://jupo.s3.amazonaws.com/emoticons/2.gif" alt="sad">',
+ ':((': '<img src="http://jupo.s3.amazonaws.com/emoticons/20.gif" alt="crying">',
+ ":'(": '<img src="http://jupo.s3.amazonaws.com/emoticons/20.gif" alt="crying">',
+ ':(|)': '<img src="http://jupo.s3.amazonaws.com/emoticons/51.gif" alt="monkey">',
+ ':)': '<img src="http://jupo.s3.amazonaws.com/emoticons/1.gif" alt="happy">',
+ ':-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/1.gif" alt="happy">',
+ ':)>-': '<img src="http://jupo.s3.amazonaws.com/emoticons/67.gif" alt="peace sign">',
+ ':))': '<img src="http://jupo.s3.amazonaws.com/emoticons/21.gif" alt="laughing">',
+ ':)]': '<img src="http://jupo.s3.amazonaws.com/emoticons/100.gif" alt="on the phone">',
+ ':-"': '<img src="http://jupo.s3.amazonaws.com/emoticons/65.gif" alt="whistling">',
+ ':-$': '<img src="http://jupo.s3.amazonaws.com/emoticons/32.gif" alt="don\'t tell anyone">',
+ ':$': '<img src="http://jupo.s3.amazonaws.com/emoticons/32.gif" alt="don\'t tell anyone">',
+ ':-#': '<img src="http://jupo.s3.amazonaws.com/emoticons/32.gif" alt="don\'t tell anyone">',
+ ':-&': '<img src="http://jupo.s3.amazonaws.com/emoticons/31.gif" alt="sick">',
+ ':-<': '<img src="http://jupo.s3.amazonaws.com/emoticons/46.gif" alt="sigh">',
+ ':-*': '<img src="http://jupo.s3.amazonaws.com/emoticons/11.gif" alt="kiss">',
+ ':-/': '<img src="http://jupo.s3.amazonaws.com/emoticons/7.gif" alt="confused">',
+ ':-?': '<img src="http://jupo.s3.amazonaws.com/emoticons/39.gif" alt="thinking">',
+ '*-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/39.gif" alt="thinking">',
+ ':-??': '<img src="http://jupo.s3.amazonaws.com/emoticons/106.gif" alt="I don\'t know">',
+ ':^)': '<img src="http://jupo.s3.amazonaws.com/emoticons/106.gif" alt="I don\'t know">',
+ ':-B': '<img src="http://jupo.s3.amazonaws.com/emoticons/26.gif" alt="nerd">',
+ '8-|': '<img src="http://jupo.s3.amazonaws.com/emoticons/26.gif" alt="nerd">',
+ ':-O': '<img src="http://jupo.s3.amazonaws.com/emoticons/13.gif" alt="surprise">',
+ ':o': '<img src="http://jupo.s3.amazonaws.com/emoticons/13.gif" alt="surprise">',
+ ':-SS': '<img src="http://jupo.s3.amazonaws.com/emoticons/42.gif" alt="nail biting">',
+ ':-ss': '<img src="http://jupo.s3.amazonaws.com/emoticons/42.gif" alt="nail biting">',
+ ':-S': '<img src="http://jupo.s3.amazonaws.com/emoticons/17.gif" alt="worried">',
+ ':-s': '<img src="http://jupo.s3.amazonaws.com/emoticons/17.gif" alt="worried">',
+ ':s': '<img src="http://jupo.s3.amazonaws.com/emoticons/17.gif" alt="worried">',
+ ':-bd': '<img src="http://jupo.s3.amazonaws.com/emoticons/113.gif" alt="thumbs up">',
+ ':-c': '<img src="http://jupo.s3.amazonaws.com/emoticons/101.gif" alt="call me">',
+ ':-h': '<img src="http://jupo.s3.amazonaws.com/emoticons/103.gif" alt="wave">',
+ ':-q': '<img src="http://jupo.s3.amazonaws.com/emoticons/112.gif" alt="thumbs down">',
+ ':-t': '<img src="http://jupo.s3.amazonaws.com/emoticons/104.gif" alt="time out">',
+ ':-w': '<img src="http://jupo.s3.amazonaws.com/emoticons/45.gif" alt="waiting">',
+ ':@)': '<img src="http://jupo.s3.amazonaws.com/emoticons/49.gif" alt="pig">',
+ ':D': '<img src="http://jupo.s3.amazonaws.com/emoticons/4.gif" alt="big grin">',
+ ':-D': '<img src="http://jupo.s3.amazonaws.com/emoticons/4.gif" alt="big grin">',
+ ':d': '<img src="http://jupo.s3.amazonaws.com/emoticons/4.gif" alt="big grin">',
+ ':O)': '<img src="http://jupo.s3.amazonaws.com/emoticons/34.gif" alt="clown">',
+ ':P': '<img src="http://jupo.s3.amazonaws.com/emoticons/10.gif" alt="tongue">',
+ ':p': '<img src="http://jupo.s3.amazonaws.com/emoticons/10.gif" alt="tongue">',
+ ':-P': '<img src="http://jupo.s3.amazonaws.com/emoticons/10.gif" alt="tongue">',
+ ':^o': '<img src="http://jupo.s3.amazonaws.com/emoticons/44.gif" alt="liar">',
+ ':ar!': '<img src="http://jupo.s3.amazonaws.com/emoticons/pirate_2.gif" alt="pirate">',
+ ':x': '<img src="http://jupo.s3.amazonaws.com/emoticons/8.gif" alt="love struck">',
+# '<3': '<img src="http://jupo.s3.amazonaws.com/emoticons/8.gif" alt="love struck">',
+ ':|': '<img src="http://jupo.s3.amazonaws.com/emoticons/22.gif" alt="straight face">',
+ ':-|': '<img src="http://jupo.s3.amazonaws.com/emoticons/22.gif" alt="straight face">',
+ ';)': '<img src="http://jupo.s3.amazonaws.com/emoticons/3.gif" alt="winking">',
+ ';-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/3.gif" alt="winking">',
+ ';))': '<img src="http://jupo.s3.amazonaws.com/emoticons/71.gif" alt="hee hee">',
+ ';;)': '<img src="http://jupo.s3.amazonaws.com/emoticons/5.gif" alt="batting eyelashes">',
+ '=((': '<img src="http://jupo.s3.amazonaws.com/emoticons/12.gif" alt="broken heart">',
+ '=))': '<img src="http://jupo.s3.amazonaws.com/emoticons/24.gif" alt="rolling on the floor">',
+ '=;': '<img src="http://jupo.s3.amazonaws.com/emoticons/27.gif" alt="talk to the hand">',
+ '=D>': '<img src="http://jupo.s3.amazonaws.com/emoticons/41.gif" alt="applause">',
+ '=P~': '<img src="http://jupo.s3.amazonaws.com/emoticons/38.gif" alt="drooling">',
+ '@-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/43.gif" alt="hypnotized">',
+ '@};-': '<img src="http://jupo.s3.amazonaws.com/emoticons/53.gif" alt="rose">',
+ 'B-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/16.gif" alt="cool">',
+ 'I-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/28.gif" alt="sleepy">',
+ '|-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/28.gif" alt="sleepy">',
+ 'L-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/30.gif" alt="loser">',
+ 'O:-)': '<img src="http://jupo.s3.amazonaws.com/emoticons/25.gif" alt="angel">',
+ 'X(': '<img src="http://jupo.s3.amazonaws.com/emoticons/14.gif" alt="angry">',
+ ':@': '<img src="http://jupo.s3.amazonaws.com/emoticons/14.gif" alt="angry">',
+ ':-@': '<img src="http://jupo.s3.amazonaws.com/emoticons/14.gif" alt="angry">',
+ 'X_X': '<img src="http://jupo.s3.amazonaws.com/emoticons/109.gif" alt="I don\'t want to see">',
+ '[-(': '<img src="http://jupo.s3.amazonaws.com/emoticons/33.gif" alt="no talking">',
+ '[-O<': '<img src="http://jupo.s3.amazonaws.com/emoticons/63.gif" alt="praying">',
+ '[..]': '<img src="http://jupo.s3.amazonaws.com/emoticons/transformer.gif" alt="transformer*">',
+ '\\:D/': '<img src="http://jupo.s3.amazonaws.com/emoticons/69.gif" alt="dancing">',
+ '\\m/': '<img src="http://jupo.s3.amazonaws.com/emoticons/111.gif" alt="rock on!">',
+ '^#(^': '<img src="http://jupo.s3.amazonaws.com/emoticons/114.gif" alt="it wasn\'t me">',
+ '^:)^': '<img src="http://jupo.s3.amazonaws.com/emoticons/77.gif" alt="not worthy">',
+ 'o=>': '<img src="http://jupo.s3.amazonaws.com/emoticons/73.gif" alt="billy">',
+ '~O)': '<img src="http://jupo.s3.amazonaws.com/emoticons/57.gif" alt="coffee">',
+ '~X(': '<img src="http://jupo.s3.amazonaws.com/emoticons/102.gif" alt="at wits\' end">',
+ ':-L': '<img src="http://jupo.s3.amazonaws.com/emoticons/62.gif" alt="frustrated">',
+ 
+ '(y)': '<img src="http://jupo.s3.amazonaws.com/emoticons/thumbs-up.png" alt="thumbs up">'
  
  }
 

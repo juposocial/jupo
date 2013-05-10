@@ -15,7 +15,12 @@ def login_required(f):
   @wraps(f)
   def wrapper(*args, **kwargs):
     session_id = session.get('session_id')
-    if api.get_user_id(session_id):
+    user_id = api.get_user_id(session_id)
+    if user_id:
+      utcoffset = request.cookies.get('utcoffset')
+      if utcoffset:
+        api.update_utcoffset(user_id, utcoffset)
+        
       return f(*args, **kwargs)
     resp = redirect('/')
     back_to = request.args.get('back_to')

@@ -447,41 +447,8 @@ class User(Model):
   
   @property
   def networks(self):
-    
-    def sortkeypicker(keynames):
-      negate = set()
-      for i, k in enumerate(keynames):
-        if k[:1] == '-':
-          keynames[i] = k[1:]
-          negate.add(k[1:])
-          
-      def getit(adict):
-        composite = [adict[k] for k in keynames]
-        for i, (k, v) in enumerate(zip(keynames, composite)):
-          if k in negate:
-            composite[i] = -v
-        return composite
-      return getit
-    
-    db_names = api.get_db_names(self.email)
-    networks_list = []
-    for db_name in db_names:
-      if db_name == 'play_jupo_com':
-        info = {'name': 'Jupo', 'timestamp': 0}
-      else:
-        info = api.get_network_info(db_name)
-      
-      if info:
-        info['unread_notifications'] = api.get_unread_notifications_count(user_id=self.id, db_name=db_name)
-        info['domain'] = db_name.replace('_', '.')
-        info['url'] = 'http://%s/' % info['domain']
-        
-        networks_list.append(info)
-      
-      
-    return sorted(networks_list, 
-                  key=sortkeypicker(['-unread_notifications', 
-                                     'name', '-timestamp']))
+    out = api.get_networks(self.id, self.email)
+    return out if out else []
     
     
   @property

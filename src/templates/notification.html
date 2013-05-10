@@ -1,6 +1,6 @@
 
 {% set msg_count = messages | length %}
-{% cache "%s:notification:%s:%s:%s" % (owner.id, key, msg_count, messages[-1].is_unread() )%}
+{% cache "%s:notification:%s:%s:%s" % (owner.id, key, msg_count, messages[0].is_unread() )%}
 
 <li>  
   {% if msg_count == 1 %}
@@ -85,15 +85,38 @@
     <a href='#!/post/{{ messages[-1].id }}/mark_as_read?continue={% if messages[-1].type in ['follow', 'add_contact', 'google_friend_just_joined', 'facebook_friend_just_joined'] %}/user/{{ messages[-1].sender.id }}{% else %}/feed/{{ messages[-1].ref_id }}{% endif %}' class='notification {% if  messages[-1].is_unread() %}unread{% endif %}'>
       <img src='{{ messages[0].sender.avatar }}' class='lfloat small-avatar'>     
       
-      {% for notification in messages %}
+      {% if msg_count == 2 %}
       
-        <span class='username'>{{ notification.sender.name }}</span>{% if loop.index < msg_count - 1 %}, {% elif loop.index == msg_count - 1%} and {% else %}{% endif %}
+        <span class='username'>{{ messages[0].sender.name }}</span> and
+        <span class='username'>{{ messages[1].sender.name }}</span>
       
-      {% endfor %} 
+      {% else %}
+      
+        <span class='username'>{{ messages[0].sender.name }}</span> and 
+        <span class='username'>{{ msg_count - 1 }} others</span>
+        
+      {% endif %}
+      
       
       {% if key.startswith('comment') %}
       
-        commented on {% if messages[0].details.owner.id == owner.id %}your{% else %}<span class='username'>{{ messages[0].details.owner.name }}</span>'s{% endif %} post.
+        commented on 
+        
+        {% if messages[0].details.owner.id == owner.id %}
+        
+          your
+        
+        {% elif messages[0].sender.gender and messages[0].details.owner.id == messages[0].sender.id %}
+          
+          {% if messages[0].sender.gender == 'male' %}
+            his
+          {% else %}
+            her
+          {% endif %}
+          
+        {% else %}
+          <span class='username'>{{ messages[0].details.owner.name }}</span>'s
+        {% endif %} post.
       
       {% elif key.startswith('like') %}
         like your 

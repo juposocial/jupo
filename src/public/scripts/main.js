@@ -18,6 +18,7 @@ $(document).ready(function(e) {
   // restore chat windows
   if (localStorage.getItem('chats') != undefined) {
     chat_ids = localStorage['chats'].split(',');
+    console.log(chat_ids);
     for (var i = 0; i < chat_ids.length; i++) {
       var chat_id = chat_ids[i];
       
@@ -40,12 +41,15 @@ $(document).ready(function(e) {
 
   if (window.location.href.indexOf('#comment-') != -1) {
     var comment_id = window.location.href.split('#')[1]
-    $('#' + comment_id).addClass('animate flash');
-    
-    offset_top = $('#' + comment_id).offset().top - 45;
-    $('html,body').animate({
-      scrollTop: offset_top
-    }, 'fast');
+    var comment = $('#' + comment_id)
+    if (comment.length > 0) {
+      comment.addClass('animate flash');
+      
+      offset_top = comment.offset().top - 45;
+      $('html,body').animate({
+        scrollTop: offset_top
+      }, 'fast');
+    }
   }
 
 
@@ -159,7 +163,7 @@ $(document).ready(function(e) {
     $('a.dropdown-menu-icon.active').removeClass('active');
 
     var href = $(this).attr("href");
-    feed = $(this).parents('li.feed');
+    var feed = $(this).parents('li.feed');
     
     message = '<div class="undo">' + 'This post has been removed. </strong>' + '<a class="undo" href="' + href.replace('remove', 'undo_remove') + '">Undo</a>' + '</div>';
 
@@ -189,6 +193,7 @@ $(document).ready(function(e) {
 
       }
     });
+    console.log('asdf')
     return false;
 
   });
@@ -241,7 +246,6 @@ $(document).ready(function(e) {
         }
       });
     }
-
     return false;
   })
 
@@ -1995,7 +1999,7 @@ $(document).ready(function(e) {
       var title = document.title;
       var pattern = /^\(.*?\) /gi;
       var count = title.match(pattern);
-      if (unread_notifications_count != 0) {
+      if (unread_notifications_count > 0) {
         $('#unread-notification-counter').removeClass('grey');
         if (count == null) {
           document.title = '(' + $('#unread-notification-counter').html() + ') ' + title;
@@ -2115,7 +2119,6 @@ $(document).ready(function(e) {
     
     var _this = $(this);
     var _boxchat = _this.parents('.chatbox');
-    var last_msg = $('li.message:last', _boxchat);
     
     $('textarea.mentions', _this).attr('readonly', 'readonly')
     $('form', _boxchat).addClass('gray-bg')
@@ -2134,6 +2137,8 @@ $(document).ready(function(e) {
       data: $(this).serializeArray(),
       dataType: "html",
       success: function(data) {
+        $('div.status', _boxchat).fadeOut('fast');
+
         $('form', _boxchat).removeClass('gray-bg');
         $('textarea.mentions', _this).attr("readonly", false);
         $('textarea.mentions', _this).val('').focus();
@@ -2148,20 +2153,24 @@ $(document).ready(function(e) {
           var msg_ts = msg.data('ts');
           var sender_id = msg.attr('data-sender-id');
           
-          if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-            var content = $('.content', msg).html();
-            $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
-            $(last_msg).data('ts', msg_ts);
-            $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+          var last_msg = $('li.message:last', _boxchat);
+          
+          if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+            if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
+              var content = $('.content', msg).html();
+              $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+              $(last_msg).data('ts', msg_ts);
+              $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+              
+            } else {
+              $('.messages', _boxchat).append(data);
+            }
             
-          } else {
-            $('.messages', _boxchat).append(data);
+            setTimeout(function() {
+              $('.messages', _boxchat).scrollTop(99999);
+            }, 10)
           }
           
-          
-          setTimeout(function() {
-            $('.messages', _boxchat).scrollTop(99999);
-          }, 10)
         }
         
       }

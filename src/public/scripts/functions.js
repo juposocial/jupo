@@ -1,4 +1,4 @@
-  
+
 
 function toggle_chatbox(chatbox_id) {
   
@@ -39,6 +39,7 @@ function close_chat(chat_id) {
   return true;
   
 }
+
     
 function start_chat(chat_id) {
   if (chat_id.indexOf('-') == -1) {
@@ -54,6 +55,7 @@ function start_chat(chat_id) {
     return false;
   }
   
+  
   var href = '/chat/' + chat_id.replace('-', '/');
 
   show_loading();
@@ -66,7 +68,7 @@ function start_chat(chat_id) {
       if ($('#chat-' + chat_id).length > 0) {
           return false;
       }
-      
+  
       var chat_ids = localStorage.getItem('chats');
       if (chat_ids != undefined && chat_ids.indexOf(chat_id) == -1) {
         localStorage['chats'] = chat_ids + ',' + chat_id;
@@ -75,6 +77,7 @@ function start_chat(chat_id) {
       }
       
       $('#chat').prepend(html);
+      
       
       if (localStorage.getItem('state-chat-' + chat_id) == 'minimize') {
         toggle_chatbox('chat-' + chat_id);
@@ -842,7 +845,12 @@ function decr(id, value) {
   var item = $(id);
   var value = typeof (value) != 'undefined' ? value : 1;
   value = parseInt(item.html()) - parseInt(value);
+  
+  if (value < 0) {
+    value = 0;
+  }
   item.html(value);
+  
   if (value == 0) {
     item.hide();
   }
@@ -897,10 +905,6 @@ function stream() {
   
   source.onopen = function(e) {
     var ts = new Date().getTime();
-    if ($.global.last_connect_timestamp != undefined && ts - $.global.last_connect_timestamp > 300000) { // 300 seconds = 5 minutes
-      window.location.href = window.location.href;
-    }
-    
     $.global.last_connect_timestamp = ts;
   }
   
@@ -1055,22 +1059,23 @@ function stream() {
   
           if (comment.length != 0 && $('#body #' + comment.attr('id')).length == 0) {
             
-            
-            var offset_top = null;
-            var last_comment = $('#' + feed_id + ' li.comment:last');
-            
-            if (last_comment.length == 0) {
-              if ($('#' + feed_id).length != 0) {
-                offset_top = $('#' + feed_id).offset().top
+            if ($('textarea:focus').length == 0) {
+              var offset_top = null;
+              var last_comment = $('#' + feed_id + ' li.comment:last');
+              
+              if (last_comment.length == 0) {
+                if ($('#' + feed_id).length != 0) {
+                  offset_top = $('#' + feed_id).offset().top
+                }
+                
+              } else {
+                offset_top = last_comment.offset().top
               }
               
-            } else {
-              offset_top = last_comment.offset().top
+              if (offset_top != null) {
+                $('body').scrollTop(offset_top - 250);
+              }  
             }
-            
-            if (offset_top != null) {
-              $('body').scrollTop(offset_top - 250);
-            }  
             
             $('#body #' + feed_id + ' ul.comments').removeClass('hidden');
             $('#body #' + feed_id + ' div.comments-list').append(comment.hide().fadeIn('fast'));
@@ -1169,10 +1174,14 @@ function stream() {
         
         
         var group_id = event.type.split('|')[0];
-        incr('#group-' + group_id + ' span.count');
+        var feed = $(event.info);
+        
+        if ($('a[data-user-id]', feed).attr('data-user-id') != $('header a[data-owner-id]').attr('data-owner-id')) {
+          incr('#group-' + group_id + ' span.count');
+        }
         
         if (window.location.pathname.indexOf(group_id) != -1) {
-          var feed_id = $(event.info).attr('id');
+          var feed_id = feed.attr('id');
           if ($.global.disable_realtime_update != feed_id) {
             
   
@@ -1183,21 +1192,23 @@ function stream() {
   
               if (comment.length != 0 && $('#' + comment.attr('id')).length == 0) {
                 
-                var offset_top = null;
-                var last_comment = $('#' + feed_id + ' li.comment:last');
-                
-                if (last_comment.length == 0) {
-                  if ($('#' + feed_id).length != 0) {
-                    offset_top = $('#' + feed_id).offset().top
+                if ($('textarea:focus').length == 0) {
+                  var offset_top = null;
+                  var last_comment = $('#' + feed_id + ' li.comment:last');
+                  
+                  if (last_comment.length == 0) {
+                    if ($('#' + feed_id).length != 0) {
+                      offset_top = $('#' + feed_id).offset().top
+                    }
+                    
+                  } else {
+                    offset_top = last_comment.offset().top
                   }
                   
-                } else {
-                  offset_top = last_comment.offset().top
+                  if (offset_top != null) {
+                    $('body').scrollTop(offset_top - 250);
+                  }                
                 }
-                
-                if (offset_top != null) {
-                  $('body').scrollTop(offset_top - 250);
-                }                
                 
                 $('#body #' + feed_id + ' ul.comments').removeClass('hidden');
                 $('#body #' + feed_id + ' div.comments-list').append(comment.hide().fadeIn('fast'));
@@ -1341,7 +1352,9 @@ function stream() {
       }
       
       else if (event.info.post_id) {
-        $('#post-' + event.info.post_id).remove();
+        if ($('#post-' + event.info.post_id + ' div.undo').length == 0) {
+          $('#post-' + event.info.post_id).remove();
+        }
       }
       
     } else if (event.type == 'update') {
@@ -1384,9 +1397,11 @@ function stream() {
       }
       
       if (sender_id != owner_id) {
-        if ($('#chat-' + chat_id + ' textarea._elastic').is(':focus') == false) {
-          $('#chat-' + chat_id).addClass('unread');  
-        } 
+        $('#chat-' + chat_id).addClass('unread');  
+        
+        if ($('#chat-' + chat_id + ' textarea._elastic').is(':focus') == true) {
+          $('#chat-' + chat_id).mouseover()
+        }
         
         
         var username = $('a.async[title]', msg).attr('title');
@@ -1420,22 +1435,25 @@ function stream() {
       var msg_ts = msg.data('ts');
       var sender_id = msg.attr('data-sender-id');
       
-      if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
-        if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-          var content = $('.content', msg).html();
-          $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
-          $(last_msg).data('ts', msg_ts);
-          $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+      if (last_msg.length == 1 && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+        if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
+          if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+            var content = $('.content', msg).html();
+            $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+            $(last_msg).data('ts', msg_ts);
+            $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+          }
+        } else {
+          $('.messages', boxchat).append(_msg);
         }
-      } else {
-        $('.messages', boxchat).append(_msg);
+        
+        setTimeout(function() {
+          $('.messages', boxchat).scrollTop(99999);
+        }, 10)  
       }
       
       $('div.status', boxchat).fadeOut('fast');
       
-      setTimeout(function() {
-        $('.messages', boxchat).scrollTop(99999);
-      }, 10)  
 
     }
     
@@ -2348,6 +2366,13 @@ function isScrolledIntoView(elem) {
 }
 
 function update_status(status, async) {
+  
+  // auto reload
+  var ts = new Date().getTime();
+  if ($.global.last_connect_timestamp != undefined && ts - $.global.last_connect_timestamp > 600000) { // 600 seconds = 10 minutes
+    window.location.href = window.location.href;
+  }
+  
   var async = typeof (async) != 'undefined' ? async : true;
   if ($.global.status != status) {
     $.global.status = status;

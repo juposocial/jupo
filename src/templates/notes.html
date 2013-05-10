@@ -29,7 +29,7 @@
           </tr>
           <tr id='message'>
             <td>
-              <textarea id='wysihtml5' name='content' placeholder="<br>Content" required></textarea>
+              <textarea id='wysihtml5' name='content' placeholder="Content" required></textarea>
               <div class='hidden' id='init'>
                 {{ note.raw_content | sanitize | safe }}
               </div>
@@ -173,7 +173,7 @@
               {% if note.id %}
                 editor.setValue($('#init').html(), true);
               {% else %}
-                editor.setValue("<br>Content", true);
+                editor.setValue("Content", true);
               {% endif %}
               
            }, 100)

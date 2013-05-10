@@ -17,7 +17,7 @@
 
         <li class="action">
             <span class="comment-icon"></span>
-            <a class="view-previous-comments" {% if item.comments_count > (comments_preview_count + 5) %}href='/feed/{{ feed.id }}/comments?last={{ item.comments[-comments_preview_count-5].id }}'{% endif %}>
+            <a class="view-previous-comments" {% if item.comments_count > (comments_preview_count + 5) %}href='/feed/{{ item.id }}/comments?last={{ item.comments[-comments_preview_count-5].id }}'{% endif %}>
               {% if item.comments_count > (5 + comments_preview_count) %}
               <span class='rfloat'>
                 Showing <span class='displayed-count'>{{ comments_preview_count }}</span> of <span class='comment-count'>{{ item.comments_count }}</span> comments
@@ -55,9 +55,9 @@
     {% if not mode or not owner.id %}
     <li class='write-a-comment'>
       {% if owner.id %}
-      <a class="reply" rel="#{{ feed.id }}-comments">Write a comment</a>
+      <a class="reply" rel="#{{ item.id }}-comments">Write a comment</a>
       {% else %}
-      <a href='/?back_to=/feed/{{ feed.id }}#comments' class="sign-in-to-write-a-comment">Write a comment</a>
+      <a href='/?back_to=/feed/{{ item.id }}#comments' class="sign-in-to-write-a-comment">Write a comment</a>
       {% endif %}
     </li>
     {% endif %}

@@ -21,6 +21,7 @@ from urllib import quote
 from random import shuffle
 from goose import Goose
 from smtplib import SMTP
+from email.message import Message as EmailMsg
 from email.header import Header
 from email.MIMEText import MIMEText
 from base64 import b64encode, b64decode
@@ -729,7 +730,7 @@ def s3_url(filename, expires=5400,
         headers['response-content-disposition'] = 'attachment;filename="%s"' \
                                                 % disposition_filename
       else:
-        msg = Message()
+        msg = EmailMsg()
         msg.add_header('Content-Disposition', 'attachment', 
                        filename=('utf-8', '', disposition_filename))
         headers['response-content-disposition'] = msg.values()[0].replace('"', '')
@@ -1344,6 +1345,14 @@ def get_all_users(limit=300):
   users = db.owner.find({'password': {'$exists': True}}).limit(limit)
   return [User(i) for i in users]
 
+def get_all_groups(limit=300):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  groups = db.owner.find({'members': {'$exists': True}}).limit(limit)
+  return [Group(i) for i in groups]
+  
+
 def get_coworkers(session_id, limit=100):
   if str(session_id).isdigit():
     user_id = long(session_id)
@@ -1365,11 +1374,13 @@ def get_coworkers(session_id, limit=100):
       if member.id not in _ids:
         coworkers.append(member)
         _ids.add(member.id)
-  coworkers = sorted(coworkers, 
-                     key=lambda user: last_online(user.id), reverse=True)
+        
   coworkers = list(coworkers)
   cache.set(key, coworkers, 3600)
-  return coworkers[:limit]
+  
+  coworkers = sorted(coworkers[:limit], 
+                     key=lambda user: last_online(user.id), reverse=True)
+  return coworkers
 
 def get_friends(session_id):
   """
@@ -1656,6 +1667,9 @@ def new_notification(session_id, receiver, type,
   notification_id = db.notification.insert(info)
   
   key = '%s:%s:unread_count' % (receiver, db_name)
+  cache.delete(key)
+  
+  key = '%s:networks' % get_email_addresses(receiver)
   cache.delete(key)
   
   unread_notifications_count = get_unread_notifications_count(user_id=receiver, 
@@ -2455,7 +2469,7 @@ def reshare(session_id, feed_id, viewers):
 
   return True
 
-def remove_feed(session_id, feed_id):
+def remove_feed(session_id, feed_id, group_id=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
@@ -2464,18 +2478,25 @@ def remove_feed(session_id, feed_id):
     return False
   
   post = get_feed(session_id, feed_id)
-  if post.read_receipt_ids:
-    return False
-  else:
-    db.stream.update({'_id': long(feed_id), 'owner': user_id}, 
-                           {'$set': {'is_removed': True}})
+  
+  if group_id:
+    group_id = long(group_id)
+    if is_admin(user_id, group_id):
+      db.stream.update({'_id': long(feed_id)}, 
+                       {'$pull': {'viewers': group_id}})
+      return True
+  
+  elif not post.read_receipt_ids and user_id == post.owner.id:
+    db.stream.update({'_id': long(feed_id)}, 
+                     {'$set': {'is_removed': True}})
     
     for user_id in post.viewer_ids:
       push_queue.enqueue(publish, user_id, 'remove', 
                          {'post_id': str(feed_id)}, db_name=db_name)
+      
+    return True
   
-
-  return feed_id
+  return False
 
 def undo_remove(session_id, feed_id):
   db_name = get_database_name()
@@ -4690,18 +4711,21 @@ def get_groups(session_id, limit=None, db_name=None):
   user_id = get_user_id(session_id)
   if not user_id:
     return []
+  
   key = '%s:groups' % user_id
   groups = cache.get(key)
-  if not groups:
+  if groups is None:
     groups = db.owner.find({"members": user_id}).sort('last_updated', -1)
     groups = list(groups)
-    cache.set(key, groups, 3600)
-  
-  groups = [Group(i) for i in groups]
-  if limit:
-    return groups[:limit]
+    cache.set(key, groups)
+
+  if not groups:
+    return []
+  elif limit:
+    return [Group(i) for i in groups[:limit]]
   else:
-    return groups
+    return [Group(i) for i in groups]
+  
 
 def get_open_groups(user_id=None, limit=5):
   db_name = get_database_name()
@@ -4733,8 +4757,18 @@ def get_featured_groups(session_id, limit=5):
   
   return featured_groups
   
+
+def is_admin(user_id, group_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
   
+  group = db.owner.find_one({'_id': long(group_id), 
+                             'leaders': long(user_id)})
   
+  if group:
+    return True
+  else:
+    return False
 
 def get_group_member_ids(group_id):
   db_name = get_database_name()
@@ -5424,8 +5458,62 @@ def new_network(db_name, organization_name, description=None):
 
 
 def get_network_info(db_name):
-  return DATABASE[db_name].info.find_one()
+  key = '%s:info' % db_name
+  info = cache.get(key)
+  if info is not None:
+    return info 
+  
+  info = DATABASE[db_name].info.find_one()
+  cache.set(key, info, 86400)
+  return info
 
+def get_networks(user_id, user_email=None):
+  key = '%s:networks' % user_id
+  out = cache.get(key)
+  if out is not None:
+    return out
+  
+  
+  def sortkeypicker(keynames):
+    negate = set()
+    for i, k in enumerate(keynames):
+      if k[:1] == '-':
+        keynames[i] = k[1:]
+        negate.add(k[1:])
+        
+    def getit(adict):
+      composite = [adict[k] for k in keynames]
+      for i, (k, v) in enumerate(zip(keynames, composite)):
+        if k in negate:
+          composite[i] = -v
+      return composite
+    return getit
+  
+  if user_email:
+    email = user_email
+  else:
+    email = get_email_addresses(user_id)
+  db_names = get_db_names(email)
+  networks_list = []
+  for db_name in db_names:
+    if db_name == 'play_jupo_com':
+      info = {'name': 'Jupo', 'timestamp': 0}
+    else:
+      info = get_network_info(db_name)
+    
+    if info:
+      info['unread_notifications'] = get_unread_notifications_count(user_id=user_id, db_name=db_name)
+      info['domain'] = db_name.replace('_', '.')
+      info['url'] = 'http://%s/' % info['domain']
+      
+      networks_list.append(info)
+    
+    
+  out = sorted(networks_list, 
+               key=sortkeypicker(['-unread_notifications', 
+                                  'name', '-timestamp']))
+  cache.set(key, out)
+  return out
 
 PRIMARY_IP = socket.gethostbyname(settings.PRIMARY_DOMAIN)
 def domain_is_ok(domain_name):
@@ -5576,6 +5664,10 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
   msg_id = db.message.insert(info)
   info['_id'] = msg_id
   
+  
+  key = '%s:%s:messages' % (db_name, owner_id)
+  cache.delete(key)
+  
   if user_id:
     update_last_viewed(owner_id, user_id=user_id, db_name=db_name)
     key = '%s:%s:unread_messages' % (db_name, user_id)
@@ -5617,6 +5709,11 @@ def get_messages(session_id, db_name=None):
   if not owner_id:
     return False
   
+  key = '%s:%s:messages' % (db_name, owner_id)
+  messages = cache.get(key)
+  if messages is not None:
+    return messages 
+  
   messages = []
   users = db.message.find({'owner': owner_id,
                            'user_id': {'$exists': True}})
@@ -5652,7 +5749,11 @@ def get_messages(session_id, db_name=None):
   messages.sort(key=lambda k: k.get('ts'), reverse=1)
   
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
-  return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+  
+  messages = [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+  cache.set(key, messages)
+  
+  return messages
 
 
 def get_unread_messages_count(session_id, user_id=None, topic_id=None, db_name=None):
@@ -5764,11 +5865,12 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
       ts = ts.split(' at ')[-1]
       
     info = {'html': 'Seen %s' % ts}
-    info['chat_id'] = 'user-%s' % user_id
+    info['chat_id'] = 'user-%s' % owner_id
     push_queue.enqueue(publish, user_id, 
                        event_type='seen-by', 
                        info=info, 
                        db_name=db_name)
+    
   else:
     info = {}
     info['chat_id'] = 'topic-%s' % topic_id
@@ -5787,10 +5889,18 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
     info['html'] = text
     
     for user_id in topic.member_ids:
-      push_queue.enqueue(publish, user_id, 
-                         event_type='seen-by', 
-                         info=info, 
-                         db_name=db_name)
+      if user_id != owner_id:
+        push_queue.enqueue(publish, user_id, 
+                           event_type='seen-by', 
+                           info=info, 
+                           db_name=db_name)
+        
+  key = '%s:%s:unread_messages' % (db_name, owner_id)
+  cache.delete(key)
+  
+  key = '%s:%s:messages' % (db_name, owner_id)
+  cache.delete(key)
+  
   return True
 
 def get_last_message(topic_id, db_name=None):
