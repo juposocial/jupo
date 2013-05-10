@@ -555,11 +555,11 @@ def welcome():
     
 @app.route('/privacy')
 def privacy():
-  return redirect('https://www.jupo.com/note/340925645733232641')
+  return redirect('https://www.flay.example.local/note/340925645733232641')
 
 @app.route('/terms')
 def terms():
-  return redirect('https://www.jupo.com/note/340921286333038593')
+  return redirect('https://www.flay.example.local/note/340921286333038593')
 
 @app.route('/about')
 def about():
@@ -854,7 +854,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   def facebook_login():
     if not facebook:
       abort(501)
-  #  return facebook.authorize(callback='http://play.jupo.com/oauth/facebook/authorized')
+  #  return facebook.authorize(callback='http://flay.example.local/oauth/facebook/authorized')
     callback_url = url_for('facebook_authorized',
                            domain=request.args.get('domain', settings.PRIMARY_DOMAIN),
                            _external=True)
@@ -1502,7 +1502,7 @@ def network():
           msg = 'The domain you entered was invalid.'
         elif not api.domain_is_ok(domain):
           msg = '''\
-          Please make sure <strong>%s</strong> is mapped to <strong>play.jupo.com</strong>.<br>
+          Please make sure <strong>%s</strong> is mapped to <strong>flay.example.local</strong>.<br>
           If you already do it, please try again after few minutes. <br>
           Normally it takes some time once you update your DNS records<br>
           until the changes take effect around the world.''' % (domain)
@@ -1512,7 +1512,7 @@ def network():
       if subdomain and len(subdomain) > 50:
         msg = 'Subdomain is too long.'
         
-      if subdomain and not api.domain_is_ok(subdomain + '.jupo.com'):
+      if subdomain and not api.domain_is_ok(subdomain + '.flay.example.local'):
         msg = 'Subdomain already exists.'
         
       if not subdomain and not domain:
@@ -1526,7 +1526,7 @@ def network():
           
         # TODO: check subdomain is valid (a-Z0-9)
         if subdomain:
-          db_name = subdomain.lower().strip() + '_jupo_com'
+          db_name = subdomain.lower().strip() + '_flay.example.local'
           if api.is_exists(db_name=db_name):
             msg = 'Subdomain already exists.'
         elif domain:
@@ -1537,7 +1537,7 @@ def network():
         if db_name and not msg:
           api.new_network(db_name, organization_name)
           if subdomain:
-            return redirect('http://%s.jupo.com/sign_up?welcome=1' % subdomain)
+            return redirect('http://%s.flay.example.local/sign_up?welcome=1' % subdomain)
           else:
             return redirect('http://%s/sign_up?welcome=1' % domain)
       
@@ -2045,7 +2045,7 @@ def news_feed(page=1):
 #    user = api.get_user_info(user_id)
 #    if not user.fb_request_sent:
 #      return redirect('https://www.facebook.com/dialog/apprequests?app_id=%s' % settings.FACEBOOK_APP_ID \
-#                      + '&message=Qua%20%C4%91%C3%A2y%20th%E1%BB%AD%20c%C3%A1i%20n%C3%A0o%20:-)&redirect_uri=https://www.jupo.com/')
+#                      + '&message=Qua%20%C4%91%C3%A2y%20th%E1%BB%AD%20c%C3%A1i%20n%C3%A0o%20:-)&redirect_uri=https://www.flay.example.local/')
 #  
   
   #####
@@ -2638,7 +2638,7 @@ def profile_pictures(attachment_id, size='60'):
     
     data = api.get_file_data(attachment_id)
     if not data:
-      return redirect('http://www.jupo.com/public/images/avatar.96.gif')
+      return redirect('http://www.flay.example.local/public/images/avatar.96.gif')
     if size.isdigit():
       size = int(size)
       filedata = zoom(data, size, size)
@@ -2655,7 +2655,7 @@ def profile_pictures(attachment_id, size='60'):
     return Response(filedata, mimetype='image/jpeg')
   
   except api.NoFile:  # 'NoneType' object has no attribute 'get'
-    return redirect('http://www.jupo.com/public/images/avatar.96.gif')
+    return redirect('http://www.flay.example.local/public/images/avatar.96.gif')
 #    abort(404, 'File not found')
     
 
@@ -2901,15 +2901,15 @@ def _update():
 # Run App
 #===============================================================================
 
-if 'jupo.com' in settings.PRIMARY_DOMAIN:
-  @app.before_request
-  def redirect_if_not_play_jupo():
-    """Redirect www.jupo.com or jupo.com to play.jupo.com"""
-    if request.headers.get('Host') in ['www.jupo.com', 'jupo.com']:
-      url = 'http://play.jupo.com%s' % request.path
-      if request.environ.get('QUERY_STRING'):
-        url += '?' + request.environ.get('QUERY_STRING')
-      return redirect(url, code=301)
+#if 'jupo.com' in settings.PRIMARY_DOMAIN:
+#  @app.before_request
+#  def redirect_if_not_play_jupo():
+#    """Redirect www.jupo.com or jupo.com to jupo.com"""
+#    if request.headers.get('Host') in ['www.jupo.com', 'jupo.com']:
+#      url = 'http://play.jupo.com%s' % request.path
+#      if request.environ.get('QUERY_STRING'):
+#        url += '?' + request.environ.get('QUERY_STRING')
+#      return redirect(url, code=301)
   
   
 if __name__ == "__main__":
