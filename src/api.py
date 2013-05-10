@@ -21,6 +21,7 @@ from urllib import quote
 from random import shuffle
 from goose import Goose
 from smtplib import SMTP
+from email.message import Message as EmailMsg
 from email.header import Header
 from email.MIMEText import MIMEText
 from base64 import b64encode, b64decode
@@ -729,7 +730,7 @@ def s3_url(filename, expires=5400,
         headers['response-content-disposition'] = 'attachment;filename="%s"' \
                                                 % disposition_filename
       else:
-        msg = Message()
+        msg = EmailMsg()
         msg.add_header('Content-Disposition', 'attachment', 
                        filename=('utf-8', '', disposition_filename))
         headers['response-content-disposition'] = msg.values()[0].replace('"', '')
@@ -5864,7 +5865,7 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
       ts = ts.split(' at ')[-1]
       
     info = {'html': 'Seen %s' % ts}
-    info['chat_id'] = 'user-%s' % user_id
+    info['chat_id'] = 'user-%s' % owner_id
     push_queue.enqueue(publish, user_id, 
                        event_type='seen-by', 
                        info=info, 

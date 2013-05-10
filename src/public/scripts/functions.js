@@ -1397,9 +1397,11 @@ function stream() {
       }
       
       if (sender_id != owner_id) {
-        if ($('#chat-' + chat_id + ' textarea._elastic').is(':focus') == false) {
-          $('#chat-' + chat_id).addClass('unread');  
-        } 
+        $('#chat-' + chat_id).addClass('unread');  
+        
+        if ($('#chat-' + chat_id + ' textarea._elastic').is(':focus') == true) {
+          $('#chat-' + chat_id).mouseover()
+        }
         
         
         var username = $('a.async[title]', msg).attr('title');
@@ -1433,7 +1435,7 @@ function stream() {
       var msg_ts = msg.data('ts');
       var sender_id = msg.attr('data-sender-id');
       
-      if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+      if (last_msg.length == 1 && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
         if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
           if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
             var content = $('.content', msg).html();
@@ -2366,6 +2368,7 @@ function isScrolledIntoView(elem) {
 function update_status(status, async) {
   
   // auto reload
+  var ts = new Date().getTime();
   if ($.global.last_connect_timestamp != undefined && ts - $.global.last_connect_timestamp > 600000) { // 600 seconds = 10 minutes
     window.location.href = window.location.href;
   }
