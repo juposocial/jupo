@@ -1973,17 +1973,20 @@ def home():
       return redirect('/news_feed')
   
   
-  code = request.args.get('code')
-  user_id = api.get_user_id(code)
-  if user_id:
-    session['session_id'] = code
-    owner = api.get_user_info(user_id)
-    return render_template('profile_setup.html',
-                           owner=owner,
-                           code=code, user_id=user_id)
     
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
+  
+  if not user_id:
+    code = request.args.get('code')
+    user_id = api.get_user_id(code)
+    if user_id and not session_id:
+      session['session_id'] = code
+      owner = api.get_user_info(user_id)
+      return render_template('profile_setup.html',
+                             owner=owner,
+                             code=code, user_id=user_id)
+    
   if not session_id or not user_id:
     try:
       session.pop('session_id')
@@ -2912,76 +2915,48 @@ def _update():
 #      return redirect(url, code=301)
   
   
-if __name__ == "__main__":
+def run_app(debug=False):
     
   from cherrypy import wsgiserver
-
-  formatter = logging.Formatter(
-    '(%(asctime)-6s) %(levelname)s: %(message)s' + '\n' + '-' * 80)
+    
+  settings.DEBUG = debug
   
-  file_logger = logging.FileHandler(filename='/var/log/jupo/errors.log')
-  file_logger.setLevel(logging.ERROR)
-  file_logger.setFormatter(formatter)
-  app.logger.addHandler(file_logger)
-    
-  try:  
-    port = int(sys.argv[1])    
-    
-    app.debug = settings.DEBUG
-            
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
-    try:
-      print 'Serving HTTP on 0.0.0.0 port %s...' % port
-      server.start()
-    except KeyboardInterrupt:
-      print '\nGoodbye.'
-      server.stop()
-    
-    
-  except (IndexError, TypeError): # dev only
+  app.debug = settings.DEBUG
+  
+  app.config['DEBUG_TB_PROFILER_ENABLED'] = True
+  app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
+  app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+  app.config['DEBUG_TB_PANELS'] = [
+      'flask_debugtoolbar.panels.versions.VersionDebugPanel',
+      'flask_debugtoolbar.panels.timer.TimerDebugPanel',
+      'flask_debugtoolbar.panels.headers.HeaderDebugPanel',
+      'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel',
+      'flask_debugtoolbar.panels.template.TemplateDebugPanel',
+      'flask_debugtoolbar.panels.logger.LoggingPanel',
+      'flask_debugtoolbar_mongo.panel.MongoDebugPanel',
+      'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel',
+      'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel'
+  ]
+  app.config['DEBUG_TB_MONGO'] = {
+    'SHOW_STACKTRACES': True,
+    'HIDE_FLASK_FROM_STACKTRACES': True
+  }
+  
+  toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+  
 
-    from gevent.pywsgi import WSGIServer
-    from gevent import monkey
-    monkey.patch_all()
-
-    
-    settings.DEBUG = True
-    
-    @werkzeug.serving.run_with_reloader
-    def server_run_with_auto_reloader():  
-      app.debug = True
-      
-      app.config['DEBUG_TB_PROFILER_ENABLED'] = True
-      app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
-      app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
-      app.config['DEBUG_TB_PANELS'] = [
-          'flask_debugtoolbar.panels.versions.VersionDebugPanel',
-          'flask_debugtoolbar.panels.timer.TimerDebugPanel',
-          'flask_debugtoolbar.panels.headers.HeaderDebugPanel',
-          'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel',
-          'flask_debugtoolbar.panels.template.TemplateDebugPanel',
-          'flask_debugtoolbar.panels.logger.LoggingPanel',
-          'flask_debugtoolbar_mongo.panel.MongoDebugPanel',
-          'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel',
-          'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel'
-      ]
-      app.config['DEBUG_TB_MONGO'] = {
-        'SHOW_STACKTRACES': True,
-        'HIDE_FLASK_FROM_STACKTRACES': True
-      }
-      
-      toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
-      
-
-      
-      server = WSGIServer(('0.0.0.0', 8888), app)
-      try:
-        print 'Serving HTTP on 0.0.0.0 port 8888...'
-        server.serve_forever()
-      except KeyboardInterrupt:
-        print '\nGoodbye.'
-        server.stop()
-
+  
+  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  try:
+    print 'Serving HTTP on 0.0.0.0 port 8888...'
+    server.start()
+  except KeyboardInterrupt:
+    print '\nGoodbye.'
+    server.stop()
+  
+  
+if __name__ == "__main__":
+  run_app(debug=True)
 
 
 
