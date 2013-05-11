@@ -2002,11 +2002,11 @@ def get_hashtags(raw_text):
   return hashtag_list
 
 def get_mentions(raw_text):
-  users = re.compile('(@\[.*?\))').findall(raw_text)
+  users = re.compile('(@\[.*?]\(.*?\))').findall(raw_text)
   user_list = []
   if users:
     for user in users:
-      tag = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)')\
+      tag = re.compile('@\[(?P<name>.+)\]\((?P<id>.*?)\)')\
               .match(user)\
               .groupdict()
       tag['type'], tag['id'] = tag['id'].split(':', 1)
