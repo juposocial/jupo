@@ -909,22 +909,22 @@ function stream() {
   }
   
   source.onerror = function(e) {
-    console.log(e);
+   $.global.ev_count += 1;
     switch (e.target.readyState) {
        case EventSource.CONNECTING:  
           console.log('Reconnecting...');  
           break;
        case EventSource.CLOSED:  
-          console.log('Connection failed. Retrying...');
-          setTimeout(function() {
-            stream();
-          }, 5000);  
+          // console.log('Connection failed. Retrying...');
+          // setTimeout(function() {
+            // stream();
+          // }, 1000);  
           break;    
        default:
-          console.log('Connection error. Retrying...');
-          setTimeout(function() {
-            stream();
-          }, 5000);  
+          // console.log('Connection error. Retrying...');
+          // setTimeout(function() {
+            // stream();
+          // }, 1000);  
           break;    
        
     }  
@@ -2366,12 +2366,6 @@ function isScrolledIntoView(elem) {
 }
 
 function update_status(status, async) {
-  
-  // auto reload
-  var ts = new Date().getTime();
-  if ($.global.last_connect_timestamp != undefined && ts - $.global.last_connect_timestamp > 600000) { // 600 seconds = 10 minutes
-    window.location.href = window.location.href;
-  }
   
   var async = typeof (async) != 'undefined' ? async : true;
   if ($.global.status != status) {
