@@ -9,6 +9,8 @@ $(window).unload(function() {
 
 $(document).ready(function(e) {
   
+  $.global.ev_count = 0;
+  
   if ( typeof $.global === 'undefined') {
     $.global = {};
     $.global.clear_autosave = {};
@@ -644,6 +646,10 @@ $(document).ready(function(e) {
       url: href,
       success: function(resp) {
         console.log('Followed');
+        
+        // reload autocomplete list
+        $.global.autocomplete = null;
+        preload_autocomplete();
       }
     });
     href = href.replace('/follow', '/unfollow');
@@ -673,6 +679,7 @@ $(document).ready(function(e) {
       url: href,
       success: function(resp) {
         console.log('Unfollowed');
+        
       }
     });
     href = href.replace('/unfollow', '/follow');
