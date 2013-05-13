@@ -596,7 +596,6 @@ def get_friend_suggestions(user_info):
   
   return users
 
-  
 
 def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
   if not db_name:
@@ -5133,10 +5132,12 @@ def publish(user_id, event_type, info=None, db_name=None):
   if event_type == 'friends-online':
     template = app.CURRENT_APP.jinja_env.get_template('friends_online.html')
   
+    user_id = long(user_id)
     owner = get_user_info(user_id, db_name=db_name)
     owner.status = info
     
-    user_ids = owner.contact_ids
+    users = DATABASE[db_name].owner.find({'contacts': user_id}, {'_id': True})
+    user_ids = list(set([i.get('_id') for i in users]))
     if user_id in user_ids:
       user_ids.remove(user_id)
         
