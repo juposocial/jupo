@@ -839,6 +839,8 @@ function incr(id, value) {
   if (value != 0) {
     item.show();
   }
+  
+  return value;
 }
 
 function decr(id, value) {

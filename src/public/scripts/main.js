@@ -1185,20 +1185,24 @@ $(document).ready(function(e) {
         type: "GET",
         url: $(this).attr('href')
       })
-      $('#unread-notification-counter').html('0');
-      $('#unread-notification-counter').addClass('grey');
       
       $('ul.notifications a.unread').removeClass('unread');
+      
+      var unread_count = decr('#unread-notification-counter');
+      if (unread_count == 0) {
+        $('#unread-notification-counter').addClass('grey');
+      }
       
       var title = document.title;
       var pattern = /^\(.*?\) /gi;
       var count = title.match(pattern);
-      document.title = title.replace(count, '');
+      title = title.replace(count, '');
+      if (unread_count != 0) {
+        title = '(' + unread_count + ')';
+      } 
       
-      // $.global.mouse_inside_overlay = false;
-
-      // $('header nav ul.dropdown-menu').addClass('hidden');
-      // $('header nav .dropdown-menu-active').removeClass('dropdown-menu-active');
+      document.title = title;
+      decr('#left-sidebar #messages .count', 1);
       
       return false;
     }
@@ -2048,6 +2052,24 @@ $(document).ready(function(e) {
       success: function() {
         _this.removeClass('unread');
         $('a.chat.' + chat_id).removeClass('unread');
+        
+        
+        var unread_count = decr('#unread-notification-counter');
+        if (unread_count == 0) {
+          $('#unread-notification-counter').addClass('grey');
+        }
+        
+        var title = document.title;
+        var pattern = /^\(.*?\) /gi;
+        var count = title.match(pattern);
+        title = title.replace(count, '');
+        if (unread_count != 0) {
+          title = '(' + unread_count + ')';
+        } 
+        
+        document.title = title;
+        
+        decr('#left-sidebar #messages .count', 1);
       }
     })
     
