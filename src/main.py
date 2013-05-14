@@ -679,9 +679,15 @@ def authentication(action=None):
     
     
     if alerts.keys():
-      data = dumps(alerts)
-      return Response(data, mimetype='application/json')
-      
+      resp = Response(render_template('sign_up.html', 
+                                      alerts=alerts,
+                                      email=email,
+                                      password=password,
+                                      name=name,
+                                      domain=hostname, 
+                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                      network_info=network_info))
+      return resp
     else:
       session_id = api.sign_up(email, password, name)
       if session_id:
