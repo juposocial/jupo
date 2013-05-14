@@ -253,8 +253,9 @@ class Model:
   
   
 class User(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
   
   @property
   def name(self):
@@ -332,7 +333,7 @@ class User(Model):
   
   @property
   def status(self):
-    return api.check_status(self.id)
+    return api.check_status(self.id, db_name=self.db_name)
     
   @property
   def location(self):
@@ -371,7 +372,7 @@ class User(Model):
     
   @property
   def last_online(self):
-    return api.last_online(self.id)
+    return api.last_online(self.id, db_name=self.db_name)
   
   @property
   def session_id(self):

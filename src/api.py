@@ -1261,8 +1261,9 @@ def set_status(session_id, status):
   cache.delete(key)
   return True
 
-def check_status(user_id):
-  db_name = get_database_name()
+def check_status(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if user_id is None:
@@ -1292,8 +1293,9 @@ def is_online(user_id):
   if check_status(user_id) == 'online':
     return True
   
-def last_online(user_id):
-  db_name = get_database_name()
+def last_online(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not is_snowflake_id(user_id):
@@ -1536,7 +1538,7 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
     if info:
       cache.set(key, info)
 
-  return User(info) if info else User({})
+  return User(info, db_name=db_name) if info else User({})
 
 
 def get_owner_info(session_id=None, uuid=None, db_name=None):
@@ -5145,13 +5147,14 @@ def publish(user_id, event_type, info=None, db_name=None):
             'user': {'id': str(owner.id),
                      'name': owner.name,
                      'avatar': owner.avatar,
-                     'status': info},
-            'info': template.render(owner=owner,
-                                    friends_online=[owner])}
+                     'status': info}}
         
-    data = dumps(item)
     for user_id in user_ids:
       channel_id = get_channel_id(user_id, db_name=db_name)
+      user = get_user_info(user_id, db_name=db_name)
+      item['info'] = template.render(owner=user,
+                                     friends_online=[owner])
+      data = dumps(item)
       PUBSUB.publish(channel_id, data)
         
   elif event_type == 'read-receipts':
