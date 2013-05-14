@@ -644,8 +644,15 @@ def authentication(action=None):
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
       return resp
     else:
-      message = 'Wrong email address and password combination.'
-      resp = redirect('/?email=%s&message=%s' % (email, message))
+      message = 'Invalid username or password'
+      
+      resp = Response(render_template('sign_in.html', 
+                                      domain=hostname,
+                                      email=email, 
+                                      password=password, 
+                                      message=message,
+                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                      network_info=network_info))
       resp.set_cookie('new_user', '0')
       return resp
         
