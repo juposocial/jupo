@@ -213,7 +213,7 @@ def autolink(text):
         user = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
         user['id'] = user['id'].split(':', 1)[-1]
         s = s.replace(mention, 
-             '<a href="/chat/user/%s" class="chat"><span class="tag">%s</span></a>' % (user.get('id'), user.get('name')))
+             '<a href="/user/%s" class="async"><span class="tag">%s</span></a>' % (user.get('id'), user.get('name')))
       else:
         group = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
         group['id'] = group['id'].split(':', 1)[-1]
