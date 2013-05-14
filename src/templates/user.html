@@ -10,7 +10,7 @@
             
             {% if user.id in group.administrator_ids %}
               <a class='button toggle' href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}' data-name='Make Admin' data-href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}'>Remove as Admin</a>
-            {% else %}
+            {% elif user.id in group.member_ids %}
               <a class='button toggle' href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}' data-name='Remove as Admin' data-href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}'>Make Admin</a>
             {% endif %}
             
