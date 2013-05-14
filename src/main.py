@@ -91,7 +91,8 @@ def render_homepage(session_id, title, **kwargs):
       group.unread_posts = api.get_unread_posts_count(session_id, group.id)
     
     unread_messages = api.get_unread_messages(session_id)
-    unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
+#     unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
+    unread_messages_count = len(unread_messages)
     unread_notification_count = api.get_unread_notifications_count(session_id)\
                               + unread_messages_count
     
@@ -2764,7 +2765,7 @@ def notifications():
     
   notifications = api.get_notifications(session_id)
   unread_messages = api.get_unread_messages(session_id)
-  unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
+  unread_messages_count = len(unread_messages)
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
