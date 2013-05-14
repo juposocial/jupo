@@ -49,6 +49,13 @@ div.fixed {
   box-shadow: inset 0 1px rgba(255, 255, 255, .5);
 }
 
+div.chatbox div.header i.online,
+div.chatbox div.header i.away,
+div.chatbox div.header i.offline {
+  float: left;
+  margin: 6px 2px 0 0;
+}
+
 .chatbox .header .name {
   overflow: hidden;
   white-space: nowrap;
@@ -164,7 +171,7 @@ div.fixed {
   background: transparent;
 }
 
-.chatbox .status {
+.chatbox div.status {
   position: absolute;
   bottom: 31px;
   padding: 0 5px;
