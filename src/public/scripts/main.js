@@ -1186,23 +1186,15 @@ $(document).ready(function(e) {
         url: $(this).attr('href')
       })
       
-      $('ul.notifications a.unread').removeClass('unread');
+      $('#unread-notification-counter').html('0');
+      $('#unread-notification-counter').addClass('grey');
       
-      var unread_count = decr('#unread-notification-counter');
-      if (unread_count == 0) {
-        $('#unread-notification-counter').addClass('grey');
-      }
+      $('ul.notifications a.unread').removeClass('unread');
       
       var title = document.title;
       var pattern = /^\(.*?\) /gi;
       var count = title.match(pattern);
-      title = title.replace(count, '');
-      if (unread_count != 0) {
-        title = '(' + unread_count + ')';
-      } 
-      
-      document.title = title;
-      decr('#left-sidebar #messages .count', 1);
+      document.title = title.replace(count, '');
       
       return false;
     }
@@ -2004,25 +1996,29 @@ $(document).ready(function(e) {
     if ($('nav ul.notifications').is(':visible')) {
       $('html').trigger('click');
       
-      // update unread notifications counter
-      var unread_notifications_count = decr('#unread-notification-counter', $(this).data('unread-count'));
-      
-      var title = document.title;
-      var pattern = /^\(.*?\) /gi;
-      var count = title.match(pattern);
-      if (unread_notifications_count > 0) {
-        $('#unread-notification-counter').removeClass('grey');
-        if (count == null) {
-          document.title = '(' + $('#unread-notification-counter').html() + ') ' + title;
-        } else {
-          document.title = title.replace(count, '(' + $('#unread-notification-counter').html() + ') ');
-        }
-      } else {
-        $('#unread-notification-counter').addClass('grey');
-        if (count != null) {
-          document.title = title.replace(count, '');
-        }
+      if ($(this).parents('ul.notifications').length != 0) {
+        $(this).parent().remove();
       }
+      
+      // // update unread notifications counter
+      // var unread_notifications_count = decr('#unread-notification-counter', $(this).data('unread-count'));
+//       
+      // var title = document.title;
+      // var pattern = /^\(.*?\) /gi;
+      // var count = title.match(pattern);
+      // if (unread_notifications_count > 0) {
+        // $('#unread-notification-counter').removeClass('grey');
+        // if (count == null) {
+          // document.title = '(' + $('#unread-notification-counter').html() + ') ' + title;
+        // } else {
+          // document.title = title.replace(count, '(' + $('#unread-notification-counter').html() + ') ');
+        // }
+      // } else {
+        // $('#unread-notification-counter').addClass('grey');
+        // if (count != null) {
+          // document.title = title.replace(count, '');
+        // }
+      // }
       
       
     }

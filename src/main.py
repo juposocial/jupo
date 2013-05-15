@@ -2842,7 +2842,9 @@ def notification(id=None, ref_id=None, post_id=None):
                                   ts=api.utctime())
   
   unread_notification_count = api.get_unread_notifications_count(session_id)
-  return str(unread_notification_count)
+  unread_messages = api.get_unread_messages(session_id)
+  
+  return str(unread_notification_count + len(unread_messages))
 
 
 @app.route('/feeds/<int:user_id>')
