@@ -4094,11 +4094,6 @@ text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
   background: #2271A8;
 }
 
-.mentions-input-box .mentions-autocomplete-list li b {
-/*  background: #ffff99;*/
-  font-weight: normal;
-}
-
 .mentions-input-box .mentions {
   position: absolute;
   left: 3px;
