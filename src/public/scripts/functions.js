@@ -132,10 +132,8 @@ function start_chat(chat_id) {
 }
 
 function search_mentions(query, callback) {
-      query = khong_dau(query).toLowerCase();
       data = _.filter($.global.coworkers, function(item) {
-        return khong_dau(item.name).toLowerCase().indexOf(query) == 0;
-        // prefix matching
+        return item.name.toLowerCase().indexOf(query.toLowerCase()) != -1;
       });
       
       var ids;
@@ -149,29 +147,37 @@ function search_mentions(query, callback) {
           ids.push(id);
           owners.push(data[i]);
           
-          if (owners.length == 3) {
+          if (owners.length >= 3) {
             break
           }
         }
       }
-
+      
+      
+      // search without accents
       if (owners.length < 3) {
-        for (i in $.global.coworkers) {
+        query = khong_dau(query).toLowerCase();
+        data = _.filter($.global.coworkers, function(item) {
+          return khong_dau(item.name).toLowerCase().indexOf(query) != -1;
+          // prefix matching
+        });
+        
+        for (i in data) {
           var id;
-          var item;
-          item = $.global.coworkers[i];
-          id = item.id + item.name;
-          if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(query) > -1) {
+          id = data[i].id + data[i].name;
+          if (ids.indexOf(id) == -1) {
             ids.push(id);
-            owners.push(item);
-          }
-
-          if (owners.length == 3) {
-            break
+            owners.push(data[i]);
+            
+            if (owners.length >= 3) {
+              break
+            }
           }
         }
-
       }
+      
+      
+      
       callback.call(this, owners);
 }
 

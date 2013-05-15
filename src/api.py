@@ -1339,11 +1339,11 @@ def get_online_coworkers(session_id):
   online = sorted(online, key=lambda k: k.name)
   return online
 
-def get_all_users(limit=300):
+def get_all_users(limit=1000):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  users = db.owner.find({'password': {'$exists': True}}).limit(limit)
+  users = db.owner.find({'password': {'$exists': True}}).limit(limit).sort('timestamp', -1)
   return [User(i) for i in users]
 
 def get_all_groups(limit=300):
