@@ -423,6 +423,7 @@
         
       {% if feed.attachments %}
         {% for file in feed.attachments %}
+          {% if file.id %}
           <div class="file-attachment {% if 'image' in file.mimetype %}image{% endif %}">
             {% if 'image' in file.mimetype %}
               {% if feed.attachments | length == 1 %}
@@ -443,6 +444,7 @@
               <span class='gray'>({{ file.size }})</span>
             {% endif %}
           </div>
+          {% endif %}
         {% endfor %}
       {% endif %}
       
