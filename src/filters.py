@@ -71,8 +71,10 @@ def lines_truncate(text, lines_count=5):
     if '</' in text:
       text = ' '.join(text[:len(out)].split(' ')[0:-1]).rstrip('.')
     else:
-      text = '<br>'.join(text[:len(out)].split('<br>')[0:-1]).rstrip('.')
-    
+      lines = text[:len(out)].split('<br>')
+      if len(lines) > 1:
+        text = '<br>'.join(lines[0:-1]).rstrip('.')
+        
     is_truncated = True
     
     if len(text) / float(len(raw)) > 0.7: # nếu còn 1 ít text thì hiện luôn, không cắt làm gì cho mệt
