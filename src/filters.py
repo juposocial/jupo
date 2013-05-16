@@ -35,6 +35,7 @@ def lines_truncate(text, lines_count=5):
   
   raw = text
   text = _normalize_newlines(text)
+  is_html = True if ('<br>' in raw or '</' in raw) else False
   
   # remove blank lines
   lines = [line for line in text.split('\n') if line.strip()]
@@ -68,7 +69,7 @@ def lines_truncate(text, lines_count=5):
     
   is_truncated = False
   if len(out) < len(text):
-    if '</' in text:
+    if is_html:
       text = ' '.join(text[:len(out)].split(' ')[0:-1]).rstrip('.')
     else:
       lines = text[:len(out)].split('<br>')
