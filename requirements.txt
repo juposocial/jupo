@@ -53,4 +53,8 @@ itsdangerous==0.17
 line-profiler==1.0b3
 nose==1.2.1
 cherrypy==3.2.4
+Unidecode==0.04.12
+logilab-astng==0.24.3
+logilab-common==0.59.1
+pylint==0.28.0
 -e git://github.com/xgdlm/python-goose.git@master#egg=goose

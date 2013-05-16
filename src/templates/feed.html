@@ -438,9 +438,7 @@
             {% endif %}
             
             {% if 'image' not in file.mimetype %}
-              <a href='/attachment/{{ file.id }}?rel={{ feed.id }}' target='_blank'>
-                  {{ file.name | truncate(40, True) }} 
-              </a>
+              <a href='/attachment/{{ file.id }}?rel={{ feed.id }}' target='_blank'>{{ file.name | truncate(40, True) }}</a>
               <span class='gray'>({{ file.size }})</span>
             {% endif %}
           </div>

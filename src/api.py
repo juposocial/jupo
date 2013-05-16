@@ -21,6 +21,7 @@ from urllib import quote
 from random import shuffle
 from goose import Goose
 from smtplib import SMTP
+from unidecode import unidecode
 from email.message import Message as EmailMsg
 from email.header import Header
 from email.MIMEText import MIMEText
@@ -250,19 +251,6 @@ def is_snowflake_id(_id):
     return True
   return False
 
-#===============================================================================
-# Tiếng Việt 
-#===============================================================================
-INTAB = "ạảãàáâậầấẩẫăắằặẳẵóòọõỏôộổỗồốơờớợởỡéèẻẹẽêếềệểễúùụủũưựữửừứíìịỉĩýỳỷỵỹđ"
-INTAB = [ch.encode('utf8') for ch in unicode(INTAB, 'utf8')]
-
-OUTTAB = "a" * 17 + "o" * 17 + "e" * 11 + "u" * 11 + "i" * 5 + "y" * 5 + "d"
-
-r = re.compile("|".join(INTAB))
-replaces_dict = dict(zip(INTAB, OUTTAB))
-
-def khongdau(s):
-    return r.sub(lambda m: replaces_dict[m.group(0)], str(s))
   
 
 #===============================================================================
@@ -729,10 +717,12 @@ def s3_url(filename, expires=5400,
         headers['response-content-disposition'] = 'attachment;filename="%s"' \
                                                 % disposition_filename
       else:
-        msg = EmailMsg()
-        msg.add_header('Content-Disposition', 'attachment', 
-                       filename=('utf-8', '', disposition_filename))
-        headers['response-content-disposition'] = msg.values()[0].replace('"', '')
+        headers['response-content-disposition'] = 'attachment;filename="%s"' \
+                                                % unidecode(unicode(disposition_filename))
+#         msg = EmailMsg()
+#         msg.add_header('Content-Disposition', 'attachment', 
+#                        filename=('utf-8', '', disposition_filename))
+#         headers['response-content-disposition'] = msg.values()[0].replace('"', '')
        
     url = k.generate_url(expires_in=expires, 
                          method='GET', response_headers=headers)
@@ -1622,7 +1612,7 @@ def autocomplete(session_id, query):
     items = []
     for i in owners:
       if i.name and \
-         query in khongdau(i.name.lower().encode('utf-8')) or \
+         query in unidecode(unicode(i.name.lower())) or \
          query in i.name.lower():
         info = {'name': i.name, 
                 'id': i.id, 
