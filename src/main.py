@@ -1175,7 +1175,7 @@ def note(note_id=None, action=None, version=None):
       abort(404)
     mode = 'view'
     
-  recents = api.get_notes(session_id, limit=5) 
+#   recents = api.get_notes(session_id, limit=5) 
   view = 'notes'
   if version is None and info:
     version = len(note.to_dict()['version'])
@@ -1192,7 +1192,7 @@ def note(note_id=None, action=None, version=None):
                            mode=mode,
                            action=action,
                            version=version,
-                           recents=recents,
+#                            recents=recents,
                            note=note,
                            group=group,
                            owner=owner,
