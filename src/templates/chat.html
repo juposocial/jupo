@@ -1,25 +1,18 @@
-<div class="inflow"> 
-  <div class="positioner">
-  <div class="fixed">
-
-    <div class="chatbox {% if messages and messages[-1].is_unread() %}unread{% endif %}" id='chat-{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'>
       <div class="header" title='Toggle Minimize'>
         <a href="#" class="close-icon close" title="Close Chat" data-chat-id='{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'></a>
-        <a id='chatbox-pick-file' class='rfloat' title='Select a file {% if user %}to send to {{ user.name }}{% endif %}'><i class='upload-icon'></i></a>
+        <a id='chatbox-pick-file' class='rfloat' title='Select a file {% if user %}to send to {{ user.name }}{% endif %}'><i class='upload-icon'></i><span>Upload File...</span></a>
         <div id="chatbox-file-container">
           <div id="chatbox-filelist"></div>
         </div>  
         
         {% if user %}
-        <i class='{{ user.status }} user-{{ user.id }}-status'></i>
-        <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
+          <i class='{{ user.status }} user-{{ user.id }}-status'></i>
+          <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
         {% else %}
-        <a href='/chat/topic/{{ topic.id }}' class='chat name'>
-            {% set members = topic.members | exclude(owner.id) %}
-            {% for member in members %}
-              {{ member.name }}{% if loop.index < (topic.members | length - 1) %}, {% endif %}
-            {% endfor %}
-        </a>
+          {% set members = topic.members | exclude(owner.id) %}
+          {% for member in members %}
+            <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.members | length - 1) %}, {% endif %}
+          {% endfor %}
         {% endif %}
       </div>
       <ul class="messages">
@@ -53,11 +46,6 @@
         <textarea class='hidden marked-up'
                     name='message'></textarea>
       </form>
-    </div>
-
-  </div>
-  </div>
-</div>
 
 <script type="text/javascript">
 

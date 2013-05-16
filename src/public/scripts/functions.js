@@ -42,17 +42,26 @@ function close_chat(chat_id) {
 
     
 function start_chat(chat_id) {
-  if (chat_id.indexOf('-') == -1) {
-    return false;
-  }
-  
-  if ($('#chat-' + chat_id).length > 0) {
+  if (window.location.pathname != '/messages') {
+    
+    if (chat_id.indexOf('-') == -1) {
       return false;
-  }
+    }
+    
+    if ($('#chat-' + chat_id).length > 0) {
+        return false;
+    }
+    
+    var parts = chat_id.split('-');
+    if (parts.length != 2) {
+      return false;
+    }
   
-  var parts = chat_id.split('-');
-  if (parts.length != 2) {
-    return false;
+  } else {
+    close_chat(chat_id);
+    
+    $('ul.topics a.selected').removeClass('selected');
+    $('ul.topics a.' + chat_id).addClass('selected')
   }
   
   
@@ -76,8 +85,53 @@ function start_chat(chat_id) {
         localStorage['chats'] = chat_id;
       }
       
-      $('#chat').prepend(html);
-      
+      if (window.location.pathname != '/messages') {
+        $('#chat').prepend(html);
+        
+        
+        var textbox = $('#chat-' + chat_id + ' form textarea.mentions');
+        var last_textbox_height = textbox.height();
+        
+        textbox.elastic();
+        
+        textbox.resize(function() { // resize messages panel 
+          console.log('resized')
+          
+          var delta = ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
+          var new_height = $('#chat-' + chat_id + ' .messages').height() - delta;
+          
+          $('#chat-' + chat_id + ' .messages').css('height', new_height + 'px');
+          $('#chat-' + chat_id + ' .status').css('bottom', parseInt($('#chat-' + chat_id + ' .status').css('bottom')) + delta + 'px');
+          
+          last_textbox_height = $('#chat-' + chat_id + ' form textarea.mentions').height();
+          
+          
+          $('#chat-' + chat_id + ' .messages').scrollTop(99999);
+        
+        })
+        
+        
+        $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
+          minChars: 1,
+          fullNameTrigger: false,
+          onDataRequest: function(mode, query, callback) {
+            search_mentions(query, callback)
+          }
+        });
+        
+      } else {
+        $('div.messages div.chatbox').html($('div.chatbox', $(html)).html());
+        $('div.messages div.chatbox').attr('id', $('div.chatbox', $(html)).attr('id'));
+        
+        $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
+          minChars: 1,
+          fullNameTrigger: false,
+          elastic: false,
+          onDataRequest: function(mode, query, callback) {
+            search_mentions(query, callback)
+          }
+        });
+      }
       
       if (localStorage.getItem('state-chat-' + chat_id) == 'minimize') {
         toggle_chatbox('chat-' + chat_id);
@@ -87,37 +141,14 @@ function start_chat(chat_id) {
       $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
         minChars: 1,
         fullNameTrigger: false,
+        elastic: false,
         onDataRequest: function(mode, query, callback) {
           search_mentions(query, callback)
         }
       });
       
-      var textbox = $('#chat-' + chat_id + ' form textarea.mentions');
-      var last_textbox_height = textbox.height();
-      
-      textbox.elastic();
-      
-      textbox.resize(function() { // resize messages panel 
-        console.log('resized')
-        
-        var delta = ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
-        var new_height = $('#chat-' + chat_id + ' .messages').height() - delta;
-        
-        $('#chat-' + chat_id + ' .messages').css('height', new_height + 'px');
-        $('#chat-' + chat_id + ' .status').css('bottom', parseInt($('#chat-' + chat_id + ' .status').css('bottom')) + delta + 'px');
-        
-        last_textbox_height = $('#chat-' + chat_id + ' form textarea.mentions').height();
-        
-        
-        $('#chat-' + chat_id + ' .messages').animate({
-            scrollTop: 99999
-        }, 'fast');
-      
-      })
     
-      $('#chat-' + chat_id + ' .messages').animate({
-          scrollTop: 99999
-      }, 'fast');
+      $('#chat-' + chat_id + ' .messages').scrollTop(99999);
       
       setTimeout(function() {
         $('#chat-' + chat_id + ' textarea.mentions').focus();

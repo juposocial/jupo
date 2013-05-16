@@ -6519,15 +6519,7 @@ border: 0;
 height: 20px;
 }
 
-#body ul.messages {
-  width: 550px;
-  margin-top: 30px;
-}
 
-#body ul.messages a.chat div.ts {
-  font-size: 11px;
-  color: #ccc;
-}
 
 ul.contacts, ul.groups {
   width: 550px;
@@ -6542,11 +6534,11 @@ ul.contacts, ul.groups {
   visibility: hidden;
 }
 
-ul.contacts:last-child, #body ul.messages:last-child {
+ul.contacts:last-child {
   margin-bottom: 100px;
 }
 
-ul.contacts li > a, ul.groups li > a, #body ul.messages li > a {
+ul.contacts li > a, ul.groups li > a {
   width: 225px;
   float: left;
   margin: 10px 20px 10px 0;
@@ -6558,28 +6550,13 @@ ul.contacts li > a, ul.groups li > a, #body ul.messages li > a {
   position: relative;
 }
 
-#body ul.messages li > a {
-  width: 504px;
-  float: left;
-  margin: -7px 20px 10px 0;
-  padding: 12px 15px 11px;
-  background: white;
-  min-height: 36px;
-  box-shadow: 0 1px 7px rgba(0,0,0,0.15);
-  border-bottom: 1px solid rgba(34,113,168,0.7);
-  position: relative;
-}
 
-#body ul.messages li > a.unread {
-  box-shadow: 0 1px 7px rgba(34, 113, 168, 0.5);
-}
-
-ul.contacts li > a:hover, ul.groups li > a:hover, #body ul.messages li > a:hover {
+ul.contacts li > a:hover, ul.groups li > a:hover {
   text-decoration: none;
   border-bottom: 1px solid rgba(34, 113, 168, 1);
 }
 
-ul.contacts li > a:active, ul.groups li > a:active, #body ul.messages li > a:active {
+ul.contacts li > a:active, ul.groups li > a:active {
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   background: #fafafa;
 }
@@ -6598,15 +6575,6 @@ ul.groups li a i.online, ul.groups li a i.offline, ul.groups li a i.away, ul.con
 ul.groups li a .info {
   color: gray;
   font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-
-#body ul.messages li > a div.message {
-  font-size: 11px;
-  color: #999;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -7150,4 +7118,249 @@ form.invite input[type='submit'] {
 
 
 
+
+/*=================== Messages ======================*/
+
+div.messages {
+  position: fixed;
+  background: white;
+  height: 450px;
+  top: 148px;
+  width: 740px;
+  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(34, 113, 168, 0.7);
+}
+
+div.messages #page-header {
+  margin-top: -110px;
+  position: absolute;
+  width: 739px;
+}
+
+div.messages div.chatbox {
+  position: absolute;
+  left: 0;
+  width: 475px !important;
+  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.15);
+  -webkit-box-shadow: 1px 0 4px rgba(0, 0, 0, 0.15);
+  bottom: 0;
+  border: 0;
+  height: 100% !important;
+  z-index: 10;
+  border-right: 1px solid #ddd;
+}
+
+div.messages div.chatbox div.header {
+  background: white;
+  box-shadow: 0 3px 7px -2px rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-bottom: 1px solid #e2e2e2;
+  font-weight: bold;
+  border: 0;
+  margin: 0;
+  cursor: default;
+  position: absolute;
+  width: 445px;
+  z-index: 99;
+}
+
+div.messages div.chatbox div.header img {
+  margin-top: -6px;
+}
+
+div.messages div.chatbox form {
+  position: absolute;
+  width: 100%;
+  background: #f2f2f2;
+  bottom: 0;
+  height: 75px;
+  padding: 0;
+  border-top: 1px solid #cdcecf;
+}
+
+ul.topics {
+  position: absolute;
+  right: 0;
+  width: 265px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+ul.topics > li:nth-child(even) {
+  background: whitesmoke;
+}
+
+ul.topics li a {
+  min-height: 36px;
+  display: block;
+  padding: 14px 10px 15px 16px;
+  color: #333;
+  white-space: nowrap;
+  border-bottom: 1px solid whitesmoke;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+ul.topics li a div.message {
+  color: gray;
+  white-space: nowrap;
+  width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+ul.topics li a div.title {
+  font-weight: bold;
+}
+
+ul.topics li a div.message i {
+  margin: 5px 5px 0 0;
+  float: left;
+}
+
+ul.topics li a img.small-avatar {
+  width: 35px;
+  height: 35px;
+}
+
+ul.topics li a:hover, ul.topics li a.selected {
+  text-decoration: none;
+  color: white;
+  background-color: #2271A9;
+  background-repeat: repeat-x;
+  background-image: -moz-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#2F7EB6),color-stop(100%,#2271A9));
+  background-image: -webkit-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -ms-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -o-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2f7eb6',endColorstr='#2271a9',GradientType=0);
+  background-image: linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+ul.topics li a:active {
+  background: #2271A8;
+}
+
+ul.topics li a:hover div.message, ul.topics li a:active div.message, ul.topics li a.selected div.message, ul.topics li a:hover div.ts, ul.topics li a:active div.ts, ul.topics li a.selected div.ts {
+  color: rgba(255,255,255,0.5);
+}
+
+div.messages div.chatbox ul.messages li.message {
+  padding: 10px 20px;
+  line-height: 20px;
+}
+
+div.messages div.chatbox ul.messages li.message:nth-child(even) {
+  background: whitesmoke;
+  border-top: 1px solid #f1f1f1;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+div.messages div.ts {
+  padding: 1px 7px 0px 10px !important;
+}
+
+div.messages div.chatbox ul.messages div.message, div.ts {
+  font-size: 11px;
+  color: #999;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  float: right;
+}
+
+div.messages div.chatbox ul.messages img.small-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+div.messages div.chatbox ul.messages div.username {
+  color: #999;
+  font-weight: bold;
+}
+
+div.messages div.chatbox ul.messages div.content {
+  margin-left: 47px;
+  color: #444;
+  line-height: 18px;
+}
+
+div.messages div.chatbox ul.messages div.title {
+  text-align: center;
+  margin: 7px 0 6px;
+  color: grey;
+  background: none;
+  padding: 0;
+}
+
+div.messages div.chatbox form textarea.mentions {
+  width: 450px;
+  height: 44px;
+  padding: 5px !important;
+  border: 1px solid #ccc;
+  margin: 10px;
+  resize: none;
+  background: white;
+}
+
+div.messages div.chatbox ul.messages {
+  height: 315px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-size: 11px;
+  padding: 0;
+  margin-top: 60px;
+}
+
+div.messages div.chatbox .mentions-input-box .mentions {
+  padding: 16px;
+}
+
+div.messages div.chatbox.unread .header {
+  -webkit-animation: none;
+}
+
+div.messages div.chatbox .header a span {
+  font-weight: normal;
+  font-size: 11px;
+  display: inline-block;
+  margin-left: -5px;
+}
+
+div.messages div.chatbox .header a:hover span {
+  text-decoration: underline;
+}
+
+div.messages div.chatbox .header a.close {
+  display: none;
+}
+
+div.messages div.chatbox div.status {
+  position: absolute;
+  bottom: 50px;
+  padding: 5px 5px 5px 10px;
+  font-size: 10px;
+  color: #999;
+  text-align: right;
+  right: 0;
+  background: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 14px;
+}
+
+div.messages div.chatbox div.empty {
+  top: 40%;
+  text-align: center;
+  position: absolute;
+  width: 100%;
+  font-size: 16px;
+  color: #ccc;
+}
+
+div.messages div.chatbox div.empty div {
+  font-size: 11px;
+  margin: 10px;
+}
 

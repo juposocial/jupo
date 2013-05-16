@@ -2040,7 +2040,7 @@ def chat(topic_id=None, user_id=None, action=None):
         else:
           seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name for i in seen_by])
               
-    return render_template('chat.html', 
+    return render_template('chatbox.html', 
                            owner={'id': owner_id},
                            seen_by=seen_by,
                            messages=messages, user=user, topic=topic)
@@ -2057,19 +2057,22 @@ def messages():
   suggested_friends = api.get_friend_suggestions(owner.to_dict())
   coworkers = api.get_coworkers(session_id)
   
-  messages = api.get_messages(session_id)
+  topics = api.get_messages(session_id)
+    
 
   if request.method == 'GET':
     return render_homepage(session_id, 'Messages',
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
                            messages=messages,
+                           topics=topics,
                            view='messages')
   else:
     body = render_template('messages.html',
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
                            messages=messages,
+                           topics=topics,
                            owner=owner)
     resp = Response(dumps({'body': body,
                            'title': 'Messages'}))

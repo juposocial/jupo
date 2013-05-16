@@ -2057,7 +2057,7 @@ $(document).ready(function(e) {
 
   
   
-  $('#chat').on('mouseenter', '.chatbox.unread', function() {
+  $('#chat, #body').on('mouseenter', '.chatbox.unread', function() {
     var _this = $(this);
     var type = _this.attr('id').split('-')[1] 
     var id = _this.attr('id').split('-')[2] 
@@ -2117,7 +2117,7 @@ $(document).ready(function(e) {
   
   
   
-  $('#chat').on('keydown', 'textarea', function(e) {
+  $('#chat, #body').on('keydown', 'textarea', function(e) {
     
     if (e.keyCode == 13) {    // Enter
         if (e.ctrlKey || e.shiftKey) {
@@ -2166,7 +2166,7 @@ $(document).ready(function(e) {
   
   
   
-  $('#chat').on('submit', '.chatbox form', function() {
+  $('#chat, #body').on('submit', '.chatbox form', function() {
     
     var _this = $(this);
     var _boxchat = _this.parents('.chatbox');

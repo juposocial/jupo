@@ -79,6 +79,10 @@ div.chatbox div.header i.offline {
   margin-top: -2px;
 }
 
+.chatbox .header a span {
+  display: none;
+}
+
 
 .chatbox .header .upload-icon:hover {
   opacity: 1;
@@ -91,6 +95,10 @@ div.chatbox div.header i.offline {
   color: white;
   text-shadow: none;
   display: block;
+}
+
+.chatbox .username {
+  display: none;
 }
 
 .chatbox .messages {
