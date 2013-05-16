@@ -115,6 +115,8 @@ def render_homepage(session_id, title, **kwargs):
     network_info = api.get_network_info(hostname.replace('.', '_'))
     if network_info and network_info.has_key('name'):
       logo_text = network_info['name']
+      if title == 'Jupo':
+        title = logo_text
 
   resp = Response(render_template('home.html', 
                                   owner=owner,
@@ -2074,7 +2076,11 @@ def news_feed(page=1):
   
   view = 'news_feed'
   title = "Jupo"
-  
+  hostname = request.headers.get('Host').split(':')[0]
+  if hostname != settings.PRIMARY_DOMAIN:
+    network_info = api.get_network_info(hostname.replace('.', '_'))
+    if network_info and network_info.has_key('name'):
+      title = network_info['name']
   
   if filter == 'archived':
     feeds = api.get_archived_posts(session_id, page=page)
