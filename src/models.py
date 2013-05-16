@@ -286,9 +286,9 @@ class User(Model):
     if avatar and isinstance(avatar, str) or isinstance(avatar, unicode):
       return avatar
     elif avatar:
-      attachment = api.get_attachment_info(avatar)
+      attachment = api.get_attachment_info(avatar, db_name=self.db_name)
       filename = '%s_60.jpg' % attachment.md5
-      if attachment.md5 and api.is_s3_file(filename):
+      if attachment.md5 and api.is_s3_file(filename, db_name=self.db_name):
         return 'https://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME, filename)
       
       return '/img/' + str(avatar) + '.jpg'
@@ -380,11 +380,11 @@ class User(Model):
   
   @property
   def groups(self):
-    return api.get_groups(self.info.get('session_id'))
+    return api.get_groups(self.info.get('session_id'), db_name=self.db_name)
   
   @property
   def groups_count(self):
-    return api.get_groups_count(self.id)
+    return api.get_groups_count(self.id, db_name=self.db_name)
   
   @property
   def followers(self):
@@ -397,7 +397,7 @@ class User(Model):
   
   @property
   def following_users(self, info=False):
-    return api.get_following_users(self.id)
+    return api.get_following_users(self.id, db_name=self.db_name)
   
   @property
   def contact_ids(self):
@@ -405,13 +405,16 @@ class User(Model):
   
   @property
   def contacts(self):
-    users = [api.get_user_info(user_id) for user_id in self.contact_ids]
+    users = [api.get_user_info(user_id, db_name=self.db_name) \
+             for user_id in self.contact_ids]
     users.sort(key=lambda k: k.last_online, reverse=True)
     return users
   
   @property
   def following_details(self):
-    return [api.get_user_info(user_id) for user_id in api.get_following_users(self.info['_id'])]
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in api.get_following_users(self.info['_id'], 
+                                                   db_name=self.db_name)]
   
   @property
   def starred_posts_count(self):
@@ -419,7 +422,7 @@ class User(Model):
     
   @property
   def email_addresses(self):
-    return api.get_email_addresses(self.id)  
+    return api.get_email_addresses(self.id, db_name=self.db_name)  
     
   def is_group(self):
     return False
@@ -441,8 +444,10 @@ class User(Model):
   
   @property
   def google_contacts(self):
-    return [User({'_id': api.get_user_id_from_email_address(email),
-                  'email': email}) for email in self.info.get('google_contacts', [])]
+    return [User({'_id': api.get_user_id_from_email_address(email, 
+                                                            db_name=self.db_name),
+                  'email': email}) \
+            for email in self.info.get('google_contacts', [])]
   
 
   
@@ -681,8 +686,9 @@ class File(Model):
       
 
 class Group(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
        
   @property
   def name(self):
@@ -700,7 +706,8 @@ class Group(Model):
     members = self.info.get('members')
     if members:
       members = list(set(members))[-5:]
-      members = [api.get_user_info(user_id) for user_id in members]
+      members = [api.get_user_info(user_id, db_name=self.db_name) \
+                 for user_id in members]
       members = sorted(members, key=lambda k: k.last_online, reverse=False)
       return members
   
@@ -722,7 +729,8 @@ class Group(Model):
     members = self.info.get('members')
     if members:
       members = set(members)
-      members = [api.get_user_info(user_id) for user_id in members]
+      members = [api.get_user_info(user_id, db_name=self.db_name) \
+                 for user_id in members]
       if self.id == 'public':
         members = sorted(members, key=lambda k: k.timestamp, reverse=True)
       else:
@@ -734,7 +742,8 @@ class Group(Model):
     
   @property
   def leaders(self):
-    return [api.get_user_info(user_id) for user_id in self.info.get('leaders')]
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in self.info.get('leaders')]
   
   @property
   def administrator_ids(self):
@@ -746,7 +755,8 @@ class Group(Model):
     
   @property
   def administrators(self):
-    return [api.get_user_info(user_id) for user_id in self.info.get('leaders', [])]
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in self.info.get('leaders', [])]
   
   @property
   def about(self):
@@ -764,7 +774,7 @@ class Group(Model):
       user_id = record['user_id']
       if user_id and user_id not in user_ids:
         user_ids.append(user_id)
-        user = api.get_user_info(user_id)
+        user = api.get_user_info(user_id, db_name=self.db_name)
         if user.id:
           users.append({'user': user,
                         'timestamp': record['timestamp']})
@@ -783,7 +793,8 @@ class Group(Model):
   
   @property
   def highlights(self):
-    return [api.Note(api.get_record(i)) for i in self.highlight_ids]
+    return [api.Note(api.get_record(i, db_name=self.db_name)) \
+            for i in self.highlight_ids]
   
   @property
   def highlight_ids(self):

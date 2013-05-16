@@ -741,10 +741,12 @@ def s3_url(filename, expires=5400,
     cache.set(key, url, expires - 1800)
   return url
 
-def is_s3_file(filename):
+def is_s3_file(filename, db_name=None):
   if not BUCKET:
     return False
-  db_name = get_database_name()
+  
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   key = 'is_s3_file:%s' % filename
@@ -1351,7 +1353,7 @@ def get_all_groups(limit=300):
   db = DATABASE[db_name]
   
   groups = db.owner.find({'members': {'$exists': True}}).limit(limit)
-  return [Group(i) for i in groups]
+  return [Group(i, db_name=db_name) for i in groups]
   
 
 def get_coworkers(session_id, limit=100):
@@ -1569,8 +1571,8 @@ def get_owner_info(session_id=None, uuid=None, db_name=None):
     else:
       info = db.owner.find_one({"_id": long(uuid)})
   if info and info.has_key('members'):
-    return Group(info)
-  return User(info)
+    return Group(info, db_name=db_name)
+  return User(info, db_name=db_name)
 
 def get_owner_info_from_uuid(uuid): 
   db_name = get_database_name()
@@ -1593,8 +1595,8 @@ def get_owner_info_from_uuid(uuid):
         info = db.owner.find_one({"_id": long(uuid)})  
     cache.set(key, info)
   if info and info.has_key('members'):
-    return Group(info)
-  return User(info)
+    return Group(info, db_name=db_name)
+  return User(info, db_name=db_name)
 
 def autocomplete(session_id, query):
   db_name = get_database_name()
@@ -2049,8 +2051,9 @@ def reset_mail_fetcher():
                          'privacy': {'$exists': False}})
   return True
 
-def get_email_addresses(session_id):
-  db_name = get_database_name()
+def get_email_addresses(session_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if (isinstance(session_id, int) or 
@@ -4455,7 +4458,7 @@ def add_member(session_id, group_id, user_id):
 
   user = get_user_info(user_id)
   owner = get_user_info(owner_id)
-  group = Group(group_info)
+  group = Group(group_info, db_name=db_name)
   
   if user.has_password:
     is_new_user = False
@@ -4682,8 +4685,9 @@ def get_group_ids(user_id, db_name=None):
   return ids
 
 
-def get_following_users(user_id):
-  db_name = get_database_name()
+def get_following_users(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not user_id:
@@ -4692,11 +4696,12 @@ def get_following_users(user_id):
   return [i['_id'] for i in users]
   
 
-def get_groups_count(user_id):
+def get_groups_count(user_id, db_name=None):
   if not user_id:
     return 0
   
-  db_name = get_database_name()
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   return db.owner.find({"members": user_id}).count()
@@ -4723,9 +4728,9 @@ def get_groups(session_id, limit=None, db_name=None):
   if not groups:
     return []
   elif limit:
-    return [Group(i) for i in groups[:limit]]
+    return [Group(i, db_name=db_name) for i in groups[:limit]]
   else:
-    return [Group(i) for i in groups]
+    return [Group(i, db_name=db_name) for i in groups]
   
 
 def get_open_groups(user_id=None, limit=5):
@@ -4739,7 +4744,7 @@ def get_open_groups(user_id=None, limit=5):
   else:
     groups = db.owner.find({'privacy': 'open'})\
                      .sort('last_updated', -1).limit(limit)
-  return [Group(i) for i in groups]
+  return [Group(i, db_name=db_name) for i in groups]
 
 
 def get_featured_groups(session_id, limit=5):
@@ -4754,7 +4759,7 @@ def get_featured_groups(session_id, limit=5):
   featured_groups = []
   for group in groups:
     if user_id not in group.get('members'):
-      featured_groups.append(Group(group))
+      featured_groups.append(Group(group, db_name=db_name))
   
   return featured_groups
   
@@ -4771,8 +4776,9 @@ def is_admin(user_id, group_id):
   else:
     return False
 
-def get_group_member_ids(group_id):
-  db_name = get_database_name()
+def get_group_member_ids(group_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if str(group_id).isdigit():
@@ -4826,20 +4832,20 @@ def is_public(group_id):
 
 
 def get_group_info(session_id, group_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
   if group_id == 'public':
     info = {'name': 'Public',
-            'members': get_group_member_ids(group_id),
+            'members': get_group_member_ids(group_id, db_name=db_name),
             '_id': 'public'}
-    return Group(info)
+    return Group(info, db_name=db_name)
   
   if not str(group_id).isdigit():
     return Group({})
   else:
     group_id = long(group_id)
-  
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
     
   user_id = get_user_id(session_id, db_name=db_name)
   info = db.owner.find_one({"_id": group_id, 
@@ -4854,7 +4860,7 @@ def get_group_info(session_id, group_id, db_name=None):
     db.owner.update({'_id': group_id},
                     {'$set': 
                      {'recently_viewed': [None for __ in xrange(0, 250)]}})
-  return Group(info)
+  return Group(info, db_name=db_name)
 
 def add_to_recently_viewed_list(session_id, group_id):
   db_name = get_database_name()

@@ -1793,7 +1793,7 @@ def group(group_id=None, view='group', page=1):
     
     return Response(dumps({'body': body,
                            'title': "%s's Members" % group.name}), 
-                  mimetype='application/json')  
+                    mimetype='application/json')  
   
   else:   
     
