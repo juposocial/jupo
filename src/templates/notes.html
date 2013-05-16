@@ -246,21 +246,25 @@
         <ul>          
           {% set version_count = note.version | length %}
           
-          {% if version < 3 %}
-            {% set index = 3 %}
-          {% elif version > (version_count - 2) %}
-            {% set index = version_count - 2 %}
+          {% if version < 2 %}
+            {% set index = 2 %}
+          {% elif version > (version_count - 1) %}
+            {% set index = version_count - 1 %}
           {% else %}
             {% set index = version %}
           {% endif %}
           
           
-          {% for item in note.version[index-3:index+2] %}
+          {% for item in note.version[index-2:index+1] %}
           <li class='{% if (version_count - loop.index) == version %}current{% endif %}'>
             <a href='/note/{{ note.id }}/v{{ version_count - loop.index }}' class="async">
-              <time title='{{ item.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ item.timestamp | isoformat(owner.utcoffset) }}'>{{ item.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
-              <br>
-              (by {{ item.owner.name }})
+              <img class="small-avatar lfloat" src="{{ item.owner.avatar }}">
+              <div class="title">{{ item.owner.name }}</div>
+              
+              <div class='info'>
+                Saved <time title='{{ item.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ item.timestamp | isoformat(owner.utcoffset) }}'>{{ item.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+              </div>
+              <!-- <span class='info'>(by {{ item.owner.name }})</span> -->
 <!--               <span class='saved'>Saved</span> <time class='timeago' title='{{ item.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ item.timestamp | isoformat(owner.utcoffset) }}'>{{ item.timestamp | friendly_format(owner.utcoffset, short=True) }}</time> -->
             </a>
           </li>

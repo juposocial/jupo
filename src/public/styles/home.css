@@ -1162,10 +1162,6 @@ div#right-sidebar li.current a {
   text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
-div#right-sidebar li.current a .saved, div#right-sidebar li.current a time {
-  color: rgba(255, 255, 255, 0.5);
-}
-
 div#body, div#overlay {
   margin-left: 168px;
   border-top: none;
@@ -6033,17 +6029,19 @@ form.new #notes a.overlay {
 
 
 
-#right-sidebar #history time {
-   color: #114495;
+
+#right-sidebar #history div.info {
+  color: #999;
+font-size: 11px;
 }
 
 
 #right-sidebar #history a {
-  color: rgba(0, 0, 0, 0.35);
+  color: #333;
 }
 
 #right-sidebar #history a:hover {
-  color: rgba(255, 255, 255, 0.5);
+  color: white;
   background-color: #2271A9;
   background-repeat: repeat-x;
   background-image: -moz-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
@@ -6056,25 +6054,21 @@ form.new #notes a.overlay {
   text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
 }
 
-#right-sidebar #history a:hover time {
-  color: white;
-}
 
 #right-sidebar #history a:active {
   background: #2271A8;
 }
 
-#right-sidebar #history a:active time {
-  color: #f1f1f1;
-}
-
-#right-sidebar #history li.current time {
-  color: white;
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.2);
+#right-sidebar #history a:hover div.info,
+#right-sidebar #history li.current div.info {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 #right-sidebar #history li.current a {
-  color: rgba(255, 255, 255, 0.5);
+  color: white;
+  border-top: 1px solid white;
+  border-bottom: 1px solid white;
+  margin-top: -1px;
 }
 
 
