@@ -147,21 +147,32 @@
       
       <div class='actions'>
         <div class='rfloat'>
-          
-          {% if owner.id %}
-            {% if note.comments_count != 0 or note.read_receipt_ids | length != 0 %}
-             <a class="quick-stats async" href='/note/{{ note.id }}#comments'>
-              {% if note.comments_count != 0 %}
+         {% if owner.id %}
+           {% set read_receipts = note.seen_by %}         
+           <a href='/note/{{ note.id }}#comments' class="quick-stats async" title='{% include "read_receipts.html" %}'>
+            {% if note.comments_count != 0 or read_receipts | length != 0 or note.liked_user_ids | length != 0 %}
+              
+              <span class='comments {% if note.comments_count == 0 %}hidden{% endif %}'>
                 <i class="comment-icon"></i>
                 <span class='comment-count'>{{ note.comments_count }}</span>
-              {% endif %}
-              {% if note.read_receipt_ids | length != 0 %}
+              </span>
+              
+              <span class='read-receipts {% if read_receipts | length == 0 %}hidden{% endif %}'>
                 <i class="receipt-icon"></i>
-                <span class='read-receipts-count'>{{ note.read_receipt_ids | length }}</span>
-              {% endif %}
-              </a>
+                <span class='read-receipts-count'>{{ read_receipts | length }}</span>
+              </span>
+              
+              
+              <span class='likes {% if note.liked_user_ids | length == 0 %}hidden{% endif %}'>
+                <i class='like-icon'></i> 
+                <span class='likes-count'>{{ note.liked_user_ids | length }}</span>
+              </span>
+            {% else %}
+              &nbsp;
             {% endif %}
-          {% endif %}
+            
+           </a>
+         {% endif %}
         </div>
         
         <div class='lfloat'>  
