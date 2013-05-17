@@ -11,7 +11,12 @@ Create an Account
 <div class='content'>
   <h2>
     {% if network_info %}
-      {% if welcome %}
+    
+      {% if alerts %}
+        
+        <span class='red'>{{ alerts.items()[-1][1] }}</span>
+        
+      {% elif welcome %}
       <span class='green'>
         <span class='large'>Congratulations!</span><br>
         Your {{ network_info.name }} network is created successfully.
@@ -50,18 +55,18 @@ Create an Account
   <form id='sign-up' action='/sign_up' class='authen' method='post'>
 
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-
+    
     <ul>
       <li>
-        <input type='text' name='name' placeholder="Your Full Name" autocomplete="off" autofocus>
+        <input type='text' name='name' placeholder="Your Full Name" autocomplete="off" autofocus {% if name %}value='{{ name }}'{% endif %}>
         <br>
       </li>
       <li>
-        <input type='email' name='email' placeholder="Email" autocomplete="off">
+        <input type='email' name='email' placeholder="Email" autocomplete="off"  {% if alerts and "email" in alerts.keys() %}title="{{ alerts['email'] }}" class='red' autofocus{% endif %}  {% if email %}value='{{ email }}'{% endif %}>
         <br>
       </li>
       <li>
-        <input type='password' name='password' placeholder="Password" autocomplete="off">
+        <input type='password' name='password' placeholder="Password" autocomplete="off" {% if alerts and "password" in alerts.keys() %}title="{{ alerts['password'] }}" class='red' autofocus{% endif %}  {% if password %}value='{{ password }}'{% endif %}>
         <div class='click-target' onclick="document.getElementById('sign-up').submit();"></div>
       </li>
     </ul>
@@ -83,10 +88,21 @@ Create an Account
   </form>
 
 </div>
+
+
+  {% if alerts %}
+  <script type='text/javascript' src='//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
+  
+  <script>
+    $('div.content').addClass('animate shake');
+  </script>
+  {% endif %}
+
 {% endblock %}
 
 {% block stylesheets %}
 
+<link rel="stylesheet" href="/public/styles/animations.css">
 <style>
   html {
     background: #111;
@@ -150,6 +166,10 @@ margin-bottom: 5px;
     float: right;
     text-decoration: none;
     font-size: 85%;
+  }
+  
+  form ul li input.red {
+    border: 1px solid #b94a48;
   }
 
   form ul li input {
@@ -319,6 +339,10 @@ margin-top: -5px;
     padding: 0 0 15px;
     text-shadow: 0 1px 0 white;
     font-size: 14px;
+  }
+  
+  h2 span.red {
+    color: #b94a48;
   }
 
 </style>

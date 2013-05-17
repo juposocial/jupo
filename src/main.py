@@ -91,7 +91,8 @@ def render_homepage(session_id, title, **kwargs):
       group.unread_posts = api.get_unread_posts_count(session_id, group.id)
     
     unread_messages = api.get_unread_messages(session_id)
-    unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
+#     unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
+    unread_messages_count = len(unread_messages)
     unread_notification_count = api.get_unread_notifications_count(session_id)\
                               + unread_messages_count
     
@@ -114,6 +115,8 @@ def render_homepage(session_id, title, **kwargs):
     network_info = api.get_network_info(hostname.replace('.', '_'))
     if network_info and network_info.has_key('name'):
       logo_text = network_info['name']
+      if title == 'Jupo':
+        title = logo_text
 
   resp = Response(render_template('home.html', 
                                   owner=owner,
@@ -143,7 +146,7 @@ def event_stream(channel):
   pubsub = api.PUBSUB.pubsub()
   pubsub.subscribe(channel)
   for message in pubsub.listen():
-    yield 'retry: 100\ndata: %s\n\n' % message['data']
+    yield 'retry: 1000\ndata: %s\n\n' % message['data']
     
 #===============================================================================
 # URL routing and handlers
@@ -643,8 +646,15 @@ def authentication(action=None):
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
       return resp
     else:
-      message = 'Wrong email address and password combination.'
-      resp = redirect('/?email=%s&message=%s' % (email, message))
+      message = 'Invalid username or password'
+      
+      resp = Response(render_template('sign_in.html', 
+                                      domain=hostname,
+                                      email=email, 
+                                      password=password, 
+                                      message=message,
+                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                      network_info=network_info))
       resp.set_cookie('new_user', '0')
       return resp
         
@@ -671,9 +681,15 @@ def authentication(action=None):
     
     
     if alerts.keys():
-      data = dumps(alerts)
-      return Response(data, mimetype='application/json')
-      
+      resp = Response(render_template('sign_up.html', 
+                                      alerts=alerts,
+                                      email=email,
+                                      password=password,
+                                      name=name,
+                                      domain=hostname, 
+                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                      network_info=network_info))
+      return resp
     else:
       session_id = api.sign_up(email, password, name)
       if session_id:
@@ -1159,7 +1175,7 @@ def note(note_id=None, action=None, version=None):
       abort(404)
     mode = 'view'
     
-  recents = api.get_notes(session_id, limit=5) 
+#   recents = api.get_notes(session_id, limit=5) 
   view = 'notes'
   if version is None and info:
     version = len(note.to_dict()['version'])
@@ -1176,7 +1192,7 @@ def note(note_id=None, action=None, version=None):
                            mode=mode,
                            action=action,
                            version=version,
-                           recents=recents,
+#                            recents=recents,
                            note=note,
                            group=group,
                            owner=owner,
@@ -1779,7 +1795,7 @@ def group(group_id=None, view='group', page=1):
     
     return Response(dumps({'body': body,
                            'title': "%s's Members" % group.name}), 
-                  mimetype='application/json')  
+                    mimetype='application/json')  
   
   else:   
     
@@ -2060,7 +2076,11 @@ def news_feed(page=1):
   
   view = 'news_feed'
   title = "Jupo"
-  
+  hostname = request.headers.get('Host').split(':')[0]
+  if hostname != settings.PRIMARY_DOMAIN:
+    network_info = api.get_network_info(hostname.replace('.', '_'))
+    if network_info and network_info.has_key('name'):
+      title = network_info['name']
   
   if filter == 'archived':
     feeds = api.get_archived_posts(session_id, page=page)
@@ -2764,7 +2784,7 @@ def notifications():
     
   notifications = api.get_notifications(session_id)
   unread_messages = api.get_unread_messages(session_id)
-  unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
+  unread_messages_count = len(unread_messages)
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
@@ -2828,7 +2848,9 @@ def notification(id=None, ref_id=None, post_id=None):
                                   ts=api.utctime())
   
   unread_notification_count = api.get_unread_notifications_count(session_id)
-  return str(unread_notification_count)
+  unread_messages = api.get_unread_messages(session_id)
+  
+  return str(unread_notification_count + len(unread_messages))
 
 
 @app.route('/feeds/<int:user_id>')

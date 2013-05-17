@@ -132,10 +132,8 @@ function start_chat(chat_id) {
 }
 
 function search_mentions(query, callback) {
-      query = khong_dau(query).toLowerCase();
       data = _.filter($.global.coworkers, function(item) {
-        return khong_dau(item.name).toLowerCase().indexOf(query) == 0;
-        // prefix matching
+        return item.name.toLowerCase().indexOf(query.toLowerCase()) != -1;
       });
       
       var ids;
@@ -149,29 +147,37 @@ function search_mentions(query, callback) {
           ids.push(id);
           owners.push(data[i]);
           
-          if (owners.length == 3) {
+          if (owners.length >= 3) {
             break
           }
         }
       }
-
+      
+      
+      // search without accents
       if (owners.length < 3) {
-        for (i in $.global.coworkers) {
+        query = khong_dau(query).toLowerCase();
+        data = _.filter($.global.coworkers, function(item) {
+          return khong_dau(item.name).toLowerCase().indexOf(query) != -1;
+          // prefix matching
+        });
+        
+        for (i in data) {
           var id;
-          var item;
-          item = $.global.coworkers[i];
-          id = item.id + item.name;
-          if (ids.indexOf(id) == -1 && khong_dau(item.name).toLowerCase().indexOf(query) > -1) {
+          id = data[i].id + data[i].name;
+          if (ids.indexOf(id) == -1) {
             ids.push(id);
-            owners.push(item);
-          }
-
-          if (owners.length == 3) {
-            break
+            owners.push(data[i]);
+            
+            if (owners.length >= 3) {
+              break
+            }
           }
         }
-
       }
+      
+      
+      
       callback.call(this, owners);
 }
 
@@ -839,6 +845,8 @@ function incr(id, value) {
   if (value != 0) {
     item.show();
   }
+  
+  return value;
 }
 
 function decr(id, value) {
@@ -909,22 +917,22 @@ function stream() {
   }
   
   source.onerror = function(e) {
-    console.log(e);
+   $.global.ev_count += 1;
     switch (e.target.readyState) {
        case EventSource.CONNECTING:  
           console.log('Reconnecting...');  
           break;
        case EventSource.CLOSED:  
-          console.log('Connection failed. Retrying...');
-          setTimeout(function() {
-            stream();
-          }, 5000);  
+          // console.log('Connection failed. Retrying...');
+          // setTimeout(function() {
+            // stream();
+          // }, 1000);  
           break;    
        default:
-          console.log('Connection error. Retrying...');
-          setTimeout(function() {
-            stream();
-          }, 5000);  
+          // console.log('Connection error. Retrying...');
+          // setTimeout(function() {
+            // stream();
+          // }, 1000);  
           break;    
        
     }  
@@ -2366,12 +2374,6 @@ function isScrolledIntoView(elem) {
 }
 
 function update_status(status, async) {
-  
-  // auto reload
-  var ts = new Date().getTime();
-  if ($.global.last_connect_timestamp != undefined && ts - $.global.last_connect_timestamp > 600000) { // 600 seconds = 10 minutes
-    window.location.href = window.location.href;
-  }
   
   var async = typeof (async) != 'undefined' ? async : true;
   if ($.global.status != status) {

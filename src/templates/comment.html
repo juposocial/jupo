@@ -101,15 +101,31 @@
         
       {% if comment.attachments %}
         <br>
-        <i class='attach-icon lfloat'></i>
-        <div class='attachments'>
-        {% for attachment in comment.attachments %}
-            <div>
+        {% if comment.attachments | length == 1 and 'image' in comment.attachments[0].mimetype %}
+          <div class="file-attachment image">
+            {% set attachment = comment.attachments[0] %}
+            <a href='/attachment/{{ attachment.id }}.png?rel={{ item.id }}' target='_blank' rel='gallery' class="lfloat">
+              <img src='/attachment/{{ attachment.id }}.png?rel={{ item.id }}' alt='{{ attachment.name }} ({{ attachment.size }})'  title='{{ attachment.name }} ({{ attachment.size }})'>
+            </a>
+            <div class='lfloat'>
               <a href='/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}' target='_blank' title='{{ attachment.name }}'>{{ attachment.name | truncate(30, True) }}</a>
               <span class='gray'>({{ attachment.size }})</span>
             </div>
-        {% endfor %}
-        </div>
+          </div>
+              
+        {% else %}
+          <div class='attachments'>
+          {% for attachment in comment.attachments %}
+            {% if attachment.id %}
+              <div>
+                <i class='attach-icon lfloat'></i>
+                <a href='/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}' target='_blank' title='{{ attachment.name }}'>{{ attachment.name | truncate(30, True) }}</a>
+                <span class='gray'>({{ attachment.size }})</span>
+              </div>
+            {% endif %}
+          {% endfor %}
+          </div>
+        {% endif %}
       {% endif %}
         
         

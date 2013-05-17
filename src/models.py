@@ -17,8 +17,9 @@ import settings
 
 
 class Model:
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
     
   @property
   def id(self):
@@ -52,13 +53,15 @@ class Model:
         is_public = True
       elif user_id and user_id not in user_ids:
         user_ids.add(user_id)
-        user_info = api.get_owner_info_from_uuid(user_id)
+        user_info = api.get_owner_info_from_uuid(user_id, 
+                                                 db_name=self.db_name)
         if user_info.id:
           out.append(user_info)
           
     out.sort(key=lambda k: k.is_group())
     if is_public:
-      out.append(api.get_owner_info_from_uuid('public'))
+      out.append(api.get_owner_info_from_uuid('public', 
+                                              db_name=self.db_name))
     return out
   
   @property
@@ -74,8 +77,10 @@ class Model:
         timestamp = record.get('timestamp')
         user_id = record.get('user_id')
           
-        if user_id not in user_ids and not api.is_group(user_id):
-          users.append({'user': api.get_user_info(user_id),
+        if user_id not in user_ids and not api.is_group(user_id, 
+                                                        db_name=self.db_name):
+          users.append({'user': api.get_user_info(user_id, 
+                                                  db_name=self.db_name),
                         'timestamp': timestamp})
           user_ids.add(user_id)
     users.sort(key=lambda k: k.get('timestamp'), reverse=True)
@@ -114,8 +119,10 @@ class Model:
         if timestamp > self.last_updated:
           user_id = record.get('user_id')
             
-          if user_id not in user_ids and not api.is_group(user_id):
-            users.append({'user': api.get_user_info(user_id),
+          if user_id not in user_ids \
+          and not api.is_group(user_id, db_name=self.db_name):
+            users.append({'user': api.get_user_info(user_id, 
+                                                    db_name=self.db_name),
                           'timestamp': timestamp})
             user_ids.add(user_id)
         
@@ -142,12 +149,12 @@ class Model:
       if i.get('is_removed'):
         continue
       
-      comment = Comment(i)
+      comment = Comment(i, db_name=self.db_name)
       if i.get('reply_to'):
         reply_to = i.get('reply_to')
         for j in comments:
           if j['_id'] == reply_to:
-            comment.reply_src = Comment(j)
+            comment.reply_src = Comment(j, db_name=self.db_name)
             break
       comments_list.append(comment)
     return comments_list
@@ -160,7 +167,7 @@ class Model:
     last_comments = []
     for comment in comments:
       if not comment.has_key('is_removed'):
-        last_comments.append(Comment(comment))
+        last_comments.append(Comment(comment, db_name=self.db_name))
       if len(last_comments) >= 2:
         break
     last_comments.reverse()
@@ -182,7 +189,7 @@ class Model:
   
   @property
   def owner(self):
-    return api.get_user_info(self.info.get('owner'))
+    return api.get_user_info(self.info.get('owner'), db_name=self.db_name)
   
   @property
   def last_action(self):
@@ -243,18 +250,20 @@ class Model:
   @property
   def liked_user_ids(self):
     if self.id:
-      return api.get_liked_user_ids(self.id)
+      return api.get_liked_user_ids(self.id, db_name=self.db_name)
     else:
       return []
   
   @property
   def liked_by(self):
-    return [api.get_user_info(user_id) for user_id in self.liked_user_ids]
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in self.liked_user_ids]
   
   
 class User(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
   
   @property
   def name(self):
@@ -285,9 +294,9 @@ class User(Model):
     if avatar and isinstance(avatar, str) or isinstance(avatar, unicode):
       return avatar
     elif avatar:
-      attachment = api.get_attachment_info(avatar)
+      attachment = api.get_attachment_info(avatar, db_name=self.db_name)
       filename = '%s_60.jpg' % attachment.md5
-      if attachment.md5 and api.is_s3_file(filename):
+      if attachment.md5 and api.is_s3_file(filename, db_name=self.db_name):
         return 'https://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME, filename)
       
       return '/img/' + str(avatar) + '.jpg'
@@ -332,7 +341,7 @@ class User(Model):
   
   @property
   def status(self):
-    return api.check_status(self.id)
+    return api.check_status(self.id, db_name=self.db_name)
     
   @property
   def location(self):
@@ -371,7 +380,7 @@ class User(Model):
     
   @property
   def last_online(self):
-    return api.last_online(self.id)
+    return api.last_online(self.id, db_name=self.db_name)
   
   @property
   def session_id(self):
@@ -379,11 +388,11 @@ class User(Model):
   
   @property
   def groups(self):
-    return api.get_groups(self.info.get('session_id'))
+    return api.get_groups(self.info.get('session_id'), db_name=self.db_name)
   
   @property
   def groups_count(self):
-    return api.get_groups_count(self.id)
+    return api.get_groups_count(self.id, db_name=self.db_name)
   
   @property
   def followers(self):
@@ -396,7 +405,7 @@ class User(Model):
   
   @property
   def following_users(self, info=False):
-    return api.get_following_users(self.id)
+    return api.get_following_users(self.id, db_name=self.db_name)
   
   @property
   def contact_ids(self):
@@ -404,21 +413,24 @@ class User(Model):
   
   @property
   def contacts(self):
-    users = [api.get_user_info(user_id) for user_id in self.contact_ids]
+    users = [api.get_user_info(user_id, db_name=self.db_name) \
+             for user_id in self.contact_ids]
     users.sort(key=lambda k: k.last_online, reverse=True)
     return users
   
   @property
   def following_details(self):
-    return [api.get_user_info(user_id) for user_id in api.get_following_users(self.info['_id'])]
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in api.get_following_users(self.info['_id'], 
+                                                   db_name=self.db_name)]
   
   @property
   def starred_posts_count(self):
-    return api.get_starred_posts_count(self.info['_id'])
+    return api.get_starred_posts_count(self.info['_id'], db_name=self.db_name)
     
   @property
   def email_addresses(self):
-    return api.get_email_addresses(self.id)  
+    return api.get_email_addresses(self.id, db_name=self.db_name)  
     
   def is_group(self):
     return False
@@ -440,8 +452,10 @@ class User(Model):
   
   @property
   def google_contacts(self):
-    return [User({'_id': api.get_user_id_from_email_address(email),
-                  'email': email}) for email in self.info.get('google_contacts', [])]
+    return [User({'_id': api.get_user_id_from_email_address(email, 
+                                                            db_name=self.db_name),
+                  'email': email}) \
+            for email in self.info.get('google_contacts', [])]
   
 
   
@@ -457,12 +471,14 @@ class User(Model):
   
 
 class Comment(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
   
   @property
   def owner(self):
-    return api.get_user_info(self.info.get('owner'))
+    return api.get_user_info(self.info.get('owner'),
+                             db_name=self.db_name)
   
   @property
   def message(self):
@@ -521,7 +537,8 @@ class Comment(Model):
   
   @property
   def urls(self):
-    return [api.get_url_info(u) for u in api.extract_urls(self.message)]
+    return [api.get_url_info(u, db_name=self.db_name) \
+            for u in api.extract_urls(self.message)]
   
   @property
   def post_id(self):
@@ -529,7 +546,8 @@ class Comment(Model):
   
   @property
   def attachments(self):
-    return [api.get_attachment_info(attachment_id) for attachment_id in self.info.get('attachments', [])]
+    return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
+            for attachment_id in self.info.get('attachments', [])]
   
   @property
   def attachment_ids(self):
@@ -606,8 +624,9 @@ class Attachment(Model):
 
   
 class File(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
   
   @property
   def history(self):
@@ -621,13 +640,15 @@ class File(Model):
   
   @property
   def details(self):
-    return api.get_attachment_info(self.attachment_id)
+    return api.get_attachment_info(self.attachment_id, 
+                                   db_name=self.db_name)
   
   @property
   def name(self):
     if self.info.has_key('filename'):
       return self.info['filename']
-    return api.get_attachment_info(self.attachment_id).name
+    return api.get_attachment_info(self.attachment_id, 
+                                   db_name=self.db_name).name
   
   @property
   def extension(self):
@@ -640,7 +661,8 @@ class File(Model):
   @property
   def diff(self):
     try:
-      old = api.get_attachment_info(self.info['history'][-2]['attachment_id']).raw_size
+      old = api.get_attachment_info(self.info['history'][-2]['attachment_id'], 
+                                    db_name=self.db_name).raw_size
     except (IndexError, KeyError):
       return None
     new = self.raw_size
@@ -680,8 +702,9 @@ class File(Model):
       
 
 class Group(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
        
   @property
   def name(self):
@@ -699,7 +722,8 @@ class Group(Model):
     members = self.info.get('members')
     if members:
       members = list(set(members))[-5:]
-      members = [api.get_user_info(user_id) for user_id in members]
+      members = [api.get_user_info(user_id, db_name=self.db_name) \
+                 for user_id in members]
       members = sorted(members, key=lambda k: k.last_online, reverse=False)
       return members
   
@@ -721,7 +745,8 @@ class Group(Model):
     members = self.info.get('members')
     if members:
       members = set(members)
-      members = [api.get_user_info(user_id) for user_id in members]
+      members = [api.get_user_info(user_id, db_name=self.db_name) \
+                 for user_id in members]
       if self.id == 'public':
         members = sorted(members, key=lambda k: k.timestamp, reverse=True)
       else:
@@ -733,7 +758,8 @@ class Group(Model):
     
   @property
   def leaders(self):
-    return [api.get_user_info(user_id) for user_id in self.info.get('leaders')]
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in self.info.get('leaders')]
   
   @property
   def administrator_ids(self):
@@ -745,7 +771,8 @@ class Group(Model):
     
   @property
   def administrators(self):
-    return [api.get_user_info(user_id) for user_id in self.info.get('leaders', [])]
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in self.info.get('leaders', [])]
   
   @property
   def about(self):
@@ -763,7 +790,7 @@ class Group(Model):
       user_id = record['user_id']
       if user_id and user_id not in user_ids:
         user_ids.append(user_id)
-        user = api.get_user_info(user_id)
+        user = api.get_user_info(user_id, db_name=self.db_name)
         if user.id:
           users.append({'user': user,
                         'timestamp': record['timestamp']})
@@ -782,7 +809,8 @@ class Group(Model):
   
   @property
   def highlights(self):
-    return [api.Note(api.get_record(i)) for i in self.highlight_ids]
+    return [api.Note(api.get_record(i, db_name=self.db_name)) \
+            for i in self.highlight_ids]
   
   @property
   def highlight_ids(self):
@@ -790,9 +818,10 @@ class Group(Model):
   
 
 class Note(Model):
-  def __init__(self, info, version=-1):
+  def __init__(self, info, version=-1, db_name=None):
     self.info = info if info else dict()
     self.version_index = version
+    self.db_name = db_name
     
   @property
   def title(self):
@@ -807,7 +836,7 @@ class Note(Model):
   def version(self):
     version = self.info.get('version')
     version.reverse()
-    version = [Version(i) for i in version]
+    version = [Version(i, db_name=self.db_name) for i in version]
     version.reverse()
     return version
   
@@ -837,7 +866,8 @@ class Note(Model):
   
   @property
   def owner(self):
-    return api.get_user_info(self.info.get('version')[self.version_index].get('owner'))
+    return api.get_user_info(self.info.get('version')[self.version_index].get('owner'), 
+                             db_name=self.db_name)
   
   @property
   def timestamp(self):
@@ -845,7 +875,7 @@ class Note(Model):
     
   @property
   def attachments(self):
-    return [api.get_attachment_info(attachment_id) \
+    return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
             for attachment_id in self.info.get('attachments', [])]
       
   @property
@@ -872,17 +902,19 @@ class Note(Model):
   
 
 class Version(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = None
   
   @property
   def owner(self):
-    return api.get_user_info(self.info.get('owner'))
+    return api.get_user_info(self.info.get('owner'), db_name=self.db_name)
     
   
 class Feed(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info
+    self.db_name = db_name
     
   @property
   def raw_message(self):
@@ -893,9 +925,11 @@ class Feed(Model):
     if self.is_system_message():
       msg = self.info.get('message')
       if msg.get('group_id'):
-        msg['group'] = api.get_owner_info_from_uuid(msg['group_id'])
+        msg['group'] = api.get_owner_info_from_uuid(msg['group_id'], 
+                                                    db_name=self.db_name)
       if msg.get('user_id'):
-        msg['user'] = api.get_owner_info_from_uuid(msg['user_id'])
+        msg['user'] = api.get_owner_info_from_uuid(msg['user_id'],
+                                                   db_name=self.db_name)
       return msg
       
     if self.is_file():
@@ -912,7 +946,8 @@ class Feed(Model):
   
   @property
   def owner(self):
-    return api.get_owner_info_from_uuid(self.info.get('owner'))
+    return api.get_owner_info_from_uuid(self.info.get('owner'), 
+                                        db_name=self.db_name)
   
   
   @property
@@ -931,18 +966,19 @@ class Feed(Model):
   def details(self):
     if self.info.has_key('version'):
       self.info['version'] = sorted(self.info['version'], key=lambda k:k['timestamp'])
-      return Note(self.info)
+      return Note(self.info, db_name=self.db_name)
     elif self.info.has_key('when'):
       return Event(self.info)
     elif self.info.has_key('history') and self.info.get('history')[0].has_key('attachment_id'):
       return File(self.info)
     else:
-      return Feed(self.info)
+      return Feed(self.info, db_name=self.db_name)
   
   @property
   def urls(self):
     if self.info.has_key('urls'):
-      return [api.get_url_info(url) for url in self.info.get('urls')]
+      return [api.get_url_info(url, db_name=self.db_name) \
+              for url in self.info.get('urls')]
     else:
       return []
     
@@ -958,7 +994,7 @@ class Feed(Model):
   @property
   def attachments(self):
     if self.info.has_key('attachments'):
-      return [api.get_attachment_info(attachment_id) \
+      return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
               for attachment_id in self.info.get('attachments')]
   
   def is_task(self):
@@ -1039,7 +1075,8 @@ class Feed(Model):
   
   @property
   def starred_by(self):
-    return [api.get_user_info(user_id) for user_id in self.info.get('starred', [])[-5:]]
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in self.info.get('starred', [])[-5:]]
   
   @property
   def pinned_by(self):
@@ -1063,7 +1100,7 @@ class Feed(Model):
     
     out = []
     for user_id in info.keys():
-      out.append({'user': api.get_user_info(user_id),
+      out.append({'user': api.get_user_info(user_id, db_name=self.db_name),
                   'post_count': info[user_id]})
     
     out.sort(key=lambda k: k['post_count'], reverse=True)
@@ -1072,18 +1109,19 @@ class Feed(Model):
 
 
 class History(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
   
   @property
   def owner(self):
     user_id = self.info.get('user_id', self.info.get('owner'))
-    return api.get_user_info(user_id)  
+    return api.get_user_info(user_id, db_name=self.db_name)  
   
   @property
   def user(self):
     user_id = self.info.get('user_id', self.info.get('owner'))
-    return api.get_user_info(user_id)  
+    return api.get_user_info(user_id, db_name=self.db_name)  
     
   @property
   def action(self):
@@ -1092,7 +1130,8 @@ class History(Model):
   @property
   def message(self):
     if self.info.has_key('attachment_id'):
-      attachment = api.get_attachment_info(self.info['attachment_id'])
+      attachment = api.get_attachment_info(self.info['attachment_id'], 
+                                           db_name=self.db_name)
       return attachment.name
     else:
       return self.info.get('message')
@@ -1100,7 +1139,8 @@ class History(Model):
   @property
   def ref_info(self):
     if self.info.has_key('attachment_id'):
-      return api.get_attachment_info(self.info['attachment_id'])
+      return api.get_attachment_info(self.info['attachment_id'], 
+                                     db_name=self.db_name)
     
   
   @property
@@ -1195,9 +1235,10 @@ class URL(Model, Feed):
 
 
 class Result(Model):
-  def __init__(self, info, query=None):
+  def __init__(self, info, query=None, db_name=None):
     self.info = info if info else dict()
     self.query = query.strip()
+    self.db_name = db_name
     
   @property
   def title(self):
@@ -1240,7 +1281,7 @@ class Result(Model):
     if self.type == 'note':
       return Note(self.info)
     elif self.type == 'feed':
-      return Feed(self.info)
+      return Feed(self.info, db_name=self.db_name)
     
   @property
   def viewers(self):
@@ -1387,9 +1428,10 @@ class Topic(Model):
 
 
 class ESResult(Model):
-  def __init__(self, info, query):
+  def __init__(self, info, query, db_name=None):
     self.query = query.strip()
     self.info = info if info else dict()
+    self.db_name = db_name
 
   @property
   def owner(self):
@@ -1418,7 +1460,7 @@ class ESResult(Model):
     elif self.type == 'file':
       return File(self.info)
     else:
-      return Feed(self.info)
+      return Feed(self.info, db_name=self.db_name)
   
   
 #  @property
@@ -1465,7 +1507,7 @@ class Notification(Model):
     if not record or record.has_key('is_removed'):
       return Feed({})
     if self.comment_id:
-      info = Feed(record)
+      info = Feed(record, db_name=self.db_name)
       for i in info.comments:
         if i.id == self.comment_id:
           info.message = i.message
@@ -1479,7 +1521,7 @@ class Notification(Model):
       info = Event(record)
       info.message = info.name
     else:
-      info = Feed(record)
+      info = Feed(record, db_name=self.db_name)
     return info
       
   @property
@@ -1489,7 +1531,7 @@ class Notification(Model):
                             db_name=self.db_name)
     if not record or record.has_key('is_removed'):
       return Feed({})
-    return Feed(record)
+    return Feed(record, db_name=self.db_name)
     
   
   @property

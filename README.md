@@ -1,8 +1,5 @@
 
-## Introduction
-
-Jupo is an open source enterprise social network. 
-It's like a small version of facebook for your company.
+## The open-source Facebook Groups for team
 
 Jupo is publicly hosted at <http://play.jupo.com/>
 and is also available for [download](https://github.com/juposocial/jupo/tags) 
@@ -15,12 +12,12 @@ with Python ([see details](https://github.com/juposocial/jupo/blob/develop/requi
 Efforts are made to keep Jupo compatible with Python 2.5.x but no guarantees are made.
 
 
-## Installation
+### Installation
 
 See the wiki for up-to-date [Installation Instructions](https://github.com/juposocial/jupo/wiki/Installation).
 
 
-## Contributing
+### Contributing
 
 Jupo is licensed under [GNU Affero GPLv3](https://github.com/juposocial/jupo/blob/develop/LICENSE)
 
@@ -29,7 +26,7 @@ The Jupo project uses the [gitflow](http://nvie.com/posts/a-successful-git-branc
 
 We love community contributions, and we work extra hard to make sure every code 
 contribution is looked at and given feedback. To help everyone involved, please 
-review our [Pull Request Guidelines](https://github.com/juposocial/jupo/wiki/Pull-Request-Guidelines) 
+review our [Developer's Guide](https://github.com/juposocial/jupo/wiki/Develop-from-Source) 
 to make sure all contributions are submitted smoothly.
 
 
@@ -41,7 +38,21 @@ to make sure all contributions are submitted smoothly.
 - [Contributors](http://github.com/juposocial/jupo/contributors)
 
 
-## Release Notes
+### Release Notes
 
-April, 12 2013: Initial public released.
+April 12, 2013: Initial public released
 
+April 15, 2013: Jupo v1.0.0 released
+
+April 26, 2013: Jupo v2.0.0 released
+  - One-to-One Chat 
+  - Multiple Networks 
+  - Github Integration 
+  - Performance improvements & many bug fixes
+  
+May 04, 2013: Jupo v3.0.0 released  
+  Group chat, performance improvements and bug fixes
+
+May 09, 2013: Jupo v3.1.0 released  
+  Some new small features, many bug fixes and performance improvements
+  

@@ -18,19 +18,29 @@ Sign In
 
     </div>
 
+    
+    {% if message %}
+    <div class='msg'>
+      <span>{{ message }}</span>
+      <hr>
+    </div>
+    {% else %}
+    
     <div class='or'>
       <span>or using email and password</span>
       <hr>
     </div>
+    {% endif %}
+    
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
     <ul>
       <li>
-        <input type='email' name='email' placeholder="Email" autocomplete="off" autofocus>
+        <input type='email' name='email' placeholder="Email" autocomplete="off" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}>
         <br>
       </li>
       <li>
-        <input type='password' name='password' placeholder="Password" autocomplete="off">
+        <input type='password' name='password' placeholder="Password" autocomplete="off" {% if password %}value="{{ password }}" autofocus{% endif %}>
         <div class='click-target' onclick="document.getElementById('sign-in').submit();"></div>
       </li>
     </ul>
@@ -50,10 +60,20 @@ Sign In
   </form>
 
 </div>
+
+  {% if message %}
+  <script type='text/javascript' src='//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
+  
+  <script>
+    $('div.content').addClass('animate shake');
+  </script>
+  {% endif %}
 {% endblock %}
 
 {% block stylesheets %}
 
+
+<link rel="stylesheet" href="/public/styles/animations.css">
 <style>
   html {
     background: #111;
@@ -81,7 +101,7 @@ Sign In
   }
 
   form ul {
-    margin: 0 0 15px;
+    margin: 0 0 20px;
     list-style: none;
   }
 
@@ -159,7 +179,7 @@ Sign In
     background: whitesmoke;
     border-radius: 3px;
     border: 1px solid white;
-    padding: 20px 30px;
+    padding: 30px 30px 15px;
     box-shadow: 0 1px 25px #000;
     color: #333;
   }
@@ -172,10 +192,10 @@ Sign In
   }
 
   .social-login {
-    padding: 10px 5px 0;
+    padding: 10px 5px 5px;
   }
 
-  .or {
+  .or, .msg {
     text-align: center;
   }
 
@@ -185,6 +205,14 @@ Sign In
     display: inline-block;
     background: whitesmoke;
     padding: 0 7px;
+  }
+  
+  .msg span {
+    color: #b94a48;
+    padding: 5px 12px 4px;
+    background-color: #f2dede;
+    border: 1px solid #eed3d7;
+    font-size: 11px;
   }
 
   .forgot {

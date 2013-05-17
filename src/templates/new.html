@@ -49,11 +49,8 @@ Leave a message...
                   data-prefill='[{name: "{{ group.name }}", id: "{{ group.id }}"},]'
                  {% elif user %}
                   data-prefill='[{name: "{{ user.name }}", id: "{{ user.id }}"},]'
-                 {% else %}
-                  data-prefill='[{name: "Public", id: "public"},]'
                  {% endif %}
                  
-                 required
                  placeholder='To:'>
                  
         </td>

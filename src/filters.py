@@ -35,6 +35,7 @@ def lines_truncate(text, lines_count=5):
   
   raw = text
   text = _normalize_newlines(text)
+  is_html = True if ('<br>' in raw or '</' in raw) else False
   
   # remove blank lines
   lines = [line for line in text.split('\n') if line.strip()]
@@ -68,11 +69,13 @@ def lines_truncate(text, lines_count=5):
     
   is_truncated = False
   if len(out) < len(text):
-    if '</' in text:
+    if is_html:
       text = ' '.join(text[:len(out)].split(' ')[0:-1]).rstrip('.')
     else:
-      text = '<br>'.join(text[:len(out)].split('<br>')[0:-1]).rstrip('.')
-    
+      lines = text[:len(out)].split('<br>')
+      if len(lines) > 1:
+        text = '<br>'.join(lines[0:-1]).rstrip('.')
+        
     is_truncated = True
     
     if len(text) / float(len(raw)) > 0.7: # nếu còn 1 ít text thì hiện luôn, không cắt làm gì cho mệt
@@ -213,7 +216,7 @@ def autolink(text):
         user = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
         user['id'] = user['id'].split(':', 1)[-1]
         s = s.replace(mention, 
-             '<a href="/chat/user/%s" class="chat"><span class="tag">%s</span></a>' % (user.get('id'), user.get('name')))
+             '<a href="/user/%s" class="async"><span class="tag">%s</span></a>' % (user.get('id'), user.get('name')))
       else:
         group = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
         group['id'] = group['id'].split(':', 1)[-1]

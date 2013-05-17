@@ -13,7 +13,7 @@
   {% set users = group.members %}
   {% if users %}
     {% for user in users %}
-      {% if user.has_password() %}
+      {% if user.is_registered() %}
     
         <li>
           {% if group.id == 'public' or user.id == owner.id %}

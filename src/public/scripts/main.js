@@ -9,6 +9,8 @@ $(window).unload(function() {
 
 $(document).ready(function(e) {
   
+  $.global.ev_count = 0;
+  
   if ( typeof $.global === 'undefined') {
     $.global = {};
     $.global.clear_autosave = {};
@@ -644,6 +646,10 @@ $(document).ready(function(e) {
       url: href,
       success: function(resp) {
         console.log('Followed');
+        
+        // reload autocomplete list
+        $.global.autocomplete = null;
+        preload_autocomplete();
       }
     });
     href = href.replace('/follow', '/unfollow');
@@ -673,6 +679,7 @@ $(document).ready(function(e) {
       url: href,
       success: function(resp) {
         console.log('Unfollowed');
+        
       }
     });
     href = href.replace('/unfollow', '/follow');
@@ -736,10 +743,22 @@ $(document).ready(function(e) {
 
 
   $('#body, #overlay, #popup').on("submit", 'form.new:not(.overlay)', function() {
-    button = $('input[type="submit"]', this);
-    button.val('Posting...');
+    
 
     var form = $(this);
+
+    if ($('input[name="viewers"]', form).val() == '') {
+      if ($('tr#send-to').is(':visible') == true) {
+        $('.token-input-input-token input', form).focus();
+      } else {
+        $('a#send-to', form).trigger('click');
+      }
+      return false;
+    }
+    
+    
+    button = $('input[type="submit"]', this);
+    button.val('Posting...');
 
     show_loading();
         
@@ -762,11 +781,9 @@ $(document).ready(function(e) {
     // clear preload
     $.global.preload = null;
 
-    $('textarea.mention', form).val('').focus();
 
     // Reset autocomplete
     $('textarea.mention', form).mentionsInput('reset');
-    // $('input.autocomplete').tokenInput('clear');
 
     // Unfocus input autocomplete
     $('input.autocomplete', form).blur();
@@ -789,10 +806,19 @@ $(document).ready(function(e) {
       },
       success: function(resp) {
 
+        $('input[name="attachments"]', form).val('');
+        
+        // reset send-to list
+        $('input.autocomplete').tokenInput('clear');
+        $('.token-input-dropdown').hide();
+        
+        // re-focus textarea
+        $('textarea.mention', form).val('').focus();
+        
         button.val('Share');
         hide_loading();
 
-        feed_id = $(resp).attr('id');
+        feed_id = $(resp).attr('id');          
           
         if ($('#popup').is(':visible')) {
           open_in_async_mode('/feed/' + feed_id.split('-')[1]);
@@ -1178,6 +1204,7 @@ $(document).ready(function(e) {
         type: "GET",
         url: $(this).attr('href')
       })
+      
       $('#unread-notification-counter').html('0');
       $('#unread-notification-counter').addClass('grey');
       
@@ -1187,11 +1214,6 @@ $(document).ready(function(e) {
       var pattern = /^\(.*?\) /gi;
       var count = title.match(pattern);
       document.title = title.replace(count, '');
-      
-      // $.global.mouse_inside_overlay = false;
-
-      // $('header nav ul.dropdown-menu').addClass('hidden');
-      // $('header nav .dropdown-menu-active').removeClass('dropdown-menu-active');
       
       return false;
     }
@@ -1993,25 +2015,29 @@ $(document).ready(function(e) {
     if ($('nav ul.notifications').is(':visible')) {
       $('html').trigger('click');
       
-      // update unread notifications counter
-      var unread_notifications_count = decr('#unread-notification-counter', $(this).data('unread-count'));
-      
-      var title = document.title;
-      var pattern = /^\(.*?\) /gi;
-      var count = title.match(pattern);
-      if (unread_notifications_count > 0) {
-        $('#unread-notification-counter').removeClass('grey');
-        if (count == null) {
-          document.title = '(' + $('#unread-notification-counter').html() + ') ' + title;
-        } else {
-          document.title = title.replace(count, '(' + $('#unread-notification-counter').html() + ') ');
-        }
-      } else {
-        $('#unread-notification-counter').addClass('grey');
-        if (count != null) {
-          document.title = title.replace(count, '');
-        }
+      if ($(this).parents('ul.notifications').length != 0) {
+        $(this).parent().remove();
       }
+      
+      // // update unread notifications counter
+      // var unread_notifications_count = decr('#unread-notification-counter', $(this).data('unread-count'));
+//       
+      // var title = document.title;
+      // var pattern = /^\(.*?\) /gi;
+      // var count = title.match(pattern);
+      // if (unread_notifications_count > 0) {
+        // $('#unread-notification-counter').removeClass('grey');
+        // if (count == null) {
+          // document.title = '(' + $('#unread-notification-counter').html() + ') ' + title;
+        // } else {
+          // document.title = title.replace(count, '(' + $('#unread-notification-counter').html() + ') ');
+        // }
+      // } else {
+        // $('#unread-notification-counter').addClass('grey');
+        // if (count != null) {
+          // document.title = title.replace(count, '');
+        // }
+      // }
       
       
     }
@@ -2041,6 +2067,24 @@ $(document).ready(function(e) {
       success: function() {
         _this.removeClass('unread');
         $('a.chat.' + chat_id).removeClass('unread');
+        
+        
+        var unread_count = decr('#unread-notification-counter');
+        if (unread_count == 0) {
+          $('#unread-notification-counter').addClass('grey');
+        }
+        
+        var title = document.title;
+        var pattern = /^\(.*?\) /gi;
+        var count = title.match(pattern);
+        title = title.replace(count, '');
+        if (unread_count != 0) {
+          title = '(' + unread_count + ')';
+        } 
+        
+        document.title = title;
+        
+        decr('#left-sidebar #messages .count', 1);
       }
     })
     

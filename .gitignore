@@ -1,0 +1,23 @@
+*~
+.*
+.*.sw?
+*.pyc
+*.pyo
+.DS_Store
+
+# Virtual Env
+env/
+
+# Configuration files
+fabfile.py
+src/settings.py
+src/config/
+conf/*.local.*
+conf/*.dev.*
+
+# Minified files
+src/public/lib.js
+src/public/core.js
+src/public/post.js
+src/public/style.css
+src/public/post.css
