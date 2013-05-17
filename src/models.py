@@ -807,9 +807,10 @@ class Group(Model):
   
 
 class Note(Model):
-  def __init__(self, info, version=-1):
+  def __init__(self, info, version=-1, db_name=None):
     self.info = info if info else dict()
     self.version_index = version
+    self.db_name = db_name
     
   @property
   def title(self):
@@ -824,7 +825,7 @@ class Note(Model):
   def version(self):
     version = self.info.get('version')
     version.reverse()
-    version = [Version(i) for i in version]
+    version = [Version(i, db_name=self.db_name) for i in version]
     version.reverse()
     return version
   
@@ -854,7 +855,8 @@ class Note(Model):
   
   @property
   def owner(self):
-    return api.get_user_info(self.info.get('version')[self.version_index].get('owner'))
+    return api.get_user_info(self.info.get('version')[self.version_index].get('owner'), 
+                             db_name=self.db_name)
   
   @property
   def timestamp(self):
@@ -862,7 +864,7 @@ class Note(Model):
     
   @property
   def attachments(self):
-    return [api.get_attachment_info(attachment_id) \
+    return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
             for attachment_id in self.info.get('attachments', [])]
       
   @property
@@ -889,12 +891,13 @@ class Note(Model):
   
 
 class Version(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = None
   
   @property
   def owner(self):
-    return api.get_user_info(self.info.get('owner'))
+    return api.get_user_info(self.info.get('owner'), db_name=self.db_name)
     
   
 class Feed(Model):
@@ -952,13 +955,13 @@ class Feed(Model):
   def details(self):
     if self.info.has_key('version'):
       self.info['version'] = sorted(self.info['version'], key=lambda k:k['timestamp'])
-      return Note(self.info)
+      return Note(self.info, db_name=self.db_name)
     elif self.info.has_key('when'):
       return Event(self.info)
     elif self.info.has_key('history') and self.info.get('history')[0].has_key('attachment_id'):
       return File(self.info)
     else:
-      return Feed(self.info)
+      return Feed(self.info, db_name=self.db_name)
   
   @property
   def urls(self):
