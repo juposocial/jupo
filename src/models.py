@@ -17,8 +17,9 @@ import settings
 
 
 class Model:
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
     
   @property
   def id(self):
@@ -142,12 +143,12 @@ class Model:
       if i.get('is_removed'):
         continue
       
-      comment = Comment(i)
+      comment = Comment(i, db_name=self.db_name)
       if i.get('reply_to'):
         reply_to = i.get('reply_to')
         for j in comments:
           if j['_id'] == reply_to:
-            comment.reply_src = Comment(j)
+            comment.reply_src = Comment(j, db_name=self.db_name)
             break
       comments_list.append(comment)
     return comments_list
@@ -160,7 +161,7 @@ class Model:
     last_comments = []
     for comment in comments:
       if not comment.has_key('is_removed'):
-        last_comments.append(Comment(comment))
+        last_comments.append(Comment(comment, db_name=self.db_name))
       if len(last_comments) >= 2:
         break
     last_comments.reverse()
@@ -463,12 +464,14 @@ class User(Model):
   
 
 class Comment(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
   
   @property
   def owner(self):
-    return api.get_user_info(self.info.get('owner'))
+    return api.get_user_info(self.info.get('owner'),
+                             db_name=self.db_name)
   
   @property
   def message(self):
@@ -527,7 +530,8 @@ class Comment(Model):
   
   @property
   def urls(self):
-    return [api.get_url_info(u) for u in api.extract_urls(self.message)]
+    return [api.get_url_info(u, db_name=self.db_name) \
+            for u in api.extract_urls(self.message)]
   
   @property
   def post_id(self):
@@ -535,7 +539,8 @@ class Comment(Model):
   
   @property
   def attachments(self):
-    return [api.get_attachment_info(attachment_id) for attachment_id in self.info.get('attachments', [])]
+    return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
+            for attachment_id in self.info.get('attachments', [])]
   
   @property
   def attachment_ids(self):
@@ -893,8 +898,9 @@ class Version(Model):
     
   
 class Feed(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info
+    self.db_name = db_name
     
   @property
   def raw_message(self):
@@ -905,9 +911,11 @@ class Feed(Model):
     if self.is_system_message():
       msg = self.info.get('message')
       if msg.get('group_id'):
-        msg['group'] = api.get_owner_info_from_uuid(msg['group_id'])
+        msg['group'] = api.get_owner_info_from_uuid(msg['group_id'], 
+                                                    db_name=self.db_name)
       if msg.get('user_id'):
-        msg['user'] = api.get_owner_info_from_uuid(msg['user_id'])
+        msg['user'] = api.get_owner_info_from_uuid(msg['user_id'],
+                                                   db_name=self.db_name)
       return msg
       
     if self.is_file():
@@ -924,7 +932,8 @@ class Feed(Model):
   
   @property
   def owner(self):
-    return api.get_owner_info_from_uuid(self.info.get('owner'))
+    return api.get_owner_info_from_uuid(self.info.get('owner'), 
+                                        db_name=self.db_name)
   
   
   @property
@@ -954,7 +963,8 @@ class Feed(Model):
   @property
   def urls(self):
     if self.info.has_key('urls'):
-      return [api.get_url_info(url) for url in self.info.get('urls')]
+      return [api.get_url_info(url, db_name=self.db_name) \
+              for url in self.info.get('urls')]
     else:
       return []
     
@@ -970,7 +980,7 @@ class Feed(Model):
   @property
   def attachments(self):
     if self.info.has_key('attachments'):
-      return [api.get_attachment_info(attachment_id) \
+      return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
               for attachment_id in self.info.get('attachments')]
   
   def is_task(self):
@@ -1051,7 +1061,8 @@ class Feed(Model):
   
   @property
   def starred_by(self):
-    return [api.get_user_info(user_id) for user_id in self.info.get('starred', [])[-5:]]
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in self.info.get('starred', [])[-5:]]
   
   @property
   def pinned_by(self):
@@ -1075,7 +1086,7 @@ class Feed(Model):
     
     out = []
     for user_id in info.keys():
-      out.append({'user': api.get_user_info(user_id),
+      out.append({'user': api.get_user_info(user_id, db_name=self.db_name),
                   'post_count': info[user_id]})
     
     out.sort(key=lambda k: k['post_count'], reverse=True)
@@ -1477,7 +1488,7 @@ class Notification(Model):
     if not record or record.has_key('is_removed'):
       return Feed({})
     if self.comment_id:
-      info = Feed(record)
+      info = Feed(record, db_name=self.db_name)
       for i in info.comments:
         if i.id == self.comment_id:
           info.message = i.message
@@ -1491,7 +1502,7 @@ class Notification(Model):
       info = Event(record)
       info.message = info.name
     else:
-      info = Feed(record)
+      info = Feed(record, db_name=self.db_name)
     return info
       
   @property
@@ -1501,7 +1512,7 @@ class Notification(Model):
                             db_name=self.db_name)
     if not record or record.has_key('is_removed'):
       return Feed({})
-    return Feed(record)
+    return Feed(record, db_name=self.db_name)
     
   
   @property
