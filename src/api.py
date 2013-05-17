@@ -2215,7 +2215,7 @@ def new_post_from_email(message_id, receivers, sender,
         if parent:
           clear_html_cache(parent['_id'])
           index_queue.enqueue(update_index, parent['_id'], 
-                              text, viewers, is_comment=True)
+                              text, viewers, is_comment=True, db_name=db_name)
           info = parent
           
           for id in info['viewers']:
@@ -2246,7 +2246,8 @@ def new_post_from_email(message_id, receivers, sender,
       text = '%s\n\n%s' % (subject, text)
       
       
-      index_queue.enqueue(add_index, info['_id'], text, viewers, 'email')
+      index_queue.enqueue(add_index, info['_id'], 
+                          text, viewers, 'email', db_name)
   
       # send notification
       for id in viewers:
@@ -2335,7 +2336,7 @@ def new_feed(session_id, message, viewers,
       
   db.stream.insert(info)
   
-  index_queue.enqueue(add_index, info['_id'], message, viewers, 'post')
+  index_queue.enqueue(add_index, info['_id'], message, viewers, 'post', db_name)
   
   
   # send notification
@@ -2405,7 +2406,7 @@ def set_viewers(session_id, feed_id, viewers):
 
   
   clear_html_cache(feed_id)
-  index_queue.enqueue(update_viewers, feed_id, viewers)
+  index_queue.enqueue(update_viewers, feed_id, viewers, db_name)
   return True
 
 def reshare(session_id, feed_id, viewers):
@@ -2459,7 +2460,7 @@ def reshare(session_id, feed_id, viewers):
                               u.email, mail_type='new_post', 
                               user_id=user_id, post=feed, db_name=db_name)
       
-  index_queue.enqueue(update_viewers, feed_id, viewers)
+  index_queue.enqueue(update_viewers, feed_id, viewers, db_name)
 
   clear_html_cache(feed_id) 
 
@@ -2545,7 +2546,7 @@ def get_feed(session_id, feed_id, group_id=None):
     viewers.append('public')
     info = db.stream.find_one({'_id': long(feed_id),
                                'viewers': {'$in': viewers}})
-  return Feed(info)
+  return Feed(info, db_name=db_name)
 
 def unread_count(session_id, timestamp):
   db_name = get_database_name()
@@ -3168,7 +3169,8 @@ def new_comment(session_id, message, ref_id,
     for url in urls:
       crawler_queue.enqueue(get_url_description, url, db_name=db_name)
       
-  index_queue.enqueue(update_index, ref_id, message, viewers, is_comment=True)
+  index_queue.enqueue(update_index, ref_id, 
+                      message, viewers, is_comment=True, db_name=db_name)
   
   # upate unread notifications
   mark_notification_as_read(session_id, ref_id=ref_id)
@@ -3674,7 +3676,7 @@ def new_note(session_id, title, content, attachments=None, viewers=None):
   
   db.stream.insert(info)
   
-  index_queue.enqueue(add_index, info['_id'], content, viewers, 'doc')
+  index_queue.enqueue(add_index, info['_id'], content, viewers, 'doc', db_name)
   
   return info['_id']
 
@@ -3717,7 +3719,7 @@ def update_note(session_id, doc_id, title, content, attachments=None, viewers=No
   
   db.stream.update({'_id': doc_id, 'viewers': {'$in': members}}, query)
   
-  index_queue.enqueue(update_index, doc_id, content, viewers)
+  index_queue.enqueue(update_index, doc_id, content, viewers, db_name=db_name)
   
   receivers = [i for i in viewers if not is_group(i)]
   for receiver in receivers:
@@ -4070,7 +4072,7 @@ def new_file(session_id, attachment_id, viewers=None):
   
   name = get_attachment_info(attachment_id).name
   
-  index_queue.enqueue(add_index, file_id, name, viewers, 'file')
+  index_queue.enqueue(add_index, file_id, name, viewers, 'file', db_name)
   
   return file_id
 
@@ -4908,10 +4910,12 @@ def add_index(_id, content, viewers, type_='post', db_name=None):
   INDEX.refresh(db_name)
   return True
 
-def update_viewers(_id, viewers):
-  db_name = get_database_name()
+def update_viewers(_id, viewers, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+    
   query = 'id:%s' % _id
-  result = INDEX.search(query)
+  result = INDEX.search(query, index=db_name)
   hits = result.get('hits').get('hits')   # pylint: disable-msg=E1103
   if hits:
     index_id = hits[0].get('_id')
@@ -4933,20 +4937,22 @@ def update_viewers(_id, viewers):
         continue
   
 
-def update_index(_id, content, viewers, is_comment=False):
-  db_name = get_database_name()
+def update_index(_id, content, viewers, is_comment=False, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  
   if viewers is None:
     viewers = []
   if isinstance(viewers, str) or isinstance(viewers, unicode):
     viewers = [viewers]
   query = 'id:%s' % _id
-  result = INDEX.search(query)
+  result = INDEX.search(query, index=db_name)
   hits = result.get('hits').get('hits')   # pylint: disable-msg=E1103
   if hits:
     index_id = hits[0].get('_id')
     viewers = ' '.join([str(i) for i in set(viewers)])
     if is_comment:
-      comment = '%s %s' % (hits[0].get('_source').get('comment', ''), content)
+      comment = '%s %s' % (hits[0].get('_source').get('comments', ''), content)
       info = {'content': hits[0].get('_source').get('content'),
               'comments': comment,
               'viewers': viewers,
@@ -4955,7 +4961,7 @@ def update_index(_id, content, viewers, is_comment=False):
               'id': str(_id)}
     else:
       info = {'content': content,
-              'comments': hits[0].get('_source').get('comment', ''),
+              'comments': hits[0].get('_source').get('comments', ''),
               'viewers': viewers,
               'ts': utctime(),
               'type': hits[0].get('_source').get('type'),

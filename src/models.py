@@ -1218,9 +1218,10 @@ class URL(Model, Feed):
 
 
 class Result(Model):
-  def __init__(self, info, query=None):
+  def __init__(self, info, query=None, db_name=None):
     self.info = info if info else dict()
     self.query = query.strip()
+    self.db_name = db_name
     
   @property
   def title(self):
@@ -1263,7 +1264,7 @@ class Result(Model):
     if self.type == 'note':
       return Note(self.info)
     elif self.type == 'feed':
-      return Feed(self.info)
+      return Feed(self.info, db_name=self.db_name)
     
   @property
   def viewers(self):
@@ -1410,9 +1411,10 @@ class Topic(Model):
 
 
 class ESResult(Model):
-  def __init__(self, info, query):
+  def __init__(self, info, query, db_name=None):
     self.query = query.strip()
     self.info = info if info else dict()
+    self.db_name = db_name
 
   @property
   def owner(self):
@@ -1441,7 +1443,7 @@ class ESResult(Model):
     elif self.type == 'file':
       return File(self.info)
     else:
-      return Feed(self.info)
+      return Feed(self.info, db_name=self.db_name)
   
   
 #  @property
