@@ -426,7 +426,7 @@ class User(Model):
   
   @property
   def starred_posts_count(self):
-    return api.get_starred_posts_count(self.info['_id'])
+    return api.get_starred_posts_count(self.info['_id'], db_name=self.db_name)
     
   @property
   def email_addresses(self):

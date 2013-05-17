@@ -743,10 +743,22 @@ $(document).ready(function(e) {
 
 
   $('#body, #overlay, #popup').on("submit", 'form.new:not(.overlay)', function() {
-    button = $('input[type="submit"]', this);
-    button.val('Posting...');
+    
 
     var form = $(this);
+
+    if ($('input[name="viewers"]', form).val() == '') {
+      if ($('tr#send-to').is(':visible') == true) {
+        $('.token-input-input-token input', form).focus();
+      } else {
+        $('a#send-to', form).trigger('click');
+      }
+      return false;
+    }
+    
+    
+    button = $('input[type="submit"]', this);
+    button.val('Posting...');
 
     show_loading();
         
@@ -769,11 +781,9 @@ $(document).ready(function(e) {
     // clear preload
     $.global.preload = null;
 
-    $('textarea.mention', form).val('').focus();
 
     // Reset autocomplete
     $('textarea.mention', form).mentionsInput('reset');
-    // $('input.autocomplete').tokenInput('clear');
 
     // Unfocus input autocomplete
     $('input.autocomplete', form).blur();
@@ -796,10 +806,19 @@ $(document).ready(function(e) {
       },
       success: function(resp) {
 
+        $('input[name="attachments"]', form).val('');
+        
+        // reset send-to list
+        $('input.autocomplete').tokenInput('clear');
+        $('.token-input-dropdown').hide();
+        
+        // re-focus textarea
+        $('textarea.mention', form).val('').focus();
+        
         button.val('Share');
         hide_loading();
 
-        feed_id = $(resp).attr('id');
+        feed_id = $(resp).attr('id');          
           
         if ($('#popup').is(':visible')) {
           open_in_async_mode('/feed/' + feed_id.split('-')[1]);

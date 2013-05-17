@@ -128,7 +128,7 @@ li.token-input-token span:hover {
 }
 
 li.token-input-selected-token span:hover {
-  color: black;
+  color: #ccc;
 }
 
 li.token-input-selected-token {
