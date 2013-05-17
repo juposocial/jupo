@@ -1423,8 +1423,9 @@ def get_coworker_ids(user_id, db_name=None):
   return user_ids
   
 
-def is_group(_id):
-  db_name = get_database_name()
+def is_group(_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not is_snowflake_id(_id):
@@ -2612,8 +2613,9 @@ def get_starred_posts(session_id, page=1):
                          .limit(settings.ITEMS_PER_PAGE)
   return [Feed(i, db_name=db_name) for i in feeds if i]
 
-def get_starred_posts_count(user_id):
-  db_name = get_database_name()
+def get_starred_posts_count(user_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   return db.stream.find({'is_removed': {'$exists': False},
@@ -5386,8 +5388,9 @@ def is_liked_item(user_id, item_id):
   else:
     return False
   
-def get_liked_user_ids(item_id):
-  db_name = get_database_name()
+def get_liked_user_ids(item_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   records = db.like.find({'item_id': long(item_id)}).sort('timestamp', -1)
