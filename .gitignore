@@ -5,15 +5,10 @@
 *.pyo
 .DS_Store
 
-# Virtual Env
-env/
-
 # Configuration files
 fabfile.py
 src/settings.py
-src/config/
 conf/*.local.*
-conf/*.dev.*
 
 # Minified files
 src/public/lib.js
