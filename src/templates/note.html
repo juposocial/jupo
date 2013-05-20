@@ -101,7 +101,7 @@
          
       {% if mode != 'view' %}
           
-        {% set content = note.content | autoemoticon | sanitize %}
+        {% set content = note.content | sanitize %}
         {% set summary = content | lines_truncate | fix_unclosed_tags %}
         
         {{ summary | remove_empty_lines | safe }}
@@ -124,7 +124,7 @@
           {% if action == 'compare' %}
            {{ note.content | sanitize | fix_unclosed_tags }}
           {% else %}
-           {{ note.content | autoemoticon | sanitize | fix_unclosed_tags }}
+           {{ note.content | sanitize | fix_unclosed_tags }}
           {% endif %}
         {% endautoescape %}        
         
