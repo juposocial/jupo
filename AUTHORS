@@ -1,8 +1,9 @@
 
-Jupo is written and maintained by 
+Jupo is written by Andy Pham, with help from many libraries and frameworks including:
+  
+  * jQuery
+  * Flask
+  * and others
+  
 
-  Andy Pham
 
-and the contributors (ordered by the date of first contribution):
-  Tho Manh
-  Hung Dinh
