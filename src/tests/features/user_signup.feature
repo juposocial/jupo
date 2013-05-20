@@ -6,7 +6,6 @@ Feature: Signing up
       And I fill in "email" with "andy@jupo.com"
       And I fill in "password" with "123456"
       And I press ENTER key
-     Then I should see "Home"
       And I should see "News Feed"
       And I should see "Everyone"
       
@@ -17,7 +16,6 @@ Feature: Signing up
       And I fill in "email" with "andy"
       And I fill in "password" with "123456"
       And I press ENTER key
-     Then I should not see "Home"
       And I should not see "News Feed"
       
       
@@ -29,7 +27,6 @@ Feature: Signing up
       And I press ENTER key
      Then I should see "andy@jupo.com" 
       And I should see "is already in use."
-      And I should not see "Home"
       And I should not see "News Feed"
       
       
@@ -40,7 +37,6 @@ Feature: Signing up
       And I fill in "password" with "123"
       And I press ENTER key
      Then I should see "Your password must be at least 6 characters long."
-      And I should not see "Home"
       And I should not see "News Feed"
       
    
