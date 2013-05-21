@@ -8,10 +8,12 @@
       {% if user.email %}
     
         <li>
-          {% if user.id in owner.contact_ids %}
-          <a class='button unfollow' href='/user/{{ user.id }}/unfollow'>Remove from Contacts</a>
-          {% else %}
-          <a class='button follow' href='/user/{{ user.id }}/follow'>Add to Contacts</a>
+          {% if user.id != owner.id %}
+            {% if user.id in owner.contact_ids %}
+            <a class='button unfollow' href='/user/{{ user.id }}/unfollow'>Remove from Contacts</a>
+            {% else %}
+            <a class='button follow' href='/user/{{ user.id }}/follow'>Add to Contacts</a>
+            {% endif %}
           {% endif %}
       
           <img class='small-avatar lfloat' src='{{ user.avatar }}'>

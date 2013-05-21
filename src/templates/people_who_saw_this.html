@@ -8,10 +8,12 @@
       {% if receipt.user.email %}
     
         <li>
-          {% if receipt.user.id in owner.contact_ids %}
-          <a class='button unfollow' href='/user/{{ receipt.user.id }}/unfollow'>Remove from Contacts</a>
-          {% else %}
-          <a class='button follow' href='/user/{{ receipt.user.id }}/follow'>Add to Contacts</a>
+          {% if receipt.user.id != owner.id %}
+            {% if receipt.user.id in owner.contact_ids %}
+            <a class='button unfollow' href='/user/{{ receipt.user.id }}/unfollow'>Remove from Contacts</a>
+            {% else %}
+            <a class='button follow' href='/user/{{ receipt.user.id }}/follow'>Add to Contacts</a>
+            {% endif %}
           {% endif %}
       
           <img class='small-avatar lfloat' src='{{ receipt.user.avatar }}'>
