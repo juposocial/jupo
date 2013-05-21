@@ -500,7 +500,7 @@
        <div class='rfloat'>
          
          {% set read_receipts = feed.seen_by %}         
-         <a href='/{% if feed.is_note() %}note{% elif feed.is_file() %}file{% else %}feed{% endif %}/{{ feed.id }}#comments' class="quick-stats async" title='{% include "read_receipts.html" %}'>
+         <a href='/feed/{{ feed.id }}/read_receipts' class="quick-stats popup" title='{% include "read_receipts.html" %}'>
           {% if feed.comments_count != 0 or read_receipts | length != 0 or feed.liked_user_ids | length != 0 %}
             
             <span class='comments {% if feed.comments_count == 0 %}hidden{% endif %}'>

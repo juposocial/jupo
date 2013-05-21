@@ -745,7 +745,8 @@ def authentication(action=None):
       if not email:
         abort(400)
       api.forgot_password(email)
-      return redirect("/?message=Please check your inbox and follow the instructions in the email")
+      return render_template('reset_password.html', 
+                             message='Please check your inbox and follow the instructions in the email.')
     
   elif request.path.endswith('reset_password'):
     if request.method == 'GET':
@@ -759,7 +760,7 @@ def authentication(action=None):
                                         email=email, code=code)}
         return render_homepage(None, 'Reset your password',
                                view='reset_password', email=email, code=code)
-      return redirect('/?message=Link expired')
+      return render_template('reset_password.html', message='Token Expired')
         
     else:
       code = request.form.get('code')
@@ -2175,6 +2176,8 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/<int:comment_id>/<action>", methods=["POST"])
 @app.route("/feed/<int:feed_id>/starred", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/<message_id>@<domain>", methods=["GET", "OPTIONS"])
+@app.route("/feed/<int:feed_id>/likes", methods=["OPTIONS"])
+@app.route("/feed/<int:feed_id>/read_receipts", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
@@ -2282,6 +2285,24 @@ def feed_actions(feed_id=None, action=None,
     body = render_template('users.html', title='Starred', users=users)
     json = dumps({'body': body, 'title': 'Intelliview'})
     return Response(json, mimetype='application/json')
+    
+  elif request.path.endswith('/likes'):
+    feed = api.get_feed(session_id, feed_id)
+    users = feed.liked_by
+    
+    body = render_template('people_who_like_this.html',
+                           owner=owner, users=users)
+    json = dumps({'body': body, 'title': 'People who like this'})
+    return Response(json, mimetype='application/json')  
+    
+  elif request.path.endswith('/read_receipts'):
+    feed = api.get_feed(session_id, feed_id)
+    read_receipts = feed.read_receipts
+    
+    body = render_template('people_who_saw_this.html',
+                           owner=owner, read_receipts=read_receipts)
+    json = dumps({'body': body, 'title': 'People who saw this'})
+    return Response(json, mimetype='application/json')  
     
   
   elif request.path.endswith('/comments'):

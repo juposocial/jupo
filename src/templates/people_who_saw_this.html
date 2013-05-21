@@ -1,0 +1,35 @@
+<div id="page-header" class='search'>
+  <h2>People who saw this</h2>
+</div>
+
+<ul class='people'>
+  {% if read_receipts %}
+    {% for receipt in read_receipts %}
+      {% if receipt.user.email %}
+    
+        <li>
+          {% if receipt.user.id in owner.contact_ids %}
+          <a class='button unfollow' href='/user/{{ receipt.user.id }}/unfollow'>Remove from Contacts</a>
+          {% else %}
+          <a class='button follow' href='/user/{{ receipt.user.id }}/follow'>Add to Contacts</a>
+          {% endif %}
+      
+          <img class='small-avatar lfloat' src='{{ receipt.user.avatar }}'>
+      
+          <a href='/user/{{ receipt.user.id }}' class='async user'>{{ receipt.user.name }}</a>
+          <i class='{{ receipt.user.status }}  user-{{ receipt.user.id }}-status'></i>
+          <br>
+          <time class='timeago' title='{{ receipt.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ receipt.timestamp | isoformat(owner.utcoffset) }}'>{{ receipt.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+              
+      
+        </li>
+    
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <li>
+      No one saw this.
+    </li>
+  {% endif %}
+</ul>
+
