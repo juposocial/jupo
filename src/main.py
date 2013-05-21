@@ -556,18 +556,6 @@ def welcome():
     return dumps({'body': body, 
                   'title': 'Welcome to Jupo'})
     
-@app.route('/privacy')
-def privacy():
-  return redirect('https://www.jupo.com/note/340925645733232641')
-
-@app.route('/terms')
-def terms():
-  return redirect('https://www.jupo.com/note/340921286333038593')
-
-@app.route('/about')
-def about():
-  return render_template('about.html')
-    
     
 @app.route('/notify_me', methods=['POST'])
 def notify_me():
