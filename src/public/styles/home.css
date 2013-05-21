@@ -2859,7 +2859,7 @@ div.file-attachment a[rel='gallery'] {
   display: block;
   position: relative;
   float: left;
-  margin: 4px 8px 3px 0;
+  margin: 4px 6px 3px 0;
   max-height: 200px;
   overflow: hidden;
 }
