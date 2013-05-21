@@ -2297,7 +2297,7 @@ def feed_actions(feed_id=None, action=None,
     
   elif request.path.endswith('/read_receipts'):
     feed = api.get_feed(session_id, feed_id)
-    read_receipts = feed.read_receipts
+    read_receipts = feed.seen_by
     
     body = render_template('people_who_saw_this.html',
                            owner=owner, read_receipts=read_receipts)
