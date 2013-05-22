@@ -556,18 +556,6 @@ def welcome():
     return dumps({'body': body, 
                   'title': 'Welcome to Jupo'})
     
-@app.route('/privacy')
-def privacy():
-  return redirect('https://www.jupo.com/note/340925645733232641')
-
-@app.route('/terms')
-def terms():
-  return redirect('https://www.jupo.com/note/340921286333038593')
-
-@app.route('/about')
-def about():
-  return render_template('about.html')
-    
     
 @app.route('/notify_me', methods=['POST'])
 def notify_me():
@@ -646,8 +634,11 @@ def authentication(action=None):
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
       return resp
     else:
-      message = 'Invalid username or password'
-      
+      if session_id is False:
+        message = "Incorrect password. <a href='/forgot_password'>Reset password</a>"
+      else:
+        message = """No account found for this email.
+        Retry, or <a href='/sign_up'>Sign up for Jupo</a>."""
       resp = Response(render_template('sign_in.html', 
                                       domain=hostname,
                                       email=email, 

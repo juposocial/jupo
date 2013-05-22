@@ -19,18 +19,12 @@ Sign In
     </div>
 
     
-    {% if message %}
-    <div class='msg'>
-      <span>{{ message }}</span>
-      <hr>
-    </div>
-    {% else %}
+    
     
     <div class='or'>
       <span>or using email and password</span>
       <hr>
     </div>
-    {% endif %}
     
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
@@ -44,17 +38,24 @@ Sign In
         <div class='click-target' onclick="document.getElementById('sign-in').submit();"></div>
       </li>
     </ul>
-
+    
+    
+    {% if message %}
+    <p class='msg'>
+      <strong>{{ message | safe }}</strong>
+    </p>
+    {% else %}
     <p class='pwd'>
       <input type="checkbox" checked id='remember'>
       <label for='remember'>Remember me</label>
       <a href='/forgot_password' class='forgot'>Forgot password?</a>
     </p>
+    {% endif %}
 
     <button type="submit"></button>
 
     <p>
-      Don’t have an account? <a href='/sign_up'>Sign Up</a>
+      <strong>Don’t have an account?</strong> <a href='/sign_up'><strong>Sign Up</strong></a>
     </p>
 
   </form>
@@ -77,9 +78,9 @@ Sign In
 <style>
   html {
     background: #111;
-    font: 13px Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font: 13px "Helvetica Neue", "Helvetica", "Arial", Sans-Serif;
   }
-  h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, cite, code, del, dfn, em, img, q, s, samp, small, strike, strong, sub, sup, tt, var, dd, dl, dt, li, ol, ul, fieldset, form, label, legend, button, table, caption, tbody, tfoot, thead, tr, th, td {
+  h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, cite, code, del, dfn, em, img, q, s, samp, small, strike, sub, sup, tt, var, dd, dl, dt, li, ol, ul, fieldset, form, label, legend, button, table, caption, tbody, tfoot, thead, tr, th, td {
     margin: 0;
     padding: 0;
     border: 0;
@@ -97,7 +98,7 @@ Sign In
   }
 
   p.pwd {
-    margin-top: -5px;
+   margin-top: -14px;
   }
 
   form ul {
@@ -151,8 +152,14 @@ Sign In
   }
 
   form ul li input[type='password'] {
-    background: #fff url('https://pathakacdn-a.akamaihd.net/web-assets/images/form-submit-disclosure_3443e97f5d4d434af894925c4bb9cf7c36f33ece.png') no-repeat 100% 50%;
     padding-right: 32px;
+  }
+  
+  
+  form input:focus {
+    box-shadow: rgba(81, 167, 232, 1) 0 0 5px;
+    border-color: #51A7E8;
+    outline: none;
   }
 
   .click-target {
@@ -162,7 +169,20 @@ Sign In
     right: 0;
     bottom: 0;
     width: 33px;
-    height: 33px;
+    
+    background: #fff url('https://pathakacdn-a.akamaihd.net/web-assets/images/form-submit-disclosure_3443e97f5d4d434af894925c4bb9cf7c36f33ece.png') no-repeat 100% 50%;
+    margin-right: 1px;
+    height: 27px;
+    top: 3px;
+    opacity: 0.8;
+  }
+  
+  .click-target:hover {
+    opacity: 1;
+  }
+  
+  .click-target:active {
+    opacity: 0.5;
   }
 
   p {
@@ -179,7 +199,7 @@ Sign In
     background: whitesmoke;
     border-radius: 3px;
     border: 1px solid white;
-    padding: 30px 30px 15px;
+    padding: 30px 25px 15px;
     box-shadow: 0 1px 25px #000;
     color: #333;
   }
@@ -192,10 +212,10 @@ Sign In
   }
 
   .social-login {
-    padding: 10px 5px 5px;
+    padding: 10px 5px 0;
   }
 
-  .or, .msg {
+  .or {
     text-align: center;
   }
 
@@ -207,16 +227,25 @@ Sign In
     padding: 0 7px;
   }
   
-  .msg span {
-    color: #b94a48;
-    padding: 5px 12px 4px;
-    background-color: #f2dede;
-    border: 1px solid #eed3d7;
-    font-size: 11px;
+  .msg {
+    margin-top: -15px;
+  }
+  
+  .msg strong {
+    font-weight: bold;
+    color: #dd4b39;
+    font-size: 12px;
+    margin: 8px;
+    display: block;
+  }
+  
+  .msg strong a {
+    font-weight: bold;
   }
 
   .forgot {
     float: right;
+    margin-top: 2px;
   }
 
   .google-button {
@@ -294,8 +323,16 @@ Sign In
   h2 {
     font-weight: bold;
     text-align: center;
-    padding: 0 0 15px;
     text-shadow: 0 1px 0 white;
+    font-size: 14px;
+    border-radius: 4px 4px 0 0;
+    background: #f6f6f6;
+    background: -moz-linear-gradient(top,#f6f6f6,#e2e2e2);
+    background: -webkit-linear-gradient(top,#f6f6f6,#e2e2e2);
+    background: linear-gradient(top,#f6f6f6,#e2e2e2);
+    border-bottom: 1px solid #aaa;
+    margin: -30px -26px 10px;
+    padding: 14px;
   }
 
 </style>

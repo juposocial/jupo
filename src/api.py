@@ -826,7 +826,7 @@ def sign_in(email, password, user_agent=None, remote_addr=None):
                                               'salt': True,
                                               'session_id': True})
   if not user or not user.get('password'):
-    return False
+    return None
   else:
     session_id = None
     if user.get('password') is True:
@@ -1190,6 +1190,7 @@ def new_verify_token(email):
   pass
 
 def forgot_password(email):
+  db_name = get_database_name()
   temp_password = uuid4().hex
   FORGOT_PASSWORD.set(temp_password, email)
   FORGOT_PASSWORD.expire(temp_password, 3600)

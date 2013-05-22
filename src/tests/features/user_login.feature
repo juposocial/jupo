@@ -10,11 +10,20 @@ Feature: Logging In
     Then I should see "News Feed"
      And I should see "Andy Pham"
      
-  Scenario: Andy Pham try to login with wrong password and username
+  Scenario: Andy Pham try to login with wrong password
     When I log out
      And I go to the sign in page
      And I fill in "email" with "andy@jupo.com"
      And I fill in "password" with "123"
      And I press ENTER key
-    Then I should see "Invalid username or password"
+    Then I should see "Incorrect password"
+     And I should see "Reset password"
+     
+  Scenario: Andy Pham try to login with unexisted email
+     And I go to the sign in page
+     And I fill in "email" with "andy123123@jupo.com"
+     And I fill in "password" with "123"
+     And I press ENTER key
+    Then I should see "No account found"
+     And I should see "Sign up for Jupo"
     
