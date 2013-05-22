@@ -52,14 +52,18 @@ def wait_for_content(step, browser, content, timeout=15):
 
 
 ## URLS
-@step('I visit url "(.*?)"$')
 def visit(step, url):
   with AssertContextManager(step):
     world.browser.get(url)
 
 
-@step('I go to url "(.*?)"$')
+@step('I am on (.*?)$')
+@step('I visit (.*?)$')
+@step('I go to (.*?)$')
 def goto(step, url):
+  if not url.startswith('http'):
+    url = url_for(url)
+    
   with AssertContextManager(step):
     world.browser.get(url)
 
@@ -194,6 +198,28 @@ def fill_in_textfield(step, field_name, value):
     text_field.send_keys(value)
     
 
+@step('I focus on "(.*?)" and hit the (.*?) key')
+def focus_and_press_key(step, field_name, key):
+  with AssertContextManager(step):
+    text_field = find_field(world.browser, 'text', field_name) or \
+      find_field(world.browser, 'textarea', field_name) or \
+      find_field(world.browser, 'password', field_name) or \
+      find_field(world.browser, 'datetime', field_name) or \
+      find_field(world.browser, 'datetime-local', field_name) or \
+      find_field(world.browser, 'date', field_name) or \
+      find_field(world.browser, 'month', field_name) or \
+      find_field(world.browser, 'time', field_name) or \
+      find_field(world.browser, 'week', field_name) or \
+      find_field(world.browser, 'number', field_name) or \
+      find_field(world.browser, 'range', field_name) or \
+      find_field(world.browser, 'email', field_name) or \
+      find_field(world.browser, 'url', field_name) or \
+      find_field(world.browser, 'search', field_name) or \
+      find_field(world.browser, 'tel', field_name) or \
+      find_field(world.browser, 'color', field_name)
+    assert_false(step, text_field is False,'Can not find a field named "%s"' % field_name)
+    text_field.send_keys(getattr(Keys, key))
+
 @step('I press (.*?) key')
 def press_key(step, key):
   e = world.browser.find_element_by_css_selector('input:focus')
@@ -303,14 +329,6 @@ def assert_radio_not_selected(step, value):
   
   
 
-  
-@step('I am on (.*?)$')
-def on_page(step, page_name):
-  return goto(step, url_for(page_name))
-    
-@step('I go to (.*?)$')
-def go_to(step, page_name):
-  return goto(step, url_for(page_name))
 
 
 

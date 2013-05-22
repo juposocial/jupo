@@ -17,7 +17,8 @@ def sign_up(step, name, email, password):
     And I fill in "name" with "%(name)s"
     And I fill in "email" with "%(email)s"
     And I fill in "password" with "%(password)s"
-    And I press ENTER key
+    And I focus on "password" and hit the ENTER key
+    And I should see "News Feed" within 3 seconds
    Then I log out
   """ % user)
   
@@ -34,7 +35,8 @@ def user_logged_in(step, name, email, password):
     And I click "Sign in"
     And I fill in "email" with "%(email)s"
     And I fill in "password" with "%(password)s"
-    And I press ENTER key
+    And I focus on "password" and hit the ENTER key
+    And I should see "News Feed" within 3 seconds
   """ % user)
 
 
@@ -49,7 +51,7 @@ def user_exists(step, name, email, password):
     And I fill in "name" with "%(name)s"
     And I fill in "email" with "%(email)s"
     And I fill in "password" with "%(password)s"
-    And I press ENTER key
+    And I focus on "password" and hit the ENTER key
     And I should see "%(email)s"
     And I should see "already in use"
   """ % user)
@@ -64,7 +66,8 @@ def user_exists_and_is_logged_in(step, name, email, password):
     And I fill in "name" with "%(name)s"
     And I fill in "email" with "%(email)s"
     And I fill in "password" with "%(password)s"
-    And I press ENTER key
+    And I focus on "password" and hit the ENTER key
+    And I should see "News Feed" within 3 seconds
   """ % user)
       
       
