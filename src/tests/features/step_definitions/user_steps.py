@@ -75,6 +75,10 @@ def user_exists_and_is_logged_in(step, name, email, password):
 
 @step('I log out')
 def log_out(step):
-  step.given('I click on "header nav a.user.dropdown-menu"')
-  step.given('I click "Sign out"')
+  step.behave_as("""
+   When I go to the news feed page
+    And I click on "header nav a.user.dropdown-menu"
+    And I I click "Sign out"
+   Then I should see "Sign in" within 3 seconds
+  """)
 
