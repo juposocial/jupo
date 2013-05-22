@@ -1190,6 +1190,7 @@ def new_verify_token(email):
   pass
 
 def forgot_password(email):
+  db_name = get_database_name()
   temp_password = uuid4().hex
   FORGOT_PASSWORD.set(temp_password, email)
   FORGOT_PASSWORD.expire(temp_password, 3600)
