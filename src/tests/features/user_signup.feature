@@ -6,8 +6,8 @@ Feature: Signing up
       And I fill in "email" with "andy@jupo.com"
       And I fill in "password" with "123456"
       And I press ENTER key
-      And I should see "News Feed"
-      And I should see "Everyone"
+      And I should see "News Feed" within 3 seconds
+      And I should see "Everyone" within 3 seconds
       
    
    Scenario: Andy Pham signs up with invalid email
