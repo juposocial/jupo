@@ -571,8 +571,9 @@ class Reminder(Model):
     
 
 class Attachment(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
   
   @property
   def fid(self):
