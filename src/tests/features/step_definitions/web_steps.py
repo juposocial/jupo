@@ -61,6 +61,7 @@ def visit(step, url):
 @step('I visit (.*?)$')
 @step('I go to (.*?)$')
 def goto(step, url):
+  url = url.strip('"')
   if not url.startswith('http'):
     url = url_for(url)
     

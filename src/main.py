@@ -784,6 +784,8 @@ def authentication(action=None):
         
       user_id = api.get_user_id_from_email_address(email)
       api.reset_password(user_id, new_password)
+      api.FORGOT_PASSWORD.delete(code)
+      
       return redirect('/sign_in?email=%s&msg=Your password has been reset' % email)
       
   

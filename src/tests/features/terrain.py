@@ -18,7 +18,7 @@ def close_browser(total):
 @before.each_feature
 def setup_db(feature):
   db.setup_test_database()
-  
+   
 @after.each_feature
 def teardown_db(feature):
   db.teardown_test_database()

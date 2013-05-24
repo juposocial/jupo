@@ -1202,6 +1202,7 @@ def forgot_password(email):
     return True
   else:
     return False
+  
     
     
 def update_pingpong_timestamp(session_id):
@@ -1525,10 +1526,10 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
   if not info:  
     if facebook_id:
       info = db.owner.find_one({'facebook_id': facebook_id, 
-                                      'password': {'$exists': True}})
+                                'password': {'$exists': True}})
     elif email:
       info = db.owner.find_one({'email': email.strip().lower(), 
-                                      'password': {'$exists': True}})
+                                'password': {'$exists': True}})
     elif '@' in str(user_id):
       info = db.owner.find_one({'email': user_id})
     elif str(user_id).isdigit():
@@ -2083,18 +2084,12 @@ def get_user_id_from_email_address(email, db_name=None):
   
   email = email.lower().strip()
   
-  key = '%s:%s:user_id' % (db_name, email)
-  uid = cache.get(key)
-  if uid:
-    return uid
-  
   record = db.owner.find_one({'email': email.split('<')[-1].rstrip('>').strip()})
   if record:
     if record.has_key('owner'):
       uid = record['owner']
     else:
       uid = record['_id']
-    cache.set(key, uid)
     return uid
   else:
     if '<' in email:
@@ -2106,7 +2101,6 @@ def get_user_id_from_email_address(email, db_name=None):
     if info:
       owner = info['owner']
       update_user(email, name=name, owner=owner)
-      cache.set(key, owner)
       return owner
     else:
       update_user(email, name=name)
