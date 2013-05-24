@@ -1,16 +1,13 @@
 #!/bin/bash
 
-# Start Xvfb if it is not running
-if [ ! -f /tmp/.X0-lock ]; then
-	Xvfb :0 -screen 0 1366x768x24 2>/dev/null &
-fi
-
-# Start Selenium server if it is not running
-ps cax | grep httpd > /dev/null
-if [ $? -ne 0 ]; then
-  nohup xvfb-run java -jar src/tests/features/selenium-server-standalone-2.32.0.jar > /var/log/jupo/selenium.log &
-fi
+# Setup
+Xvfb :0 -screen 0 1366x768x24 2> /dev/null &
+nohup xvfb-run java -jar src/tests/features/selenium-server-standalone-2.32.0.jar > /var/log/jupo/selenium.log &
+export DISPLAY=:0
 
 # Run tests
-export DISPLAY=:0	
 cd src/tests && lettuce
+
+# Teardown
+pkill -9 -f 'Xvfb'
+pkill -9 -f 'selenium-server'
