@@ -595,10 +595,19 @@ def authentication(action=None):
       return resp
     
     elif request.method == "GET":
-      resp = Response(render_template('sign_in.html', 
-                                      domain=hostname, 
-                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
-                                      network_info=network_info))
+      email = request.args.get('email')
+      msg = request.args.get('msg')
+      if msg and email:
+        resp = Response(render_template('sign_in.html', 
+                                        msg=msg, email=email,
+                                        domain=hostname, 
+                                        PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                        network_info=network_info))
+      else:
+        resp = Response(render_template('sign_in.html', 
+                                        domain=hostname, 
+                                        PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                        network_info=network_info))
       return resp
       
     
@@ -638,7 +647,7 @@ def authentication(action=None):
         message = "Incorrect password. <a href='/forgot_password'>Reset password</a>"
       else:
         message = """No account found for this email.
-        Retry, or <a href='/sign_up'>Sign up for Jupo</a>."""
+        Retry, or <a href='/sign_up?email=%s'>Sign up for Jupo</a>""" % email
       resp = Response(render_template('sign_in.html', 
                                       domain=hostname,
                                       email=email, 
@@ -653,9 +662,11 @@ def authentication(action=None):
   elif request.path.endswith('sign_up'):
     if request.method == 'GET':
       welcome = request.args.get('welcome')
+      email = request.args.get('email')
       resp = Response(render_template('sign_up.html', 
                                       welcome=welcome,
                                       domain=hostname, 
+                                      email=email,
                                       PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
                                       network_info=network_info))
       return resp
@@ -726,7 +737,7 @@ def authentication(action=None):
   
   elif request.path.endswith('forgot_password'):
     if request.method == 'GET':
-      return render_template('reset_password.html')  
+      return render_template('forgot_password.html')  
     if request.method == 'OPTIONS':
       data = dumps({'title': 'Jupo - Forgot your password?',
                     'body': render_template('forgot_password.html')})
@@ -735,40 +746,45 @@ def authentication(action=None):
       email = request.form.get('email')
       if not email:
         abort(400)
-      api.forgot_password(email)
-      return render_template('reset_password.html', 
-                             message='Please check your inbox and follow the instructions in the email.')
+      r = api.forgot_password(email)
+      if r is True:
+        message = "We've sent you an email with instructions on how to reset your password. Please check your email."
+        ok = True
+      else:
+        message = 'No one with that email address was found'
+        ok = False
+      return render_template('forgot_password.html', 
+                             ok=ok,
+                             message=message)
     
   elif request.path.endswith('reset_password'):
     if request.method == 'GET':
       code = request.args.get('code')
-      if not code:
-        return redirect('/news_feed')
-      email = api.FORGOT_PASSWORD.get(code)
-      if email:
-        resp = {'title': 'Reset your password',
-                'body': render_template('reset_password.html', 
-                                        email=email, code=code)}
-        return render_homepage(None, 'Reset your password',
-                               view='reset_password', email=email, code=code)
-      return render_template('reset_password.html', message='Token Expired')
+      return render_template('reset_password.html', code=code)
         
     else:
       code = request.form.get('code')
-      new_password = request.form.get('password')
-      if not code or not new_password:
-        abort(400)
       email = api.FORGOT_PASSWORD.get(code)
       if not email:
-        abort(410)
+        return render_template('reset_password.html', code=code,
+                               message='Please provide a valid reset code')
+        
+      new_password = request.form.get('password')
+      if not new_password:
+        return render_template('reset_password.html', code=code, 
+                               message='Please enter a new password for this account')
+      elif len(new_password) < 6:
+        return render_template('reset_password.html', code=code, 
+                               message='Your password must be at least 6 characters long.')
+        
+      confirm_password = request.form.get('confirm')
+      if new_password != confirm_password:
+        return render_template('reset_password.html', code=code,
+                               message='The two passwords you entered do not match')
+        
       user_id = api.get_user_id_from_email_address(email)
-      if not user_id:
-        abort(400)
-      else:
-        api.reset_password(user_id, new_password)
-        session_id = api.sign_in(email, new_password)
-        session['session_id'] = session_id
-        return redirect('/news_feed')
+      api.reset_password(user_id, new_password)
+      return redirect('/sign_in?email=%s&msg=Your password has been reset' % email)
       
   
 

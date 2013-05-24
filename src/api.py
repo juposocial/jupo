@@ -150,7 +150,7 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = template.render(domain=domain, **kwargs)
     
   elif mail_type == 'forgot_password':
-    subject = 'Reset your Jupo password'
+    subject = 'Your password on Jupo'
     template = app.CURRENT_APP.jinja_env.get_template('email/reset_password.html')
     body = template.render(email=to_addresses, domain=domain, **kwargs)
     
@@ -1191,13 +1191,19 @@ def new_verify_token(email):
 
 def forgot_password(email):
   db_name = get_database_name()
-  temp_password = uuid4().hex
-  FORGOT_PASSWORD.set(temp_password, email)
-  FORGOT_PASSWORD.expire(temp_password, 3600)
-  send_mail_queue.enqueue(send_mail, email, mail_type='forgot_password', 
-                          temp_password=temp_password, db_name=db_name)
-  return temp_password
-
+  
+  user = DATABASE[db_name].owner.find_one({'email': email.strip().lower()})
+  if user:
+    temp_password = uuid4().hex
+    FORGOT_PASSWORD.set(temp_password, email)
+    FORGOT_PASSWORD.expire(temp_password, 3600)
+    send_mail_queue.enqueue(send_mail, email, mail_type='forgot_password', 
+                            temp_password=temp_password, db_name=db_name)
+    return True
+  else:
+    return False
+    
+    
 def update_pingpong_timestamp(session_id):
   user_id = get_user_id(session_id)
   PINGPONG.set(user_id, utctime())
