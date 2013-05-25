@@ -5448,10 +5448,11 @@ def add_db_name(email, db_name):
 
 
 def get_db_names(email):
-  email = email.lower().strip()
-  info = DATABASE['global']['user'].find_one({'email': email})
-  if info:
-    return info.get('db_names')
+  if email:
+    email = email.lower().strip()
+    info = DATABASE['global']['user'].find_one({'email': email})
+    if info:
+      return info.get('db_names')
   return []
 
 

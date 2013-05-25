@@ -66,6 +66,8 @@ class Model:
   
   @property
   def seen_by(self):
+    if not self.info:
+      return []
     users = []
     user_ids = set()
     if self.info.get('read_receipts'):
