@@ -2863,11 +2863,16 @@ def get_feeds(session_id, group_id=None, page=1,
     else:
       group_id = 'public'
     
+#     feeds = db.stream.find({'is_removed': {'$exists': False},
+#                             'viewers': group_id,
+#                             '$or': [{'comments': {'$exists': True}, 
+#                                      'message.action': {'$exists': True}},
+#                                     {'message.action': {'$exists': False}}]})\
+#                             .sort('last_updated', -1)\
+#                             .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+#                             .limit(limit)
     feeds = db.stream.find({'is_removed': {'$exists': False},
-                            'viewers': group_id,
-                            '$or': [{'comments': {'$exists': True}, 
-                                     'message.action': {'$exists': True}},
-                                    {'message.action': {'$exists': False}}]})\
+                            'viewers': group_id})\
                             .sort('last_updated', -1)\
                             .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                             .limit(limit)
@@ -4323,7 +4328,7 @@ def get_attachments(session_id, group_id=None, limit=10):
   
   
 # Group Actions --------------------------------------------------------------
-def new_group(session_id, name, privacy="closed", members=None, about=None, email_addrs=None):
+def new_group(session_id, name, privacy="closed", about=None):
   """
   Privacy: Open|Closed|Secret
   """
@@ -4334,12 +4339,10 @@ def new_group(session_id, name, privacy="closed", members=None, about=None, emai
   if not user_id:
     return False
     
-  members.add(user_id)
-      
 
   info = {'timestamp': utctime(),
           'last_updated': utctime(),
-          'members': list(members),
+          'members': [user_id],
           'leaders': [user_id],
           'name': name, 
           'privacy': privacy,
@@ -4351,10 +4354,6 @@ def new_group(session_id, name, privacy="closed", members=None, about=None, emai
   
   key = '%s:groups' % user_id
   cache.delete(key)
-  
-  if email_addrs:
-    for email in email_addrs:
-      invite_queue.enqueue(invite, session_id, email, group_id)
   
   new_feed(session_id, {'action': 'created',
                         'group_id': group_id}, [group_id])

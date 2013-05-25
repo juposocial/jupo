@@ -133,12 +133,14 @@ Leave a message...
 
 
 {% if view == "new-group" %}
-  <div id="page-header">
+  <div id="page-header" class='group'>
           <h2>New Group</h2>
   </div>  
   
   <form action='/group/new' method='post' class="new-group group{#new form overlay#}">
   <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+  
+  
   <table>
     <tbody>
 
@@ -160,57 +162,43 @@ Leave a message...
       </tr>
   
           
-<!--            <tr>
+           <tr>
        <td> 
-          <label>Who can view content?</label> 
+          <label><strong>Who can view group's content?</strong></label> 
           <div class='privacy'>
             <div>
-              <input id='open-group' type='radio' name='privacy' value='open'/>
               <label for='open-group'>
-                Anyone {# <i class='public-icon' title='Anyone can see the group, who is in it, and what members post.'></i> #}
+                <input id='open-group' type='radio' name='privacy' value='open' checked>
+                Anyone
               </label>
             </div>
             
             
             <div>
-              <input id='closed-group' type='radio' name='privacy' value='closed'/>
               <label for='closed-group'>
-                Only approved members {# <i class='lock-icon' title='Anyone can see the group and who is in it. Only members see posts.'></i> #}
+                <input id='closed-group' type='radio' name='privacy' value='closed'>
+                Only approved members
               </label>
             </div>
-            
-            {#
+   {#         
             <div class='radio'>
               <input id='secret-group' type='radio' name='privacy' value='secret'/>
               <label for='secret-group'>
                 Secret <i class='ghost-icon' title='Only members see the group, who is in it, and what members post.'></i>
               </label>
             </div>
-            #}
+    #}        
           </div>
           
           <input type='hidden' name='privacy' value='closed'>
        </td>
-     </tr>    -->
+     </tr>   
 
-{#     
-      <tr id='members'>
-        <td>
-          <br>
-          <label>Type emails to invite people:</label><br>
-          <span>(or you can do this later, too.)</span>
-          {% for i in range(3) %}
-          <input type='email' name='member-{{ i }}' placeholder="Email Address">
-          {% endfor %}
-        </td>
-      </tr>
-#}      
     </tbody>
   </table>
   
   <footer>    
-    <br>
-    <input type='submit' value="Start the group" class='button'> or <a onclick='close_popup();'>Cancel</a>
+    <input type='submit' value="Start the group" class='button rfloat'> <a onclick='close_popup();' class='close rfloat'>Cancel</a>
   </footer>
   
 
@@ -219,20 +207,16 @@ Leave a message...
     
       $('form.group textarea').elastic();
       
-      $('form.group').on('focus', '#members input:last', function() {         
-        name = 'member-' + (parseInt($(this).attr('name').split('-')[1]) + 1);
-        $(this).after('<input type="email" name="' + name + '" placeholder="Email Address">')
-      })
-      
       setTimeout(function() {
         $('form.group #name input').focus().select();
       }, 1);
   })
-</script>
+  </script>
+  
+  
 
     
 </form>
-
 
 {% elif view == "new-network" %}
   <div id="page-header">

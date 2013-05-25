@@ -1626,21 +1626,9 @@ def group(group_id=None, view='group', page=1):
     if name:
       privacy = request.form.get('privacy', 'closed')
       about = request.form.get('about')
-      
-      members = set()
-      email_addrs = set()
-      for k in request.form.keys():
-        if k.startswith('member-'):
-          email = request.form.get(k).strip()
-          if email and email != owner.email:
-            email_addrs.add(email)
-            uid = api.get_user_id_from_email_address(email)
-            if uid:
-              members.add(uid)
-
       group_id = api.new_group(session_id, 
-                               name, privacy, members, 
-                               about=about, email_addrs=email_addrs)
+                               name, privacy,
+                               about=about)
 
       return str(group_id)
     
