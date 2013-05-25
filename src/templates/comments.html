@@ -1,4 +1,4 @@
-<ul class="comments {% if (item.comments_count == 0 and mode != 'view') or hide_comments %}hidden{% endif %}" id="comments-{{ item.id }}">
+<ul class="comments {% if (item.liked_user_ids | length == 0 and item.comments_count == 0 and mode != 'view') or hide_comments %}hidden{% endif %}" id="comments-{{ item.id }}">
        
     <div id="comments-list-{{ item.id }}" class="comments-list">
       
