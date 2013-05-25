@@ -707,7 +707,7 @@ def authentication(action=None):
               api.update_session_id(email, session_id, db)
               
         session['session_id'] = session_id
-        return redirect('/reminders')  
+        return redirect('/everyone')  
       else:
         return redirect('/')
       

@@ -1123,9 +1123,9 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
 #  send_mail(email, subject, body)
   
   # init some data
-  new_reminder(session_id, 'Find some contacts')
-  new_reminder(session_id, 'Upload a profile picture (hover your name at the top right corner, click "Change Profile Picture" in drop down menu)')
-  new_reminder(session_id, 'Hover over me and click anywhere on this line to check me off as done')
+#   new_reminder(session_id, 'Find some contacts')
+#   new_reminder(session_id, 'Upload a profile picture (hover your name at the top right corner, click "Change Profile Picture" in drop down menu)')
+#   new_reminder(session_id, 'Hover over me and click anywhere on this line to check me off as done')
 
   # add user to "Welcome to 5works" group
 #  db.owner.update({'_id': 340916998231818241}, 
