@@ -1720,7 +1720,7 @@ function open_in_popup_mode(href, data) {
       },
       success: function(resp) {
         hide_loading();
-        $('html').addClass('no-scroll');
+        // $('html').addClass('no-scroll');
         $('#popup .content').html(resp.body);
         $('#popup').removeClass('hidden');
         refresh('#popup');
@@ -1920,9 +1920,8 @@ function open_in_overlay_mode(href, data) { // has #! in url
 
 function close_popup() {
   $('#popup').addClass('hidden');
-      $('#popup .content').html('');
-      
-        $('html').removeClass('no-scroll');
+  $('#popup .content').html('');
+        // $('html').removeClass('no-scroll');
 }
 
 function close_overlay() {
