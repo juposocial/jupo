@@ -707,7 +707,12 @@ def authentication(action=None):
               api.update_session_id(email, session_id, db)
               
         session['session_id'] = session_id
-        return redirect('/everyone')  
+        
+        user_id = api.get_user_id(session_id)
+        if api.is_admin(user_id):
+          return redirect('/groups')
+        else:
+          return redirect('/everyone')  
       else:
         return redirect('/')
       
@@ -1726,29 +1731,32 @@ def group(group_id=None, view='group', page=1):
     
   if not group_id:
     groups = api.get_groups(session_id)
-    featured_groups = api.get_featured_groups(session_id)
     
-    _default_groups = [
-      {'name': 'Sales & Marketing', 
-       'description': 'Where the stories are made up and deals are closed'},
-      {'name': 'IT',
-       'description': 'We repeatedly fix what you repeatedly break'},
-      {'name': 'Test & QA',
-       'description': 'We make people feel bad about their work'},
-      {'name': 'R&D',
-       'description': 'Our favorite page is Google.com'},
-      {'name': 'Design',
-       'description': 'Design is now how it looks. Design is what the boss likes'},
-      {'name': 'Customer Services',
-       'description': 'Getting yelled at for things you can’t do anything about'}
-    ]
+    featured_groups = default_groups = []
     
-    group_names = [group.name for group in groups]
-    default_groups = []
-    for group in _default_groups:
-      if group['name'] not in group_names:
-        default_groups.append(group)
-    
+    if api.is_admin(user_id):
+      _default_groups = [
+        {'name': 'Sales & Marketing', 
+         'description': 'Where the stories are made up and deals are closed'},
+        {'name': 'IT',
+         'description': 'We repeatedly fix what you repeatedly break'},
+        {'name': 'Test & QA',
+         'description': 'We make people feel bad about their work'},
+        {'name': 'R&D',
+         'description': 'Our favorite page is Google.com'},
+        {'name': 'Design',
+         'description': 'Design is now how it looks. Design is what the boss likes'},
+        {'name': 'Customer Services',
+         'description': 'Getting yelled at for things you can’t do anything about'}
+      ]
+      
+      group_names = [group.name for group in groups]
+      default_groups = []
+      for group in _default_groups:
+        if group['name'] not in group_names:
+          default_groups.append(group)
+    else:
+      featured_groups = api.get_featured_groups(session_id)
     
     
     if request.method == 'GET':

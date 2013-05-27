@@ -4386,10 +4386,15 @@ def join_group(session_id, group_id):
   group_info = db.owner.find_one({'_id': long(group_id)})
   if not group_info:
     return False
+  
+  key = '%s:groups' % user_id
+  cache.delete(key)
+  
   if group_info.get('privacy') == 'open':
     db.owner.update({'_id': group_id}, 
                           {'$addToSet': {'members': user_id}})
     return True
+  
   elif group_info.get('privacy') == 'closed':
     pending_members = group_info.get('pending_members', [])
     if user_id not in pending_members:
@@ -4397,6 +4402,7 @@ def join_group(session_id, group_id):
       db.owner.update({'_id': group_id}, 
                             {'$set': {'pending_members': pending_members}})
       return None
+    
     return False
   
 def leave_group(session_id, group_id):
@@ -4409,11 +4415,13 @@ def leave_group(session_id, group_id):
   group_info = db.owner.find_one({'_id': long(group_id)})
   if not group_info:
     return False
+  
+  
+  key = '%s:groups' % user_id
+  cache.delete(key)
+  
   if group_info.get('privacy') == 'open':
     db.owner.update({'_id': group_id}, {'$pull': {'members': user_id}})
-    
-    key = '%s:groups' % user_id
-    cache.delete(key)
     
     return True
   elif group_info.get('privacy') == 'closed':
@@ -4435,17 +4443,17 @@ def add_member(session_id, group_id, user_id):
   owner_id = get_user_id(session_id)
   if not owner_id:
     return False
+  
   group_info = db.owner.find_one({'_id': long(group_id),
                                   'members': owner_id})
   if not group_info:
     return False
   
-  db.owner.update({'_id': group_id},
-                  {'$addToSet': {'members': user_id}})
-  
-  
   key = '%s:groups' % user_id
   cache.delete(key)
+  
+  db.owner.update({'_id': group_id},
+                  {'$addToSet': {'members': user_id}})
   
   new_feed(session_id, {'action': 'added',
                         'user_id': user_id, 
@@ -4760,17 +4768,25 @@ def get_featured_groups(session_id, limit=5):
   return featured_groups
   
 
-def is_admin(user_id, group_id):
-  db_name = get_database_name()
+def is_admin(user_id, group_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
-  group = db.owner.find_one({'_id': long(group_id), 
-                             'leaders': long(user_id)})
-  
-  if group:
-    return True
+  if group_id:
+    group = db.owner.find_one({'_id': long(group_id), 
+                               'leaders': long(user_id)})
+    
+    if group:
+      return True
+    else:
+      return False
   else:
-    return False
+    user = db.owner.find({'password': {'$exists': True}}, {'_id': True}).sort('timestamp', 1).limit(1)
+    if user and list(user)[0]['_id'] == user_id:
+      return True
+    else:
+      return False
 
 def get_group_member_ids(group_id, db_name=None):
   if not db_name:

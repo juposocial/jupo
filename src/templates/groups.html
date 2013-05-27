@@ -1,21 +1,16 @@
-<div id="page-header" class='border-bottom'>
-  {% if view == 'groups' and not open_groups %}
-  <div class="actions rfloat">
-     <a href="/group/new" class="popup button">New Group</a>
-  </div>
-  {% endif %}
-  
-  
-  {% if open_groups %}
-    <h2>Featured Groups</h2>
-  {% elif not user %}
-    <h2>Groups</h2>
-  {% else %}
-    <h2><a href='/user/{{ user.id }}' class='async black'>{{ user.name }}</a>'s Groups</h2>
-  {% endif %}
-</div>
 
+{% if groups %}
 <ul class='groups'>
+    <div class='title'>
+      <div class="actions rfloat">
+         <a href="/group/new" class="popup button">New Group</a>
+      </div>
+      {% if user %}
+        <a href='/user/{{ user.id }}' class='async black'>{{ user.name }}</a>'s Groups
+      {% else %}
+        Groups
+      {% endif %}
+    </div>
     {% for group in groups %}      
       {% if group.privacy == 'open' or owner.id in group.member_ids %}
       <li>
@@ -33,7 +28,9 @@
     {% endfor %}
     
 </ul>
+{% endif %}
 
+{% if default_groups %}
 <ul class='groups'>
     <div class="title">Suggested Groups</div>
     {% for group in default_groups %}     
@@ -49,37 +46,29 @@
         </a>
       </li>
     {% endfor %}
-    
 </ul>
+{% endif %}
+
 
 
 {% if featured_groups %}
-  <div id="right-sidebar">
-          <div class="box">
-            <div class="header">
-              <div class="title">Featured Groups</div>
-            </div>
-            <div class="body" id='groups'>
-              <ul>
-              {% for group in featured_groups %}
-                <li>
-                  <a href='/group/{{ group.id }}' class='async' title='{{ group.name }}'>
-                    <i class='group-icon lfloat'></i>
-                    <span class='name'>{{ group.name }}</span>
-                    <br>
-                    <span class='gray info'>
-                      {% if group.about %}
-                        {{ group.about | truncate(25, True) }}
-                      {% else %}
-                        {{ group.member_ids | length }} members
-                      {% endif %}
-                    </span>
-                  </a>
-                </li>
-              {% endfor %}
-              </ul>
-            </div>
+<ul class='groups'>
+    <div class="title">Featured Groups</div>
+    {% for group in featured_groups %}      
+      {% if owner.id not in group.member_ids %}
+      <li>
+         <a href="/group/{{ group.id }}" class='async' rel='group-{{ group.id }}' title='{{ group.name }}'>
+           
+          <i class="group-icon"></i>
+          <span>{{ group.name | truncate(25, True) }}</span>
+        
+          <div class='info'>
+            <span class=''>{{ group.members | length }} {% if group.privacy == 'open' %}followers{% else %}members{% endif %}</span>          
           </div>
-          
-  </div>
+        </a>
+      </li>
+      {% endif %}
+    {% endfor %}
+    
+</ul>
 {% endif %}

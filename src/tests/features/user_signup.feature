@@ -1,6 +1,6 @@
 Feature: Signing up
 
-  Scenario: Andy Pham successfully signs up
+  Scenario: Andy Pham successfully signs up (1st user)
      When I go to the sign up page
       And I fill in "name" with "Andy Pham"
       And I fill in "email" with "andy@jupo.com"
@@ -8,6 +8,19 @@ Feature: Signing up
       And I focus on "password" and hit the ENTER key
      Then I should see "News Feed" within 3 seconds
       And I should see "Everyone" within 3 seconds
+      And I should see "Suggested Groups" within 3 seconds
+      
+      
+  Scenario: Thor M successfully signs up (2nd user)
+     When I go to the sign up page
+      And I fill in "name" with "Thor M"
+      And I fill in "email" with "thor@jupo.com"
+      And I fill in "password" with "123456"
+      And I focus on "password" and hit the ENTER key
+     Then I should see "News Feed" within 3 seconds
+      And I should see "Everyone" within 3 seconds
+      And I should see "Public posts from everyone" within 3 seconds
+      And I should not see "Suggested Groups"
       
    
    Scenario: Andy Pham signs up with invalid email
