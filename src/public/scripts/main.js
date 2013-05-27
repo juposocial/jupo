@@ -1735,10 +1735,17 @@ $(document).ready(function(e) {
       // // refresh();
     // }
   });
-
-  $("#body, #overlay").on('click', 'a.see-more', function() {
+  
+  
+  $("#body, #overlay").on('click', 'article a.see-more', function() {
     $(this).prev('div').hide();
     $(this).next('div.hidden').show();
+    $(this).hide();
+  })
+
+  $("#body, #overlay").on('click', '.comment a.see-more', function() {
+    $(this).prev('span.text').hide();
+    $(this).next('span.text.hidden').show();
     $(this).hide();
   })
 
