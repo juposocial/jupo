@@ -7083,7 +7083,15 @@ div.body .intro {
 
 
 
-
+ul.groups div.title {
+  display: block;
+  width: 100%;
+  float: left;
+  margin: 50px 0 10px;
+  font-size: 14px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
 
 
 

@@ -1619,7 +1619,9 @@ def group(group_id=None, view='group', page=1):
   
   if request.path.endswith('/new'):
     if request.method == 'GET':
+      name = request.args.get('name')
       return render_homepage(session_id, 'Groups',
+                             name=name,
                              view='new-group')
       
     name = request.form.get('name')
@@ -1633,7 +1635,9 @@ def group(group_id=None, view='group', page=1):
       return str(group_id)
     
     else:     
+      name = request.args.get('name')
       body = render_template('new.html', 
+                             name=name,
                              owner=owner,
                              view='new-group')
       return Response(dumps({'title': 'New Group',
@@ -1720,10 +1724,28 @@ def group(group_id=None, view='group', page=1):
     groups = api.get_groups(session_id)
     featured_groups = api.get_featured_groups(session_id)
     
+    _default_groups = [
+      {'name': 'Marketing'},
+      {'name': 'Sales'},
+      {'name': 'Design'},
+      {'name': 'IT'},
+      {'name': 'R&D'},
+      {'name': 'New Employees'}
+    ]
+    
+    group_names = [group.name for group in groups]
+    default_groups = []
+    for group in _default_groups:
+      if group['name'] not in group_names:
+        default_groups.append(group)
+    
+    
+    
     if request.method == 'GET':
       return render_homepage(session_id, 'Groups',
                              groups=groups,
                              featured_groups=featured_groups,
+                             default_groups=default_groups,
                              view='groups')
 
     else:
@@ -1731,6 +1753,7 @@ def group(group_id=None, view='group', page=1):
                              view='groups',
                              owner=owner,
                              featured_groups=featured_groups,
+                             default_groups=default_groups,
                              groups=groups)
       resp = Response(dumps({'body': body,
                              'title': 'Groups'}))
