@@ -1856,7 +1856,7 @@ def group(group_id=None, view='group', page=1):
     
     if request.method == 'OPTIONS':
       if page > 1:
-        posts = [render(feeds, "feed", owner, view)]
+        posts = [render(feeds, "feed", owner, view, group=group)]
           
         if len(feeds) == 0:
           posts.append(render_template('more.html', more_url=None))

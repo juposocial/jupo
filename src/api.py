@@ -2479,7 +2479,8 @@ def remove_feed(session_id, feed_id, group_id=None):
   post = get_feed(session_id, feed_id)
   
   if group_id:
-    group_id = long(group_id)
+    if str(group_id).isdigit():
+      group_id = long(group_id)
     if is_admin(user_id, group_id):
       db.stream.update({'_id': long(feed_id)}, 
                        {'$pull': {'viewers': group_id}})
@@ -2881,8 +2882,13 @@ def get_feeds(session_id, group_id=None, page=1,
     viewers = get_group_ids(user_id)
     viewers.append(user_id)
   
-    query = {'$and': [{'viewers': {'$in': viewers}},
-                      {'viewers': {'$ne': [user_id]}}],
+#     query = {'$and': [{'viewers': {'$in': viewers}},
+#                       {'viewers': {'$ne': [user_id]}}],
+#              '$or': [{'comments': {'$exists': True}, 
+#                       'message.action': {'$exists': True}},                                 
+#                      {'message.action': {'$exists': False}}],
+#              'is_removed': {'$exists': False}}  
+    query = {'viewers': {'$in': viewers},
              '$or': [{'comments': {'$exists': True}, 
                       'message.action': {'$exists': True}},                                 
                      {'message.action': {'$exists': False}}],
@@ -4773,7 +4779,8 @@ def is_admin(user_id, group_id=None, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  if group_id:
+  
+  if str(group_id).isdigit():
     group = db.owner.find_one({'_id': long(group_id), 
                                'leaders': long(user_id)})
     
@@ -4782,8 +4789,11 @@ def is_admin(user_id, group_id=None, db_name=None):
     else:
       return False
   else:
-    user = db.owner.find({'password': {'$exists': True}}, {'_id': True}).sort('timestamp', 1).limit(1)
-    if user and list(user)[0]['_id'] == user_id:
+    user = db.owner.find({'password': {'$exists': True},
+                          'timestamp': {'$exists': True}}, 
+                         {'_id': True}).sort('timestamp', 1).limit(1)
+    user = list(user)
+    if user and user[0]['_id'] == user_id:
       return True
     else:
       return False
@@ -4849,7 +4859,17 @@ def get_group_info(session_id, group_id, db_name=None):
   db = DATABASE[db_name]
   
   if group_id == 'public':
+    user = db.owner.find({'password': {'$exists': True},
+                          'timestamp': {'$exists': True}}, 
+                         {'_id': True}).sort('timestamp', 1).limit(1)
+    user = list(user)
+    if user:
+      leaders = [user[0]['_id']]
+    else:
+      leaders = []
+      
     info = {'name': 'Public',
+            'leaders': leaders,
             'members': get_group_member_ids(group_id, db_name=db_name),
             '_id': 'public'}
     return Group(info, db_name=db_name)
