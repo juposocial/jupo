@@ -561,10 +561,17 @@
             {% endif%}
             
             {% if group.id == 'public' %}
-            <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
+            <a href='/people' class='popup'>{{ group.members_count }} People</a>
             {% else %}
-            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members_count }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup'>{{ group.members_count }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             {% endif %}
+            
+            
+            <br>
+            Moderators:
+            {% for user in group.administrators %}
+              <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index < group.administrator_ids | length %}, {% endif %}
+            {% endfor %}
             
             {% if group.id == 'public' %}
                <br>
@@ -574,6 +581,8 @@
                <a href='/search?query=&type=people&ref=group-{{ group.id }}' class='popup'>Add people</a>
              · <a href='/search?query=&type=email&ref=group-{{ group.id }}' class='popup'>Invite by Email</a>
             {% endif %}
+            
+            
           </div>
         </div>
       </div>
