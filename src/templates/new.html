@@ -156,8 +156,8 @@ Leave a message...
 
      <tr>
        <td>
-          <textarea name='about' 
-                    placeholder="Description (optional)"></textarea>
+          <textarea name='about' title='Description (optional)'
+                    placeholder="Description (optional)">{% if description %}{{ description }}{% endif %}</textarea>
         </td>
       </tr>
   
@@ -209,7 +209,7 @@ Leave a message...
       
       setTimeout(function() {
         {% if name %}
-          $('form.group textarea').focus();
+          $('form.group textarea').focus().select();
         {% else %}
           $('form.group #name input').focus().select();
         {% endif %}

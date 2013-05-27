@@ -38,13 +38,13 @@
     <div class="title">Suggested Groups</div>
     {% for group in default_groups %}     
       <li>
-         <a href="/group/new?name={{ group.name }}" class='popup' title='{{ group.name }}'>
+         <a href="/group/new?name={{ group.name | urlencode }}&description={{ group.description | urlencode }}" class='popup' title='{{ group.name }} - {{ group.description }}'>
            
           <i class="group-icon"></i>
           <span>{{ group.name | truncate(25, True) }}</span>
         
           <div class='info'>
-            + Create
+            {{ group.description }}
           </div>
         </a>
       </li>

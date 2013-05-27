@@ -6594,7 +6594,9 @@ ul.groups li a i.online, ul.groups li a i.offline, ul.groups li a i.away, ul.con
 ul.groups li a .info {
   color: gray;
   font-size: 11px;
-  background-position: left center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 

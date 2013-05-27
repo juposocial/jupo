@@ -1620,8 +1620,10 @@ def group(group_id=None, view='group', page=1):
   if request.path.endswith('/new'):
     if request.method == 'GET':
       name = request.args.get('name')
+      description = request.args.get('description')
       return render_homepage(session_id, 'Groups',
                              name=name,
+                             description=description,
                              view='new-group')
       
     name = request.form.get('name')
@@ -1636,8 +1638,10 @@ def group(group_id=None, view='group', page=1):
     
     else:     
       name = request.args.get('name')
+      description = request.args.get('description')
       body = render_template('new.html', 
                              name=name,
+                             description=description,
                              owner=owner,
                              view='new-group')
       return Response(dumps({'title': 'New Group',
@@ -1725,12 +1729,18 @@ def group(group_id=None, view='group', page=1):
     featured_groups = api.get_featured_groups(session_id)
     
     _default_groups = [
-      {'name': 'Marketing'},
-      {'name': 'Sales'},
-      {'name': 'Design'},
-      {'name': 'IT'},
-      {'name': 'R&D'},
-      {'name': 'New Employees'}
+      {'name': 'Sales & Marketing', 
+       'description': 'Where the stories are made up and deals are closed'},
+      {'name': 'IT',
+       'description': 'We repeatedly fix what you repeatedly break'},
+      {'name': 'Test & QA',
+       'description': 'We make people feel bad about their work'},
+      {'name': 'R&D',
+       'description': 'Our favorite page is Google.com'},
+      {'name': 'Design',
+       'description': 'Design is now how it looks. Design is what the boss likes'},
+      {'name': 'Customer Services',
+       'description': 'Getting yelled at for things you can’t do anything about'}
     ]
     
     group_names = [group.name for group in groups]
