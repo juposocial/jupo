@@ -1733,24 +1733,25 @@ def group(group_id=None, view='group', page=1):
   if not group_id:
     groups = api.get_groups(session_id)
     
+    
     featured_groups = default_groups = []
     
+    _default_groups = [
+      {'name': 'Sales & Marketing', 
+       'description': 'Where the stories are made up and deals are closed'},
+      {'name': 'IT',
+       'description': 'We repeatedly fix what you repeatedly break'},
+      {'name': 'Test & QA',
+       'description': 'We make people feel bad about their work'},
+      {'name': 'R&D',
+       'description': 'Our favorite page is Google.com'},
+      {'name': 'Design',
+       'description': 'Design is now how it looks. Design is what the boss likes'},
+      {'name': 'Customer Services',
+       'description': 'Getting yelled at for things you can’t do anything about'}
+    ]
+    
     if api.is_admin(user_id):
-      _default_groups = [
-        {'name': 'Sales & Marketing', 
-         'description': 'Where the stories are made up and deals are closed'},
-        {'name': 'IT',
-         'description': 'We repeatedly fix what you repeatedly break'},
-        {'name': 'Test & QA',
-         'description': 'We make people feel bad about their work'},
-        {'name': 'R&D',
-         'description': 'Our favorite page is Google.com'},
-        {'name': 'Design',
-         'description': 'Design is now how it looks. Design is what the boss likes'},
-        {'name': 'Customer Services',
-         'description': 'Getting yelled at for things you can’t do anything about'}
-      ]
-      
       group_names = [group.name for group in groups]
       default_groups = []
       for group in _default_groups:
@@ -1758,6 +1759,8 @@ def group(group_id=None, view='group', page=1):
           default_groups.append(group)
     else:
       featured_groups = api.get_featured_groups(session_id)
+      if not groups and not featured_groups:
+        default_groups = _default_groups
     
     
     if request.method == 'GET':
