@@ -362,10 +362,11 @@ def search():
                                        title=title) \
                        for user in users if user.email)
       else:
-        if item_type == 'email':
-          return "<li>Type your friend's email address</li>"
-        else:
-          return "<li>0 results found</li>"
+        return "<li>Type your friend's email address</li>"
+#         if item_type == 'email':
+#           return "<li>Type your friend's email address</li>"
+#         else:
+#           return "<li>0 results found</li>"
         
   # search posts
   results = api.search(session_id, query, item_type, 
