@@ -314,13 +314,26 @@ def search():
           users = [i for i in owner.google_contacts \
                    if api.get_user_id_from_email_address(i.email) not in group.member_ids]
         else:
-          users = [i for i in api.get_coworkers(session_id) \
+          users = owner.contacts
+          user_ids = [i.id for i in users]
+          for user in api.get_coworkers(session_id):
+            if user.id not in user_ids:
+              user_ids.append(user.id)
+              users.append(user)
+              
+          users = [i for i in users \
                    if i.id not in group.member_ids and i.id != owner.id]
       else:
         if item_type == 'email':
           users = [i for i in owner.google_contacts]
         else:
-          users = [i for i in api.get_coworkers(session_id) \
+          users = owner.contacts
+          user_ids = [i.id for i in users]
+          for user in api.get_coworkers(session_id):
+            if user.id not in user_ids:
+              user_ids.append(user.id)
+              users.append(user)
+          users = [i for i in users \
                    if i.id not in owner.contact_ids and i.id != owner.id]
           
       return dumps({'title': title,
@@ -537,13 +550,56 @@ def discover(name='discover', page=1):
                              feeds=feeds)
 
 
-@app.route('/invite', methods=['GET', 'POST'])
+@app.route('/invite', methods=['OPTIONS', 'POST'])
 def invite():
-  email = request.form.get('email', request.args.get('email'))
-  group_id = request.form.get('group_id', request.args.get('group_id'))
   session_id = session.get("session_id")
-  api.invite(session_id, email, group_id)
-  return ' ✔ Done '
+  group_id = request.form.get('group_id', request.args.get('group_id'))
+  
+  if request.method == 'OPTIONS':
+    user_id = api.get_user_id(session_id)
+    owner = api.get_user_info(user_id)
+    
+    email_addrs = [i.email for i in owner.google_contacts]
+    for user in owner.contacts:
+      if user.email not in email_addrs:
+        email_addrs.append(user.email)
+        
+    
+    if group_id:
+      group = api.get_group_info(session_id, group_id)
+      title = 'Invite Friends to <strong>%s</strong>' % group.name
+    else:
+      group = {}
+      title = None
+      
+    return dumps({'title': title,
+                  'body': render_template('invite.html', 
+                                          title=title,
+                                          email_addrs=email_addrs,
+                                          group=group)})
+  else:
+    email = request.form.get('email', request.args.get('email'))
+    if email:
+      api.invite(session_id, email, group_id)
+      return ' ✔ Done '
+    else:
+      addrs = request.form.get('to')
+      msg = request.form.get('msg')
+      if addrs:
+        addrs = addrs.split(',')
+        for addr in addrs:
+          if addr.isdigit():
+            email = api.get_user_info(addr).email
+          else:
+            email = addr
+          api.invite(session_id, email, group_id=group_id, msg=msg)
+        
+        if group_id:
+          return redirect('/group/%s?message=Invitation sent!' % group_id)
+        else:
+          return redirect('/news_feed?message=Invitation sent!')
+      else:
+        abort(400)
 
 
 

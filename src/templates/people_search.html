@@ -40,7 +40,7 @@
       {% endfor %}
     {% else %}
       <li>
-        Your contact list is empty. <a href="/search?query=&type=email&ref=group-{{ group_id }}" class="popup">Invite people by Email</a>
+        Your contact list is empty. <a href="/invite?group_id={{ group_id }}" class="popup">Invite people by Email</a>
       </li>
     {% endif %}
   </ul>

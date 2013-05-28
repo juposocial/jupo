@@ -1,0 +1,46 @@
+  <div id="page-header">
+          <h2>{% if title %}{{ title | safe }}{% else %}Invite Friends{% endif %}</h2>
+  </div> 
+
+  <form class='invite' action='/invite' method='post'>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="group_id" value="{{ group.id }}">
+    
+    <label>Type names or email addresses:</label>
+    <input class="friends" placeholder="Enter an email address..." name='to' required><br>
+    
+    <label>Message (optional)</label>
+    <textarea name='msg'></textarea>
+    
+    <input type='submit' class='button rfloat' value='Send Invitation'>
+  </form>
+  
+<script>
+
+   users = [
+     {% for email in email_addrs %}
+       {'type': 'user', 'avatar': '/public/images/send-mail.png', 'name': '{{ email }}', 'id': '{{ email }}'}, 
+     {% endfor %}
+   ]
+  
+   $('input.friends').tokenInput(users, {
+      searchDelay: 300,
+      preventDuplicates: true,
+      queryParam: 'query',
+      hintText: 'Enter an email address...',
+      animateDropdown: false,
+      resultsFormatter: function(item) {
+        return "<li><img class='" + item.type + "' src='" + item.avatar + "'>" + item.name + "</li>"
+      },
+      allowEmail: true,
+      showDropdownOnFocus: false,
+      noResultsText: null,
+      searchingText: null,
+    });
+    
+    setTimeout(function() {
+      $('.token-input-input-token input').focus();
+    }, 10)
+ 
+
+</script>

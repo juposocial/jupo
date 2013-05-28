@@ -140,11 +140,11 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = template.render()
     
   elif mail_type == 'invite':
-    if kwargs.get('group'):
-      subject = "%s has invited you to %s" % (kwargs.get('user').name, 
-                                              kwargs.get('group').name)
+    if kwargs.get('group_name'):
+      subject = "%s has invited you to %s" % (kwargs.get('username'), 
+                                              kwargs.get('group_name'))
     else:
-      subject = "%s has invited you to Jupo" % (kwargs.get('user').name)
+      subject = "%s has invited you to Jupo" % (kwargs.get('username'))
       
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
     body = template.render(domain=domain, **kwargs)
@@ -864,7 +864,7 @@ def sign_in(email, password, user_agent=None, remote_addr=None):
   return session_id
 
 
-def invite(session_id, email, group_id=None, db_name=None):
+def invite(session_id, email, group_id=None, msg=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -897,15 +897,19 @@ def invite(session_id, email, group_id=None, db_name=None):
                     {'$addToSet': {'members': _id}})
     group = get_group_info(session_id, group_id)
   else:
-    group = None
+    group = Group({})
     
 
   send_mail_queue.enqueue(send_mail, email, 
                           mail_type='invite', 
                           code=code, 
                           is_new_user=is_new_user,
-                          user=user,
-                          group=group, db_name=db_name)
+                          user_id=user.id,
+                          username=user.name, 
+                          msg=msg,
+                          group_id=group.id, 
+                          group_name=group.name,
+                          db_name=db_name)
     
   return True
   
@@ -4478,8 +4482,11 @@ def add_member(session_id, group_id, user_id):
   send_mail_queue.enqueue(send_mail, user.email, 
                           mail_type='invite',
                           is_new_user=is_new_user,
-                          user=owner,
-                          group=group, db_name=db_name)
+                          user_id=owner.id,
+                          username=owner.name,
+                          group_id=group.id,
+                          group_name=group.name,
+                          db_name=db_name)
   
   return True
   
