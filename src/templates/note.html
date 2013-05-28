@@ -110,7 +110,7 @@
           <br> 
           {% for file in note.attachments %}
             <i class='attach-icon'></i>
-            <a href='/attachment/{{ file.id }}?rel={{ note.id }}' target='_blank' title="{{ file.name }}">{{ file.name | truncate(50, True)}}</a>
+            <a href='/attachment/{{ file.id }}?rel={{ note.id }}' target='_blank' title="{{ file.name }}" download="{{ file.name }}">{{ file.name | truncate(50, True)}}</a>
             <br>  
           {% endfor %}
         {% endif %}
@@ -134,7 +134,7 @@
           <br> 
           {% for file in note.attachments %}
             <i class='attach-icon'></i>
-            <a href='/attachment/{{ file.id }}?rel={{ note.id }}' target='_blank' title="{{ file.name }}">{{ file.name | truncate(50, True)}}</a>
+            <a href='/attachment/{{ file.id }}?rel={{ note.id }}' target='_blank' title="{{ file.name }}" download="{{ file.name }}">{{ file.name | truncate(50, True)}}</a>
             <br>  
           {% endfor %}
         {% endif %}

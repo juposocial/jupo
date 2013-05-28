@@ -779,7 +779,7 @@
         <ul class='attachments'>
           {% for attachment in group.recent_files[:5] %}
           <li class='attachment'>
-            <a href='/attachment/{{ attachment.id }}?rel={{ attachment.rel }}' target='_blank'> <img src='{{ attachment.icon }}' height=32 class='lfloat'/>
+            <a href='/attachment/{{ attachment.id }}?rel={{ attachment.rel }}' target='_blank' download='{{ attachment.name }}'> <img src='{{ attachment.icon }}' height=32 class='lfloat'/>
             <div class="title">
               {{ attachment.name | truncate(22, True) }}
             </div>

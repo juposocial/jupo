@@ -287,7 +287,7 @@
       {% elif feed.is_file() %}
           <div class='file-attachment'>
             {% if 'image' in feed.details.mimetype %}
-              <a href='/attachment/{{ feed.details.attachment_id }}.jpg?rel={{ feed.id }}' rel='gallery' target="_blank">
+              <a href='/attachment/{{ feed.details.attachment_id }}.jpg?rel={{ feed.id }}' rel='gallery' target="_blank" download='{{ feed.details.name }}'>
                 <img src='/img/500_250/{{ feed.details.attachment_id }}.jpg?rel={{ feed.id }}' width="500" height="250" title="{{ feed.details.name }} ({{ feed.details.details.size }})"/>
               </a>
             {% else %}
@@ -300,7 +300,7 @@
             </div>
             {% else %}
             <div class="title">
-                <a href='/attachment/{{ feed.details.attachment_id }}?rel={{ feed.id }}' target='_blank'>{{ feed.details.name }}</a>
+                <a href='/attachment/{{ feed.details.attachment_id }}?rel={{ feed.id }}' download='{{ feed.details.name }}' target='_blank'>{{ feed.details.name }}</a>
             </div>
             
             <div class='info'>
@@ -427,9 +427,9 @@
           <div class="file-attachment {% if 'image' in file.mimetype %}image{% endif %}">
             {% if 'image' in file.mimetype %}
               {% if feed.attachments | length == 1 %}
-              <a href='/attachment/{{ file.id }}.png?rel={{ feed.id }}' target='_blank' rel='gallery' class="lfloat"><img src='/attachment/{{ file.id }}.png?rel={{ feed.id }}' alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
+              <a href='/attachment/{{ file.id }}.png?rel={{ feed.id }}' target='_blank' rel='gallery' class="lfloat" download='{{ file.name }}'><img src='/attachment/{{ file.id }}.png?rel={{ feed.id }}' alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
               {% else %}
-              <a href='/attachment/{{ file.id }}.png?rel={{ feed.id }}' target='_blank' rel='gallery' class="lfloat"><img src='/img/{% if loop.index == 1 %}325_171{% else %}160_82{% endif %}/{{ file.id }}.png' {% if loop.index == 1 %}width="325" height="171"{% else %}width="160" height="82"{% endif %} alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
+              <a href='/attachment/{{ file.id }}.png?rel={{ feed.id }}' target='_blank' rel='gallery' class="lfloat" download='{{ file.name }}'><img src='/img/{% if loop.index == 1 %}325_171{% else %}160_82{% endif %}/{{ file.id }}.png' {% if loop.index == 1 %}width="325" height="171"{% else %}width="160" height="82"{% endif %} alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
               
               {% endif %}
             {% else %}
@@ -438,7 +438,7 @@
             {% endif %}
             
             {% if 'image' not in file.mimetype %}
-              <a href='/attachment/{{ file.id }}?rel={{ feed.id }}' target='_blank'>{{ file.name | truncate(40, True) }}</a>
+              <a href='/attachment/{{ file.id }}?rel={{ feed.id }}' target='_blank' download='{{ file.name }}'>{{ file.name | truncate(40, True) }}</a>
               <span class='gray'>({{ file.size }})</span>
             {% endif %}
           </div>

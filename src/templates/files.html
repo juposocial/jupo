@@ -32,7 +32,7 @@
             {% for i in file.history %}
               {% if i.ref_info.id %}
                   <li class='attachment'>
-                    <a href='/attachment/{{ i.ref_info.id }}?rel={{ file.id }}' target='_blank'>
+                    <a href='/attachment/{{ i.ref_info.id }}?rel={{ file.id }}' target='_blank' download='{{ i.ref_info.name }}'>
                       <img src='{{ i.ref_info.icon }}' height=32 class='lfloat'/>
                       <div class="title">
                             {{ i.ref_info.name | truncate(22, True) }}
@@ -61,7 +61,7 @@
           <ul class='attachments'>
             {% for attachment in attachments[:5] %}
                   <li class='attachment'>
-                    <a href='/attachment/{{ attachment.id }}?rel={{ attachment.rel }}' target='_blank'>
+                    <a href='/attachment/{{ attachment.id }}?rel={{ attachment.rel }}' target='_blank' download='{{ attachment.name }}'>
                       
                       <img src='{{ attachment.icon }}' height=32 class='lfloat'/>
                       <div class="title">

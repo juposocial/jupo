@@ -34,7 +34,7 @@
             <li><a href='/feed/{{ file.id }}/remove' class='remove'>Remove this file</a></li>
           {% endif %}
         {% endif %}
-        <li><a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' class='forward'>Download this file</a></li> 
+        <li><a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' download="{{ file.name }}" class='forward'>Download this file</a></li> 
 
       </ul>
     </div>
@@ -97,7 +97,7 @@
                 <li><a href='/feed/{{ file.id }}/remove' class='remove'>Remove this file</a></li>
               {% endif %}
             {% endif %}
-            <li><a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' class='forward'>Download this file</a></li> 
+            <li><a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' download='{{ file.name }}' class='forward'>Download this file</a></li> 
     
           </ul>
         </div>
@@ -106,7 +106,7 @@
         
         <img src="{{ file.icon }}" class='lfloat file-icon' width="32">
         <div class='title'>
-          <a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' target='_blank'>{{ file.name }}</a>
+          <a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' target='_blank' download='{{ file.name }}'>{{ file.name }}</a>
         </div>
         <div class="info">
           Size: {{ file.size }}
@@ -140,7 +140,7 @@
            <a href="#!/file/{{ file.id }}/remove" class="overlay">Delete</a>
           
           
-           <a href="/attachment/{{ file.attachment_id }}?rel={{ file.id }}" class='download' title='Download this file'>
+           <a href="/attachment/{{ file.attachment_id }}?rel={{ file.id }}" class='download' title='Download this file' download='{{ file.name }}'>
             Download
            </a>
            #}
