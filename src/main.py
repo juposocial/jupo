@@ -291,7 +291,10 @@ def search():
   
   user_id = api.get_user_id(session_id)
   owner = api.get_user_info(user_id)
-    
+  if ref_user_id:
+    user = api.get_user_info(ref_user_id)
+  else:
+    user = None
     
   if item_type in ['people', 'email']: 
       
@@ -394,7 +397,7 @@ def search():
     counters = {}
     
   due = api.utctime() - t0
-  owner = api.get_owner_info(session_id)
+#   owner = api.get_owner_info(session_id)
   coworkers = api.get_coworkers(session_id)
   
   if request.method == 'GET':
