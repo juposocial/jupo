@@ -570,7 +570,7 @@ def invite():
     
     if group_id:
       group = api.get_group_info(session_id, group_id)
-      title = 'Invite Friends to <strong>%s</strong>' % group.name
+      title = 'Invite Friends to %s group' % group.name
     else:
       group = {}
       title = None

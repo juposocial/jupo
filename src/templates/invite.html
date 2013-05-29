@@ -1,5 +1,5 @@
   <div id="page-header">
-          <h2>{% if title %}{{ title | safe }}{% else %}Invite Friends{% endif %}</h2>
+          <h2>{% if title %}{{ title | safe }}{% else %}Invite Friends to Jupo{% endif %}</h2>
   </div> 
 
   <form class='invite' action='/invite' method='post'>
@@ -19,7 +19,7 @@
 
    users = [
      {% for email in email_addrs %}
-       {'type': 'user', 'avatar': '/public/images/send-mail.png', 'name': '{{ email }}', 'id': '{{ email }}'}, 
+       {'type': 'email', 'avatar': '/public/images/send-mail.png', 'name': '{{ email }}', 'id': '{{ email }}'}, 
      {% endfor %}
    ]
   

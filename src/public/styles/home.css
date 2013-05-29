@@ -1755,6 +1755,10 @@ div#main {
   font-size: 12px;
 }
 
+.fontsize-13px {
+  font-size: 13px;
+}
+
 span.label {
   padding: 1px 5px 2px;
   color: white;
@@ -7115,9 +7119,29 @@ form.invite ul.token-input-list {
   width: 484px;
 }
 
+/*form.invite ul.token-input-list li.token-input-token {
+  overflow: hidden;
+  padding: 4px 6px;
+  cursor: default;
+  float: left;
+  white-space: nowrap;
+  line-height: 16px;
+  background: whitesmoke;
+  border-right: 1px solid #e2e2e2;
+  color: #444;
+  margin: 0;
+}
+
+form.invite ul.token-input-list li.token-input-selected-token {
+  margin: 0 !important;
+  background: #2271A9;
+  color: white;
+  border: 1px solid #2271A9;
+}*/
+
 form.invite textarea, form.invite ul.token-input-list {
-border: 1px solid #ccc;
-box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.04);
+  border: 1px solid #ccc;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.04);
 }
 
 form.invite input[type='submit'] {
