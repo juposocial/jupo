@@ -7246,6 +7246,10 @@ ul.topics li a:hover div.message, ul.topics li a:active div.message, ul.topics l
   color: rgba(255,255,255,0.5);
 }
 
+div.messages .header div[contenteditable=true] {
+  cursor: text;
+}
+
 div.messages div.chatbox ul.messages li.message {
   padding: 10px 20px;
   line-height: 20px;
@@ -7274,10 +7278,6 @@ div.messages div.chatbox ul.messages img.small-avatar {
   height: 40px;
 }
 
-div.messages div.chatbox ul.messages div.username {
-  color: #999;
-  font-weight: bold;
-}
 
 div.messages div.chatbox ul.messages div.content {
   margin-left: 47px;

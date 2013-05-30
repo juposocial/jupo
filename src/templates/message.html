@@ -17,7 +17,6 @@
   </a>
   {% endif %}
   
-  <div class='username'>{{ message.sender.name }}</div>
   <div class="content">
     {% if message.is_file() %}
       {% set attachment = message.content %}

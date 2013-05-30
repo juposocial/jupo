@@ -1997,6 +1997,11 @@ def chat(topic_id=None, user_id=None, action=None):
       api.update_last_viewed(owner_id, topic_id=topic_id)
       
     return 'OK'
+  
+  elif action == 'update':
+    name = request.args.get('name')
+    api.update_topic(session_id, topic_id, name)
+    return 'OK'
     
   else:
     owner_id = api.get_user_id(session_id)

@@ -55,10 +55,14 @@
           <img class='small-avatar lfloat' src='{{ user.avatar }}' />
           <div class='title'>
             {% if message.topic_id %}
-              {% set receivers = message.receivers | exclude(owner.id) %}
-              {% for member in receivers %}
-                  {{ member.name }}{% if loop.index < receivers | length %}, {% endif %}
-              {% endfor %}
+              {% if message.topic.name %}
+                {{ message.topic.name }}
+              {% else %}
+                {% set receivers = message.receivers | exclude(owner.id) %}
+                {% for member in receivers %}
+                    {{ member.name }}{% if loop.index < receivers | length %}, {% endif %}
+                {% endfor %}
+              {% endif %}
             {% else %}
               {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status' title='{{ user.last_online | friendly_format(owner.utcoffset) }}' ></i>
             {% endif %}

@@ -9,10 +9,18 @@
           <i class='{{ user.status }} user-{{ user.id }}-status'></i>
           <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
         {% else %}
-          {% set members = topic.members | exclude(owner.id) %}
-          {% for member in members %}
-            <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.members | length - 1) %}, {% endif %}
-          {% endfor %}
+          <div contenteditable="true" title='Set Topic...' onclick="document.execCommand('selectAll', false, null)" data-url='/chat/topic/{{ topic.id }}/update' data-topic-id='{{ topic.id }}'>
+            {% if topic.name %}
+              {{ topic.name }}
+            {% else %}
+            
+              {% set members = topic.members | exclude(owner.id) %}
+              {% for member in members %}
+                <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.members | length - 1) %}, {% endif %}
+              {% endfor %}
+            {% endif %}
+
+          </div>
         {% endif %}
       </div>
       <ul class="messages">

@@ -97,10 +97,6 @@ div.chatbox div.header i.offline {
   display: block;
 }
 
-.chatbox .username {
-  display: none;
-}
-
 .chatbox .messages {
   padding: 0 7px;
   font-size: 11px;

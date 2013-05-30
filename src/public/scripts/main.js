@@ -2233,6 +2233,28 @@ $(document).ready(function(e) {
   })
   
 
+  $('#body').on('keydown', 'div.messages div.header div[contenteditable=true]', function(e) {
+    if (e.keyCode === 13) {
+      var _this = $(this);
+      var name = $(this).text();
+      var url = $(this).data('url');
+      var topic_id = $(this).attr('data-topic-id');
+      $.ajax({
+            type: 'POST',
+            headers: {
+              'X-CSRFToken': get_cookie('_csrf_token')
+            },
+            url: url + '?name=' + name,
+            async: true,
+            success: function(resp) {
+              _this.blur();
+              $('ul.topics li a.topic-' + topic_id + ' div.title').html(name);
+            }
+       })
+      return false;
+    }
+  })
+
   $('#friends-online').on('submit', 'form', function(e) {
     e.preventDefault();
   })

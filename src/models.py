@@ -1419,6 +1419,10 @@ class Topic(Model):
     self.info = info
     
   @property
+  def name(self):
+    return self.info.get('name')
+    
+  @property
   def member_ids(self):
     if self.info:
       return list(set(self.info.get('members', [])))

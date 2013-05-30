@@ -5595,6 +5595,26 @@ def new_topic(owner_id, user_ids, db_name=None):
   return info['_id']
 
 
+def update_topic(session_id, topic_id, name, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = get_user_id(session_id)
+  if not user_id:
+    return False
+  
+  db.message.update({'_id': long(topic_id)}, {'$set': {'name': name.strip()}})
+  
+  owner = get_user_info(user_id)
+  message = '@[%s](user:%s) set topic to %s' % (owner.name, owner.id, name)
+  
+  new_message(session_id, message, topic_id=topic_id, 
+              is_auto_generated=True, db_name=db_name)
+  
+  return True
+
+
 def get_topic_ids(user_id, db_name=None):
   if not db_name:
     db_name = get_database_name()
