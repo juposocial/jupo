@@ -7337,7 +7337,7 @@ div.messages div.chatbox .header a.close {
 
 div.messages div.chatbox div.status {
   position: absolute;
-  bottom: 50px;
+  bottom: 75px;
   padding: 5px 5px 5px 10px;
   font-size: 10px;
   color: #999;

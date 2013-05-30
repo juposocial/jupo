@@ -20,19 +20,25 @@ function close_chat(chat_id) {
   localStorage.removeItem('state-chat-' + chat_id);
   $('#chat-' + chat_id).parents('.inflow').remove();
   
-  var chat_ids = localStorage.getItem('chats').split(',');
-  chat_ids.pop(chat_id);
-  
-  out = [];
-  for (var i = 0; i < chat_ids.length; i++) {
-    var chat_id = chat_ids[i];
-    
-    if (chat_id != '' && chat_id.split('-')[1] != undefined && isNaN(chat_id.split('-')[1]) == false) {
-      out.push(chat_id);
+  var chats = localStorage.getItem('chats');
+  if (chats != null) {
+    var chat_ids = localStorage.getItem('chats').split(',');
+    chat_ids.pop(chat_id);
+      
+    out = [];
+    for (var i = 0; i < chat_ids.length; i++) {
+      var chat_id = chat_ids[i];
+      
+      if (chat_id != '' && chat_id.split('-')[1] != undefined && isNaN(chat_id.split('-')[1]) == false) {
+        out.push(chat_id);
+      }
     }
+    
+    localStorage['chats'] = out.join(',')
   }
+  
  
-  localStorage['chats'] = out.join(',')
+  
   
   
   
@@ -122,6 +128,10 @@ function start_chat(chat_id) {
       } else {
         $('div.messages div.chatbox').html($('div.chatbox', $(html)).html());
         $('div.messages div.chatbox').attr('id', $('div.chatbox', $(html)).attr('id'));
+        
+        if ($('div.chatbox', $(html)).hasClass('unread')) {
+          $('div.messages div.chatbox').addClass('unread')
+        }
         
         $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
           minChars: 1,
