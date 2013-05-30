@@ -1244,7 +1244,7 @@ function stream() {
             // refresh timeago
             
             
-            msg = $('.message .text', comment).html().replace(/\s\s+/, ' ').slice(0, 50);
+            msg = $('.message .text', comment).text().replace(/\s\s+/, ' ').slice(0, 50);
             username = $('.message strong', comment).html();
             avatar = $('img.small-avatar', comment).attr('src');
             
@@ -1532,7 +1532,7 @@ function stream() {
         
         var username = $('a.async[title]', msg).attr('title');
         var avatar = $('a.async[title] img.small-avatar', msg).attr('src');
-        var message_content = $('div.content', msg).html();
+        var message_content = $('div.content', msg).text();
         
         // flashing message in the browser title bar
         $.titleAlert(username + " messaged you", {
