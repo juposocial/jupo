@@ -3694,7 +3694,9 @@ def new_note(session_id, title, content, attachments=None, viewers=None):
   
   db.stream.insert(info)
   
-  index_queue.enqueue(add_index, info['_id'], content, viewers, 'doc', db_name)
+  index_queue.enqueue(add_index, info['_id'], 
+                      '%s\n\n%s' % (title, content), 
+                      viewers, 'doc', db_name)
   
   return info['_id']
 
@@ -3737,7 +3739,9 @@ def update_note(session_id, doc_id, title, content, attachments=None, viewers=No
   
   db.stream.update({'_id': doc_id, 'viewers': {'$in': members}}, query)
   
-  index_queue.enqueue(update_index, doc_id, content, viewers, db_name=db_name)
+  index_queue.enqueue(update_index, doc_id, 
+                      '%s\n\n%s' % (title, content), 
+                      viewers, db_name=db_name)
   
   receivers = [i for i in viewers if not is_group(i)]
   for receiver in receivers:
