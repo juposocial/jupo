@@ -130,7 +130,7 @@ function start_chat(chat_id) {
         $('div.messages div.chatbox').attr('id', $('div.chatbox', $(html)).attr('id'));
         
         if ($('div.chatbox', $(html)).hasClass('unread')) {
-          $('div.messages div.chatbox').addClass('unread')
+          $('div.messages div.chatbox').addClass('unread');
         }
         
         $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
@@ -163,6 +163,83 @@ function start_chat(chat_id) {
       setTimeout(function() {
         $('#chat-' + chat_id + ' textarea.mentions').focus();
       }, 50)
+      
+      
+      // Send File
+      var uploader_id = chat_id.replace('-', '_');
+            
+      $.global['uploader_chat_' + uploader_id] = new plupload.Uploader({
+            runtimes : 'html5',
+            browse_button : 'chatbox-pick-file',
+            container : 'chatbox-file-container',
+            url : '/chat/' + chat_id.replace('-', '/') + '/new_file',
+            multi_selection : false,
+            // drop_element: 'intro',
+            max_file_size : '10mb',
+            headers: {
+              'X-CSRFToken': get_cookie('_csrf_token')
+            }
+      });
+          
+      $.global['uploader_chat_' + uploader_id].bind('Init', function(up, params) {});
+      $.global['uploader_chat_' + uploader_id].init();
+      
+      
+      $.global['uploader_chat_' + uploader_id].bind('FilesAdded', function(up, files) {
+        $.global['uploader_chat_' + uploader_id].start();
+        update_status(chat_id + '|is uploading file...');
+      });
+      
+      
+      $.global['uploader_chat_' + uploader_id].bind('UploadProgress', function(up, file) {
+        if(file.percent != 100) {
+          $('#chat-' + chat_id + ' div.status').html("Uploading " + file.percent + "%").show();
+        } else {
+          $('#chat-' + chat_id + ' div.status').html("Verifying...").show();
+        }
+      });
+      
+      $.global['uploader_chat_' + uploader_id].bind('Error', function(up, err) {
+          show_error();
+      });
+      
+      
+      $.global['uploader_chat_' + uploader_id].bind('FileUploaded', function(up, file, response) {
+          
+          $('#chat-' + chat_id + ' div.status').html('').fadeOut('fast');
+          
+          
+          var last_msg = $('#chat-' + chat_id + ' li.message:last');
+          var msg = $(response.response);
+  
+          var msg_id = msg.attr('id').split('-')[1];
+          var msg_ts = msg.data('ts');
+          var sender_id = msg.attr('data-sender-id');
+          
+          if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+            var content = $('.content', msg).html();
+            $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+            $(last_msg).data('ts', msg_ts);
+            $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+            
+          } else {
+            $('#chat-' + chat_id + ' .messages').append(response.response);
+          }
+          
+          
+          setTimeout(function() {
+            $('#chat-' + chat_id + ' .messages').scrollTop(99999);
+          }, 10)
+        
+      });
+  
+  
+      
+      
+      
+      
+      
+      
     },
     error: function(data) {
       hide_loading();
