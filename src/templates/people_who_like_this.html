@@ -1,0 +1,37 @@
+<div id="page-header" class='search'>
+  <h2>People who like this</h2>
+</div>
+
+<ul class='people'>
+  {% if users %}
+    {% for user in users %}
+      {% if user.email %}
+    
+        <li>
+          {% if user.id != owner.id %}
+            {% if user.id in owner.contact_ids %}
+            <a class='button unfollow' href='/user/{{ user.id }}/unfollow'>Remove from Contacts</a>
+            {% else %}
+            <a class='button follow' href='/user/{{ user.id }}/follow'>Add to Contacts</a>
+            {% endif %}
+          {% endif %}
+      
+          <img class='small-avatar lfloat' src='{{ user.avatar }}'>
+      
+          <a href='/user/{{ user.id }}' class='async user'>{{ user.name }}</a>
+          <i class='{{ user.status }}  user-{{ user.id }}-status'></i>
+          <br>
+      
+          <span class='email'>{{ user.email }}</span>
+      
+        </li>
+    
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <li>
+      No one likes this.
+    </li>
+  {% endif %}
+</ul>
+

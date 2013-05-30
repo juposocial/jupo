@@ -52,6 +52,7 @@ var DEFAULT_SETTINGS = {
     onReady: null,
     
     allowEmail: false,
+    showDropdownOnFocus: true,
 
     // Other settings
     idPrefix: "token-input-",
@@ -798,7 +799,9 @@ $.TokenList = function (input, url_or_data, settings) {
                 hide_dropdown();
             }
         } else {
-            run_search('');
+            if (settings.showDropdownOnFocus == true) {
+              run_search('');
+            }
         }
     }
 
@@ -842,7 +845,7 @@ $.TokenList = function (input, url_or_data, settings) {
                       results = settings.onResult.call(hidden_input, results);
                   }
                   
-                  if(settings.allowEmail && validateEmail(query) == true) {
+                  if(results.length == 0 && settings.allowEmail == true && validateEmail(query) == true) {
                       results.push({name: input_box.val(), id: input_box.val(), avatar: '/public/images/send-mail.png', "type": 'email', _new: true});
                   }
 
@@ -880,7 +883,7 @@ $.TokenList = function (input, url_or_data, settings) {
                 }
                 
                 
-                if(settings.allowEmail && validateEmail(query) == true) {
+                if(results.length == 0 && settings.allowEmail == true && validateEmail(query) == true) {
                     results.push({name: input_box.val(), id: input_box.val(), avatar: '/public/images/send-mail.png', "type": 'email', _new: true});
                 }
                 

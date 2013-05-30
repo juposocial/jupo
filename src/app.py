@@ -12,6 +12,7 @@ from helpers.converters import (SnowflakeIDConverter,
                                 RegexConverter, UUIDConverter)
 
 import api
+import urllib
 import filters
 import settings
 
@@ -63,6 +64,7 @@ CURRENT_APP.jinja_env.filters['last_starred_user'] = filters.last_starred_user
 CURRENT_APP.jinja_env.filters['remove_groups'] = filters.remove_groups
 CURRENT_APP.jinja_env.filters['to_embed_code'] = filters.to_embed_code
 CURRENT_APP.jinja_env.filters['parse_json'] = filters.parse_json
+CURRENT_APP.jinja_env.filters['urlencode'] = urllib.quote
 
 CURRENT_APP.url_map.converters['uuid'] = UUIDConverter
 CURRENT_APP.url_map.converters['regex'] = RegexConverter

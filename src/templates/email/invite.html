@@ -8,9 +8,13 @@
     
     
     
-    
+
 <p>
-You've been invited to {% if group %} <a href="http://{{ domain }}/group/{{ group.id }}" style="text-decoration: none;color: #222">{{ group.name }}</a> group on{% endif %} <a href="http://{{ domain }}/" style="text-decoration: none;color: #222">Jupo</a>.
+{% if msg %}
+  {{ msg }}
+{% else %}
+  You've been invited to {% if group %} <a href="http://{{ domain }}/group/{{ group_id }}" style="text-decoration: none;color: #222">{{ group_name }}</a> group on{% endif %} <a href="http://{{ domain }}/" style="text-decoration: none;color: #222">Jupo</a>.
+{% endif %}
 </p>
 
 {% if not group %}
@@ -20,12 +24,12 @@ You've been invited to {% if group %} <a href="http://{{ domain }}/group/{{ grou
   </span>
 
 {% else %}
-<p><a href="http://{{ domain }}/user/{{ user.id }}" style="text-decoration: none;color: #222">{{ user.name }}</a> and others are using <a href="http://{{ domain }}/group/{{ group.id }}" style="text-decoration: none;color: #222">{{ group.name }}</a> group to discuss and collaborate. Join them today!</p>
+<p><a href="http://{{ domain }}/user/{{ user_id }}" style="text-decoration: none;color: #222">{{ username }}</a> and others are using <a href="http://{{ domain }}/group/{{ group_id }}" style="text-decoration: none;color: #222">{{ group_name }}</a> group to discuss and collaborate. Join them today!</p>
   <span class="url" style="margin-left: 25px">
     {% if is_new_user %}
     <a href="http://{{ domain }}/?code={{ code }}" style="text-decoration: none;color: #348">http://{{ domain }}/?code={{ code }}</a>
     {% else %}
-    <a href="http://{{ domain }}/group/{{ group.id }}" style="text-decoration: none;color: #348">http://{{ domain }}/group/{{ group.id }}</a>
+    <a href="http://{{ domain }}/group/{{ group_id }}" style="text-decoration: none;color: #348">http://{{ domain }}/group/{{ group_id }}</a>
     {% endif %}
   </span>
 {% endif %}

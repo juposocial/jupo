@@ -291,7 +291,10 @@ def search():
   
   user_id = api.get_user_id(session_id)
   owner = api.get_user_info(user_id)
-    
+  if ref_user_id:
+    user = api.get_user_info(ref_user_id)
+  else:
+    user = None
     
   if item_type in ['people', 'email']: 
       
@@ -314,13 +317,26 @@ def search():
           users = [i for i in owner.google_contacts \
                    if api.get_user_id_from_email_address(i.email) not in group.member_ids]
         else:
-          users = [i for i in api.get_coworkers(session_id) \
+          users = owner.contacts
+          user_ids = [i.id for i in users]
+          for user in api.get_coworkers(session_id):
+            if user.id not in user_ids:
+              user_ids.append(user.id)
+              users.append(user)
+              
+          users = [i for i in users \
                    if i.id not in group.member_ids and i.id != owner.id]
       else:
         if item_type == 'email':
           users = [i for i in owner.google_contacts]
         else:
-          users = [i for i in api.get_coworkers(session_id) \
+          users = owner.contacts
+          user_ids = [i.id for i in users]
+          for user in api.get_coworkers(session_id):
+            if user.id not in user_ids:
+              user_ids.append(user.id)
+              users.append(user)
+          users = [i for i in users \
                    if i.id not in owner.contact_ids and i.id != owner.id]
           
       return dumps({'title': title,
@@ -362,10 +378,11 @@ def search():
                                        title=title) \
                        for user in users if user.email)
       else:
-        if item_type == 'email':
-          return "<li>Type your friend's email address</li>"
-        else:
-          return "<li>0 results found</li>"
+        return "<li>Type your friend's email address</li>"
+#         if item_type == 'email':
+#           return "<li>Type your friend's email address</li>"
+#         else:
+#           return "<li>0 results found</li>"
         
   # search posts
   results = api.search(session_id, query, item_type, 
@@ -380,7 +397,7 @@ def search():
     counters = {}
     
   due = api.utctime() - t0
-  owner = api.get_owner_info(session_id)
+#   owner = api.get_owner_info(session_id)
   coworkers = api.get_coworkers(session_id)
   
   if request.method == 'GET':
@@ -536,13 +553,56 @@ def discover(name='discover', page=1):
                              feeds=feeds)
 
 
-@app.route('/invite', methods=['GET', 'POST'])
+@app.route('/invite', methods=['OPTIONS', 'POST'])
 def invite():
-  email = request.form.get('email', request.args.get('email'))
-  group_id = request.form.get('group_id', request.args.get('group_id'))
   session_id = session.get("session_id")
-  api.invite(session_id, email, group_id)
-  return ' ✔ Done '
+  group_id = request.form.get('group_id', request.args.get('group_id'))
+  
+  if request.method == 'OPTIONS':
+    user_id = api.get_user_id(session_id)
+    owner = api.get_user_info(user_id)
+    
+    email_addrs = [i.email for i in owner.google_contacts]
+    for user in owner.contacts:
+      if user.email not in email_addrs:
+        email_addrs.append(user.email)
+        
+    
+    if group_id:
+      group = api.get_group_info(session_id, group_id)
+      title = 'Invite Friends to %s group' % group.name
+    else:
+      group = {}
+      title = None
+      
+    return dumps({'title': title,
+                  'body': render_template('invite.html', 
+                                          title=title,
+                                          email_addrs=email_addrs,
+                                          group=group)})
+  else:
+    email = request.form.get('email', request.args.get('email'))
+    if email:
+      api.invite(session_id, email, group_id)
+      return ' ✔ Done '
+    else:
+      addrs = request.form.get('to')
+      msg = request.form.get('msg')
+      if addrs:
+        addrs = addrs.split(',')
+        for addr in addrs:
+          if addr.isdigit():
+            email = api.get_user_info(addr).email
+          else:
+            email = addr
+          api.invite(session_id, email, group_id=group_id, msg=msg)
+        
+        if group_id:
+          return redirect('/group/%s?message=Invitation sent!' % group_id)
+        else:
+          return redirect('/news_feed?message=Invitation sent!')
+      else:
+        abort(400)
 
 
 
@@ -555,18 +615,6 @@ def welcome():
     body = render_template('welcome.html', view='welcome')
     return dumps({'body': body, 
                   'title': 'Welcome to Jupo'})
-    
-@app.route('/privacy')
-def privacy():
-  return redirect('https://www.jupo.com/note/340925645733232641')
-
-@app.route('/terms')
-def terms():
-  return redirect('https://www.jupo.com/note/340921286333038593')
-
-@app.route('/about')
-def about():
-  return render_template('about.html')
     
     
 @app.route('/notify_me', methods=['POST'])
@@ -607,10 +655,19 @@ def authentication(action=None):
       return resp
     
     elif request.method == "GET":
-      resp = Response(render_template('sign_in.html', 
-                                      domain=hostname, 
-                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
-                                      network_info=network_info))
+      email = request.args.get('email')
+      msg = request.args.get('msg')
+      if msg and email:
+        resp = Response(render_template('sign_in.html', 
+                                        msg=msg, email=email,
+                                        domain=hostname, 
+                                        PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                        network_info=network_info))
+      else:
+        resp = Response(render_template('sign_in.html', 
+                                        domain=hostname, 
+                                        PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                        network_info=network_info))
       return resp
       
     
@@ -646,8 +703,11 @@ def authentication(action=None):
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
       return resp
     else:
-      message = 'Invalid username or password'
-      
+      if session_id is False:
+        message = "Incorrect password. <a href='/forgot_password'>Reset password</a>"
+      else:
+        message = """No account found for this email.
+        Retry, or <a href='/sign_up?email=%s'>Sign up for Jupo</a>""" % email
       resp = Response(render_template('sign_in.html', 
                                       domain=hostname,
                                       email=email, 
@@ -662,9 +722,11 @@ def authentication(action=None):
   elif request.path.endswith('sign_up'):
     if request.method == 'GET':
       welcome = request.args.get('welcome')
+      email = request.args.get('email')
       resp = Response(render_template('sign_up.html', 
                                       welcome=welcome,
                                       domain=hostname, 
+                                      email=email,
                                       PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
                                       network_info=network_info))
       return resp
@@ -705,7 +767,12 @@ def authentication(action=None):
               api.update_session_id(email, session_id, db)
               
         session['session_id'] = session_id
-        return redirect('/reminders')  
+        
+        user_id = api.get_user_id(session_id)
+        if api.is_admin(user_id):
+          return redirect('/groups')
+        else:
+          return redirect('/everyone')  
       else:
         return redirect('/')
       
@@ -735,7 +802,7 @@ def authentication(action=None):
   
   elif request.path.endswith('forgot_password'):
     if request.method == 'GET':
-      return render_template('reset_password.html')  
+      return render_template('forgot_password.html')  
     if request.method == 'OPTIONS':
       data = dumps({'title': 'Jupo - Forgot your password?',
                     'body': render_template('forgot_password.html')})
@@ -744,39 +811,47 @@ def authentication(action=None):
       email = request.form.get('email')
       if not email:
         abort(400)
-      api.forgot_password(email)
-      return redirect("/?message=Please check your inbox and follow the instructions in the email")
+      r = api.forgot_password(email)
+      if r is True:
+        message = "We've sent you an email with instructions on how to reset your password. Please check your email."
+        ok = True
+      else:
+        message = 'No one with that email address was found'
+        ok = False
+      return render_template('forgot_password.html', 
+                             ok=ok,
+                             message=message)
     
   elif request.path.endswith('reset_password'):
     if request.method == 'GET':
       code = request.args.get('code')
-      if not code:
-        return redirect('/news_feed')
-      email = api.FORGOT_PASSWORD.get(code)
-      if email:
-        resp = {'title': 'Reset your password',
-                'body': render_template('reset_password.html', 
-                                        email=email, code=code)}
-        return render_homepage(None, 'Reset your password',
-                               view='reset_password', email=email, code=code)
-      return redirect('/?message=Link expired')
+      return render_template('reset_password.html', code=code)
         
     else:
       code = request.form.get('code')
-      new_password = request.form.get('password')
-      if not code or not new_password:
-        abort(400)
       email = api.FORGOT_PASSWORD.get(code)
       if not email:
-        abort(410)
+        return render_template('reset_password.html', code=code,
+                               message='Please provide a valid reset code')
+        
+      new_password = request.form.get('password')
+      if not new_password:
+        return render_template('reset_password.html', code=code, 
+                               message='Please enter a new password for this account')
+      elif len(new_password) < 6:
+        return render_template('reset_password.html', code=code, 
+                               message='Your password must be at least 6 characters long.')
+        
+      confirm_password = request.form.get('confirm')
+      if new_password != confirm_password:
+        return render_template('reset_password.html', code=code,
+                               message='The two passwords you entered do not match')
+        
       user_id = api.get_user_id_from_email_address(email)
-      if not user_id:
-        abort(400)
-      else:
-        api.reset_password(user_id, new_password)
-        session_id = api.sign_in(email, new_password)
-        session['session_id'] = session_id
-        return redirect('/news_feed')
+      api.reset_password(user_id, new_password)
+      api.FORGOT_PASSWORD.delete(code)
+      
+      return redirect('/sign_in?email=%s&msg=Your password has been reset' % email)
       
   
 
@@ -1609,33 +1684,29 @@ def group(group_id=None, view='group', page=1):
   
   if request.path.endswith('/new'):
     if request.method == 'GET':
+      name = request.args.get('name')
+      description = request.args.get('description')
       return render_homepage(session_id, 'Groups',
+                             name=name,
+                             description=description,
                              view='new-group')
       
     name = request.form.get('name')
     if name:
       privacy = request.form.get('privacy', 'closed')
       about = request.form.get('about')
-      
-      members = set()
-      email_addrs = set()
-      for k in request.form.keys():
-        if k.startswith('member-'):
-          email = request.form.get(k).strip()
-          if email and email != owner.email:
-            email_addrs.add(email)
-            uid = api.get_user_id_from_email_address(email)
-            if uid:
-              members.add(uid)
-
       group_id = api.new_group(session_id, 
-                               name, privacy, members, 
-                               about=about, email_addrs=email_addrs)
+                               name, privacy,
+                               about=about)
 
       return str(group_id)
     
     else:     
+      name = request.args.get('name')
+      description = request.args.get('description')
       body = render_template('new.html', 
+                             name=name,
+                             description=description,
                              owner=owner,
                              view='new-group')
       return Response(dumps({'title': 'New Group',
@@ -1720,12 +1791,42 @@ def group(group_id=None, view='group', page=1):
     
   if not group_id:
     groups = api.get_groups(session_id)
-    featured_groups = api.get_featured_groups(session_id)
+    
+    
+    featured_groups = default_groups = []
+    
+    _default_groups = [
+      {'name': 'Sales & Marketing', 
+       'description': 'Where the stories are made up and deals are closed'},
+      {'name': 'IT',
+       'description': 'We repeatedly fix what you repeatedly break'},
+      {'name': 'Test & QA',
+       'description': 'We make people feel bad about their work'},
+      {'name': 'R&D',
+       'description': 'Our favorite page is Google.com'},
+      {'name': 'Design',
+       'description': 'Design is now how it looks. Design is what the boss likes'},
+      {'name': 'Customer Services',
+       'description': 'Getting yelled at for things you can’t do anything about'}
+    ]
+    
+    if api.is_admin(user_id):
+      group_names = [group.name for group in groups]
+      default_groups = []
+      for group in _default_groups:
+        if group['name'] not in group_names:
+          default_groups.append(group)
+    else:
+      featured_groups = api.get_featured_groups(session_id)
+      if not groups and not featured_groups:
+        default_groups = _default_groups
+    
     
     if request.method == 'GET':
       return render_homepage(session_id, 'Groups',
                              groups=groups,
                              featured_groups=featured_groups,
+                             default_groups=default_groups,
                              view='groups')
 
     else:
@@ -1733,6 +1834,7 @@ def group(group_id=None, view='group', page=1):
                              view='groups',
                              owner=owner,
                              featured_groups=featured_groups,
+                             default_groups=default_groups,
                              groups=groups)
       resp = Response(dumps({'body': body,
                              'title': 'Groups'}))
@@ -1817,7 +1919,7 @@ def group(group_id=None, view='group', page=1):
     
     if request.method == 'OPTIONS':
       if page > 1:
-        posts = [render(feeds, "feed", owner, view)]
+        posts = [render(feeds, "feed", owner, view, group=group)]
           
         if len(feeds) == 0:
           posts.append(render_template('more.html', more_url=None))
@@ -2175,6 +2277,8 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/<int:comment_id>/<action>", methods=["POST"])
 @app.route("/feed/<int:feed_id>/starred", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/<message_id>@<domain>", methods=["GET", "OPTIONS"])
+@app.route("/feed/<int:feed_id>/likes", methods=["OPTIONS"])
+@app.route("/feed/<int:feed_id>/read_receipts", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
@@ -2282,6 +2386,24 @@ def feed_actions(feed_id=None, action=None,
     body = render_template('users.html', title='Starred', users=users)
     json = dumps({'body': body, 'title': 'Intelliview'})
     return Response(json, mimetype='application/json')
+    
+  elif request.path.endswith('/likes'):
+    feed = api.get_feed(session_id, feed_id)
+    users = feed.liked_by
+    
+    body = render_template('people_who_like_this.html',
+                           owner=owner, users=users)
+    json = dumps({'body': body, 'title': 'People who like this'})
+    return Response(json, mimetype='application/json')  
+    
+  elif request.path.endswith('/read_receipts'):
+    feed = api.get_feed(session_id, feed_id)
+    read_receipts = feed.seen_by
+    
+    body = render_template('people_who_saw_this.html',
+                           owner=owner, read_receipts=read_receipts)
+    json = dumps({'body': body, 'title': 'People who saw this'})
+    return Response(json, mimetype='application/json')  
     
   
   elif request.path.endswith('/comments'):

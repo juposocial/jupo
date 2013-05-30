@@ -17,11 +17,11 @@
     {% if stats %}
     <div class="box">
       <div class="header">
-        <div class="title"><strong>In this discussion</strong></div>
+        <div class="title"><strong>Top Participants</strong></div>
       </div>
       <div class="body post-stats">
         <ul>
-          {% for i in stats %}
+          {% for i in stats[:3] %}
             <li>
               <a href='/user/{{ i.user.id }}' class='async lfloat' title='{{ i.user.name }} ({{ i.post_count }} post{% if i.post_count != 1 %}s{% endif %})'>
                 <img class='small-avatar lfloat' src='{{ i.user.avatar }}' >
@@ -37,11 +37,16 @@
      {% if seen_by %}     
      <div class="box">
       <div class="header">
-        <div class="title"><strong>Seen by</strong></div>
+        
+        <div class="actions rfloat">
+          <a href='/feed/{{ feed.id }}/read_receipts' class='popup'>See All</a>
+        </div>
+        
+        <div class="title"><strong>Last Seen</strong></div>
       </div>
       <div class="body">
         <ul>
-          {% for receipt in seen_by %}
+          {% for receipt in seen_by[:5] %}
             <li>
               <a href='/user/{{ receipt.user.id }}' class='async'>
                 <img class='small-avatar lfloat' src='{{ receipt.user.avatar }}' />
@@ -213,7 +218,7 @@
 
 <div class="box">
   <div class="body notice">
-      <a href='/search?type=email&ref=everyone' class='popup'>Invite Friends to join Jupo</a>
+      <a href='/invite' class='popup fontsize-13px'>Invite friends to Jupo</a>
   </div>
 </div>
 
@@ -279,10 +284,10 @@
       <div class="no-header"></div>
       <div id='footer'> 
         <span class="gray">© 2013 Jupo.com.</span><br>
-        <a class='async' href="/note/340925645733232641">Privacy</a> · 
-        <a class='async' href="/note/340921286333038593">Terms</a> · 
-        <a class='async' href="/note/340918820916953089">Jobs</a> · 
-        <a class='async' href="/group/340915856517103617">Feedback</a>
+        <a href="http://bit.ly/164VZ33" target="_blank">About</a> · 
+        <a href="http://bit.ly/118AJQT" target="_blank">Privacy</a> · 
+        <a href="http://bit.ly/164T2j9" target="_blank">Terms</a> · 
+        <a href="http://bit.ly/13HPhwc" target="_blank">Jobs</a>
       </div>
     </div>
     

@@ -72,7 +72,6 @@
                 {{ content | nl2br }}
               </span>
               {% endif %}
-              
             {% else %}
               <span class='text'>
               {{ comment.message | autolink | autoemoticon | sanitize }}
@@ -82,9 +81,9 @@
           
             {% if comment.is_edited() %}
               {% if '\n' in comment.original_message %}
-                <div class='text hidden'>
+                <span class='text hidden'>
                 {{ comment.changes | nl2br }}
-                </div>
+                </span>
               {% else %}
                 <span class='text hidden'>
                 {{ comment.changes }}
@@ -108,7 +107,7 @@
               <img src='/attachment/{{ attachment.id }}.png?rel={{ item.id }}' alt='{{ attachment.name }} ({{ attachment.size }})'  title='{{ attachment.name }} ({{ attachment.size }})'>
             </a>
             <div class='lfloat'>
-              <a href='/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}' target='_blank' title='{{ attachment.name }}'>{{ attachment.name | truncate(30, True) }}</a>
+              <a href='/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}' target='_blank' title='{{ attachment.name }}' download='{{ attachment.name }}'>{{ attachment.name | truncate(30, True) }}</a>
               <span class='gray'>({{ attachment.size }})</span>
             </div>
           </div>
@@ -119,7 +118,7 @@
             {% if attachment.id %}
               <div>
                 <i class='attach-icon lfloat'></i>
-                <a href='/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}' target='_blank' title='{{ attachment.name }}'>{{ attachment.name | truncate(30, True) }}</a>
+                <a href='/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}' target='_blank' title='{{ attachment.name }}' download='{{ attachment.name }}'>{{ attachment.name | truncate(30, True) }}</a>
                 <span class='gray'>({{ attachment.size }})</span>
               </div>
             {% endif %}

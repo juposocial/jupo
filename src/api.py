@@ -140,17 +140,17 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = template.render()
     
   elif mail_type == 'invite':
-    if kwargs.get('group'):
-      subject = "%s has invited you to %s" % (kwargs.get('user').name, 
-                                              kwargs.get('group').name)
+    if kwargs.get('group_name'):
+      subject = "%s has invited you to %s" % (kwargs.get('username'), 
+                                              kwargs.get('group_name'))
     else:
-      subject = "%s has invited you to Jupo" % (kwargs.get('user').name)
+      subject = "%s has invited you to Jupo" % (kwargs.get('username'))
       
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
     body = template.render(domain=domain, **kwargs)
     
   elif mail_type == 'forgot_password':
-    subject = 'Reset your Jupo password'
+    subject = 'Your password on Jupo'
     template = app.CURRENT_APP.jinja_env.get_template('email/reset_password.html')
     body = template.render(email=to_addresses, domain=domain, **kwargs)
     
@@ -826,7 +826,7 @@ def sign_in(email, password, user_agent=None, remote_addr=None):
                                               'salt': True,
                                               'session_id': True})
   if not user or not user.get('password'):
-    return False
+    return None
   else:
     session_id = None
     if user.get('password') is True:
@@ -864,7 +864,7 @@ def sign_in(email, password, user_agent=None, remote_addr=None):
   return session_id
 
 
-def invite(session_id, email, group_id=None, db_name=None):
+def invite(session_id, email, group_id=None, msg=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -897,15 +897,19 @@ def invite(session_id, email, group_id=None, db_name=None):
                     {'$addToSet': {'members': _id}})
     group = get_group_info(session_id, group_id)
   else:
-    group = None
+    group = Group({})
     
 
   send_mail_queue.enqueue(send_mail, email, 
                           mail_type='invite', 
                           code=code, 
                           is_new_user=is_new_user,
-                          user=user,
-                          group=group, db_name=db_name)
+                          user_id=user.id,
+                          username=user.name, 
+                          msg=msg,
+                          group_id=group.id, 
+                          group_name=group.name,
+                          db_name=db_name)
     
   return True
   
@@ -1123,9 +1127,9 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
 #  send_mail(email, subject, body)
   
   # init some data
-  new_reminder(session_id, 'Find some contacts')
-  new_reminder(session_id, 'Upload a profile picture (hover your name at the top right corner, click "Change Profile Picture" in drop down menu)')
-  new_reminder(session_id, 'Hover over me and click anywhere on this line to check me off as done')
+#   new_reminder(session_id, 'Find some contacts')
+#   new_reminder(session_id, 'Upload a profile picture (hover your name at the top right corner, click "Change Profile Picture" in drop down menu)')
+#   new_reminder(session_id, 'Hover over me and click anywhere on this line to check me off as done')
 
   # add user to "Welcome to 5works" group
 #  db.owner.update({'_id': 340916998231818241}, 
@@ -1190,13 +1194,21 @@ def new_verify_token(email):
   pass
 
 def forgot_password(email):
-  temp_password = uuid4().hex
-  FORGOT_PASSWORD.set(temp_password, email)
-  FORGOT_PASSWORD.expire(temp_password, 3600)
-  send_mail_queue.enqueue(send_mail, email, mail_type='forgot_password', 
-                          temp_password=temp_password, db_name=db_name)
-  return temp_password
-
+  db_name = get_database_name()
+  
+  user = DATABASE[db_name].owner.find_one({'email': email.strip().lower()})
+  if user:
+    temp_password = uuid4().hex
+    FORGOT_PASSWORD.set(temp_password, email)
+    FORGOT_PASSWORD.expire(temp_password, 3600)
+    send_mail_queue.enqueue(send_mail, email, mail_type='forgot_password', 
+                            temp_password=temp_password, db_name=db_name)
+    return True
+  else:
+    return False
+  
+    
+    
 def update_pingpong_timestamp(session_id):
   user_id = get_user_id(session_id)
   PINGPONG.set(user_id, utctime())
@@ -1518,10 +1530,10 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
   if not info:  
     if facebook_id:
       info = db.owner.find_one({'facebook_id': facebook_id, 
-                                      'password': {'$exists': True}})
+                                'password': {'$exists': True}})
     elif email:
       info = db.owner.find_one({'email': email.strip().lower(), 
-                                      'password': {'$exists': True}})
+                                'password': {'$exists': True}})
     elif '@' in str(user_id):
       info = db.owner.find_one({'email': user_id})
     elif str(user_id).isdigit():
@@ -2076,18 +2088,12 @@ def get_user_id_from_email_address(email, db_name=None):
   
   email = email.lower().strip()
   
-  key = '%s:%s:user_id' % (db_name, email)
-  uid = cache.get(key)
-  if uid:
-    return uid
-  
   record = db.owner.find_one({'email': email.split('<')[-1].rstrip('>').strip()})
   if record:
     if record.has_key('owner'):
       uid = record['owner']
     else:
       uid = record['_id']
-    cache.set(key, uid)
     return uid
   else:
     if '<' in email:
@@ -2099,7 +2105,6 @@ def get_user_id_from_email_address(email, db_name=None):
     if info:
       owner = info['owner']
       update_user(email, name=name, owner=owner)
-      cache.set(key, owner)
       return owner
     else:
       update_user(email, name=name)
@@ -2478,7 +2483,8 @@ def remove_feed(session_id, feed_id, group_id=None):
   post = get_feed(session_id, feed_id)
   
   if group_id:
-    group_id = long(group_id)
+    if str(group_id).isdigit():
+      group_id = long(group_id)
     if is_admin(user_id, group_id):
       db.stream.update({'_id': long(feed_id)}, 
                        {'$pull': {'viewers': group_id}})
@@ -2862,11 +2868,16 @@ def get_feeds(session_id, group_id=None, page=1,
     else:
       group_id = 'public'
     
+#     feeds = db.stream.find({'is_removed': {'$exists': False},
+#                             'viewers': group_id,
+#                             '$or': [{'comments': {'$exists': True}, 
+#                                      'message.action': {'$exists': True}},
+#                                     {'message.action': {'$exists': False}}]})\
+#                             .sort('last_updated', -1)\
+#                             .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+#                             .limit(limit)
     feeds = db.stream.find({'is_removed': {'$exists': False},
-                            'viewers': group_id,
-                            '$or': [{'comments': {'$exists': True}, 
-                                     'message.action': {'$exists': True}},
-                                    {'message.action': {'$exists': False}}]})\
+                            'viewers': group_id})\
                             .sort('last_updated', -1)\
                             .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                             .limit(limit)
@@ -2875,8 +2886,13 @@ def get_feeds(session_id, group_id=None, page=1,
     viewers = get_group_ids(user_id)
     viewers.append(user_id)
   
-    query = {'$and': [{'viewers': {'$in': viewers}},
-                      {'viewers': {'$ne': [user_id]}}],
+#     query = {'$and': [{'viewers': {'$in': viewers}},
+#                       {'viewers': {'$ne': [user_id]}}],
+#              '$or': [{'comments': {'$exists': True}, 
+#                       'message.action': {'$exists': True}},                                 
+#                      {'message.action': {'$exists': False}}],
+#              'is_removed': {'$exists': False}}  
+    query = {'viewers': {'$in': viewers},
              '$or': [{'comments': {'$exists': True}, 
                       'message.action': {'$exists': True}},                                 
                      {'message.action': {'$exists': False}}],
@@ -3678,7 +3694,9 @@ def new_note(session_id, title, content, attachments=None, viewers=None):
   
   db.stream.insert(info)
   
-  index_queue.enqueue(add_index, info['_id'], content, viewers, 'doc', db_name)
+  index_queue.enqueue(add_index, info['_id'], 
+                      '%s\n\n%s' % (title, content), 
+                      viewers, 'doc', db_name)
   
   return info['_id']
 
@@ -3721,7 +3739,9 @@ def update_note(session_id, doc_id, title, content, attachments=None, viewers=No
   
   db.stream.update({'_id': doc_id, 'viewers': {'$in': members}}, query)
   
-  index_queue.enqueue(update_index, doc_id, content, viewers, db_name=db_name)
+  index_queue.enqueue(update_index, doc_id, 
+                      '%s\n\n%s' % (title, content), 
+                      viewers, db_name=db_name)
   
   receivers = [i for i in viewers if not is_group(i)]
   for receiver in receivers:
@@ -4322,7 +4342,7 @@ def get_attachments(session_id, group_id=None, limit=10):
   
   
 # Group Actions --------------------------------------------------------------
-def new_group(session_id, name, privacy="closed", members=None, about=None, email_addrs=None):
+def new_group(session_id, name, privacy="closed", about=None):
   """
   Privacy: Open|Closed|Secret
   """
@@ -4333,12 +4353,10 @@ def new_group(session_id, name, privacy="closed", members=None, about=None, emai
   if not user_id:
     return False
     
-  members.add(user_id)
-      
 
   info = {'timestamp': utctime(),
           'last_updated': utctime(),
-          'members': list(members),
+          'members': [user_id],
           'leaders': [user_id],
           'name': name, 
           'privacy': privacy,
@@ -4350,10 +4368,6 @@ def new_group(session_id, name, privacy="closed", members=None, about=None, emai
   
   key = '%s:groups' % user_id
   cache.delete(key)
-  
-  if email_addrs:
-    for email in email_addrs:
-      invite_queue.enqueue(invite, session_id, email, group_id)
   
   new_feed(session_id, {'action': 'created',
                         'group_id': group_id}, [group_id])
@@ -4386,10 +4400,15 @@ def join_group(session_id, group_id):
   group_info = db.owner.find_one({'_id': long(group_id)})
   if not group_info:
     return False
+  
+  key = '%s:groups' % user_id
+  cache.delete(key)
+  
   if group_info.get('privacy') == 'open':
     db.owner.update({'_id': group_id}, 
                           {'$addToSet': {'members': user_id}})
     return True
+  
   elif group_info.get('privacy') == 'closed':
     pending_members = group_info.get('pending_members', [])
     if user_id not in pending_members:
@@ -4397,6 +4416,7 @@ def join_group(session_id, group_id):
       db.owner.update({'_id': group_id}, 
                             {'$set': {'pending_members': pending_members}})
       return None
+    
     return False
   
 def leave_group(session_id, group_id):
@@ -4409,11 +4429,13 @@ def leave_group(session_id, group_id):
   group_info = db.owner.find_one({'_id': long(group_id)})
   if not group_info:
     return False
+  
+  
+  key = '%s:groups' % user_id
+  cache.delete(key)
+  
   if group_info.get('privacy') == 'open':
     db.owner.update({'_id': group_id}, {'$pull': {'members': user_id}})
-    
-    key = '%s:groups' % user_id
-    cache.delete(key)
     
     return True
   elif group_info.get('privacy') == 'closed':
@@ -4435,17 +4457,17 @@ def add_member(session_id, group_id, user_id):
   owner_id = get_user_id(session_id)
   if not owner_id:
     return False
+  
   group_info = db.owner.find_one({'_id': long(group_id),
                                   'members': owner_id})
   if not group_info:
     return False
   
-  db.owner.update({'_id': group_id},
-                  {'$addToSet': {'members': user_id}})
-  
-  
   key = '%s:groups' % user_id
   cache.delete(key)
+  
+  db.owner.update({'_id': group_id},
+                  {'$addToSet': {'members': user_id}})
   
   new_feed(session_id, {'action': 'added',
                         'user_id': user_id, 
@@ -4464,8 +4486,11 @@ def add_member(session_id, group_id, user_id):
   send_mail_queue.enqueue(send_mail, user.email, 
                           mail_type='invite',
                           is_new_user=is_new_user,
-                          user=owner,
-                          group=group, db_name=db_name)
+                          user_id=owner.id,
+                          username=owner.name,
+                          group_id=group.id,
+                          group_name=group.name,
+                          db_name=db_name)
   
   return True
   
@@ -4760,17 +4785,29 @@ def get_featured_groups(session_id, limit=5):
   return featured_groups
   
 
-def is_admin(user_id, group_id):
-  db_name = get_database_name()
+def is_admin(user_id, group_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
-  group = db.owner.find_one({'_id': long(group_id), 
-                             'leaders': long(user_id)})
   
-  if group:
-    return True
+  if str(group_id).isdigit():
+    group = db.owner.find_one({'_id': long(group_id), 
+                               'leaders': long(user_id)})
+    
+    if group:
+      return True
+    else:
+      return False
   else:
-    return False
+    user = db.owner.find({'password': {'$exists': True},
+                          'timestamp': {'$exists': True}}, 
+                         {'_id': True}).sort('timestamp', 1).limit(1)
+    user = list(user)
+    if user and user[0]['_id'] == user_id:
+      return True
+    else:
+      return False
 
 def get_group_member_ids(group_id, db_name=None):
   if not db_name:
@@ -4833,7 +4870,17 @@ def get_group_info(session_id, group_id, db_name=None):
   db = DATABASE[db_name]
   
   if group_id == 'public':
+    user = db.owner.find({'password': {'$exists': True},
+                          'timestamp': {'$exists': True}}, 
+                         {'_id': True}).sort('timestamp', 1).limit(1)
+    user = list(user)
+    if user:
+      leaders = [user[0]['_id']]
+    else:
+      leaders = []
+      
     info = {'name': 'Public',
+            'leaders': leaders,
             'members': get_group_member_ids(group_id, db_name=db_name),
             '_id': 'public'}
     return Group(info, db_name=db_name)
@@ -5447,10 +5494,11 @@ def add_db_name(email, db_name):
 
 
 def get_db_names(email):
-  email = email.lower().strip()
-  info = DATABASE['global']['user'].find_one({'email': email})
-  if info:
-    return info.get('db_names')
+  if email:
+    email = email.lower().strip()
+    info = DATABASE['global']['user'].find_one({'email': email})
+    if info:
+      return info.get('db_names')
   return []
 
 

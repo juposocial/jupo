@@ -66,6 +66,8 @@ class Model:
   
   @property
   def seen_by(self):
+    if not self.info:
+      return []
     users = []
     user_ids = set()
     if self.info.get('read_receipts'):
@@ -571,8 +573,9 @@ class Reminder(Model):
     
 
 class Attachment(Model):
-  def __init__(self, info):
+  def __init__(self, info, db_name=None):
     self.info = info if info else dict()
+    self.db_name = db_name
   
   @property
   def fid(self):
