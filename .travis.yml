@@ -17,7 +17,7 @@ before_install:
   - sh install.sh
 
 install:
-  - pip install -r requirements.txt
+  - sudo pip install -r requirements.txt
 
 before_script:
   - sudo mkdir /var/log/jupo
