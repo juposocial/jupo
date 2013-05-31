@@ -4078,17 +4078,17 @@ ul.comments .mentions-input-box textarea:focus {
 }
 
 .mentions-input-box .mentions-autocomplete-list li:hover, .mentions-input-box .mentions-autocomplete-list li.active {
-color: white;
-background-color: #2271A9;
-background-repeat: repeat-x;
-background-image: -moz-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#2F7EB6),color-stop(100%,#2271A9));
-background-image: -webkit-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-background-image: -ms-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-background-image: -o-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2f7eb6',endColorstr='#2271a9',GradientType=0);
-background-image: linear-gradient(top,#2F7EB6 0,#2271A9 100%);
-text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  color: white;
+  background-color: #2271A9;
+  background-repeat: repeat-x;
+  background-image: -moz-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#2F7EB6),color-stop(100%,#2271A9));
+  background-image: -webkit-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -ms-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -o-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2f7eb6',endColorstr='#2271a9',GradientType=0);
+  background-image: linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
 }
 
 .mentions-input-box .mentions-autocomplete-list li:active {
@@ -4178,9 +4178,9 @@ div#loading, div#progress {
 }
 
 div#loading span {
-position: absolute;
-left: 50%;
-margin-left: -50px;
+  position: absolute;
+  left: 50%;
+  margin-left: -50px;
 }
 
 div#loading img {

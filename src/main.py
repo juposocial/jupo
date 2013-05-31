@@ -1975,7 +1975,6 @@ def chat(topic_id=None, user_id=None, action=None):
     msg = request.form.get('message')
     html = api.new_message(session_id, msg, 
                            user_id=user_id, topic_id=topic_id)
-    
     return html
   
   elif action == 'new_file':

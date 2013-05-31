@@ -1586,6 +1586,16 @@ function stream() {
         }
         
         $('div.status', boxchat).fadeOut('fast');
+        
+        
+        $('form.chat', boxchat).removeClass('gray-bg');
+        $('form.chat textarea.mentions', boxchat).attr("readonly", false);
+        $('form.chat textarea.mentions', boxchat).val('').focus();
+        $("form.chat textarea.mentions", boxchat).css('height', "");
+        
+        $("form.chat textarea.mentions", boxchat).mentionsInput('reset');
+        
+        
       } 
       
       if (window.location.pathname == '/messages') {
