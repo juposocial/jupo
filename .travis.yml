@@ -27,7 +27,8 @@ before_script:
   - sudo cp src/settings.example.py src/settings.py
   - sudo pip install rq
   - sudo pip install gunicorn
+
 script:
   - sudo supervisord -c conf/supervisord.dev.conf
   - sleep 60
-  - sudo supervisorctl -c conf/supervisord.dev.conf
+  - supervisorctl -c conf/supervisord.conf tail web_port9000
