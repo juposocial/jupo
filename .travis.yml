@@ -31,4 +31,4 @@ before_script:
 script:
   - sudo supervisord -c conf/supervisord.dev.conf
   - sleep 60
-  - supervisorctl -c conf/supervisord.conf tail web_port9000
+  - sudo supervisorctl -c conf/supervisord.conf tail web_port9000
