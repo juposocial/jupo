@@ -27,6 +27,7 @@ before_script:
   - sudo cp src/settings.example.py src/settings.py
   - sudo pip install rq
   - sudo pip install gunicorn
+  - sudo pip install tornado
 
 script:
   - sudo supervisord -c conf/supervisord.dev.conf
