@@ -4059,6 +4059,7 @@ ul.comments .mentions-input-box textarea:focus {
 .mentions-input-box .mentions-autocomplete-list li:last-child {
   border-bottom-left-radius: 5px;
   border-bottom-right-radius: 5px;
+  border-bottom: 0;
 }
 
 .mentions-input-box .mentions-autocomplete-list li > img, .mentions-input-box .mentions-autocomplete-list li > div.icon {
@@ -7171,11 +7172,24 @@ div.messages div.chatbox div.header img {
 div.messages div.chatbox form {
   position: absolute;
   width: 100%;
-  background: #f2f2f2;
   bottom: 0;
   height: 75px;
   padding: 0;
   border-top: 1px solid #cdcecf;
+}
+
+
+div.messages div.chatbox .mentions-autocomplete-list {
+  margin-top: -316px;
+}
+
+div.messages div.chatbox form.gray-bg {
+  color: #aaa;
+  background: none;
+}
+
+div.messages div.chatbox form.gray-bg textarea {
+  color: #aaa;
 }
 
 ul.topics {
@@ -7315,13 +7329,13 @@ div.messages div.chatbox ul.messages div.title {
 }
 
 div.messages div.chatbox form textarea.mentions {
-  width: 450px;
-  height: 44px;
-  padding: 5px !important;
+  width: 453px;
+  height: 52px;
+  padding: 5px!important;
   border: 1px solid #ccc;
-  margin: 10px;
+  margin: 10px 8px;
   resize: none;
-  background: white;
+  box-shadow: 0 0 0 11px #f2f2f2;
 }
 
 div.messages div.chatbox ul.messages {
@@ -7334,7 +7348,7 @@ div.messages div.chatbox ul.messages {
 }
 
 div.messages div.chatbox .mentions-input-box .mentions {
-  padding: 16px;
+  padding: 16px 14px;
 }
 
 div.messages div.chatbox.unread .header {
