@@ -18,7 +18,7 @@ before_install:
 
 install:
   - pip install -r requirements.txt
-  
+
 before_script:
   - sudo mkdir /var/log/jupo
   - sudo mkdir /home/Workspace
@@ -26,6 +26,7 @@ before_script:
   - cd /home/Workspace/jupo
   - sudo cp src/settings.example.py src/settings.py
   - sudo pip install rq
+  - sudo pip install gunicorn
 script:
   - sudo supervisord -c conf/supervisord.dev.conf
   - sudo supervisorctl -c conf/supervisord.dev.conf
