@@ -2117,7 +2117,7 @@ $(document).ready(function(e) {
   
   
   
-  $('#chat, #body').on('keydown', 'textarea', function(e) {
+  $('#chat, #body').on('keydown', 'form.chat textarea', function(e) {
     
     if (e.keyCode == 13) {    // Enter
         if (e.ctrlKey || e.shiftKey) {

@@ -49,7 +49,7 @@
         <div class="status hidden"></div>
       {% endif %}
 
-      <form action='/chat/{% if user %}user/{{ user.id }}{% else %}topic/{{ topic.id }}{% endif %}/new_message' method='post'>
+      <form class='chat' action='/chat/{% if user %}user/{{ user.id }}{% else %}topic/{{ topic.id }}{% endif %}/new_message' method='post'>
         <textarea class='mentions' placeholder='Write a message...' autofocus required></textarea>
         <textarea class='hidden marked-up'
                     name='message'></textarea>
