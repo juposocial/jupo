@@ -5,7 +5,7 @@ python:
 # whitelist
 branches:
   only:
-    - develop
+    - feature/travis-ci
 
 services:
   - mongodb
