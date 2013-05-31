@@ -24,7 +24,6 @@ before_script:
   - sudo mv ../jupo /home/Workspace/
   - cd /home/Workspace/jupo
   - sudo cp src/settings.example.py src/settings.py
-  - source ~/virtualenv/python2.7/bin/activate
 script:
   - sudo supervisord -c conf/supervisord.dev.conf
   - sudo supervisorctl -c conf/supervisord.dev.conf
