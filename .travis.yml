@@ -19,11 +19,12 @@ before_install:
 install:
 
 before_script:
+  - sudo mkdir /var/log/jupo
   - sudo mkdir /home/Workspace
   - sudo mv ../jupo /home/Workspace/
   - cd /home/Workspace/jupo
   - sudo cp src/settings.example.py src/settings.py
   - source ~/virtualenv/python2.7/bin/activate
 script:
-  - cd src
-  - python main.py
+  - sudo supervisord -c conf/supervisord.dev.conf
+  - sudo supervisorctl -c conf/supervisord.dev.conf
