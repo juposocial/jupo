@@ -25,3 +25,9 @@ sudo make install
 sudo cp /usr/local/nginx/sbin/nginx /usr/sbin/
 sudo mkdir /var/log/nginx/
 sudo useradd nginx
+
+# Install goose
+git clone https://github.com/xgdlm/python-goose.git
+cd python-goose
+sudo pip install -r requirements.txt
+sudo python setup.py install
