@@ -2018,6 +2018,10 @@ $(document).ready(function(e) {
     
     $('a.chat.' + chat_id).removeClass('unread');
     
+    if (window.location.pathname == '/messages') {
+      $('ul.topics a.chat.' + chat_id + ' div.unread-messages').html('0').hide();
+    }
+    
     // hide notification center 
     if ($('nav ul.notifications').is(':visible')) {
       $('html').trigger('click');
@@ -2075,6 +2079,9 @@ $(document).ready(function(e) {
         _this.removeClass('unread');
         $('a.chat.' + chat_id).removeClass('unread');
         
+        if (window.location.pathname == '/messages') {
+          $('ul.topics a.chat.' + chat_id + ' div.unread-messages').html('0').hide();
+        }
         
         var unread_count = decr('#unread-notification-counter');
         if (unread_count == 0) {
@@ -2171,6 +2178,7 @@ $(document).ready(function(e) {
     var _this = $(this);
     var _boxchat = _this.parents('.chatbox');
     
+    
     $('textarea.mentions', _this).attr('readonly', 'readonly')
     $('form', _boxchat).addClass('gray-bg')
     
@@ -2221,6 +2229,12 @@ $(document).ready(function(e) {
               $('.messages', _boxchat).scrollTop(99999);
             }, 10)
           }
+          
+          var chat_id = _boxchat.attr('id').replace('chat-', 'chat.');
+          var message = $('.content', msg).text();
+          message = '<i class="msg-reply-icon"></i>' + message;
+          
+          $('ul.topics a.' + chat_id + ' div.message').html(message);
           
         }
         

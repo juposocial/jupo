@@ -2063,20 +2063,38 @@ def messages():
   coworkers = api.get_coworkers(session_id)
   
   topics = api.get_messages(session_id)
+  
+  unread_messages = {}
+  for i in api.get_unread_messages(session_id):
+    if i and i.get('sender'):
+      unread_messages[i['sender'].id] = i['unread_count']
+    else:
+      unread_messages[i['topic'].id] = i['unread_count']
+      
+  for message in topics:
+    if message.topic_id:
+      _id = message.topic_id
+    elif message.sender.id == owner.id:
+      _id = message.receiver.id
+    else:
+      _id = message.sender.id
+    if unread_messages.has_key(_id):
+      message.unread_count = unread_messages[_id]
+    else:
+      message.unread_count = 0
     
+  
 
   if request.method == 'GET':
     return render_homepage(session_id, 'Messages',
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
-                           messages=messages,
                            topics=topics,
                            view='messages')
   else:
     body = render_template('messages.html',
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
-                           messages=messages,
                            topics=topics,
                            owner=owner)
     resp = Response(dumps({'body': body,

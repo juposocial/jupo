@@ -67,7 +67,9 @@ function start_chat(chat_id) {
     close_chat(chat_id);
     
     $('ul.topics a.selected').removeClass('selected');
-    $('ul.topics a.' + chat_id).addClass('selected')
+    $('ul.topics a.' + chat_id).addClass('selected');
+    
+    $('ul.topics a.' + chat_id + ' div.unread-messages').html('0').hide();
   }
   
   
@@ -1525,7 +1527,7 @@ function stream() {
       if (sender_id != owner_id) {
         $('#chat-' + chat_id).addClass('unread');  
         
-        if ($('#chat-' + chat_id + ' textarea._elastic').is(':focus') == true) {
+        if ($('#chat-' + chat_id + ' textarea.mentions').is(':focus') == true) {
           $('#chat-' + chat_id).mouseover()
         }
         
@@ -1550,36 +1552,58 @@ function stream() {
       }
       
       
-      if ($('#chat-' + chat_id).length == 0) {
+      if (window.location.pathname != '/messages' && $('#chat-' + chat_id).length == 0) {
+        start_chat(chat_id);
+      } else if (window.location.pathname == '/messages' && $('ul.topics a.selected').length == 0) {
         start_chat(chat_id);
       }
       
-      var boxchat = $('#chat-' + chat_id);
-      var last_msg = $('li.message:last', boxchat);
-
-      var msg_id = msg.attr('id').split('-')[1];
-      var msg_ts = msg.data('ts');
-      var sender_id = msg.attr('data-sender-id');
-      
-      if (last_msg.length == 1 && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-        if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
-          if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-            var content = $('.content', msg).html();
-            $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
-            $(last_msg).data('ts', msg_ts);
-            $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+      console.log(chat_id);
+      console.log($('#chat-' + chat_id).length);
+      if ($('#chat-' + chat_id).length != 0) {
+        var boxchat = $('#chat-' + chat_id);
+        var last_msg = $('li.message:last', boxchat);
+  
+        var msg_id = msg.attr('id').split('-')[1];
+        var msg_ts = msg.data('ts');
+        var sender_id = msg.attr('data-sender-id');
+        
+        if (last_msg.length == 1 && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+          if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
+            if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+              var content = $('.content', msg).html();
+              $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+              $(last_msg).data('ts', msg_ts);
+              $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+            }
+          } else {
+            $('.messages', boxchat).append(_msg);
           }
-        } else {
-          $('.messages', boxchat).append(_msg);
+          
+          setTimeout(function() {
+            $('.messages', boxchat).scrollTop(99999);
+          }, 10)  
         }
         
-        setTimeout(function() {
-          $('.messages', boxchat).scrollTop(99999);
-        }, 10)  
+        $('div.status', boxchat).fadeOut('fast');
+      } 
+      
+      if (window.location.pathname == '/messages') {
+        var message = $('.content', msg).text();
+        
+        if (sender_id == owner_id) {
+          message = '<i class="msg-reply-icon"></i>' + message;
+        }
+        
+        $('ul.topics a.chat.' + chat_id + ' div.message').html(message);
+        if (sender_id != owner_id) {
+          incr('ul.topics a.chat.' + chat_id + ' div.unread-messages');
+          
+          $('ul.topics').animate({
+            scrollTop: $('ul.topics a.chat.' + chat_id).offset().top
+          }, 'fast');
+        }
       }
-      
-      $('div.status', boxchat).fadeOut('fast');
-      
 
     }
     

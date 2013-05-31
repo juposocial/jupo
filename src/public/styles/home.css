@@ -7199,6 +7199,7 @@ ul.topics li a {
   border-bottom: 1px solid whitesmoke;
   font-size: 11px;
   white-space: nowrap;
+  position: relative;
 }
 
 ul.topics li a div.message {
@@ -7221,6 +7222,26 @@ ul.topics li a div.message i {
 ul.topics li a img.small-avatar {
   width: 35px;
   height: 35px;
+}
+
+ul.topics li a div.unread-messages {
+  position: absolute;
+  background-color: #D14836;
+  background-image: -webkit-gradient(linear,left top,left bottom,from(#DD4B39),to(#D14836));
+  background-image: -webkit-linear-gradient(top,#DD4B39,#D14836);
+  background-image: -moz-linear-gradient(top,#DD4B39,#D14836);
+  background-image: -ms-linear-gradient(top,#DD4B39,#D14836);
+  background-image: -o-linear-gradient(top,#DD4B39,#D14836);
+  background-image: linear-gradient(top,#DD4B39,#D14836);
+  padding: 1px 6px 0 5px;
+  color: white;
+  font-weight: bold;
+  font-size: 9px;
+  border-radius: 2px;
+  left: 12px;
+  top: 12px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.38);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.21);
 }
 
 ul.topics li a:hover, ul.topics li a.selected {

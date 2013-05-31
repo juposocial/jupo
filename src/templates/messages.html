@@ -52,6 +52,7 @@
             {% endif %}
           </div>
           
+          <div class='unread-messages {% if message.unread_count <= 0 %}hidden{% endif %}'>{{ message.unread_count }}</div>
           <img class='small-avatar lfloat' src='{{ user.avatar }}' />
           <div class='title'>
             {% if message.topic_id %}

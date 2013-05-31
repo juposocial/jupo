@@ -19,6 +19,8 @@
                 <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.members | length - 1) %}, {% endif %}
               {% endfor %}
             {% endif %}
+            
+            &nbsp;
 
           </div>
         {% endif %}
