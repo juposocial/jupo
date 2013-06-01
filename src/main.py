@@ -1974,8 +1974,15 @@ def chat(topic_id=None, user_id=None, action=None):
   
   if action == 'new_message':    
     msg = request.form.get('message')
+    codeblock = request.form.get('codeblock')
+    if '\n' in msg.strip() and codeblock:
+      codeblock = True
+    else:
+      codeblock = False
     html = api.new_message(session_id, msg, 
-                           user_id=user_id, topic_id=topic_id)
+                           user_id=user_id, 
+                           topic_id=topic_id,
+                           is_codeblock=codeblock)
     return html
   
   elif action == 'new_file':

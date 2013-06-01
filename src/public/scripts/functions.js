@@ -148,6 +148,8 @@ function start_chat(chat_id) {
         toggle_chatbox('chat-' + chat_id);
       }
       
+      // highlight code snippets
+      prettyPrint()
       
       $('#chat-' + chat_id + " .messages li.message a.async").tipsy({
         gravity: 'e'

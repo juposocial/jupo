@@ -1419,6 +1419,9 @@ class Message(Model):
   
   def is_first_message(self):
     return self.info.get('is_first_message')
+  
+  def is_codeblock(self):
+    return self.info.get('codeblock')
     
 
 class Topic(Model):

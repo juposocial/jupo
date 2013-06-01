@@ -2140,6 +2140,9 @@ $(document).ready(function(e) {
             gravity: 'e'
           });
           
+          // highlight code snippets
+          prettyPrint()
+          
           // Remove duplicate datetime titles
           var seen = {};
           $('#' + chatbox_id + ' div.title').each(function() {
@@ -2155,6 +2158,18 @@ $(document).ready(function(e) {
     
     return false;
   })
+  
+  
+  $('#chat, #body').on('paste', 'form.chat textarea', function () {
+    var _this = $(this);
+    var form = _this.parents('form.chat');
+    setTimeout(function () {
+      var text = _this.val();
+      if (text.indexOf('\n') != -1) {
+        $('input[name="codeblock"]', form).val('1');
+      }
+    }, 100);
+  });
   
   
   $('#chat, #body').on('keydown', 'form.chat textarea', function(e) {
@@ -2238,6 +2253,8 @@ $(document).ready(function(e) {
         
         $("textarea.mentions", _this).mentionsInput('reset');
         
+        $('input[name="codeblock"]', _this).val('');
+        
         if (data != '') {
           var msg = $(data);
   
@@ -2256,6 +2273,11 @@ $(document).ready(function(e) {
               
             } else {
               $('.messages', _boxchat).append(data);
+              
+              $('#chat-' + chat_id + " .messages li.message:last a.async").tipsy({
+                gravity: 'e'
+              });
+              
             }
             
             setTimeout(function() {
@@ -2269,6 +2291,9 @@ $(document).ready(function(e) {
           
           $('ul.topics a.' + chat_id + ' div.message').html(message);
           
+          // highlight code snippets
+          prettyPrint()
+              
         }
         
       }

@@ -29,8 +29,13 @@
       {% endif %}
       
       <a href='/attachment/{{ attachment.id }}' target='_blank' title="{{ attachment.name }} ({{ attachment.size }})" {% if not attachment.mimetype.startswith('image/') %}download='{{ attachment.name }}'{% endif %}>{{ attachment.name }} ({{ attachment.size }})</a>
+    {% elif "a href='/attachment/" in message.content or 'pre class="prettyprint"' in message.content %}
+      {{ message.content | safe }}
+    
+    {% elif message.is_codeblock() %}
+      <pre class="prettyprint">{{ message.content }}</pre>
     {% else %}
-      {{ message.content | autolink | replace('/user/', '/chat/user/') | replace('class="async"', 'class="chat"') | autoemoticon | nl2br | safe }}
+      {{ message.content | replace('<', '&lt;') | replace('>', '&gt;') | autolink | replace('/user/', '/chat/user/') | replace('class="async"', 'class="chat"') | autoemoticon | nl2br | sanitize | safe }}
     {% endif %}
   </div>
 </li>

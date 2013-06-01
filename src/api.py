@@ -5650,7 +5650,7 @@ def strip_mentions(text):
   return out
   
 
-def new_message(session_id, message, user_id=None, topic_id=None, is_auto_generated=False, db_name=None):
+def new_message(session_id, message, user_id=None, topic_id=None, is_codeblock=False, is_auto_generated=False, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5741,6 +5741,9 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
     
   if is_auto_generated:
     info['auto_generated'] = True
+    
+  if is_codeblock:
+    info['codeblock'] = True
   
   msg_id = db.message.insert(info)
   info['_id'] = msg_id
@@ -6054,7 +6057,9 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
             % (attachment.id, attachment.name, attachment.size, 
                '' if attachment.mimetype.startswith('image/') else "download='%s'" % attachment.name,
                attachment.name, attachment.size)
-          
+      elif record.get('codeblock'):
+        msg = '<pre class="prettyprint">%s</pre>' % msg
+      
       last_msg['text'] += '\n' + msg
       last_msg['ts'] = record.get('ts')
       last_msg['msg_ids'].append(record.get('_id'))
@@ -6077,6 +6082,10 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
             % (attachment.id, attachment.name, attachment.size, 
                '' if attachment.mimetype.startswith('image/') else "download='%s'" % attachment.name,
                attachment.name, attachment.size)
+            
+      elif record.get('codeblock'):
+        last_msg['text'] = '<pre class="prettyprint">%s</pre>' % msg
+      
       else:
         last_msg['text'] = msg
   
