@@ -7,15 +7,20 @@
     </div>  
     
     {% if user %}
-      <i class='{{ user.status }} user-{{ user.id }}-status'></i>
-      <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
+      <div class='user-info'>
+        <img class='small-avatar' src='{{ user.avatar }}'>
+        <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
+        <i class='{{ user.status }} user-{{ user.id }}-status' title='{{ user.status }}'></i>
+      </div>
     {% else %}
+      {% set members = topic.members | exclude(owner.id) %}
+          
+       <i class="group-icon"></i>
       <div contenteditable="true" title='Set Topic...' onclick="document.execCommand('selectAll', false, null)" data-url='/chat/topic/{{ topic.id }}/update' data-topic-id='{{ topic.id }}'>
         {% if topic.name %}
           {{ topic.name }}
         {% else %}
         
-          {% set members = topic.members | exclude(owner.id) %}
           {% for member in members %}
             <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.members | length - 1) %}, {% endif %}
           {% endfor %}
