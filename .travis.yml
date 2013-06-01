@@ -28,6 +28,7 @@ before_script:
   - sudo pip install rq
   - sudo pip install gunicorn
   - sudo pip install tornado
+  - sudo pip install -e git://github.com/xgdlm/python-goose.git@master#egg=goose
 
 script:
   - sudo supervisord -c conf/supervisord.dev.conf
