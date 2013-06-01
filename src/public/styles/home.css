@@ -7391,7 +7391,7 @@ div.messages div.chatbox .header a.close {
   display: none;
 }
 
-div.messages div.chatbox ul.messages li.message div.status {
+div.messages div.chatbox > div.status {
   position: absolute;
   bottom: 75px;
   padding: 5px 13px 5px 14px;

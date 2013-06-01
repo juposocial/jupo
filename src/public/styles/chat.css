@@ -201,7 +201,7 @@ div.fixed {
   color: #999;
 }
 
-.chatbox > div.status {
+#chat .chatbox > div.status {
   position: absolute;
   bottom: 31px;
   padding: 0 5px;
