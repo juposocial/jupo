@@ -20,7 +20,15 @@
   <div class="content">
     {% if message.is_file() %}
       {% set attachment = message.content %}
-      <a href='/attachment/{{ attachment.id }}' target='_blank' title="{{ attachment.name }} ({{ attachment.size }})" download='{{ attachment.name }}'>{{ attachment.name | truncate(20, True) }} ({{ attachment.size }})</a>
+      {% if attachment.mimetype.startswith('image/') %}
+        <div>
+          <a href='/attachment/{{ attachment.id }}' target="_blank">
+            <img src='/attachment/{{ attachment.id }}'>
+          </a>
+        </div>
+      {% endif %}
+      
+      <a href='/attachment/{{ attachment.id }}' target='_blank' title="{{ attachment.name }} ({{ attachment.size }})" {% if not attachment.mimetype.startswith('image/') %}download='{{ attachment.name }}'{% endif %}>{{ attachment.name }} ({{ attachment.size }})</a>
     {% else %}
       {{ message.content | autolink | replace('/user/', '/chat/user/') | replace('class="async"', 'class="chat"') | autoemoticon | nl2br | safe }}
     {% endif %}

@@ -6046,9 +6046,14 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
     
       if is_snowflake_id(msg):
         attachment = get_attachment_info(msg, db_name=db_name)
-        msg = "<a href='/attachment/%s' target='_blank' title='%s (%s)'>%s (%s)</a>"\
+        msg = ''
+        if attachment.mimetype.startswith('image/'):
+          msg = '''<div><a href='/attachment/%s' target="_blank"><img src='/attachment/%s'></a></div>''' % (attachment.id, attachment.id)
+          
+        msg += "<a href='/attachment/%s' target='_blank' title='%s (%s)' %s>%s (%s)</a>"\
             % (attachment.id, attachment.name, attachment.size, 
-               attachment.name[:20] + '...' if len(attachment.name) > 20 else attachment.name, attachment.size)
+               '' if attachment.mimetype.startswith('image/') else "download='%s'" % attachment.name,
+               attachment.name, attachment.size)
           
       last_msg['text'] += '\n' + msg
       last_msg['ts'] = record.get('ts')
@@ -6062,9 +6067,16 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
       
       if is_snowflake_id(msg):
         attachment = get_attachment_info(msg, db_name=db_name)
-        last_msg['text'] = "<a href='/attachment/%s' target='_blank' title='%s (%s)'>%s (%s)</a>"\
+        
+        last_msg['text'] = ''
+        if attachment.mimetype.startswith('image/'):
+          last_msg['text'] = '''<div><a href='/attachment/%s' target="_blank"><img src='/attachment/%s'></a></div>''' % (attachment.id, attachment.id)
+        
+        
+        last_msg['text'] += "<a href='/attachment/%s' target='_blank' title='%s (%s)' %s>%s (%s)</a>"\
             % (attachment.id, attachment.name, attachment.size, 
-               attachment.name[:20] + '...' if len(attachment.name) > 20 else attachment.name, attachment.size)
+               '' if attachment.mimetype.startswith('image/') else "download='%s'" % attachment.name,
+               attachment.name, attachment.size)
       else:
         last_msg['text'] = msg
   

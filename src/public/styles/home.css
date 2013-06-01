@@ -7321,6 +7321,12 @@ div.messages div.chatbox ul.messages div.content {
   line-height: 18px;
 }
 
+div.messages div.chatbox ul.messages div.content div a img {
+  border: 1px solid #ccc;
+  display: inline-block;
+  width: 300px;
+}
+
 div.messages div.chatbox ul.messages div.title {
   text-align: center;
   margin: 7px 0 6px;

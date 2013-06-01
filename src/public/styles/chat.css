@@ -150,6 +150,19 @@ div.chatbox div.header i.offline {
   color: #444;
 }
 
+#chat .chatbox .message .content div a img {
+  display: none;
+}
+
+#chat .chatbox .message .content a[target='_blank'] {
+  float: left;
+  display: block;
+  width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .chatbox form.gray-bg {
   background: #eee;
   color: #999;
