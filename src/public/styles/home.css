@@ -7125,7 +7125,7 @@ form.invite input[type='submit'] {
 div.messages {
   position: fixed;
   background: white;
-  height: 450px;
+  height: 70%;
   top: 148px;
   width: 740px;
   box-shadow: 0 1px 7px rgba(0, 0, 0, 0.2);
@@ -7360,12 +7360,14 @@ div.messages div.chatbox form textarea.mentions {
 }
 
 div.messages div.chatbox ul.messages {
-  height: 315px;
+  position: absolute;
   overflow-x: hidden;
   overflow-y: auto;
   font-size: 11px;
   padding: 0;
-  margin-top: 60px;
+  top: 59px;
+  bottom: 76px;
+  height: auto;
 }
 
 div.messages div.chatbox .mentions-input-box .mentions {
