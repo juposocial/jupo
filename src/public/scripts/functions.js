@@ -1614,8 +1614,10 @@ function stream() {
         if (sender_id != owner_id) {
           incr('ul.topics a.chat.' + chat_id + ' div.unread-messages');
           
+          $('ul.topics').scrollTop(0);
+          var offset = $('ul.topics a.chat.' + chat_id).offset().top - $('ul.topics').offset().top + 1;
           $('ul.topics').animate({
-            scrollTop: $('ul.topics a.chat.' + chat_id).offset().top
+            scrollTop: offset
           }, 'fast');
         }
       }
