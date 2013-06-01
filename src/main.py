@@ -1966,7 +1966,7 @@ def group(group_id=None, view='group', page=1):
 @app.route('/chat/user/<int:user_id>', methods=['GET', 'OPTIONS'])
 @app.route('/chat/user/<int:user_id>/<action>', methods=['POST'])
 @app.route('/chat/topic/<int:topic_id>', methods=['GET', 'OPTIONS'])
-@app.route('/chat/topic/<int:topic_id>/<action>', methods=['POST'])
+@app.route('/chat/topic/<int:topic_id>/<action>', methods=['OPTIONS', 'POST'])
 @login_required
 def chat(topic_id=None, user_id=None, action=None):
   session_id = session.get("session_id")
@@ -2009,6 +2009,14 @@ def chat(topic_id=None, user_id=None, action=None):
     name = request.args.get('name')
     api.update_topic(session_id, topic_id, name)
     return 'OK'
+  
+  elif action == 'members':
+    topic = api.get_topic_info(topic_id)
+    owner = api.get_owner_info(session_id)
+    body = render_template('topic_members.html', topic=topic, owner=owner)
+
+    return Response(dumps({'body': body}), 
+                    mimetype='application/json')  
     
   else:
     owner_id = api.get_user_id(session_id)

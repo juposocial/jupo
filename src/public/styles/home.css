@@ -7168,19 +7168,46 @@ div.messages div.chatbox div.header img {
   margin-top: -6px;
 }
 
+div.messages div.chatbox .header .user-info .name {
+  float: left;
+  margin-top: -9px;
+}
+div.messages div.chatbox .header .user-info .info {
+  margin-top: -15px; 
+}
+
+div.messages div.chatbox div.header div.user-info > i.online,
+div.messages div.chatbox div.header div.user-info > i.away,
+div.messages div.chatbox div.header div.user-info > i.offline {
+  display: none;
+}
+
+div.messages div.chatbox div.header div.user-info .info i.online,
+div.messages div.chatbox div.header div.user-info .info i.away,
+div.messages div.chatbox div.header div.user-info .info i.offline {
+  margin: -1px -3px;
+}
+
 div.messages div.chatbox div.header i.group-icon {
   float: left;
-  margin-right: 5px;
-  margin-top: 5px;
+  margin: -3px 8px 0 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  background-position: center;
+  border-radius: 100px;
+  background-color: whitesmoke;
 }
 
 div.messages div.chatbox div.header div.user-info {
-  margin-top: -3px;
+  margin-top: 4px;
+  line-height: 22px;
+  float: left;
 }
 
 div.messages div.chatbox div.header img.small-avatar {
-  vertical-align: text-top;
-  margin-right: 3px;
+  float: left;
+  width: 32px;
+  height: 32px;
 }
 
 div.messages div.chatbox form {
@@ -7297,6 +7324,17 @@ ul.topics li a:hover div.message, ul.topics li a:active div.message, ul.topics l
 
 div.messages .header div[contenteditable=true] {
   cursor: text;
+  margin-top: -4px;
+  font-size: 12px;
+  line-height: 22px;
+}
+
+div.messages .header .info {
+  font-weight: normal;
+  float: left;
+  margin-top: -10px;
+  color: gray;
+  text-transform: capitalize;
 }
 
 div.messages div.chatbox ul.messages li.message {
@@ -7368,6 +7406,7 @@ div.messages div.chatbox ul.messages {
   top: 59px;
   bottom: 76px;
   height: auto;
+  width: 100%;
 }
 
 div.messages div.chatbox .mentions-input-box .mentions {

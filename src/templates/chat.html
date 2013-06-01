@@ -1,5 +1,5 @@
 
-  <div class="header" title='Toggle Minimize'>
+  <div class="header">
     <a href="#" class="close-icon close" title="Close Chat" data-chat-id='{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'></a>
     <a id='chatbox-pick-file' class='rfloat' title='Select a file {% if user %}to send to {{ user.name }}{% endif %}'><i class='upload-icon'></i><span>Upload File...</span></a>
     <div id="chatbox-file-container">
@@ -10,7 +10,9 @@
       <div class='user-info'>
         <img class='small-avatar' src='{{ user.avatar }}'>
         <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
-        <i class='{{ user.status }} user-{{ user.id }}-status' title='{{ user.status }}'></i>
+        <i class='{{ user.status }} user-{{ user.id }}-status'></i>
+        <br>
+        <span class='info' title='{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}'><i class='{{ user.status }} user-{{ user.id }}-status'></i> {{ user.status }}</span>
       </div>
     {% else %}
       {% set members = topic.members | exclude(owner.id) %}
@@ -18,17 +20,21 @@
        <i class="group-icon"></i>
       <div contenteditable="true" title='Set Topic...' onclick="document.execCommand('selectAll', false, null)" data-url='/chat/topic/{{ topic.id }}/update' data-topic-id='{{ topic.id }}'>
         {% if topic.name %}
+        
           {{ topic.name }}
+          
         {% else %}
         
           {% for member in members %}
             <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.members | length - 1) %}, {% endif %}
           {% endfor %}
+          
         {% endif %}
         
         &nbsp;
 
       </div>
+      <a class='info popup' href='/chat/topic/{{ topic.id }}/members'>{{ topic.member_ids | length }} people</a>
     {% endif %}
   </div>
 

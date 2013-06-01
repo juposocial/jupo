@@ -53,6 +53,10 @@ div.fixed {
   display: inline;
 }
 
+#chat div.chatbox div.header .info {
+  display: none;
+}
+
 #chat div.chatbox div.header i.online,
 #chat div.chatbox div.header i.away,
 #chat div.chatbox div.header i.offline {
@@ -146,7 +150,7 @@ div.fixed {
   right: 0;
   background: white;
   padding: 0 3px;
-  margin-top: 1px;
+  margin-top: -1px;
 }
 
 .chatbox .message:hover .ts {

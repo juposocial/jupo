@@ -1,0 +1,31 @@
+<div id="page-header">
+  <h2>People in this chat</h2>
+</div>
+
+<ul class='people'>
+  {% set users = topic.members %}
+  {% if users %}
+    {% for user in users %}
+      {% if user.email %}
+    
+        <li>
+          <a class='button chat' href='/chat/user/{{ user.id }}'>Start Chat</a>
+      
+          <img class='small-avatar lfloat' src='{{ user.avatar }}'>
+      
+          <a href='/user/{{ user.id }}' class='async user'>{{ user.name }}</a>
+          <i class='{{ user.status }}  user-{{ user.id }}-status'></i>
+          <br>
+      
+          {% set last_online = user.last_online %}
+          <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>
+            {{ last_online | friendly_format(owner.utcoffset, short=True) }}
+          </time>
+      
+        </li>
+    
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</ul>
+
