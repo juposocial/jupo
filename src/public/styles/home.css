@@ -7286,7 +7286,7 @@ div.messages .header div[contenteditable=true] {
 }
 
 div.messages div.chatbox ul.messages li.message {
-  padding: 10px 20px;
+  padding: 10px 20px 12px;
   line-height: 20px;
 }
 
@@ -7308,7 +7308,8 @@ div.messages div.chatbox ul.messages div.message, div.ts {
   float: right;
 }
 
-div.messages div.chatbox ul.messages img.small-avatar {
+div.messages div.chatbox ul.messages li.message a.async,
+div.messages div.chatbox ul.messages li.message img.small-avatar {
   width: 40px;
   height: 40px;
 }

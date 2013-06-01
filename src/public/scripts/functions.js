@@ -96,7 +96,6 @@ function start_chat(chat_id) {
       if (window.location.pathname != '/messages') {
         $('#chat').prepend(html);
         
-        
         var textbox = $('#chat-' + chat_id + ' form textarea.mentions');
         var last_textbox_height = textbox.height();
         
@@ -149,6 +148,10 @@ function start_chat(chat_id) {
         toggle_chatbox('chat-' + chat_id);
       }
       
+      
+      $('#chat-' + chat_id + " .messages li.message a.async").tipsy({
+        gravity: 'e'
+      });
         
       $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
         minChars: 1,

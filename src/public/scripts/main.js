@@ -2136,6 +2136,9 @@ $(document).ready(function(e) {
         type: 'GET',
         success: function(html){ 
           $('#' + chatbox_id + ' li.more').replaceWith(html);
+          $('#' + chatbox_id + " .messages li.message a.async").tipsy({
+            gravity: 'e'
+          });
           
           // Remove duplicate datetime titles
           var seen = {};
