@@ -1970,6 +1970,7 @@ def group(group_id=None, view='group', page=1):
 @login_required
 def chat(topic_id=None, user_id=None, action=None):
   session_id = session.get("session_id")
+  timestamp = request.args.get('ts')
   
   if action == 'new_message':    
     msg = request.form.get('message')
@@ -2007,47 +2008,60 @@ def chat(topic_id=None, user_id=None, action=None):
     user = topic = seen_by = None
     if user_id:
       user = api.get_user_info(user_id)
+      messages = api.get_chat_history(session_id, 
+                                      user_id=user_id, 
+                                      timestamp=timestamp)
       
-      last_viewed = api.get_last_viewed(user_id, owner_id) \
-                  + int(api.get_utcoffset(owner_id))
-                  
-      last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
-      if last_viewed_friendly_format.startswith('Today'):
-        last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
-      
-      messages = api.get_chat_history(session_id, user_id)
-      
-      if messages and (messages[-1].sender.id == owner_id) and (messages[-1].timestamp < last_viewed):
-        seen_by = 'Seen %s' % last_viewed_friendly_format
+      if not timestamp:
+        last_viewed = api.get_last_viewed(user_id, owner_id) \
+                    + int(api.get_utcoffset(owner_id))
+                    
+        last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
+        if last_viewed_friendly_format.startswith('Today'):
+          last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
         
+        
+        if messages and (messages[-1].sender.id == owner_id) and (messages[-1].timestamp < last_viewed):
+          seen_by = 'Seen %s' % last_viewed_friendly_format
+          
     else:
       last_viewed = last_viewed_friendly_format = 0
       topic = api.get_topic_info(topic_id)
-      messages = api.get_chat_history(session_id, topic_id=topic_id)  
+      messages = api.get_chat_history(session_id, 
+                                      topic_id=topic_id, 
+                                      timestamp=timestamp)  
       
-      if messages:
-        utcoffset = int(api.get_utcoffset(owner_id))
-        last_viewed = {}
-        seen_by = []
-        for i in topic.member_ids:
-          ts = api.get_last_viewed(i, topic_id=topic_id) + utcoffset
-          last_viewed[i] = ts
-          if messages[-1].timestamp < ts:
-            seen_by.append(i)
-      
-      app.logger.debug(seen_by)
-      app.logger.debug(last_viewed)
-      app.logger.debug(messages[-1].timestamp)
-      if seen_by:
-        if len(seen_by) >= len(topic.member_ids):
-          seen_by = 'Seen by everyone.'
-        else:
-          seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name for i in seen_by])
-              
-    return render_template('chatbox.html', 
-                           owner={'id': owner_id},
-                           seen_by=seen_by,
-                           messages=messages, user=user, topic=topic)
+      if not timestamp:
+        if messages:
+          utcoffset = int(api.get_utcoffset(owner_id))
+          last_viewed = {}
+          seen_by = []
+          for i in topic.member_ids:
+            ts = api.get_last_viewed(i, topic_id=topic_id) + utcoffset
+            last_viewed[i] = ts
+            if messages[-1].timestamp < ts:
+              seen_by.append(i)
+        
+        app.logger.debug(seen_by)
+        app.logger.debug(last_viewed)
+        app.logger.debug(messages[-1].timestamp)
+        if seen_by:
+          if len(seen_by) >= len(topic.member_ids):
+            seen_by = 'Seen by everyone.'
+          else:
+            seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name for i in seen_by])
+    
+    if timestamp:
+      return render_template('messages.html', 
+                             owner={'id': owner_id},
+                             timestamp=timestamp,
+                             messages=messages, user=user, topic=topic)
+    else:
+      return render_template('chatbox.html', 
+                             owner={'id': owner_id},
+                             seen_by=seen_by,
+                             timestamp=timestamp,
+                             messages=messages, user=user, topic=topic)
     
     
 
@@ -2091,7 +2105,7 @@ def messages():
                            topics=topics,
                            view='messages')
   else:
-    body = render_template('messages.html',
+    body = render_template('expanded_chatbox.html',
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
                            topics=topics,

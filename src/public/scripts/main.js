@@ -2123,6 +2123,36 @@ $(document).ready(function(e) {
   })
   
   
+  $('#chat, #body').on('click', '.chatbox li.more a', function(e) {
+    var _this = $(this);
+    var href = _this.attr('href');
+    var chatbox_id = _this.parents('div.chatbox').attr('id');
+    
+    if (href) {
+      _this.replaceWith('Loading...');
+      
+      $.ajax({
+        url: _this.attr('href'),
+        type: 'GET',
+        success: function(html){ 
+          $('#' + chatbox_id + ' li.more').replaceWith(html);
+          
+          // Remove duplicate datetime titles
+          var seen = {};
+          $('#' + chatbox_id + ' div.title').each(function() {
+            var txt = $(this).text();
+            if (seen[txt])
+              $(this).remove();
+            else
+              seen[txt] = true;
+          });
+        }
+      })
+    }
+    
+    return false;
+  })
+  
   
   $('#chat, #body').on('keydown', 'form.chat textarea', function(e) {
     

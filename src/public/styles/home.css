@@ -7399,3 +7399,7 @@ div.messages div.chatbox div.empty div {
   margin: 10px;
 }
 
+div.messages div.chatbox li.more {
+  margin: 5px auto;
+}
+

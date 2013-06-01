@@ -1383,6 +1383,10 @@ class Message(Model):
   @property
   def timestamp(self):
     return self.info.get('ts', 0) + self.utcoffset
+  
+  @property
+  def _ts(self):
+    return self.info.get('_ts')
     
   @property
   def date(self):
@@ -1412,6 +1416,9 @@ class Message(Model):
   
   def is_auto_generated(self):
     return self.info.get('auto_generated')
+  
+  def is_first_message(self):
+    return self.info.get('is_first_message')
     
 
 class Topic(Model):

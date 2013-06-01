@@ -175,6 +175,11 @@ div.chatbox div.header i.offline {
   background: transparent;
 }
 
+.chatbox li.more {
+  text-align: center;
+  color: #999;
+}
+
 .chatbox div.status {
   position: absolute;
   bottom: 31px;
@@ -201,6 +206,8 @@ div.chatbox div.header i.offline {
 .chatbox.minimize .header .upload-icon {
   display: none;
 }
+
+
 
 
 @-moz-keyframes bgflash {

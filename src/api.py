@@ -5992,7 +5992,7 @@ def get_last_message(topic_id, db_name=None):
   if msg:
     return list(msg)[0]
 
-def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=None):
+def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -6007,23 +6007,32 @@ def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=No
   if user_id:
     user_id = int(user_id)
   
-    records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
-                                       {'from': user_id, 'to': owner_id}]})\
-                        .sort('ts', -1)\
-                        .limit(50)
+    query = {'$or': [{'from': owner_id, 'to': user_id},
+                     {'from': user_id, 'to': owner_id}]}
+    
   else:
     topic_id = int(topic_id)
     
     if topic_id not in get_topic_ids(owner_id, db_name=db_name):
       return False
     
-    records = db.message.find({'topic': topic_id})\
-                        .sort('ts', -1)\
-                        .limit(50)
+    query = {'topic': topic_id}
     
-  last_viewed = get_last_viewed(owner_id, user_id, topic_id, db_name)
+    
+  if timestamp:
+    query['ts'] = {'$lt': float(timestamp)}
+    
+  
+  records = db.message.find(query)\
+                      .sort('ts', -1)\
+                      .limit(50)
+    
   records = list(records)
   records.reverse()
+  if records and len(records) < 50:
+    records[0]['is_first_message'] = True
+  
+  last_viewed = get_last_viewed(owner_id, user_id, topic_id, db_name)
   
   messages = []
   last_msg = None
@@ -6049,6 +6058,7 @@ def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=No
         messages.append(last_msg)
       last_msg = record
       last_msg['msg_ids'] = [record['_id']]
+      last_msg['_ts'] = record['ts']
       
       if is_snowflake_id(msg):
         attachment = get_attachment_info(msg, db_name=db_name)

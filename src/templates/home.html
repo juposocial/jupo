@@ -168,6 +168,8 @@
         {% include "new.html" %}
       {% elif view == 'feed'%}
         {% include 'news_feed.html' %}
+      {% elif view == 'messages'%}
+        {% include 'expanded_chatbox.html' %}
       {% else %}
         {% set template = view + '.html' %}
         {% include template %}

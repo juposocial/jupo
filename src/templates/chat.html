@@ -1,59 +1,45 @@
-      <div class="header" title='Toggle Minimize'>
-        <a href="#" class="close-icon close" title="Close Chat" data-chat-id='{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'></a>
-        <a id='chatbox-pick-file' class='rfloat' title='Select a file {% if user %}to send to {{ user.name }}{% endif %}'><i class='upload-icon'></i><span>Upload File...</span></a>
-        <div id="chatbox-file-container">
-          <div id="chatbox-filelist"></div>
-        </div>  
-        
-        {% if user %}
-          <i class='{{ user.status }} user-{{ user.id }}-status'></i>
-          <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
-        {% else %}
-          <div contenteditable="true" title='Set Topic...' onclick="document.execCommand('selectAll', false, null)" data-url='/chat/topic/{{ topic.id }}/update' data-topic-id='{{ topic.id }}'>
-            {% if topic.name %}
-              {{ topic.name }}
-            {% else %}
-            
-              {% set members = topic.members | exclude(owner.id) %}
-              {% for member in members %}
-                <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.members | length - 1) %}, {% endif %}
-              {% endfor %}
-            {% endif %}
-            
-            &nbsp;
 
-          </div>
-        {% endif %}
-      </div>
-      <ul class="messages">
-        {% set last_title = None %}
-        {% if messages %}
-          {% for message in messages %}
-            {% if message.date != last_title %}
-              <div class='title' title='{{ message.get_date(short=False) }}'>{{ message.date }}</div>
-              {% set last_title = message.date %}
-            {% endif %}
-            
-            {% include "message.html" %}
+  <div class="header" title='Toggle Minimize'>
+    <a href="#" class="close-icon close" title="Close Chat" data-chat-id='{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'></a>
+    <a id='chatbox-pick-file' class='rfloat' title='Select a file {% if user %}to send to {{ user.name }}{% endif %}'><i class='upload-icon'></i><span>Upload File...</span></a>
+    <div id="chatbox-file-container">
+      <div id="chatbox-filelist"></div>
+    </div>  
+    
+    {% if user %}
+      <i class='{{ user.status }} user-{{ user.id }}-status'></i>
+      <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
+    {% else %}
+      <div contenteditable="true" title='Set Topic...' onclick="document.execCommand('selectAll', false, null)" data-url='/chat/topic/{{ topic.id }}/update' data-topic-id='{{ topic.id }}'>
+        {% if topic.name %}
+          {{ topic.name }}
+        {% else %}
+        
+          {% set members = topic.members | exclude(owner.id) %}
+          {% for member in members %}
+            <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.members | length - 1) %}, {% endif %}
           {% endfor %}
         {% endif %}
-
-        {% if not messages or (messages and messages[-1].date != 'Today') %}
-          <div class='title' title='Today'>Today</div>
-        {% endif %}
         
-      </ul>
-      
-              
-      {% if seen_by %}
-        <div class="status">{{ seen_by }}</div>
-      {% else %}
-        <div class="status hidden"></div>
-      {% endif %}
+        &nbsp;
 
-      <form class='chat' action='/chat/{% if user %}user/{{ user.id }}{% else %}topic/{{ topic.id }}{% endif %}/new_message' method='post'>
-        <textarea class='mentions' placeholder='Write a message...' autofocus required></textarea>
-        <textarea class='hidden marked-up'
-                    name='message'></textarea>
-      </form>
+      </div>
+    {% endif %}
+  </div>
+
+  <ul class="messages">
+   {% include "messages.html" %}
+  </ul>
+  
+          
+  {% if seen_by %}
+    <div class="status">{{ seen_by }}</div>
+  {% else %}
+    <div class="status hidden"></div>
+  {% endif %}
+
+  <form class='chat' action='/chat/{% if user %}user/{{ user.id }}{% else %}topic/{{ topic.id }}{% endif %}/new_message' method='post'>
+    <textarea class='mentions' placeholder='Write a message...' autofocus required></textarea>
+    <textarea class='hidden marked-up' name='message'></textarea>
+  </form>
 

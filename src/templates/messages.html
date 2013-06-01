@@ -1,92 +1,29 @@
-
-
-
-<div class='messages'>
-  
-  
-  <div id="page-header">
-    
-          <div class="actions rfloat">
-              <a href="/contacts" class="popup button">+ New Message</a>
-          </div>
-          <div class='title'>Messages</div>
-    
-  </div> 
-
-  
-  {% if topics[0].sender.id == owner.id %}
-    {% set user = topics[0].receiver %}
-  {% elif topics[0].receiver.id == owner.id %}
-    {% set user = topics[0].sender %}
-  {% else %}
-    {% set user = None %}
+{% if messages %}
+  {% if not messages[0].is_first_message() %}
+  <li class="message more">
+    <a href='/chat/{% if user %}user/{{ user.id }}{% else %}topic/{{ topic.id }}{% endif %}?ts={{ "%0.6f" % messages[0]._ts }}' class='more'>Load Earlier Messages</a>
+  </li>
   {% endif %}
   
-  <div class='chatbox'>
-    <div class='empty'>
-      No Conversation Selected
-      <div><a class='popup' href="/contacts">New Message</a> · <a>Show Unread</a></div>
-    </div>
-  </div>
-  
-  <ul class='topics'>
-    {% for message in topics %}
-      {% if message.topic_id %}
-        {% set user = message.sender %}
-      {% elif message.sender.id == owner.id %}
-        {% set user = message.receiver %}
-      {% else %}
-        {% set user = message.sender %}
+  {% set last_title = None %}
+  {% if messages %}
+    {% for message in messages %}
+      {% if message.date != last_title %}
+        <div class='title' title='{{ message.get_date(short=False) }}'>{% if message.is_first_message() %}Conversation started {% endif %}{{ message.date }}</div>
+        {% set last_title = message.date %}
       {% endif %}
-      <li>
-        <a href='/chat/{% if message.topic_id %}topic/{{ message.topic_id }}{% else %}user/{{ user.id }}{% endif %}' class='chat {% if message.is_unread() %}unread{% endif %} {% if message.topic_id %}topic-{{ message.topic_id }}{% else %}user-{{ user.id }}{% endif %}'>
-          
-          <div class="ts rfloat">
-            {% set ts = message.timestamp | friendly_format(short=True) %}
-            {% set parts = ts.split(' at ') %}
-            
-            {% if parts[0] == 'Today' %}
-              {{ parts[1] }}
-            {% else %}
-              {{ parts[0] }}
-            {% endif %}
-          </div>
-          
-          <div class='unread-messages {% if message.unread_count <= 0 %}hidden{% endif %}'>{{ message.unread_count }}</div>
-          <img class='small-avatar lfloat' src='{{ user.avatar }}' />
-          <div class='title'>
-            {% if message.topic_id %}
-              {% if message.topic.name %}
-                {{ message.topic.name }}
-              {% else %}
-                {% set receivers = message.receivers | exclude(owner.id) %}
-                {% for member in receivers %}
-                    {{ member.name }}{% if loop.index < receivers | length %}, {% endif %}
-                {% endfor %}
-              {% endif %}
-            {% else %}
-              {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status' title='{{ user.last_online | friendly_format(owner.utcoffset) }}' ></i>
-            {% endif %}
-          </div>
-  
-          
-          <div class='message'>
-            
-            {% if message.sender.id == owner.id %}
-              <i class='msg-reply-icon'></i>
-            {% endif %}
-            
-            {% if message.is_file() %}
-              {% set attachment = message.content %}
-              {{ attachment.name }} ({{ attachment.size }})
-            {% else %}
-              {{ message.content | clean | autoemoticon | safe }}
-            {% endif %}
-          </div>
-        </a>
-      </li>
-    
+      
+      {% include "message.html" %}
     {% endfor %}
-  </ul>
-</div>
-
+  {% endif %}
+  
+  {% if not timestamp %} 
+    {% if not messages or (messages and messages[-1].date != 'Today') %}
+      <div class='title' title='Today'>Today</div>
+    {% endif %}
+  {% endif %}
+{% else %}
+  <li class="message more">
+    There are no more messages to show.
+  </li>
+{% endif %}
