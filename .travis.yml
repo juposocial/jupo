@@ -14,7 +14,7 @@ services:
   - elasticsearch
 
 before_install:
-  - sh install.sh
+  - sh install.sh 
 install:
   - sudo pip install -r requirements.txt
 
@@ -27,8 +27,7 @@ before_script:
   - sudo cp src/settings.example.py src/settings.py
 
 script:
-  - source ~/virtualenv/python2.7/bin/activate
   - sudo supervisord -c conf/supervisord.dev.conf
-  - sleep 60
+  - sleep 15
   - sudo supervisorctl -c conf/supervisord.conf tail smtpd
   - sudo supervisorctl -c conf/supervisord.conf tail snowflake
