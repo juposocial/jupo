@@ -28,6 +28,5 @@ before_script:
 
 script:
   - sudo ~/virtualenv/python2.7/bin/supervisord -c conf/supervisord.dev.conf
-  - sleep 15
-  - sudo ~/virtualenv/python2.7/bin/supervisorctl -c conf/supervisord.conf tail smtpd
-  - sudo ~/virtualenv/python2.7/bin/ssupervisorctl -c conf/supervisord.conf tail snowflake
+  - sleep 5
+  - sudo ~/virtualenv/python2.7/bin/supervisorctl -c conf/supervisord.conf
