@@ -16,7 +16,7 @@ services:
 before_install:
   - sh install.sh 
 install:
-  - sudo pip install -r requirements.txt
+  - pip install -r requirements.txt
 
 before_script:
   - ls ~/virtualenv/python2.7/bin
