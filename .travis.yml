@@ -21,7 +21,7 @@ install:
 before_script:
 
   - ls ~/virtualenv/python2.7/bin
-  - pip install rqworker
+  - pip install rq
   - pip install gunicorn
   - sudo mkdir /var/log/jupo
   - sudo mkdir /home/Workspace
