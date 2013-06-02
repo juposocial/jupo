@@ -27,6 +27,7 @@ before_script:
   - sudo cp src/settings.example.py src/settings.py
 
 script:
+  - deactivate
   - sudo supervisord -c conf/supervisord.dev.conf
   - sleep 15
   - sudo supervisorctl -c conf/supervisord.conf tail smtpd
