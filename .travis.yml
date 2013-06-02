@@ -16,13 +16,10 @@ services:
 before_install:
   - sh install.sh 
 install:
-  - pip install -r requirements.txt
+  - pip install -r requirements.txt --use-mirrors
 
 before_script:
-
   - ls ~/virtualenv/python2.7/bin
-  - pip install rq
-  - pip install gunicorn
   - sudo mkdir /var/log/jupo
   - sudo mkdir /home/Workspace
   - sudo mv ../jupo /home/Workspace/
