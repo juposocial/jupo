@@ -20,15 +20,18 @@
   <div class="content">
     {% if message.is_file() %}
       {% set attachment = message.content %}
+      <a href='/attachment/{{ attachment.id }}' target='_blank' title="{{ attachment.name }} ({{ attachment.size }})" {% if not attachment.mimetype.startswith('image/') %}download='{{ attachment.name }}'{% endif %}>{{ attachment.name }} ({{ attachment.size }})</a>
+      
+      <a class='image-expander'>...</a>
+      
       {% if attachment.mimetype.startswith('image/') %}
-        <div>
-          <a href='/attachment/{{ attachment.id }}' target="_blank">
+        
+        <div class='hidden'>
+          <a href='/attachment/{{ attachment.id }}' target="_blank" title='{{ attachment.name }} ({{ attachment.size }})'>
             <img src='/attachment/{{ attachment.id }}'>
           </a>
         </div>
       {% endif %}
-      
-      <a href='/attachment/{{ attachment.id }}' target='_blank' title="{{ attachment.name }} ({{ attachment.size }})" {% if not attachment.mimetype.startswith('image/') %}download='{{ attachment.name }}'{% endif %}>{{ attachment.name }} ({{ attachment.size }})</a>
     {% elif "a href='/attachment/" in message.content or 'pre class="prettyprint"' in message.content %}
       {{ message.content | safe }}
     

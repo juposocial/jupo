@@ -6049,18 +6049,23 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
     
       if is_snowflake_id(msg):
         attachment = get_attachment_info(msg, db_name=db_name)
-        msg = ''
-        if attachment.mimetype.startswith('image/'):
-          msg = '''<div><a href='/attachment/%s' target="_blank"><img src='/attachment/%s'></a></div>''' % (attachment.id, attachment.id)
           
-        msg += "<a href='/attachment/%s' target='_blank' title='%s (%s)' %s>%s (%s)</a>"\
+        msg = "<a href='/attachment/%s' target='_blank' title='%s (%s)' %s>%s (%s)</a>"\
             % (attachment.id, attachment.name, attachment.size, 
                '' if attachment.mimetype.startswith('image/') else "download='%s'" % attachment.name,
                attachment.name, attachment.size)
+        if attachment.mimetype.startswith('image/'):
+          msg += '''<a class='image-expander'>...</a>
+          <div class='hidden'><a href='/attachment/%s' target="_blank" title='%s (%s)'><img src='/attachment/%s'></a></div>''' \
+          % (attachment.id, attachment.name, attachment.size, attachment.id)
+          
       elif record.get('codeblock'):
         msg = '<pre class="prettyprint">%s</pre>' % msg
       
-      last_msg['text'] += '\n' + msg
+      if '</' in msg or '</' in last_msg['text']:
+        last_msg['text'] += '<br>' + msg
+      else:
+        last_msg['text'] += '\n' + msg
       last_msg['ts'] = record.get('ts')
       last_msg['msg_ids'].append(record.get('_id'))
     else:
@@ -6073,16 +6078,16 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
       if is_snowflake_id(msg):
         attachment = get_attachment_info(msg, db_name=db_name)
         
-        last_msg['text'] = ''
-        if attachment.mimetype.startswith('image/'):
-          last_msg['text'] = '''<div><a href='/attachment/%s' target="_blank"><img src='/attachment/%s'></a></div>''' % (attachment.id, attachment.id)
-        
-        
-        last_msg['text'] += "<a href='/attachment/%s' target='_blank' title='%s (%s)' %s>%s (%s)</a>"\
+        last_msg['text'] = "<a href='/attachment/%s' target='_blank' title='%s (%s)' %s>%s (%s)</a>"\
             % (attachment.id, attachment.name, attachment.size, 
                '' if attachment.mimetype.startswith('image/') else "download='%s'" % attachment.name,
                attachment.name, attachment.size)
             
+        if attachment.mimetype.startswith('image/'):
+          last_msg['text'] += '''<a class='image-expander'>...</a>
+          <div class='hidden'><a href='/attachment/%s' target="_blank" title='%s (%s)'><img src='/attachment/%s'></a></div>''' \
+          % (attachment.id, attachment.name, attachment.size, attachment.id)
+      
       elif record.get('codeblock'):
         last_msg['text'] = '<pre class="prettyprint">%s</pre>' % msg
       

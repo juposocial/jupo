@@ -7342,11 +7342,11 @@ div.messages div.chatbox ul.messages li.message {
   line-height: 20px;
 }
 
-div.messages div.chatbox ul.messages li.message:nth-child(even) {
+/*div.messages div.chatbox ul.messages li.message:nth-child(even) {
   background: whitesmoke;
   border-top: 1px solid #f1f1f1;
   border-bottom: 1px solid #f1f1f1;
-}
+}*/
 
 div.messages div.ts {
   padding: 1px 7px 0px 10px !important;
@@ -7378,6 +7378,39 @@ div.messages div.chatbox ul.messages div.content div a img {
   display: inline-block;
   width: 300px;
 }
+
+div.chatbox ul.messages div.content .image-expander {
+  color: #333;
+  background: #ddd;
+  padding: 0 5px;
+  vertical-align: middle;
+  font-weight: bold;
+  font-size: 12px;
+  height: 11px;
+  display: inline-block;
+  border-radius: 1px;
+  text-decoration: none;
+  line-height: 6px;
+  font-family: Helvetica, arial, freesans, clean, sans-serif;
+  letter-spacing: 1px;
+  margin-left: 5px;
+  margin-top: -2px;
+}
+
+
+div.chatbox ul.messages div.content .image-expander:active {
+  background-color: #dedede;
+}
+
+div.chatbox ul.messages div.content .image-expander:active {
+  background-color: #4183C4;
+  text-shadow: none;
+}
+
+div.chatbox ul.messages div.content .image-expander + div:not(.hidden) + br {
+  display: none;
+}
+  
 
 div.messages div.chatbox ul.messages div.title {
   text-align: center;

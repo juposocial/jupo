@@ -163,13 +163,19 @@ div.fixed {
 }
 
 #chat .chatbox .message .content div a img {
-  display: none;
+  width: 125px;
+  border: 1px solid #ccc;
+}
+
+#chat .chatbox .message .content a.image-expander {
+  float: left;
+  margin-top: 2px;
 }
 
 #chat .chatbox .message .content a[target='_blank'] {
   float: left;
   display: block;
-  width: 200px;
+  max-width: 150px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

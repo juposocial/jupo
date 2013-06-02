@@ -2122,6 +2122,11 @@ $(document).ready(function(e) {
     toggle_chatbox(chatbox_id);
   })
   
+  $('#chat, #body').on('click', '.chatbox .message a.image-expander', function(e) {
+    $(this).next().toggleClass('hidden');
+    return false;
+  })
+  
   
   $('#chat, #body').on('click', '.chatbox li.more a', function(e) {
     var _this = $(this);
@@ -2135,7 +2140,16 @@ $(document).ready(function(e) {
         url: _this.attr('href'),
         type: 'GET',
         success: function(html){ 
+          last = $('#' + chatbox_id + ' ul.messages .message:not(.more):first');
+          prev_offset = last.offset().top;
+          
           $('#' + chatbox_id + ' li.more').replaceWith(html);
+          
+          setTimeout(function() {
+            new_offset = last.offset().top;
+            $('#' + chatbox_id + ' ul.messages').scrollTop(new_offset - prev_offset);
+          }, 0)
+          
           $('#' + chatbox_id + " .messages li.message a.async").tipsy({
             gravity: 'e'
           });
