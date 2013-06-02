@@ -28,8 +28,6 @@ before_script:
   - sudo mv ../jupo /home/Workspace/
   - cd /home/Workspace/jupo
   - sudo cp src/settings.example.py src/settings.py
-
-
 script:
   - sudo ~/virtualenv/python2.7/bin/supervisord -c conf/supervisord.dev.conf
   - sleep 5
