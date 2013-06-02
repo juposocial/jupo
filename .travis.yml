@@ -21,7 +21,6 @@ install:
 before_script:
   - ls ~/virtualenv/python2.7/bin
   - sudo mkdir /var/log/jupo
-  - cd jupo
   - cp src/settings.example.py src/settings.py
 script:
   - sudo ~/virtualenv/python2.7/bin/supervisord -c conf/supervisord.dev.conf
