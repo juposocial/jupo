@@ -20,6 +20,8 @@ install:
   - pip install -r requirements.txt --use-mirrors
 
 before_script:
+  - pip install rq
+  - pip install gunicorn
   - ls ~/virtualenv/python2.7/bin
   - sudo mkdir /var/log/jupo
   - cp src/settings.example.py src/settings.py
