@@ -1144,6 +1144,9 @@ function stream() {
       // Update user status led
       if (user.status.indexOf('|') == -1) {
         $('.user-' + user.id + '-status').removeClass('online offline away').addClass(user.status);
+        if (window.location.pathname == '/messages') {
+          $('div.messages .chatbox div.header .user-info i.user-' + user.id + '-status').text(user.status);
+        }
       }
       
       if ((element.length == 0 && user.status == 'online') || user.status == 'offline') {

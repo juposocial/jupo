@@ -7173,8 +7173,7 @@ div.messages div.chatbox .header .user-info .name {
   margin-top: -9px;
 }
 div.messages div.chatbox .header .user-info .info {
-  margin-top: -19px;
-  margin-left: 39px;
+  margin-top: -15px;
 }
 
 div.messages div.chatbox div.header div.user-info > i.online,
@@ -7187,6 +7186,10 @@ div.messages div.chatbox div.header div.user-info .info i.online,
 div.messages div.chatbox div.header div.user-info .info i.away,
 div.messages div.chatbox div.header div.user-info .info i.offline {
   margin: -1px -3px;
+  font-style: normal;
+  text-indent: 16px;
+  line-height: 16px;
+  text-transform: capitalize;
 }
 
 div.messages i.group-icon {
@@ -7339,11 +7342,10 @@ div.messages .header div[contenteditable=true] {
 }
 
 div.messages .header .info {
-  font-weight: normal;
   float: left;
   margin-top: -10px;
   color: gray;
-  text-transform: capitalize;
+  font-weight: normal;
 }
 
 div.messages div.chatbox ul.messages li.message {

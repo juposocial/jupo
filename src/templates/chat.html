@@ -12,7 +12,7 @@
         <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
         <i class='{{ user.status }} user-{{ user.id }}-status'></i>
         <br>
-        <span class='info' title='{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}'><i class='{{ user.status }} user-{{ user.id }}-status'></i> {{ user.status }}</span>
+        <span class='info' title='{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}'><i class='{{ user.status }} user-{{ user.id }}-status'>{{ user.status }}</i></span>
       </div>
     {% else %}
       {% set members = topic.members | exclude(owner.id) %}
