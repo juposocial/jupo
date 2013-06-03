@@ -21,12 +21,12 @@
       <div contenteditable="true" title='Set Topic...' onclick="document.execCommand('selectAll', false, null)" data-url='/chat/topic/{{ topic.id }}/update' data-topic-id='{{ topic.id }}'>
         {% if topic.name %}
         
-          {{ topic.name }}
+          <span title='{% for member in members %}{{ member.name }}{% if loop.index < (topic.member_ids | length - 1) %}, {% endif %}{% endfor %}'>{{ topic.name }}</span>
           
         {% else %}
         
           {% for member in members %}
-            <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.members | length - 1) %}, {% endif %}
+            <a href='/chat/user/{{ member.id }}' class='chat name'>{{ member.name }}</a>{% if loop.index < (topic.member_ids | length - 1) %}, {% endif %}
           {% endfor %}
           
         {% endif %}

@@ -151,6 +151,10 @@ function start_chat(chat_id) {
       // highlight code snippets
       prettyPrint()
       
+      $('#chat-' + chat_id + " div[contenteditable] span").tipsy({
+        gravity: 's'
+      });
+      
       $('#chat-' + chat_id + " .messages li.message a.async").tipsy({
         gravity: 'e'
       });
