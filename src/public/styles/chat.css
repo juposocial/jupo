@@ -50,7 +50,11 @@ div.fixed {
 }
 
 #chat div.chatbox div.header div[contenteditable] {
-  display: inline;
+  display: inline-block;
+  white-space: nowrap;
+  width: 165px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #chat div.chatbox div.header .info {

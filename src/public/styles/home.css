@@ -7332,6 +7332,10 @@ div.messages .header div[contenteditable=true] {
   margin-top: -4px;
   font-size: 12px;
   line-height: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 290px;
+  white-space: nowrap;
 }
 
 div.messages .header .info {
