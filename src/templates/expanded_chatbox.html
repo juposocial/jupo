@@ -14,9 +14,9 @@
   </div> 
 
   
-  {% if topics[0].sender.id == owner.id %}
+  {% if topics and topics[0].sender.id == owner.id %}
     {% set user = topics[0].receiver %}
-  {% elif topics[0].receiver.id == owner.id %}
+  {% elif topics and topics[0].receiver.id == owner.id %}
     {% set user = topics[0].sender %}
   {% else %}
     {% set user = None %}

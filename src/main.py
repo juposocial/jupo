@@ -2057,9 +2057,6 @@ def chat(topic_id=None, user_id=None, action=None):
             if messages[-1].timestamp < ts:
               seen_by.append(i)
         
-        app.logger.debug(seen_by)
-        app.logger.debug(last_viewed)
-        app.logger.debug(messages[-1].timestamp)
         if seen_by:
           if len(seen_by) >= len(topic.member_ids):
             seen_by = 'Seen by everyone.'
