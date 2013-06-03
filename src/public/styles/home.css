@@ -7188,14 +7188,18 @@ div.messages div.chatbox div.header div.user-info .info i.offline {
   margin: -1px -3px;
 }
 
-div.messages div.chatbox div.header i.group-icon {
+div.messages i.group-icon {
   float: left;
-  margin: -3px 8px 0 0;
+  margin: 0 8px 0 0;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 8px;
+  padding: 9px;
   background-position: center;
   border-radius: 100px;
-  background-color: whitesmoke;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+div.messages div.chatbox div.header i.group-icon {
+  margin-top: -4px;
 }
 
 div.messages div.chatbox div.header div.user-info {
