@@ -2299,11 +2299,12 @@ $(document).ready(function(e) {
             }, 10)
           }
           
-          var chat_id = _boxchat.attr('id').replace('chat-', 'chat.');
+          var chat_id = _boxchat.attr('id').replace('chat-', '');
           var message = $('.content', msg).text();
           message = '<i class="msg-reply-icon"></i>' + message;
           
-          $('ul.topics a.' + chat_id + ' div.message').html(message);
+          $('ul.topics a.chat.' + chat_id + ' div.message').html(message);
+          $('ul.topics a.chat.' + chat_id + ' div.ts').html($('div.ts', msg).text());
           
           // highlight code snippets
           prettyPrint()

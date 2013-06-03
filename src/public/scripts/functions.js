@@ -46,6 +46,65 @@ function close_chat(chat_id) {
   
 }
 
+function add_to_sidebar(chat_id) {
+  var chatbox = $('#chat-' + chat_id);
+  if (chatbox.length == 0) {
+    $.ajax({
+      url: '/chat/' + chat_id.replace('-', '/'),
+      type: 'GET',
+      async: false,
+      success: function(html){ 
+        chatbox = $(html);
+      }
+    })
+  }
+  
+  if ($('.user-info', chatbox).length != 0) {
+    var avatar = $('img.small-avatar', chatbox).attr('src');
+    var name = $('.user-info .name', chatbox).text();
+    var status = $('.user-info i.' + chat_id + '-status', chatbox).attr('class');
+    var last_msg = $('ul.messages li.message:last', chatbox);
+    if (last_msg.length == 0) {
+      var ts = '';
+      var message = '';
+    } else {
+      var ts = $('div.ts', last_msg).text();
+      var message = $('div.content', last_msg).text();
+    }
+    
+    code = '<a href="/chat/' + chat_id.replace('-', '/') + '" class="selected chat ' + chat_id + '">'
+    code += '<div class="ts rfloat">' + ts + '</div>';
+    code += '<div class="unread-messages hidden">0</div>';
+    code += '<img class="small-avatar lfloat" src="' + avatar + '">';
+    code += '<div class="title">' + name + ' <i class="' + status + '" title=""></i></div>';
+    code += '<div class="message">' + message + '</div>';
+    code += '</a>';
+     
+    $('ul.topics').prepend('<li>' + code + '</li>');
+  } else {
+    var name = $('div[contenteditable]', chatbox).text();
+    var last_msg = $('ul.messages li.message:last', chatbox);
+    if (last_msg.length == 0) {
+      var ts = '';
+      var message = '';
+    } else {
+      var ts = $('div.ts', last_msg).text();
+      var message = $('div.content', last_msg).text();
+    }
+    
+    code = '<a href="/chat/' + chat_id.replace('-', '/') + '" class="selected chat ' + chat_id + '">'
+    code += '<div class="ts rfloat">' + ts + '</div>';
+    code += '<div class="unread-messages hidden">0</div>';
+    code += '<i class="group-icon"></i>';
+    code += '<div class="title">' + name + '</div>';
+    code += '<div class="message">' + message + '</div>';
+    code += '</a>';
+     
+    $('ul.topics').prepend('<li>' + code + '</li>');
+    
+  }
+}
+
     
 function start_chat(chat_id) {
   if (window.location.pathname != '/messages') {
@@ -67,9 +126,11 @@ function start_chat(chat_id) {
     close_chat(chat_id);
     
     $('ul.topics a.selected').removeClass('selected');
-    $('ul.topics a.' + chat_id).addClass('selected');
     
-    $('ul.topics a.' + chat_id + ' div.unread-messages').html('0').hide();
+    if ($('ul.topics a.' + chat_id).length > 0) {
+      $('ul.topics a.' + chat_id).addClass('selected');
+      $('ul.topics a.' + chat_id + ' div.unread-messages').html('0').hide();
+    }
   }
   
   
@@ -174,6 +235,12 @@ function start_chat(chat_id) {
       setTimeout(function() {
         $('#chat-' + chat_id + ' textarea.mentions').focus();
       }, 50)
+      
+      // Right sidebar link
+      if ($('ul.topics a.' + chat_id).length == 0) {
+        add_to_sidebar(chat_id);
+      }
+      
       
       
       // Send File
@@ -1592,6 +1659,13 @@ function stream() {
           setTimeout(function() {
             $('.messages', boxchat).scrollTop(99999);
           }, 10)  
+          
+          var new_group_chat_link = $('a.chat[href^="/chat/topic/"]', msg);
+          if (new_group_chat_link.length == 1) {
+            var topic_id = new_group_chat_link.attr('href').split('/topic/')[1];
+            start_chat('topic-' + topic_id);
+          }
+          
         }
         
         $('div.status', boxchat).fadeOut('fast');
@@ -1615,7 +1689,12 @@ function stream() {
         }
         
         $('ul.topics a.chat.' + chat_id + ' div.message').html(message);
+        $('ul.topics a.chat.' + chat_id + ' div.ts').html($('div.ts', msg).text());
+        
         if (sender_id != owner_id) {
+          if ($('ul.topics a.chat.' + chat_id).length == 0) {
+            add_to_sidebar(chat_id);
+          }
           incr('ul.topics a.chat.' + chat_id + ' div.unread-messages');
           
           $('ul.topics').scrollTop(0);
