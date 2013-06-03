@@ -2063,8 +2063,13 @@ def chat(topic_id=None, user_id=None, action=None):
         if seen_by:
           if len(seen_by) >= len(topic.member_ids):
             seen_by = 'Seen by everyone.'
+          elif len(seen_by) == 1 and seen_by[0] == owner_id:
+            seen_by = None
           else:
-            seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name for i in seen_by])
+            seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name \
+                                                for i in seen_by \
+                                                if i != owner_id])
+            
     
     if timestamp:
       return render_template('messages.html', 

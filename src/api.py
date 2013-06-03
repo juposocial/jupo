@@ -5966,14 +5966,18 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
         seen_by.append(user_id)
       
     if len(seen_by) == len(topic.member_ids):
-      text = 'Seen by everyone'
+      seen_by_everyone = True
     else:
-      text = 'Seen by %s' % (', '.join([get_user_info(i).name for i in seen_by]))
-    
-    info['html'] = text
-    
+      seen_by_everyone = False
+      seen_by = [get_user_info(i) for i in seen_by]
+      
     for user_id in topic.member_ids:
       if user_id != owner_id:
+        if seen_by_everyone:
+          info['html'] = 'Seen by everyone'
+        else:
+          info['html'] = 'Seen by %s' % (', '.join([i.name for i in seen_by \
+                                                    if i.id != user_id]))
         push_queue.enqueue(publish, user_id, 
                            event_type='seen-by', 
                            info=info, 
