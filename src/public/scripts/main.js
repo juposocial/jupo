@@ -2138,7 +2138,7 @@ $(document).ready(function(e) {
       
       $.ajax({
         url: _this.attr('href'),
-        type: 'GET',
+        type: 'OPTIONS',
         success: function(html){ 
           last = $('#' + chatbox_id + ' ul.messages .message:not(.more):first');
           prev_offset = last.offset().top;
