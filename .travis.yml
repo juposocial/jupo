@@ -23,6 +23,8 @@ before_script:
   - ls ~/virtualenv/python2.7/bin
   - mkdir -p ~/log/jupo
   - cp src/settings.example.py src/settings.py
+  - sudo mkdir /var/log/jupo
+  - cd src
 script:
   - nohup python flake.py --worker_id=0 --port=2300 > ~/log/jupo/flake.log &
   - sleep 1
