@@ -20,12 +20,16 @@ install:
   - pip install -r requirements.txt --use-mirrors
 
 before_script:
-  - pip install rq
-  - pip install gunicorn
   - ls ~/virtualenv/python2.7/bin
-  - sudo mkdir /var/log/jupo
+  - mkdir -p ~/log/jupo
   - cp src/settings.example.py src/settings.py
 script:
-  - ~/virtualenv/python2.7/bin/supervisord -c conf/supervisord.dev.conf
-  - sleep 5
-  - ~/virtualenv/python2.7/bin/supervisorctl -c conf/supervisord.conf
+  - nohup python flake.py --worker_id=0 --port=2300 > ~/log/jupo/flake.log &
+  - sleep 1
+  - nohup gunicorn -k tornado -w 4 --max-requests 1000 -b 0.0.0.0:9000 main:app > ~/log/jupo/gunicorn.log &
+  - sleep 1  
+  - nohup sudo nginx -c /home/travis/build/thomph/jupo/conf/nginx.min.conf > ~/log/jupo/nginx.log &
+  - sleep 1
+  - nohup rqworker push notification send_mail index invite urls move_to_s3 > ~/log/jupo/rqworker.log &
+  - sleep 1
+  - nohup sudo python mail_server.py > ~/log/jupo/mail_server.log &
