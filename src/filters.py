@@ -775,7 +775,7 @@ def sanitize_html(value):
   re_scripts = re.compile('(%s)|(%s)' % (rjs, rvb), re.IGNORECASE)
 #  validTags = 'p i strong b u a h1 h2 h3 h4 pre br img ul ol li blockquote em code hr'.split()
   validTags = 'a abbr b blockquote code del ins dd dl dt em h2 h3 h4 i img kbd li ol p pre s small sup sub strong strike table tbody th tr td ul br hr div span'.split()
-  validAttrs = 'src width height alt title class href'.split()
+  validAttrs = 'src width height alt title class href target'.split()
   urlAttrs = 'href title'.split() # Attributes which should have a URL
   
   soup = BeautifulSoup(value.decode('utf-8'))
