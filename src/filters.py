@@ -631,8 +631,7 @@ def clean(text):
 #  out = cache.get(key, namespace="filters")
 #  if out:
 #    return out
-  
-  mentions = re.findall('(@\[.*?\))', text)
+  mentions = re.findall('(@\[.*?]\(.*?\))', text)
   if mentions:
     for mention in mentions:
       if '](topic:' in mention:
