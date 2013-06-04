@@ -24,18 +24,14 @@
           </li>
           <li>
             <a>Mute Conversation</a>
-          </li>
-      {#
-      <a id='chatbox-pick-file' class='rfloat' title='Select a file {% if user %}to send to {{ user.name }}{% endif %}'><i class='upload-icon'></i><span>Upload File...</span></a>
-      <div id="chatbox-file-container">
-        <div id="chatbox-filelist"></div>
-      </div>
-      #}  
+          </li>  
     </div>
     
     {% if user %}
       <div class='user-info'>
-        <img class='small-avatar' src='{{ user.avatar }}'>
+        <a href='/user/{{ user.id }}' class='async'>
+          <img class='small-avatar' src='{{ user.avatar }}'>
+        </a>
         <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
         <i class='{{ user.status }} user-{{ user.id }}-status'></i>
         <br>
@@ -43,8 +39,11 @@
       </div>
     {% else %}
       {% set members = topic.members | exclude(owner.id) %}
-          
-      <i class="group-icon"></i>
+      
+      <a href='/chat/topic/{{ topic.id }}/members' class='popup'>
+        <i class="group-icon"></i>
+      </a>
+      
       <div contenteditable="true" title='Set Topic...' onclick="document.execCommand('selectAll', false, null)" data-url='/chat/topic/{{ topic.id }}/update' data-topic-id='{{ topic.id }}'>
         {% if topic.name %}
         
