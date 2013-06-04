@@ -16,6 +16,7 @@ services:
 before_install:
   - pwd
   - sh install.sh 
+
 install:
   - pip install -r requirements.txt --use-mirrors
 
@@ -25,6 +26,7 @@ before_script:
   - cp src/settings.example.py src/settings.py
   - sudo mkdir /var/log/jupo
   - cd src
+
 script:
   - nohup python flake.py --worker_id=0 --port=2300 > ~/log/jupo/flake.log &
   - sleep 1
