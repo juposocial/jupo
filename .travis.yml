@@ -35,8 +35,11 @@ script:
   - nohup rqworker push notification send_mail index invite urls move_to_s3 > ~/log/jupo/rqworker.log &
   - sleep 1
   - nohup sudo python mail_server.py > ~/log/jupo/mail_server.log &
-  - tail -n 10 ~/log/jupo/flake.log
-  - tail -n 10 ~/log/jupo/gunicorn.log
-  - tail -n 10 ~/log/jupo/nginx.log
-  - tail -n 10 ~/log/jupo/rqworker.log
-  - tail -n 10 ~/log/jupo/mail_server.log
+  - ps aux|grep flake
+  - ps aux|grep gunicorn
+  - ps aux|grep nginx
+  - ps aux|grep rqworker
+  - ps aux|grep mail_server
+  - ps aux|grep memcache
+  - ps aux|grep mongodb
+  - ps aux|grep redis-server
