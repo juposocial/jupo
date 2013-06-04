@@ -2018,6 +2018,8 @@ def get_mentions(raw_text):
               .match(user)\
               .groupdict()
       tag['type'], tag['id'] = tag['id'].split(':', 1)
+      if tag['id'].isdigit():
+        tag['id'] = long(tag['id'])
       user_list.append(tag)
   return user_list
 
@@ -5650,7 +5652,8 @@ def strip_mentions(text):
   return out
   
 
-def new_message(session_id, message, user_id=None, topic_id=None, is_codeblock=False, is_auto_generated=False, db_name=None):
+def new_message(session_id, message, user_id=None, topic_id=None, 
+                is_codeblock=False, is_auto_generated=False, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5669,6 +5672,8 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_codeblock=F
     mentions = []
   else:
     mentions = get_mentions(str(message))
+    mentions = [i for i in mentions \
+                if i['id'] != owner_id and i['id'] != user_id]
   
   return_empty_html = False
   if user_id and mentions and topic_id is None:
