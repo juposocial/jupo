@@ -26,6 +26,6 @@ before_script:
   - sudo mkdir /var/log/jupo
   - cp src/settings.example.py src/settings.py
 script:
-  - sudo ~/virtualenv/python2.7/bin/supervisord -c conf/supervisord.dev.conf
+  - ~/virtualenv/python2.7/bin/supervisord -c conf/supervisord.dev.conf
   - sleep 5
-  - sudo ~/virtualenv/python2.7/bin/supervisorctl -c conf/supervisord.conf
+  - ~/virtualenv/python2.7/bin/supervisorctl -c conf/supervisord.conf
