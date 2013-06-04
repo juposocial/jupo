@@ -17,14 +17,19 @@
               </div>
           </li>
           <li>
-            <a>Add Friends to Chat...</a>
+            <a class='add-friends-to-chat'>Add Friends to Chat...</a>
           </li>
           <li class='see-full-conversation'>
             <a href='/messages/{% if user %}user/{{ user.id }}{% else %}topic/{{ topic.id }}{% endif %}' class='async' rel='messages'>See Full Conversation</a>
           </li>
+          {#
+          <li>
+            <a>Set Topic...</a>
+          </li>  
           <li>
             <a>Mute Conversation</a>
-          </li>  
+          </li>
+          #}  
     </div>
     
     {% if user %}

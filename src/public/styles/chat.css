@@ -189,6 +189,10 @@ div.fixed {
   text-overflow: ellipsis;
 }
 
+#chat div.chatbox .mentions-autocomplete-list {
+  bottom: 6px;
+}
+
 .chatbox form.gray-bg {
   background: #eee;
   color: #999;

@@ -2105,6 +2105,18 @@ $(document).ready(function(e) {
     
   })
   
+  $('#body, #chat').on('click', 'div.header a.add-friends-to-chat', function() {
+    
+    
+    var chatbox = $(this).parents('div.chatbox');
+    
+    $('html').trigger('click');
+    
+    $('form.chat textarea.mentions', chatbox).attr('placeholder', "Type a person's name, starts with @").focus();
+    
+    return false;
+
+  })
   
   $('#chat').on('click', 'div.header a.close', function() {
     
@@ -2262,7 +2274,7 @@ $(document).ready(function(e) {
 
         $('form', _boxchat).removeClass('gray-bg');
         $('textarea.mentions', _this).attr("readonly", false);
-        $('textarea.mentions', _this).val('').focus();
+        $('textarea.mentions', _this).attr('placeholder', "Write a message...").val('').focus();
         $("textarea.mentions", _this).css('height', "");
         
         $("textarea.mentions", _this).mentionsInput('reset');
