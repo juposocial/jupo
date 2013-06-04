@@ -2105,25 +2105,51 @@ $(document).ready(function(e) {
     
   })
   
-  $('#body, #chat').on('click', 'div.header a.add-friends-to-chat', function() {
-    
-    
-    var chatbox = $(this).parents('div.chatbox');
-    
-    $('html').trigger('click');
-    
-    $('form.chat textarea.mentions', chatbox).attr('placeholder', "Type a person's name, starts with @").focus();
-    
+  $('#body, #chat').on('click', 'div.chatbox div.header a.archive', function() {
+    var _this = $(this);
+    var chat_id = _this.parents('div.chatbox').attr('id').replace('chat-', '');
+    $.ajax({
+        url: _this.attr('href'),
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        success: function(html){ 
+          $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages/archived' class='async'>Show Archived</a></div></div>").removeAttr('id');
+          $('ul.topics a.chat.' + chat_id).parent().remove();
+        }
+    })
     return false;
-
+  })
+  
+  
+  $('#body, #chat').on('click', 'div.chatbox div.header a.unarchive', function() {
+    var _this = $(this);
+    var chat_id = _this.parents('div.chatbox').attr('id').replace('chat-', '');
+    $.ajax({
+        url: _this.attr('href'),
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        success: function(html){ 
+          $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages' class='async'>Show Inbox</a></div></div>").removeAttr('id');
+          $('ul.topics a.chat.' + chat_id).parent().remove();
+        }
+    })
+    return false;
+  })
+  
+  $('#body, #chat').on('click', 'div.header a.add-friends-to-chat', function() {
+    var chatbox = $(this).parents('div.chatbox');
+    $('html').trigger('click');
+    $('form.chat textarea.mentions', chatbox).attr('placeholder', "Type a person's name, starts with @").focus();
+    return false;
   })
   
   $('#chat').on('click', 'div.header a.close', function() {
-    
     var chat_id = $(this).attr('data-chat-id');
-    
     close_chat(chat_id);
-    
     return false;
 
   })

@@ -2091,20 +2091,36 @@ def chat(topic_id=None, user_id=None, action=None):
     
 
 @app.route("/messages", methods=['GET', 'OPTIONS'])
+@app.route("/messages/archived", methods=['GET', 'OPTIONS'])
 @app.route("/messages/user/<int:user_id>", methods=['GET', 'OPTIONS'])
 @app.route("/messages/topic/<int:topic_id>", methods=['GET', 'OPTIONS'])
+@app.route("/messages/topic/<int:topic_id>/<action>", methods=['POST'])
 @login_required
 @line_profile
-def messages(user_id=None, topic_id=None):
+def messages(user_id=None, topic_id=None, action=None):
   session_id = session.get("session_id")
-  owner = api.get_user_info(api.get_user_id(session_id))
-  suggested_friends = api.get_friend_suggestions(owner.to_dict())
-  coworkers = api.get_coworkers(session_id)
   
-  topics = api.get_messages(session_id)
+  if topic_id and request.method == 'POST':
+    if action == 'archive':
+      api.archive_topic(session_id, topic_id)
+    elif action == 'unarchive':
+      api.unarchive_topic(session_id, topic_id)
+    elif action == 'leave':
+      api.leave_topic(session_id, topic_id)
+      
+    return 'OK'
+    
+  
+  owner = api.get_user_info(api.get_user_id(session_id))
+  suggested_friends = [] # api.get_friend_suggestions(owner.to_dict())
+  coworkers = [] # api.get_coworkers(session_id)
+  
+  archived = True if request.path.endswith('/archived') else False
+  
+  topics = api.get_messages(session_id, archived=archived)
   
   unread_messages = {}
-  for i in api.get_unread_messages(session_id):
+  for i in api.get_unread_messages(session_id, archived=archived):
     if i and i.get('sender'):
       unread_messages[i['sender'].id] = i['unread_count']
     else:
@@ -2128,6 +2144,7 @@ def messages(user_id=None, topic_id=None):
                            coworkers=coworkers,
                            topics=topics, 
                            user_id=user_id, topic_id=topic_id,
+                           archived=archived,
                            view='messages')
   else:
     body = render_template('expanded_chatbox.html',
@@ -2135,6 +2152,7 @@ def messages(user_id=None, topic_id=None):
                            coworkers=coworkers,
                            topics=topics, 
                            user_id=user_id, topic_id=topic_id,
+                           archived=archived,
                            owner=owner)
     resp = Response(dumps({'body': body,
                            'title': 'Messages'}))

@@ -22,6 +22,19 @@
           <li class='see-full-conversation'>
             <a href='/messages/{% if user %}user/{{ user.id }}{% else %}topic/{{ topic.id }}{% endif %}' class='async' rel='messages'>See Full Conversation</a>
           </li>
+          
+          {% if topic %}
+          <li>
+            {% if owner.id in topic.archived_by %}
+            <a href='/messages/topic/{{ topic.id }}/unarchive' class='unarchive'>Unarchive</a>
+            {% else %}
+            <a href='/messages/topic/{{ topic.id }}/archive' class='archive'>Archive</a>
+            {% endif %}
+          </li> 
+          <li>
+            <a href='/messages/topic/{{ topic.id }}/leave' class='leave'>Leave Conversation...</a>
+          </li>
+          {% endif %}   
           {#
           <li>
             <a>Set Topic...</a>
