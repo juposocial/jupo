@@ -6100,7 +6100,8 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
   else:
     topic_id = int(topic_id)
     
-    if topic_id not in get_topic_ids(owner_id, db_name=db_name):
+    topic = get_topic_info(topic_id)
+    if owner_id not in topic.member_ids:
       return False
     
     query = {'topic': topic_id}
