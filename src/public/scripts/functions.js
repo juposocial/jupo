@@ -187,6 +187,8 @@ function start_chat(chat_id) {
           }
         });
         
+        $('#chat-' + chat_id + ' .header div[contenteditable]').attr('contenteditable', 'false').attr('title', '').attr('onclick', '');
+        
       } else {
         $('div.messages div.chatbox').html($('div.chatbox', $(html)).html());
         $('div.messages div.chatbox').attr('id', $('div.chatbox', $(html)).attr('id'));

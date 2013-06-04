@@ -40,9 +40,7 @@
     {% else %}
       {% set members = topic.members | exclude(owner.id) %}
       
-      <a href='/chat/topic/{{ topic.id }}/members' class='popup'>
-        <i class="group-icon"></i>
-      </a>
+      <a href='/chat/topic/{{ topic.id }}/members' class='popup'><i class="group-icon"></i></a>
       
       <div contenteditable="true" title='Set Topic...' onclick="document.execCommand('selectAll', false, null)" data-url='/chat/topic/{{ topic.id }}/update' data-topic-id='{{ topic.id }}'>
         {% if topic.name %}

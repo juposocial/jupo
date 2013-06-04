@@ -242,8 +242,13 @@ div.fixed {
   width: 235px;
 }
 
-.chatbox.minimize .header .upload-icon {
+.chatbox.minimize .header .options-icon,
+.chatbox.minimize .header .close-icon {
   display: none;
+}
+
+.chatbox.minimize:hover .close-icon {
+  display: inline-block;
 }
 
 
