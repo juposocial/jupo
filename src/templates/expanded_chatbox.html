@@ -95,3 +95,19 @@
   </ul>
 </div>
 
+{% if user_id %}
+  <script>
+    $(document).ready(function() {
+      start_chat('user-{{ user_id }}')
+    })
+  </script>
+{% elif topic_id %}
+  <script>
+  
+    $(document).ready(function() {
+      start_chat('topic-{{ topic_id }}')
+    })
+  </script>
+{% endif %}
+  
+

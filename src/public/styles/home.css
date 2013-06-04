@@ -7268,7 +7268,7 @@ ul.topics li a {
 ul.topics li a div.message {
   color: gray;
   white-space: nowrap;
-  width: 190px;
+  width: 175px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -7509,10 +7509,16 @@ div.messages div.chatbox li.more {
   margin: 5px auto;
 }
 
+div.messages div.chatbox div.header .dropdown-menu .see-full-conversation {
+  display: none;
+}
+
 div.chatbox div.header div.rfloat {
-  right: 7px;
+  right: 15px;
   position: absolute;
 }
+
+
 
 
 div.chatbox div.header .options-icon {

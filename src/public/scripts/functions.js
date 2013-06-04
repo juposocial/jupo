@@ -107,7 +107,7 @@ function add_to_sidebar(chat_id) {
 
     
 function start_chat(chat_id) {
-  if (window.location.pathname != '/messages') {
+  if (window.location.pathname.indexOf('/messages') == -1) {
     
     if (chat_id.indexOf('-') == -1) {
       return false;
@@ -139,7 +139,7 @@ function start_chat(chat_id) {
   show_loading();
   $.ajax({
     url: href,
-    type: 'GET',
+    type: 'OPTIONS',
     success: function(html){ 
       hide_loading();
       
@@ -154,7 +154,7 @@ function start_chat(chat_id) {
         localStorage['chats'] = chat_id;
       }
       
-      if (window.location.pathname != '/messages') {
+      if (window.location.pathname.indexOf('/messages') == -1) {
         $('#chat').prepend(html);
         
         var textbox = $('#chat-' + chat_id + ' form textarea.mentions');
@@ -1144,7 +1144,7 @@ function stream() {
       // Update user status led
       if (user.status.indexOf('|') == -1) {
         $('.user-' + user.id + '-status').removeClass('online offline away').addClass(user.status);
-        if (window.location.pathname == '/messages') {
+        if (window.location.pathname.indexOf('/messages') != -1) {
           $('div.messages .chatbox div.header .user-info i.user-' + user.id + '-status').text(user.status);
         }
       }
@@ -1631,9 +1631,9 @@ function stream() {
       }
       
       
-      if (window.location.pathname != '/messages' && $('#chat-' + chat_id).length == 0) {
+      if (window.location.pathname.indexOf('/messages') == -1 && $('#chat-' + chat_id).length == 0) {
         start_chat(chat_id);
-      } else if (window.location.pathname == '/messages' && $('ul.topics a.selected').length == 0) {
+      } else if (window.location.pathname.indexOf('/messages') != -1 && $('ul.topics a.selected').length == 0) {
         start_chat(chat_id);
       }
       
@@ -1685,7 +1685,7 @@ function stream() {
         
       } 
       
-      if (window.location.pathname == '/messages') {
+      if (window.location.pathname.indexOf('/messages') != -1) {
         var message = $('.content', msg).text();
         
         if (sender_id == owner_id) {
@@ -1774,10 +1774,14 @@ function open_in_async_mode(href, rel, data, f) {
 
       $("#left-sidebar .active").addClass("async");
       $("#left-sidebar .active").removeClass("active");
-      parent_id = '#' + rel;
+      parent_id = '#left-sidebar #' + rel;
       $(parent_id).html(resp.menu);
       $(parent_id).addClass("current");
       $(parent_id).removeClass("async");
+      
+      
+      $(parent_id + ' > a').addClass("active");
+
     }
     
 

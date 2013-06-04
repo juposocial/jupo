@@ -2018,7 +2018,7 @@ $(document).ready(function(e) {
     
     $('a.chat.' + chat_id).removeClass('unread');
     
-    if (window.location.pathname == '/messages') {
+    if (window.location.pathname.indexOf('/messages') != -1) {
       $('ul.topics a.chat.' + chat_id + ' div.unread-messages').html('0').hide();
     }
     
@@ -2079,7 +2079,7 @@ $(document).ready(function(e) {
         _this.removeClass('unread');
         $('a.chat.' + chat_id).removeClass('unread');
         
-        if (window.location.pathname == '/messages') {
+        if (window.location.pathname.indexOf('/messages') != -1) {
           $('ul.topics a.chat.' + chat_id + ' div.unread-messages').html('0').hide();
         }
         

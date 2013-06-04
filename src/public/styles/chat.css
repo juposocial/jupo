@@ -49,6 +49,10 @@ div.fixed {
   box-shadow: inset 0 1px rgba(255, 255, 255, .5);
 }
 
+#chat div.chatbox div.header div.rfloat {
+  right: 7px;
+}
+
 #chat div.chatbox div.header div[contenteditable] {
   display: inline-block;
   white-space: nowrap;

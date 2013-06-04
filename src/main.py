@@ -2019,6 +2019,14 @@ def chat(topic_id=None, user_id=None, action=None):
                     mimetype='application/json')  
     
   else:
+    if request.method == 'GET':
+      if user_id:
+        return redirect('/messages/user/%s' % user_id)
+      elif topic_id:
+        return redirect('/messages/topic/%s' % topic_id)
+      else:
+        abort(400)
+        
     owner_id = api.get_user_id(session_id)
     user = topic = seen_by = None
     if user_id:
@@ -2083,12 +2091,13 @@ def chat(topic_id=None, user_id=None, action=None):
     
 
 @app.route("/messages", methods=['GET', 'OPTIONS'])
+@app.route("/messages/user/<int:user_id>", methods=['GET', 'OPTIONS'])
+@app.route("/messages/topic/<int:topic_id>", methods=['GET', 'OPTIONS'])
 @login_required
 @line_profile
-def messages():
+def messages(user_id=None, topic_id=None):
   session_id = session.get("session_id")
-  user_id = api.get_user_id(session_id)
-  owner = api.get_user_info(user_id)
+  owner = api.get_user_info(api.get_user_id(session_id))
   suggested_friends = api.get_friend_suggestions(owner.to_dict())
   coworkers = api.get_coworkers(session_id)
   
@@ -2112,20 +2121,20 @@ def messages():
       message.unread_count = unread_messages[_id]
     else:
       message.unread_count = 0
-    
-  
 
   if request.method == 'GET':
     return render_homepage(session_id, 'Messages',
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
-                           topics=topics,
+                           topics=topics, 
+                           user_id=user_id, topic_id=topic_id,
                            view='messages')
   else:
     body = render_template('expanded_chatbox.html',
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
-                           topics=topics,
+                           topics=topics, 
+                           user_id=user_id, topic_id=topic_id,
                            owner=owner)
     resp = Response(dumps({'body': body,
                            'title': 'Messages'}))
