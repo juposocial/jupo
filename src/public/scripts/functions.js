@@ -1772,13 +1772,13 @@ function open_in_async_mode(href, rel, data, f) {
 
       $(".current").removeClass("current");
 
-      $("#left-sidebar .active").addClass("async");
-      $("#left-sidebar .active").removeClass("active");
+      $("#left-sidebar .active").addClass("async").removeClass("active");
       parent_id = '#left-sidebar #' + rel;
-      $(parent_id).html(resp.menu);
+      if (resp.menu) {
+        $(parent_id).html(resp.menu);
+      }
       $(parent_id).addClass("current");
       $(parent_id).removeClass("async");
-      
       
       $(parent_id + ' > a').addClass("active");
 
@@ -1874,12 +1874,13 @@ function open_in_async_mode(href, rel, data, f) {
 
           $(".current").removeClass("current");
 
-          $("#left-sidebar .active").addClass("async");
-          $("#left-sidebar .active").removeClass("active");
-          parent_id = '#' + rel;
-          $(parent_id).html(resp.menu);
-          $(parent_id).addClass("current");
-          $(parent_id).removeClass("async");
+          $("#left-sidebar .active").addClass("async").removeClass("active");
+          parent_id = '#left-sidebar #' + rel;
+          if (resp.menu) {
+            $(parent_id).html(resp.menu);
+          }
+          $(parent_id).addClass("current").removeClass("async");
+          $(parent_id + ' > a').addClass("active");
           
         }
    
