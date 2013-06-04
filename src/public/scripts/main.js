@@ -340,7 +340,7 @@ $(document).ready(function(e) {
     }
   });
 
-  $('#body, #overlay').on('click', 'a.dropdown-menu-icon', function() {
+  $('#body, #overlay, #chat').on('click', 'a.dropdown-menu-icon', function() {
 
     $('div#filters > ul').hide();
 
