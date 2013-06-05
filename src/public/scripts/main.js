@@ -2353,7 +2353,7 @@ $(document).ready(function(e) {
           var last_msg = $('li.message:last', _boxchat);
           
           if (last_msg.length == 0 || last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-            if (last_msg.length != 0 && msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
+            if (last_msg.length != 0 && $('> a > img.small-avatar', last_msg).length != 0 && msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
               var content = $('.content', msg).html();
               $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
               $(last_msg).data('ts', msg_ts);

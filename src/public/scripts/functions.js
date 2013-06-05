@@ -1649,7 +1649,7 @@ function stream() {
         var msg_ts = msg.data('ts');
         var sender_id = msg.attr('data-sender-id');
         
-        if (last_msg.length == 1 && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+        if (last_msg.length == 1 && $('> a > img.small-avatar', last_msg).length != 0 && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
           if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
             if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
               var content = $('.content', msg).html();
