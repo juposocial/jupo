@@ -5754,6 +5754,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
     
     else:
       message = msg
+      is_auto_generated = True
       
     info = {'_id': new_id(),
             'topic': topic_id,
@@ -5785,12 +5786,14 @@ def new_message(session_id, message, user_id=None, topic_id=None,
                ', '.join(['@[%s](user:%s)' \
                               % (i['name'], i['id']) for i in mentions]))
    
+        # the message only contains mentions or anything else?
         if ''.join(e for e in strip_mentions(message) if e.isalnum()):
           new_message(session_id, msg, 
                       user_id=user_id, topic_id=topic_id, 
                       is_auto_generated=True, db_name=db_name)
         else:
           message = msg
+          is_auto_generated = True
                     
       
     info = {'_id': new_id(),

@@ -2140,6 +2140,34 @@ $(document).ready(function(e) {
     return false;
   })
   
+  $('#body, #chat').on('click', 'div.chatbox div.header a.leave', function() {
+    var r = confirm("You will stop receiving messages from this conversation and people will see that you left.");
+    if (r == true) {
+      var _this = $(this);
+      var chatbox = _this.parents('div.chatbox');
+      $.ajax({
+          url: _this.attr('href'),
+          type: 'POST',
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          success: function(html){ 
+            code = '<li class="message"><div class="content">You left the conversation.</div></li>'
+            
+            $('ul.messages', chatbox).append(code);
+            
+            setTimeout(function() {
+              $('ul.messages', chatbox).scrollTop(99999);
+            }, 10)
+            
+            $('html').trigger('click');
+            
+          }
+      })
+    }
+    return false;
+  })
+  
   $('#body, #chat').on('click', 'div.header a.add-friends-to-chat', function() {
     var chatbox = $(this).parents('div.chatbox');
     $('html').trigger('click');
