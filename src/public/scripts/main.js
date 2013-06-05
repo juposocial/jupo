@@ -2115,8 +2115,12 @@ $(document).ready(function(e) {
           'X-CSRFToken': get_cookie('_csrf_token')
         },
         success: function(html){ 
-          $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages/archived' class='async'>Show Archived</a></div></div>").removeAttr('id');
-          $('ul.topics a.chat.' + chat_id).parent().remove();
+          if (window.location.pathname.indexOf('/messages') != -1) {          
+            $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages/archived' class='async'>Show Archived</a></div></div>").removeAttr('id');
+            $('ul.topics a.chat.' + chat_id).parent().remove();
+          } else {
+            close_chat(chat_id);
+          }
         }
     })
     return false;
@@ -2133,8 +2137,12 @@ $(document).ready(function(e) {
           'X-CSRFToken': get_cookie('_csrf_token')
         },
         success: function(html){ 
-          $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages' class='async'>Show Inbox</a></div></div>").removeAttr('id');
-          $('ul.topics a.chat.' + chat_id).parent().remove();
+          if (window.location.pathname.indexOf('/messages') != -1) {      
+            $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages' class='async'>Show Inbox</a></div></div>").removeAttr('id');
+            $('ul.topics a.chat.' + chat_id).parent().remove();
+          } else {
+            _this.attr('href', '/messages/' + chat_id.replace('-', '/') + '/archive').attr('class', 'archive').text('Archive');
+          }
         }
     })
     return false;
