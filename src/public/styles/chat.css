@@ -225,7 +225,7 @@ div.fixed {
 
 #chat .chatbox > div.status {
   position: absolute;
-  bottom: 31px;
+  bottom: 36px;
   padding: 0 5px;
   font-size: 9px;
   color: #999;
@@ -242,7 +242,7 @@ div.fixed {
 
 .chatbox.minimize {
   position: absolute;
-  bottom: -256px;
+  bottom: -252px;
   width: 235px;
 }
 

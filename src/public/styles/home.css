@@ -1166,7 +1166,7 @@ div#body, div#overlay {
   padding-left: 37px;
   border-left: 1px solid rgba(196, 205, 224, 0.6);
   border-right: 1px solid rgba(196, 205, 224, 0.6);
-  box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.1);
   min-height: 100%;
 }
 
@@ -2884,9 +2884,9 @@ div.file-attachment a[rel='gallery']::before {
   position: absolute;
   width: 100%;
   height: 100%;
-  -moz-box-shadow: inset 0px 0px 3px 1px rgba(0,0,0,0.2);
-  -webkit-box-shadow: inset 0px 0px 3px 1px rgba(0,0,0,0.2);
-  box-shadow: inset 0px 0px 3px 1px rgba(0,0,0,0.2);
+  -moz-box-shadow: inset 0 0 5px 0px #e2e2e2;
+  -webkit-box-shadow: inset 0 0 5px 0px #e2e2e2;
+  box-shadow: inset 0 0 5px 0px #e2e2e2;
 }
 
 div.url-attachment {
@@ -5151,7 +5151,7 @@ section {
   border: 1px solid rgba(196, 205, 224, 0.6);
   border-bottom: 1px solid rgba(34, 113, 168, 0.25);
   border-radius: 1px;
-  box-shadow: 0 0 6px rgba(196, 205, 224, 0.5);
+  box-shadow: 0 0 6px #e5e5e5;
 }
 
 div#body div.avatar, div#overlay div.avatar {
@@ -5211,7 +5211,7 @@ section > footer > .actions {
   overflow: hidden;
   background: #fafbfb;
   font-size: 11px;
-  border-top: 1px solid rgba(196, 205, 224, 0.4);
+  border-top: 1px solid #e9e9e9;
 }
 
 
@@ -5416,7 +5416,7 @@ div.url-attachment img.favicon {
 }
 
 li.comment .url-attachment {
-  border: 1px solid rgba(196, 205, 224, 0.5);
+  border: 1px solid #e5e5e5;
   background: none;
 }
 
@@ -5449,7 +5449,7 @@ form.new {
   border: 1px solid rgba(196, 205, 224, 0.6);
   border-bottom: 1px solid rgba(34, 113, 168, 0.25);
   border-radius: 1px;
-  box-shadow: inset 0 1px 3px -1px #ddd, 0 0 6px rgba(196, 205, 224, 0.4);
+  box-shadow: inset 0 1px 3px -1px #ddd, 0 0 6px #e9e9e9;
 }
 
 form.new a#send-to {
