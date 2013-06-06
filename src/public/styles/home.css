@@ -87,7 +87,7 @@ ul.token-input-list {
 ul.token-input-list li input {
   border: 0;
   width: 150px !important;
-  padding: 4px 5px !important;
+  padding: 4px 5px;
   margin: 0 !important;
   -webkit-appearance: caret;
   border-image: initial;
@@ -95,19 +95,18 @@ ul.token-input-list li input {
   font-size: 11px;
 }
 
-/*li.token-input-highlighted-token {
- background-color: #D8DFEA;
- }*/
 li.token-input-token {
   overflow: hidden;
-  height: auto !important;
-  height: 15px;
-  padding: 2px 5px;
   margin: 2px 1px;
   cursor: default;
   float: left;
   white-space: nowrap;
   line-height: 16px;
+  background: #f6f7f8;
+  border-radius: 10px;
+  padding: 2px 10px 2px 13px;
+  border: 1px solid rgba(204, 204, 204, .4);
+  color: rgb(137, 145, 156);
 }
 
 li.token-input-token p {
@@ -132,11 +131,10 @@ li.token-input-selected-token span:hover {
 }
 
 li.token-input-selected-token {
-background: #2271A9;
-border: 1px solid white;
-margin: 1px 0 !important;
-color: white;
-text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  background: rgba(34, 113, 169, 0.9);
+  border: 1px solid #2271A9;
+  color: white;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
 }
 
 li.token-input-input-token {
@@ -179,7 +177,7 @@ div.token-input-dropdown ul li {
   margin: 0;
   list-style-type: none;
   border-top: 1px solid transparent;
-  border-bottom: 1px solid whitesmoke;
+  border-bottom: 1px solid #f6f7f8;
 }
 
 div.token-input-dropdown ul li:last-child {
@@ -404,7 +402,7 @@ div#container div.plupload {
 }
 
 a#pickfiles {
-  padding: 3px 10px;
+  padding: 4px 10px;
   display: block;
 }
 
@@ -512,7 +510,7 @@ ul#menu ul.dropdown-menu {
 }
 
 ul.dropdown-menu a {
-  color: #333;
+  color: #37404e;
   display: block;
   text-decoration: none;
   padding: 4px 15px;
@@ -671,7 +669,6 @@ img.micro-avatar {
   word-wrap: break-word;
   z-index: 2;
   position: fixed;
-  border-right: 1px solid rgba(196, 205, 224, 0.4);
 }
 
 #welcome-box {
@@ -831,7 +828,7 @@ position: absolute;
 left: 50%;
 margin-left: -90px;
 top: 40%;
-color: grey;
+color: rgba(137, 145, 156, 0.9);
 font-size: 12px;
 }
 
@@ -843,7 +840,7 @@ span.empty img {
 span.empty .subtitle {
   display: block;
   font-size: 13px;
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   margin-top: 5px;
 }
 
@@ -856,7 +853,7 @@ span.empty a {
 }
 
 del {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 .green {
@@ -976,7 +973,7 @@ ul#friends-online div.friends {
 }
 
 ul#friends-online div.results {
-  background: whitesmoke;
+  background: #f6f7f8;
   font-size: 11px;
   overflow: hidden;
   float: right;
@@ -1040,13 +1037,13 @@ ul#groups-nav div.groups {
   right: 12px;
   padding: 4px 10px 0;
   margin-top: -25px;
-  background: whitesmoke;
+  background: #f6f7f8;
   position: absolute;
 }
 
 ul#friends-online div.online-now a,
 ul#groups-nav div.groups a {
-  color: #333;
+  color: #37404e;
   font-weight: bold;
   font-size: 10px;
 }
@@ -1054,7 +1051,7 @@ ul#groups-nav div.groups a {
 ul#friends-online div.empty {
   font-size: 10px;
   text-align: right;
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 div#members {
@@ -1165,13 +1162,11 @@ div#right-sidebar li.current a {
 div#body, div#overlay {
   margin-left: 168px;
   border-top: none;
-  /*overflow: hidden;  fix non-enclosed float bug*/
   float: left;
-  background: rgba(128, 128, 128, 0.02);
   padding-left: 37px;
-  border-left: 1px solid rgba(196, 205, 224, 0.4);
-  border-right: 1px solid rgba(196, 205, 224, 0.4);
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.14);
+  border-left: 1px solid rgba(196, 205, 224, 0.6);
+  border-right: 1px solid rgba(196, 205, 224, 0.6);
+  box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.15);
   min-height: 100%;
 }
 
@@ -1197,7 +1192,7 @@ div.overdue .title {
 }
 
 li.task .description {
-  color: #333;
+  color: #37404e;
   margin-left: 20px;
 }
 
@@ -1253,11 +1248,11 @@ ul.comments .body {
 }
 
 a.time {
-  color: #999;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 time.timeago {
-  color: #999;
+  color: rgba(137, 145, 156, 0.9);
   border: none;
   font-size: 11px;
 }
@@ -1273,43 +1268,56 @@ ul.comments .arrow {/*background-image: url(/public/images/tmp/UvyvLtJTQzO.png);
 }
 
 ul.comments li.comment {
-  /*border-bottom: 1px solid #D2D9E7;*/
-  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-  border-top: 1px solid transparent;
-  padding: 5px 10px;
-  min-height: 37px;
+  padding: 4px 10px;
+  min-height: 35px;
 }
 
 ul.comments li.write-a-comment {
   border-bottom: 1px solid rgba(255, 255, 255, 0.25);
   border-top: 1px solid transparent;
-  padding: 5px 10px;
+  padding: 7px 10px;
   min-height: 30px;
+  margin-top: -8px;
+
 }
 
 ul.comments li.write-a-comment a.reply, 
 ul.comments li.write-a-comment a.sign-in-to-write-a-comment {
   background: white;
   display: block;
-  margin: 2px 0;
-  padding: 3px 7px 1px;
-  height: 20px;
-  border: 1px solid #bdc7d8;
+  margin: 1px 4px 5px 38px;
+  padding: 5px 7px 0;
+  height: 23px;
+  border: 1px solid rgba(196, 205, 224, 0.6);
   color: #999;
   cursor: text;
   text-decoration: none;
+  box-shadow: inset 0 1px 3px -1px #ddd;  
 }
 
 ul.comments li.write-a-comment a.reply:hover, 
 ul.comments li.write-a-comment a.sign-in-to-write-a-comment:hover {
-  color: #666;
+  background: 1px solid rgba(196, 205, 224, 0.9);
 }
 
 ul.comments li.action {
-  /*border-bottom: 1px solid #D2D9E7;*/
-  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-  border-top: 1px solid transparent;
-  padding: 3px 5px 3px 10px;
+  padding: 7px 5px 7px 10px;
+}
+
+ul.comments div.comments-list > li:first-child {
+  border-top: 1px solid rgba(196, 205, 224, 0.4);
+}
+
+ul.comments div.comments-list > li.comment:first-child {
+  padding-top: 12px;
+}
+
+ul.comments div.comments-list > li.comment:last-child {
+  margin-bottom: 7px;
+}
+
+ul.comments div.comments-list > li.action:nth-child(2n) {
+  border-top: 1px solid rgba(196, 205, 224, 0.4);
 }
 
 
@@ -1395,15 +1403,17 @@ li.comment.unread {
 /*
  li.comment .markdown {
  float: none !important;
- color: #333;
+ color: #37404e;
  line-height: 18px !important;
  }*/
 
 ul.comments textarea {
   border-radius: 0;
-  height: 26px;
+  height: 30px;
   background: transparent;
-  width: 473px;
+  width: 470px;
+  line-height: 20px;
+
 }
 
 li.spam {
@@ -1734,15 +1744,15 @@ div#main {
 }
 
 .gray {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 .grey {
-  color: grey;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 .black {
-  color: #333;
+  color: #37404e;
 }
 
 .saved {
@@ -1763,7 +1773,7 @@ span.label {
   padding: 1px 5px 2px;
   color: white;
   white-space: nowrap;
-  background-color: #333;
+  background-color: #37404e;
   text-shadow: 0 -1px 1px black;
 }
 
@@ -1845,7 +1855,7 @@ div#right-sidebar div.header div.title a {
 }
 
 div#right-sidebar div.header div.actions {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   font-size: 11px;
   line-height: 20px;
 }
@@ -1916,22 +1926,22 @@ ul#stream {
 }
 
 ul#stream li .dropdown-menu-icon.active {
-  border: 1px solid #ccc;
-  box-shadow: inset 0 1px 3px #ccc
+  border: 1px solid rgba(196, 205, 224, 0.6);
+  box-shadow: inset 0 1px 3px #e2e2e2;
 }
 
 section header {
-  padding: 0 35px 12px 47px;
-  border-bottom: 1px solid #eee;
+  padding: 3px 35px 7px 47px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #89919c;
 }
 
 section header .options {
   position: absolute;
   right: 10px;
-  top: 22px;
+  top: 28px;
 }
 
 section header .options a:hover {
@@ -1967,13 +1977,13 @@ ul.menu {
   z-index: 1;
   /*border-radius: 2px;*/
   background-color: white;
-  /*  background-image: -ms-linear-gradient(top, white, whitesmoke);
+  /*  background-image: -ms-linear-gradient(top, white, #f6f7f8);
    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(white),
-   * to(whitesmoke));
-   background-image: -webkit-linear-gradient(top, white, whitesmoke);
-   background-image: -o-linear-gradient(top, white, whitesmoke);
-   background-image: linear-gradient(top, white, whitesmoke);
-   background-image: -moz-linear-gradient(top, white, whitesmoke);*/
+   * to(#f6f7f8));
+   background-image: -webkit-linear-gradient(top, white, #f6f7f8);
+   background-image: -o-linear-gradient(top, white, #f6f7f8);
+   background-image: linear-gradient(top, white, #f6f7f8);
+   background-image: -moz-linear-gradient(top, white, #f6f7f8);*/
 }
 
 ul.menu li > a {
@@ -1984,7 +1994,7 @@ ul.menu li > a {
 
 ul.menu li a:hover {
   text-decoration: none;
-  color: #333;
+  color: #37404e;
 }
 
 ul.menu li {
@@ -2020,7 +2030,7 @@ ul#stream .more a:hover {
 
 ul#stream .more a:active {
   background-color: #eee;
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 ul#stream .more a {
@@ -2117,7 +2127,7 @@ div.group-header .starred-icon {
 div.group-header div.about {
   padding: 0 20px 3px;
   font-size: 11px;
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 div#page-header, div#changes {
@@ -2161,7 +2171,7 @@ div#page-header .info {
 /*======================= Selection Dropdown ===================*/
 /* The dropdown container */
 .ddContainer, .ddContainer a {
-  color: #333;
+  color: #37404e;
   width: 100px;
   display: inline-block;
   vertical-align: text-top;
@@ -2281,7 +2291,7 @@ ul.dropdown-menu {
   position: absolute;
   min-width: 170px;
   background: white;
-  color: #333;
+  color: #37404e;
   margin-top: 3px;
   margin-left: -23px;
   
@@ -2339,39 +2349,39 @@ article ul.dropdown-menu li a {
 
 /* End */
 form.new {
-  background: white;
+  background: #fafbfb;
 }
 
 form.new footer {
-  margin-top: 2px !important;
   text-align: right;
+  border-top: 1px solid rgba(224, 224, 224, 0.5);
 }
 
 form.new select {
   background: transparent;
-  color: #333;
+  color: #37404e;
   font-size: 11px;
 }
 
 
 form.new footer > a {
-  margin-top: -2px;
-  border-right: 1px solid transparent;
+  border-right: 1px solid rgba(224, 224, 224, 0.4);
 }
 
 form.new footer > a:hover {
-  background-color: #EDEFF4;
+  background-color: #f0f2f2;
 }
 
 form.new footer > a.active {
   border-top: 1px solid #f2f2f2;
-  background-color: #fafafa;
-  margin-top: -3px;
+  background-color: #f0f2f2;
+  margin-top: -1px;
 }
 
 form.new table {
   border-spacing: 0;
   width: 100%;
+  background: white;
 /*  border-bottom: 1px solid ghostwhite;*/
 }
 
@@ -2423,9 +2433,10 @@ form.new textarea {
 
 form.new #message textarea.mention {
   width: 100%;
-  padding: 3px 5px;
-  height: 26px;
-  min-height: 26px;
+  padding: 5px 7px;
+  line-height: 18px;
+  height: 30px;
+  min-height: 30px;
   max-height: 250px;
   display: block;
   overflow: hidden;
@@ -2445,15 +2456,14 @@ form.new input[type='submit']:focus {
 }
 
 form.new input[type='submit'] {
-  margin-right: 3px;
-  margin-top: 1px;
+  margin-right: 4px;
+  margin-top: 2px;
   margin-bottom: 2px;
 }
 
 form.new input[type='text'] {
   margin-top: 3px;
-  padding: 3px;
-  /*  background: white;*/
+  padding: 5px;
 }
 
 form.new input[name='deadline'] {
@@ -2556,7 +2566,7 @@ form.note input.title {
   font-size: 18px;
   font-weight: bold;
   font-family: arial, sans-serif;
-  color: #333;
+  color: #37404e;
   margin: 10px 10px 0 25px;
   width: 500px;
 }
@@ -2829,7 +2839,7 @@ div.attachment div.info p {
 }
 
 div.file-attachment div.info {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   padding-top: 2px;
   padding-left: 40px;
   font-size: 11px;
@@ -2902,7 +2912,7 @@ div.url-attachment .title {
 }
 
 div.url-attachment div.info {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   line-height: 16px !important;
   font-size: 10px;
 }
@@ -2939,7 +2949,7 @@ li.feed > div.message, li.note > div.message {
 }
 
 li.feed:not(.note) > div.message a {
-  color: #333;
+  color: #37404e;
 }
 
 .read-more {
@@ -2972,7 +2982,7 @@ li.comment a.remove-comment, li.comment a.update-comment {
 }
 
 ul.comments textarea.mention[readonly] {
-  background: whitesmoke;
+  background: #f6f7f8;
 }
 
 li.comment a.remove-comment i.close-icon, 
@@ -3087,14 +3097,14 @@ li.task div.info ol {
 /*   margin: 5px 0; */
 /*   text-align: justify; */
 /*   border-top: 1px solid #F3F3F3; */
-/*   color: #333; */
+/*   color: #37404e; */
 /*   padding: 10px 0; */
 /* } */
 div#body .description, div#overlay .description {
   margin: 5px 0;
   /*  text-align: justify;*/
-  /*  color: gray;*/
-  color: #333;
+  /*  color: rgba(137, 145, 156, 0.9);*/
+  color: #37404e;
   line-height: 20px;
 }
 
@@ -3115,7 +3125,7 @@ text-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 div#body span.x > span, div#overlay span.x > span {
-  color: #333;
+  color: #37404e;
 }
 
 span.loading {
@@ -3146,7 +3156,7 @@ div#right-sidebar span.loading {
 /* Selectmenu
  ----------------------------------*/
 .tzSelect {
-  color: #333;
+  color: #37404e;
   margin-left: 10px !important;
   margin-top: 4px !important;
   z-index: 1;
@@ -3165,7 +3175,7 @@ ul.dropDown {
   box-shadow: 0 0 1px rgba(0, 0, 0, 0.25), 0 1px 5px 3px rgba(0, 0, 0, 0.05), 0 5px 4px -3px rgba(0, 0, 0, 0.06);
   border-radius: 1px;
   background: white;
-  color: #333;
+  color: #37404e;
 }
 
 ul.dropDown li {
@@ -3298,13 +3308,13 @@ div#overlay .form input[name='location'] {
 div#overlay .form textarea {
   width: 355px;
   padding: 3px;
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   display: block;
   background: transparent;
 }
 
 div#overlay .form textarea:focus {
-  color: #333;
+  color: #37404e;
 }
 
 div#overlay .form td > label {
@@ -3322,7 +3332,7 @@ div#overlay .form img {
 }
 
 div#overlay .form .tzSelect {
-  color: #333;
+  color: #37404e;
   display: block !important;
   margin-left: 138px !important;
   margin-top: -3px !important;
@@ -3474,7 +3484,7 @@ ul.notifications header a:hover {
 }
 
 ul.notifications header a:active {
-  color: #333;
+  color: #37404e;
   margin-top: 1px;
 }
 
@@ -3533,7 +3543,7 @@ ul#items > div.title {
 }
 
 ul#items div.info {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 ul#items li > a:hover div.info {
@@ -3593,7 +3603,7 @@ ul#messages .center {
   clear: both;
   text-align: center;
   width: 100%;
-  color: #333;
+  color: #37404e;
   margin-top: 10px;
   margin-bottom: 25px;
   padding: 5px 0;
@@ -3616,7 +3626,7 @@ div#status {
   width: 300px;
   margin-left: 100px;
   background: rgba(255, 255, 255, 0.8);
-  color: #333;
+  color: #37404e;
   text-align: center;
 }
 
@@ -3943,7 +3953,7 @@ div#body nav ul li {
 }
 
 div#body nav ul li a {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 ul#stream.group {
@@ -4004,26 +4014,25 @@ ul#stream > li.topic > div.message {
 .mentions-input-box textarea {
   width: 100%;
   display: block;
-  border: 1px solid #bdc7d8;
+  border: 1px solid rgba(196, 205, 224, 0.6);
   overflow: hidden;
   position: relative;
   outline: 0;
-  box-shadow: none;
   resize: none;
   padding: 3px 5px;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
   background: transparent;
-  
-  
-  height: 28px;
+  border-radius: 1px;
+  height: 30px;
 }
 
-ul.comments .mentions-input-box textarea:focus {
-  box-shadow: rgba(81, 167, 232, 0.5) 0 0 5px;
-  border-color: #51A7E8;
-}
+/*ul.comments .mentions-input-box textarea:focus {
+  box-shadow: rgba(81, 167, 232, 0.25) 0 0 5px;
+  border-color: rgba(81, 167, 232, 0.65);
+  border-radius: 1px;
+}*/
 
 .mentions-input-box .mentions-autocomplete-list {
   display: none;
@@ -4162,7 +4171,7 @@ div#loading, div#progress {
   box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
-  color: #333;
+  color: #37404e;
   left: 0;
   top: 0;
   right: 0;
@@ -4203,12 +4212,12 @@ div#error {
   z-index: 2;
   border-bottom: 1px solid rgba(209, 7, 7, 0.55);
   background-color: white;
-  background-image: -ms-linear-gradient(top, white, whitesmoke);
-  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(white), to(whitesmoke));
-  background-image: -webkit-linear-gradient(top, white, whitesmoke);
-  background-image: -o-linear-gradient(top, white, whitesmoke);
-  background-image: linear-gradient(top, white, whitesmoke);
-  background-image: -moz-linear-gradient(top, white, whitesmoke);
+  background-image: -ms-linear-gradient(top, white, #f6f7f8);
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(white), to(#f6f7f8));
+  background-image: -webkit-linear-gradient(top, white, #f6f7f8);
+  background-image: -o-linear-gradient(top, white, #f6f7f8);
+  background-image: linear-gradient(top, white, #f6f7f8);
+  background-image: -moz-linear-gradient(top, white, #f6f7f8);
   
   
   margin-left: -275px;
@@ -4233,12 +4242,12 @@ div#message {
   margin-top: 40px;
   z-index: 2;
   background-color: white;
-  background-image: -ms-linear-gradient(top, white, whitesmoke);
-  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(white), to(whitesmoke));
-  background-image: -webkit-linear-gradient(top, white, whitesmoke);
-  background-image: -o-linear-gradient(top, white, whitesmoke);
-  background-image: linear-gradient(top, white, whitesmoke);
-  background-image: -moz-linear-gradient(top, white, whitesmoke);
+  background-image: -ms-linear-gradient(top, white, #f6f7f8);
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(white), to(#f6f7f8));
+  background-image: -webkit-linear-gradient(top, white, #f6f7f8);
+  background-image: -o-linear-gradient(top, white, #f6f7f8);
+  background-image: linear-gradient(top, white, #f6f7f8);
+  background-image: -moz-linear-gradient(top, white, #f6f7f8);
 }
 
 /* Custom input */
@@ -4324,7 +4333,7 @@ div.quick-reply label {
 form.new-comment .mentions-input-box {
   width: 313px;
   float: right;
-  margin: 3px 0;
+  margin: 1px;
 }
 
 /*div#overlay form.new-comment textarea {
@@ -4366,7 +4375,7 @@ div#toggle-settings a {
   padding: 0 5px;
   margin-left: 200px;
   font-weight: bold;
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 
@@ -4489,7 +4498,7 @@ div.attachment:before {
   font-size: 30px;
   float: left;
   margin-top: 7px;
-  color: #333;
+  color: #37404e;
   font-family: arial;
 }
 
@@ -4508,8 +4517,7 @@ div.attachment:before {
 }
 
 li.feed.unread section {
-  box-shadow: 0 1px 7px rgba(34, 113, 168, 0.5);
-  
+  border: 1px solid rgba(196, 205, 224, 1);
 }
 
 div#right-sidebar.contacts {
@@ -4730,7 +4738,7 @@ div#overlay div.markdown {
 }
 
 .event .details .info {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 .event .details .description {
@@ -4739,7 +4747,7 @@ div#overlay div.markdown {
 }
 
 .member-of {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   margin-top: 2px;
   font-size: 11px;
 }
@@ -4770,7 +4778,7 @@ div#overlay .radio {
 ul.menu .title {
   padding: 5px 17px;
   border-top: 1px solid #F2F2F2;
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   margin-top: 5px;
 }
 
@@ -4927,6 +4935,10 @@ ul.comments div.attachments > div {
   margin-right: 5px;
 }
 
+form.new-comment .mentions-input-box textarea {
+  box-shadow: inset 0 1px 3px -1px #ddd;
+}
+
 form.new-comment div.attachments {
   padding-left: 90px;
 }
@@ -5066,7 +5078,7 @@ form.authen input[type='text'], form.authen input[type='email'], form.authen inp
 
 form.authen input[type='text']:focus, form.authen input[type='email']:focus, form.authen input[type='password']:focus {
   outline: 0;
-  color: #333;
+  color: #37404e;
   border-color: #56B4EF;
   -webkit-box-shadow: inset 0 1px 3px rgba(0,0,0,.05), 0 0 8px rgba(82,168,236,.6);
   -moz-box-shadow: inset 0 1px 3px rgba(0,0,0,.05), 0 0 8px rgba(82,168,236,.6);
@@ -5093,7 +5105,7 @@ form#sign-in.authen > label {
 }
 
 form#sign-in.authen > label:hover {
-  color: #333;
+  color: #37404e;
   cursor: pointer;
 }
 
@@ -5133,19 +5145,13 @@ form.authen div.note {
 /* New feed stylesheet */
 
 section {
-  /*padding: 13px 15px 0;
+  padding: 15px 15px 0;
   width: 502px;
   background-color: white;
-
-  border: 1px solid #A0AECC;
-  border-radius: 3px;
-  box-shadow: 0 1px 1px #CCC;*/
-  
-  padding: 13px 15px 0;
-width: 502px;
-background-color: white;
-box-shadow: 0 1px 7px rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(34, 113, 168, 0.7);
+  border: 1px solid rgba(196, 205, 224, 0.6);
+  border-bottom: 1px solid rgba(34, 113, 168, 0.25);
+  border-radius: 1px;
+  box-shadow: 0 0 6px rgba(196, 205, 224, 0.5);
 }
 
 div#body div.avatar, div#overlay div.avatar {
@@ -5155,10 +5161,10 @@ div#body div.avatar, div#overlay div.avatar {
 }
 
 section > article {
-  padding: 7px 0 5px;
+  padding: 5px 0 5px;
   overflow: hidden;
   line-height: 22px;
-  color: #333;
+  color: #37404e;
 }
 
 section > article.note {
@@ -5187,7 +5193,7 @@ section > footer {
   margin: 7px -15px 0;
   font-size: 11px;
   box-shadow: inset 0 5px 5px -4px rgba(34, 113, 168, 0.35);
-  color: #444;
+  color: #4e5665;
 }
 
 /*#overlay li.feed:not(.note) section > article {
@@ -5196,15 +5202,16 @@ section > footer {
 
 ul.comments {
   margin: 0;
-  background: rgba(196, 205, 224, 0.5);
+  background: #fafbfb;
 }
 
+
 section > footer > .actions {
-  padding: 4px 10px 3px;
+  padding: 7px 10px;
   overflow: hidden;
-  background: rgba(196, 205, 224, 0.5);
+  background: #fafbfb;
   font-size: 11px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  border-top: 1px solid rgba(196, 205, 224, 0.4);
 }
 
 
@@ -5213,16 +5220,11 @@ section > footer .actions a {
 }
 
 section > footer .actions a.quick-stats {
-  padding: 5px 10px 6px 5px;
   white-space: nowrap;
 }
 
 section > footer .actions a.quick-stats:hover {
   text-decoration: none;
-  
-  border-radius: 1px;
-  background-color: rgba(34, 113, 169, 0.22);
-  box-shadow: inset 0 1px 5px rgba(34, 113, 168, 0.21);
 }
 
 section > footer .actions a:hover time.timeago {
@@ -5286,7 +5288,7 @@ img.medium-avatar:active {
 
 li.feed > a {
   position: absolute;
-  margin: 10px 10px 10px 15px;
+  margin: 14px 10px 10px 15px;
 }
 
 
@@ -5377,7 +5379,7 @@ li.feed .spine-pointer {
  }*/
 
 a {
-  color: #114495;
+  color: #3b5998;
   outline-style: none;
   text-decoration: none;
 }
@@ -5391,12 +5393,16 @@ a:focus {
 }
 
 li.new-comment {
-  padding: 5px 10px;
+  padding: 8px 10px;
+  line-height: 12px;
+  margin-top: -8px;
 }
 
 li.new-comment .mentions-input-box {
-  width: 473px !important;
+  width: 470px !important;
   background: white;
+  margin-left: 1px;
+  float: left;
 }
 
 /*div#overlay {
@@ -5440,19 +5446,14 @@ article > p:first-child {
 form.new {
   width: 532px;
   float: left;
-    
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
-  border-bottom: 1px solid rgba(34, 113, 168, 0.7);
-  
-}
-
-form.new footer > a.active {
-  border-top: 1px solid ghostWhite;
+  border: 1px solid rgba(196, 205, 224, 0.6);
+  border-bottom: 1px solid rgba(34, 113, 168, 0.25);
+  border-radius: 1px;
+  box-shadow: inset 0 1px 3px -1px #ddd, 0 0 6px rgba(196, 205, 224, 0.4);
 }
 
 form.new a#send-to {
   border-left: 1px solid transparent;
-  border-bottom-left-radius: 3px;
 }
 
 li.more section {
@@ -5593,7 +5594,7 @@ border-bottom: 1px solid #555;
 
 .guider_content p {
   clear: both;
-  color: #333;
+  color: #37404e;
   font-size: 13px;
 }
 
@@ -5708,7 +5709,7 @@ color: whiteSmoke;
   position: absolute;
   left: 22px;
   top: 100%;
-  border-color: whitesmoke transparent transparent transparent;
+  border-color: #f6f7f8 transparent transparent transparent;
   border-style: solid;
   border-width: 7px;
 }
@@ -5785,7 +5786,7 @@ div.box .body a strong {
 }
 
 #right-sidebar .box .header .actions a {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   position: absolute;
   right: 25px;
 }
@@ -5802,7 +5803,7 @@ form.group {
 
 form.group .privacy {
   line-height: 20px;
-  color: #333;
+  color: #37404e;
 }
 
 form.group .privacy label {
@@ -5814,7 +5815,7 @@ form.group #name input {
   font-size: 22px;
   font-weight: bold;
   line-height: 16px;
-  color: #333; 
+  color: #37404e; 
 }
 
 form.group textarea {
@@ -5857,7 +5858,7 @@ form.group #members {
 
 form.group #members span {
   font-size: 11px;
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
 }
 
 
@@ -5890,7 +5891,7 @@ box-shadow: inset 0 1px 5px rgba(196, 205, 224, 0.5);
 #wysihtml5-toolbar h2 {
 font-size: 12px;
 margin-top: 2px;
-color: #333;
+color: #37404e;
 }
 
 #wysihtml5-toolbar h3 {
@@ -5940,7 +5941,7 @@ padding: 3px 19px;
   text-decoration: none;
   text-align: center;
   float: left;
-  border-top: 1px solid whitesmoke;
+  border-top: 1px solid #f6f7f8;
   border-left: 1px solid rgba(196, 205, 224, 0.21);
   border-right: 1px solid rgba(196, 205, 224, 0.21);
   margin-right: -1px;
@@ -6054,7 +6055,7 @@ font-size: 11px;
 
 
 #right-sidebar #history a {
-  color: #333;
+  color: #37404e;
 }
 
 #right-sidebar #history a:hover {
@@ -6186,7 +6187,7 @@ form#new-file div#attachments {
   padding: 4px 8px;
   width: 187px;
   border-radius: 3px;
-  color: #333;
+  color: #37404e;
   font-size: 11px;
   margin-left: 3px;
 }
@@ -6308,7 +6309,7 @@ article .file-attachment .title.image-name a {
   font-size: 16px;
 font-weight: bold;
 font-family: arial;
-color: #333;
+color: #37404e;
 }
 
 #popup .content #page-header .info {
@@ -6354,7 +6355,7 @@ margin-top: -5px;
 #popup .content form.new-message footer {
   padding: 3px 0;
   border-top: 1px solid #ddd;
-  background: whitesmoke;
+  background: #f6f7f8;
 }
 
 #popup .networks {
@@ -6379,7 +6380,7 @@ margin-top: -5px;
 }
 
 #popup .networks li:nth-child(even) {
-    background: whitesmoke;
+    background: #f6f7f8;
 }
 
 #popup .networks li a:hover {
@@ -6471,17 +6472,19 @@ margin-top: -5px;
 
 /* Reminder */
 ul.reminders {
-width: 525px;
-margin-bottom: 100px;
-box-shadow: 0 1px 5px rgba(0,0,0,0.2);
-border-bottom: 1px solid rgba(34, 113, 168, 0.7);
-margin-top: 15px;
+  width: 525px;
+  margin-bottom: 100px;
+  margin-top: 15px;
+  border: 1px solid rgba(196, 205, 224, 0.6);
+  border-bottom: 1px solid rgba(34, 113, 168, 0.25);
+  border-radius: 1px;
+  box-shadow: 0 1px 5px rgba(196, 205, 224, 0.5);
 }
 
 ul.reminders li {
-border-bottom: 1px solid rgba(34, 113, 168, 0.07);
-background: white;
-padding: 6px 20px 5px;
+  border-bottom: 1px solid rgba(34, 113, 168, 0.07);
+  background: white;
+  padding: 6px 20px 5px;
 }
 
 ul.reminders li.done {
@@ -6515,9 +6518,10 @@ ul.reminders input[type="checkbox"] {
 }
 
 ul.reminders form input {
-width: 475px;
-border: 0;
-height: 20px;
+  width: 475px;
+  border: 0;
+  height: 20px;
+  margin-top: 2px;
 }
 
 
@@ -6574,7 +6578,7 @@ ul.groups li a i.online, ul.groups li a i.offline, ul.groups li a i.away, ul.con
 }
 
 ul.groups li a .info {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
@@ -6710,7 +6714,7 @@ header nav a.view-notifications span.counter {
   -ms-box-sizing: border-box;
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
-  color: #333;
+  color: #37404e;
   padding: 5px 7px;
   resize: none;
 }
@@ -6829,7 +6833,7 @@ top: 8px;
   border-radius: 20px;
   padding: 9px 15px 8px;
   background: white;
-  color: #333;
+  color: #37404e;
   box-shadow: inset 0 1px 1px #666,inset 0 -1px 1px rgba(0, 0, 0, 0.2);
 }
 
@@ -6850,7 +6854,7 @@ top: 8px;
 }
 
 #popup .people li:nth-child(even) {
-    background: whitesmoke;
+    background: #f6f7f8;
 }
 
 #popup .people span.email {
@@ -6879,7 +6883,7 @@ top: 8px;
 }
 
 #popup .people li strong {
-  color: #333;
+  color: #37404e;
 }
 
 #popup .people li span.gray {
@@ -7036,7 +7040,7 @@ ul.suggested-users li a.username {
 
 ul.suggested-users li a.follow, ul.suggested-users li a.unfollow {
   font-size: 11px;
-  color: #333;
+  color: #37404e;
 }
 
 ul.suggested-users li a:hover {
@@ -7048,7 +7052,7 @@ ul.suggested-users li a:hover {
 div.body.notice {
   padding: 0 13px !important;
   font-size: 11px;
-  color: #333;
+  color: #37404e;
 }
 
 div.body .intro {
@@ -7079,9 +7083,10 @@ form.invite label {
 }
 
 form.invite textarea {
- width: 474px;
-padding: 2px 5px;
-height: 54px;
+  width: 468px;
+  padding: 5px 8px;
+  height: 54px;
+  resize: none;
 }
 
 form.invite ul.token-input-list {
@@ -7095,7 +7100,7 @@ form.invite ul.token-input-list {
   float: left;
   white-space: nowrap;
   line-height: 16px;
-  background: whitesmoke;
+  background: #f6f7f8;
   border-right: 1px solid #e2e2e2;
   color: #444;
   margin: 0;
@@ -7109,9 +7114,11 @@ form.invite ul.token-input-list li.token-input-selected-token {
 }*/
 
 form.invite textarea, form.invite ul.token-input-list {
-  border: 1px solid #ccc;
-  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(196, 205, 224, 0.6);
+  box-shadow: inset 0 1px 3px -1px #ddd;
+  padding: 2px 2px 1px;
 }
+
 
 form.invite input[type='submit'] {
   margin: 15px 0 20px;
@@ -7128,8 +7135,11 @@ div.messages {
   height: 70%;
   top: 148px;
   width: 740px;
-  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(34, 113, 168, 0.7);
+
+  border: 1px solid rgba(196, 205, 224, 0.6);
+  border-bottom: 1px solid rgba(34, 113, 168, 0.25);
+  border-radius: 1px;  
+  box-shadow: 0 1px 5px rgba(196, 205, 224, 0.5);
 }
 
 div.messages #page-header {
@@ -7142,26 +7152,24 @@ div.messages div.chatbox {
   position: absolute;
   left: 0;
   width: 475px !important;
-  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.15);
-  -webkit-box-shadow: 1px 0 4px rgba(0, 0, 0, 0.15);
   bottom: 0;
   border: 0;
   height: 100% !important;
   z-index: 10;
-  border-right: 1px solid #ddd;
+  box-shadow: none;
+  border-right: 1px solid rgba(196, 205, 224, 0.6);
 }
 
 div.messages div.chatbox div.header {
-  background: white;
-  box-shadow: 0 3px 7px -2px rgba(0, 0, 0, 0.2);
-  padding: 15px;
-  border-bottom: 1px solid #e2e2e2;
+  padding: 18px 15px 12px;
   border: 0;
   margin: 0;
   cursor: default;
   position: absolute;
   width: 445px;
   z-index: 99;
+  background: #f6f7f8;
+  border-bottom: 1px solid #e9eaed;
 }
 
 div.messages div.chatbox div.header img {
@@ -7224,7 +7232,7 @@ div.messages div.chatbox form {
   bottom: 0;
   height: 75px;
   padding: 0;
-  border-top: 1px solid #cdcecf;
+  border-top: 1px solid rgba(196, 205, 224, 0.6);
 }
 
 
@@ -7259,23 +7267,23 @@ ul.topics {
 }
 
 ul.topics > li:nth-child(even) {
-  background: whitesmoke;
+  background: #f6f7f8;
 }
 
 ul.topics li a {
   min-height: 36px;
   display: block;
   padding: 14px 10px 15px 16px;
-  color: #333;
+  color: #37404e;
   white-space: nowrap;
-  border-bottom: 1px solid whitesmoke;
+  border-bottom: 1px solid #f6f7f8;
   font-size: 11px;
   white-space: nowrap;
   position: relative;
 }
 
 ul.topics li a div.message {
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   white-space: nowrap;
   width: 175px;
   overflow: hidden;
@@ -7353,7 +7361,7 @@ div.messages .header div[contenteditable=true] {
 div.messages .header .info {
   float: left;
   margin-top: -10px;
-  color: gray;
+  color: rgba(137, 145, 156, 0.9);
   font-weight: normal;
 }
 
@@ -7363,7 +7371,7 @@ div.messages div.chatbox ul.messages li.message {
 }
 
 /*div.messages div.chatbox ul.messages li.message:nth-child(even) {
-  background: whitesmoke;
+  background: #f6f7f8;
   border-top: 1px solid #f1f1f1;
   border-bottom: 1px solid #f1f1f1;
 }*/
@@ -7400,7 +7408,7 @@ div.messages div.chatbox ul.messages div.content div a img {
 }
 
 div.chatbox ul.messages div.content .image-expander {
-  color: #333;
+  color: #37404e;
   background: #ddd;
   padding: 0 5px;
   vertical-align: middle;
@@ -7435,7 +7443,7 @@ div.chatbox ul.messages div.content .image-expander + div:not(.hidden) + br {
 div.messages div.chatbox ul.messages div.title {
   text-align: center;
   margin: 7px 0 6px;
-  color: grey;
+  color: rgba(137, 145, 156, 0.9);
   background: none;
   padding: 0;
 }
@@ -7443,11 +7451,12 @@ div.messages div.chatbox ul.messages div.title {
 div.messages div.chatbox form textarea.mentions {
   width: 453px;
   height: 52px;
-  padding: 5px!important;
-  border: 1px solid #ccc;
+  padding: 8px 10px !important;
+  border: 1px solid #ddd;
   margin: 10px 8px;
   resize: none;
-  box-shadow: 0 0 0 11px #f2f2f2;
+  box-shadow: 0 0 0 11px #f6f7f8, inset 0 1px 3px -1px #ccc;
+  border-radius: 0;
 }
 
 div.messages div.chatbox ul.messages {

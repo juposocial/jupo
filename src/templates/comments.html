@@ -54,6 +54,9 @@
     
     {% if not mode or not owner.id %}
     <li class='write-a-comment'>
+      
+      <img src='{{ owner.avatar }}' class='small-avatar lfloat'>
+      
       {% if owner.id %}
       <a class="reply" rel="#{{ item.id }}-comments">Write a comment</a>
       {% else %}
