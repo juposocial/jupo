@@ -41,7 +41,7 @@ script:
   - cd ..
   - sudo Xvfb :0 -screen 0 1366x768x24 2> /dev/null &
   - sudo nohup xvfb-run java -jar src/tests/features/selenium-server-standalone-2.32.0.jar > /var/log/jupo/selenium.log
-  - sudo export DISPLAY=:0
+  - export DISPLAY=:0
   - cd src/tests && lettuce
   - sudo pkill -9 -f 'Xvfb'
   - sudo pkill -9 -f 'selenium-server'
