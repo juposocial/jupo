@@ -28,6 +28,7 @@ before_script:
   - sed -i "s/jupo.com/jupo.dev/g" src/settings.py
   - echo '127.0.0.1 play.jupo.dev' | sudo tee -a /etc/hosts
   - sudo mkdir /var/log/jupo
+  - cat src/settings.py | grep "jupo.dev"
   - cd src
 
 script:
