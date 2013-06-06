@@ -340,7 +340,7 @@ $(document).ready(function(e) {
     }
   });
 
-  $('#body, #overlay').on('click', 'a.dropdown-menu-icon', function() {
+  $('#body, #overlay, #chat').on('click', 'a.dropdown-menu-icon', function() {
 
     $('div#filters > ul').hide();
 
@@ -2018,7 +2018,7 @@ $(document).ready(function(e) {
     
     $('a.chat.' + chat_id).removeClass('unread');
     
-    if (window.location.pathname == '/messages') {
+    if (window.location.pathname.indexOf('/messages') != -1) {
       $('ul.topics a.chat.' + chat_id + ' div.unread-messages').html('0').hide();
     }
     
@@ -2079,7 +2079,7 @@ $(document).ready(function(e) {
         _this.removeClass('unread');
         $('a.chat.' + chat_id).removeClass('unread');
         
-        if (window.location.pathname == '/messages') {
+        if (window.location.pathname.indexOf('/messages') != -1) {
           $('ul.topics a.chat.' + chat_id + ' div.unread-messages').html('0').hide();
         }
         
@@ -2105,13 +2105,79 @@ $(document).ready(function(e) {
     
   })
   
+  $('#body, #chat').on('click', 'div.chatbox div.header a.archive', function() {
+    var _this = $(this);
+    var chat_id = _this.parents('div.chatbox').attr('id').replace('chat-', '');
+    $.ajax({
+        url: _this.attr('href'),
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        success: function(html){ 
+          $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages/archived' class='async'>Show Archived</a></div></div>").removeAttr('id');
+          $('ul.topics a.chat.' + chat_id).parent().remove();
+        }
+    })
+    return false;
+  })
+  
+  
+  $('#body, #chat').on('click', 'div.chatbox div.header a.unarchive', function() {
+    var _this = $(this);
+    var chat_id = _this.parents('div.chatbox').attr('id').replace('chat-', '');
+    $.ajax({
+        url: _this.attr('href'),
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        success: function(html){ 
+          $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages' class='async'>Show Inbox</a></div></div>").removeAttr('id');
+          $('ul.topics a.chat.' + chat_id).parent().remove();
+        }
+    })
+    return false;
+  })
+  
+  $('#body, #chat').on('click', 'div.chatbox div.header a.leave', function() {
+    var r = confirm("You will stop receiving messages from this conversation and people will see that you left.");
+    if (r == true) {
+      var _this = $(this);
+      var chatbox = _this.parents('div.chatbox');
+      $.ajax({
+          url: _this.attr('href'),
+          type: 'POST',
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          success: function(html){ 
+            code = '<li class="message"><div class="content">You left the conversation.</div></li>'
+            
+            $('ul.messages', chatbox).append(code);
+            
+            setTimeout(function() {
+              $('ul.messages', chatbox).scrollTop(99999);
+            }, 10)
+            
+            $('html').trigger('click');
+            
+          }
+      })
+    }
+    return false;
+  })
+  
+  $('#body, #chat').on('click', 'div.header a.add-friends-to-chat', function() {
+    var chatbox = $(this).parents('div.chatbox');
+    $('html').trigger('click');
+    $('form.chat textarea.mentions', chatbox).attr('placeholder', "Type a person's name, starts with @").focus();
+    return false;
+  })
   
   $('#chat').on('click', 'div.header a.close', function() {
-    
     var chat_id = $(this).attr('data-chat-id');
-    
     close_chat(chat_id);
-    
     return false;
 
   })
@@ -2138,7 +2204,7 @@ $(document).ready(function(e) {
       
       $.ajax({
         url: _this.attr('href'),
-        type: 'GET',
+        type: 'OPTIONS',
         success: function(html){ 
           last = $('#' + chatbox_id + ' ul.messages .message:not(.more):first');
           prev_offset = last.offset().top;
@@ -2262,7 +2328,7 @@ $(document).ready(function(e) {
 
         $('form', _boxchat).removeClass('gray-bg');
         $('textarea.mentions', _this).attr("readonly", false);
-        $('textarea.mentions', _this).val('').focus();
+        $('textarea.mentions', _this).attr('placeholder', "Write a message...").val('').focus();
         $("textarea.mentions", _this).css('height', "");
         
         $("textarea.mentions", _this).mentionsInput('reset');

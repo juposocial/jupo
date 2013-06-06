@@ -1443,6 +1443,10 @@ class Topic(Model):
   def members(self):
     return [api.get_user_info(user_id) for user_id in self.member_ids]
 
+  @property
+  def archived_by(self):
+    return self.info.get('archived_by', [])
+  
 
 class ESResult(Model):
   def __init__(self, info, query, db_name=None):

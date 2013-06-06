@@ -25,7 +25,14 @@
   <div class='chatbox'>
     <div class='empty'>
       No Conversation Selected
-      <div><a class='popup' href="/contacts">New Message</a> · <a>Show Unread</a></div>
+      <div>
+        <a class='popup' href="/contacts">New Message</a> · 
+        {% if archived %}
+        <a href='/messages' class='async'>Show Inbox</a>
+        {% else %}
+        <a href='/messages/archived' class='async'>Show Archived</a>
+        {% endif %}
+      </div>
     </div>
   </div>
   
@@ -39,6 +46,7 @@
         {% set user = message.sender %}
       {% endif %}
       <li>
+          
         <a href='/chat/{% if message.topic_id %}topic/{{ message.topic_id }}{% else %}user/{{ user.id }}{% endif %}' class='chat {% if message.is_unread() %}unread{% endif %} {% if message.topic_id %}topic-{{ message.topic_id }}{% else %}user-{{ user.id }}{% endif %}'>
           
           <div class="ts rfloat">
@@ -88,10 +96,27 @@
               {{ message.content | clean | autoemoticon | safe }}
             {% endif %}
           </div>
+          
         </a>
       </li>
     
     {% endfor %}
   </ul>
 </div>
+
+{% if user_id %}
+  <script>
+    $(document).ready(function() {
+      start_chat('user-{{ user_id }}')
+    })
+  </script>
+{% elif topic_id %}
+  <script>
+  
+    $(document).ready(function() {
+      start_chat('topic-{{ topic_id }}')
+    })
+  </script>
+{% endif %}
+  
 

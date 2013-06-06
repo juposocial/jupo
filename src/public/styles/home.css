@@ -2289,7 +2289,7 @@ ul.dropdown-menu {
   -webkit-box-shadow: 0 3px 10px rgba(0, 0, 0, .2);
   -moz-box-shadow: 0 3px 10px rgba(0, 0, 0, .2);
   box-shadow: 0 3px 10px rgba(0, 0, 0, .2);
-  padding: 3px 0;
+  padding: 5px 0 3px;
   font-size: 11px;
 }
 
@@ -7228,8 +7228,17 @@ div.messages div.chatbox form {
 }
 
 
-div.messages div.chatbox .mentions-autocomplete-list {
-  margin-top: -316px;
+div.chatbox .mentions-autocomplete-list {
+  border-radius: 0;
+  position: absolute;
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.3);
+  bottom: 1px;
+  top: auto;
+  margin-top: 0;
+}
+
+div.chatbox .mentions-input-box .mentions-autocomplete-list li:last-child {
+  border-radius: 0;
 }
 
 div.messages div.chatbox form.gray-bg {
@@ -7268,7 +7277,7 @@ ul.topics li a {
 ul.topics li a div.message {
   color: gray;
   white-space: nowrap;
-  width: 190px;
+  width: 175px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -7507,5 +7516,68 @@ div.messages div.chatbox div.empty div {
 
 div.messages div.chatbox li.more {
   margin: 5px auto;
+}
+
+div.messages div.chatbox div.header .dropdown-menu .see-full-conversation {
+  display: none;
+}
+
+div.chatbox div.header div.rfloat {
+  right: 15px;
+  position: absolute;
+}
+
+
+
+
+div.chatbox div.header .options-icon {
+  background-image: url('/public/images/options.inactive.png');
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  background-position: center;
+  background-repeat: no-repeat;
+  margin: 4px 1px;
+  border: 0;
+  border-radius: 1px;
+}
+
+div.chatbox div.header .options-icon:hover,
+div.chatbox div.header .options-icon.active {
+  background-color: rgb(74, 102, 160);
+  background-image: url('/public/images/options.active.png');
+}
+
+div.chatbox div.header .close-icon {
+  background-image: url('/public/images/close.inactive.png');
+  width: 19px;
+  height: 19px;
+  display: inline-block;
+  background-position: center;
+  background-repeat: no-repeat;
+  margin: 4px 0;
+  border: 0;
+  border-radius: 1px;
+  padding: 0 2px 1px 0;
+}
+
+
+div.chatbox div.header .close-icon:hover {
+  background-color: rgb(74, 102, 160);
+  background-image: url('/public/images/close.active.png');
+}
+
+
+div.chatbox div.header .dropdown-menu {
+  font-weight: normal;
+  line-height: 20px;
+  margin-left: -123px;
+  margin-top: -5px;
+}
+
+
+div.chatbox div.header .arrow-top,
+div.chatbox div.header .arrow-top-border {
+  left: 125px;
 }
 

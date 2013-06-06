@@ -49,6 +49,10 @@ div.fixed {
   box-shadow: inset 0 1px rgba(255, 255, 255, .5);
 }
 
+#chat div.chatbox div.header div.rfloat {
+  right: 7px;
+}
+
 #chat div.chatbox div.header div[contenteditable] {
   display: inline-block;
   white-space: nowrap;
@@ -185,6 +189,10 @@ div.fixed {
   text-overflow: ellipsis;
 }
 
+#chat div.chatbox .mentions-autocomplete-list {
+  bottom: 6px;
+}
+
 .chatbox form.gray-bg {
   background: #eee;
   color: #999;
@@ -238,8 +246,13 @@ div.fixed {
   width: 235px;
 }
 
-.chatbox.minimize .header .upload-icon {
+.chatbox.minimize .header .options-icon,
+.chatbox.minimize .header .close-icon {
   display: none;
+}
+
+.chatbox.minimize:hover .close-icon {
+  display: inline-block;
 }
 
 

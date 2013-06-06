@@ -1,14 +1,55 @@
 
   <div class="header">
-    <a href="#" class="close-icon close" title="Close Chat" data-chat-id='{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'></a>
-    <a id='chatbox-pick-file' class='rfloat' title='Select a file {% if user %}to send to {{ user.name }}{% endif %}'><i class='upload-icon'></i><span>Upload File...</span></a>
-    <div id="chatbox-file-container">
-      <div id="chatbox-filelist"></div>
-    </div>  
+    <div class='rfloat'>
+      <a class="close-icon close" title="Close Chat" data-chat-id='{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'></a>
+      
+      <a class='options-icon dropdown-menu-icon'></a>
+      <ul class="dropdown-menu hidden">
+          <div class="arrow-top-border"></div>
+          <div class="arrow-top"></div>
+        
+          
+          <li>
+            <a id='chatbox-pick-file'>Add files...
+            </a>
+              <div id="chatbox-file-container">
+                <div id="chatbox-filelist"></div>
+              </div>
+          </li>
+          <li>
+            <a class='add-friends-to-chat'>Add Friends to Chat...</a>
+          </li>
+          <li class='see-full-conversation'>
+            <a href='/messages/{% if user %}user/{{ user.id }}{% else %}topic/{{ topic.id }}{% endif %}' class='async' rel='messages'>See Full Conversation</a>
+          </li>
+          
+          {% if topic %}
+          <li>
+            {% if owner.id in topic.archived_by %}
+            <a href='/messages/topic/{{ topic.id }}/unarchive' class='unarchive'>Unarchive</a>
+            {% else %}
+            <a href='/messages/topic/{{ topic.id }}/archive' class='archive'>Archive</a>
+            {% endif %}
+          </li> 
+          <li>
+            <a href='/messages/topic/{{ topic.id }}/leave' class='leave'>Leave Conversation...</a>
+          </li>
+          {% endif %}   
+          {#
+          <li>
+            <a>Set Topic...</a>
+          </li>  
+          <li>
+            <a>Mute Conversation</a>
+          </li>
+          #}  
+    </div>
     
     {% if user %}
       <div class='user-info'>
-        <img class='small-avatar' src='{{ user.avatar }}'>
+        <a href='/user/{{ user.id }}' class='async'>
+          <img class='small-avatar' src='{{ user.avatar }}'>
+        </a>
         <a href='/user/{{ user.id }}' class='async name'>{{ user.name }}</a>
         <i class='{{ user.status }} user-{{ user.id }}-status'></i>
         <br>
@@ -16,8 +57,9 @@
       </div>
     {% else %}
       {% set members = topic.members | exclude(owner.id) %}
-          
-      <i class="group-icon"></i>
+      
+      <a href='/chat/topic/{{ topic.id }}/members' class='popup'><i class="group-icon"></i></a>
+      
       <div contenteditable="true" title='Set Topic...' onclick="document.execCommand('selectAll', false, null)" data-url='/chat/topic/{{ topic.id }}/update' data-topic-id='{{ topic.id }}'>
         {% if topic.name %}
         
