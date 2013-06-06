@@ -52,20 +52,23 @@
     
     </div>
     
-    {% if not mode or not owner.id %}
-    <li class='write-a-comment'>
-      
-      <img src='{{ owner.avatar }}' class='small-avatar lfloat'>
-      
-      {% if owner.id %}
-      <a class="reply" rel="#{{ item.id }}-comments">Write a comment</a>
-      {% else %}
-      <a href='/?back_to=/feed/{{ item.id }}#comments' class="sign-in-to-write-a-comment">Write a comment</a>
-      {% endif %}
-    </li>
-    {% endif %}
       
     {% if owner.id %}
+    
+    
+      {% if not mode %}
+      <li class='write-a-comment'>
+        
+        <img src='{{ owner.avatar }}' class='small-avatar lfloat'>
+        
+        {% if owner.id %}
+        <a class="reply" rel="#{{ item.id }}-comments">Write a comment</a>
+        {% else %}
+        <a href='/?back_to=/feed/{{ item.id }}#comments' class="sign-in-to-write-a-comment">Write a comment</a>
+        {% endif %}
+      </li>
+      {% endif %}
+      
       <li class="new-comment {% if not mode %}hidden{% endif %}">
           <form id='new-comment-{{ item.id }}' class="new-comment" action="/feed/{{ item.id }}/comment" method="POST">
             <a href="/user/{{ owner.id }}" class='async lfloat' data-user-id='{{ owner.id }}'>

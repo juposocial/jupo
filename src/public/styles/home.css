@@ -91,7 +91,7 @@ ul.token-input-list li input {
   margin: 0 !important;
   -webkit-appearance: caret;
   border-image: initial;
-  color: #999;
+  color: rgba(137,145,156,0.9);
   font-size: 11px;
 }
 
@@ -863,7 +863,7 @@ del {
 div.popup {
   border: 1px solid #eee;
   box-shadow: 0 1px 0 rgba(0, 0, 0, .1);
-  border: 1px solid #999;
+  border: 1px solid rgba(137,145,156,0.9);
   width: 467px;
   background-image: -webkit-gradient(radial, 50% -50, 0, 50% 0, 500, from(white), to(#EAEBEF) );
   /*    background:
@@ -1289,7 +1289,7 @@ ul.comments li.write-a-comment a.sign-in-to-write-a-comment {
   padding: 5px 7px 0;
   height: 23px;
   border: 1px solid rgba(196, 205, 224, 0.6);
-  color: #999;
+  color: rgba(137,145,156,0.9);
   cursor: text;
   text-decoration: none;
   box-shadow: inset 0 1px 3px -1px #ddd;  
@@ -1322,7 +1322,7 @@ ul.comments div.comments-list > li.action:nth-child(2n) {
 
 
 ul.comments li.action .view-previous-comments .rfloat {
-  color: #999;
+  color: rgba(137,145,156,0.9);
   margin-right: 19px;
 }
 
@@ -1757,7 +1757,7 @@ div#main {
 
 .saved {
   font-size: 11px;
-  color: #999;
+  color: rgba(137,145,156,0.9);
 }
 
 
@@ -1788,7 +1788,7 @@ div#right-sidebar .box {
 }
 
 div#right-sidebar div.about {
-  color: #999;
+  color: rgba(137,145,156,0.9);
   margin-top: 10px;
 }
 
@@ -1915,7 +1915,7 @@ a.underline_hover:hover {
 }
 
 div.box .message {
-  color: #999;
+  color: rgba(137,145,156,0.9);
 }
 
 ul#stream {
@@ -2392,7 +2392,7 @@ form.new table {
 form.new tr#focus {
   text-align: left;
   background: white;
-  color: #999;
+  color: rgba(137,145,156,0.9);
 }
 
 form.new tr#focus td {
@@ -3193,7 +3193,7 @@ ul.dropDown li:active {
 
 .dropdown-arrow {
   font-size: 8px;
-  color: #999;
+  color: rgba(137,145,156,0.9);
   margin-left: 5px;
 }
 
@@ -3407,7 +3407,7 @@ ul.notifications img.small-avatar {
 ul.notifications > li > time {
   padding: 7px 10px;
   min-width: 50px;
-  color: #999;
+  color: rgba(137,145,156,0.9);
   font-size: 11px;
 }
 
@@ -3416,7 +3416,7 @@ ul.notifications span.username {
 }
 
 ul.notifications a time {
-  color: #999;
+  color: rgba(137,145,156,0.9);
 }
 
 ul.notifications .updating {
@@ -3608,7 +3608,7 @@ ul#messages .center {
   margin-bottom: 25px;
   padding: 5px 0;
   border-bottom: 1px solid #EDEFF4;
-  color: #999;
+  color: rgba(137,145,156,0.9);
 }
 
 /* ul#messages .typing { */
@@ -3618,7 +3618,7 @@ ul#messages .center {
 /*   width: 100%; */
 /*   margin-top: -30px; */
 /*   padding: 5px 0; */
-/*   color: #999; */
+/*   color: rgba(137,145,156,0.9); */
 /* } */
 div#status {
   float: left;
@@ -3655,7 +3655,7 @@ ul#users li.grey a {
 }
 
 ul#users li.grey .message {
-  color: #999;
+  color: rgba(137,145,156,0.9);
 }
 
 ul#users .message {
@@ -3687,7 +3687,7 @@ form#new-message input[type='text'] {
 
 form#new-message input[type='submit'] {
   padding: 4px 20px 2px;
-  box-shadow: 0 1px 3px #999;
+  box-shadow: 0 1px 3px rgba(137,145,156,0.9);
   color: white;
   font-weight: bold;
   text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.25);
@@ -4110,7 +4110,7 @@ ul#stream > li.topic > div.message {
   right: 0;
   top: 1px;
   bottom: 0;
-  padding: 3px;
+  padding: 7px 3px;
   color: #fff;
   overflow: hidden;
   white-space: pre-wrap;
@@ -5293,7 +5293,7 @@ li.feed > a {
 
 
 div#overlay > li, #body > li {
-  padding: 10px 0 100px;
+  padding-bottom: 100px;
   float: left;
   position: relative;
   list-style: none;
@@ -5821,7 +5821,7 @@ form.group #name input {
 form.group textarea {
   font-size: 13px;
   height: 18px;
-  color: #999;
+  color: rgba(137,145,156,0.9);
 }
 
 form.group table {
@@ -6006,12 +6006,19 @@ ul#stream.notes section footer .actions a {
 }
 
 ul#stream.notes section header{
-  padding: 0 0 7px 0;
+  padding: 5px 25px 7px 5px;
 } 
 
-li.note section header, li.hide-article section header  {
-  border-bottom: none;
-  
+ul#stream.notes li.note section header, 
+ul#stream.notes li.hide-article section header, 
+div#overlay > li.note section header, 
+div#body > li.note section header {
+  margin-top: 4px;
+}
+
+div#body > li.note section header .options,
+div#overlay > li.note section header .options {
+  margin-top: 15px;
 }
 
 
@@ -6049,7 +6056,7 @@ form.new #notes a.overlay {
 
 
 #right-sidebar #history div.info {
-  color: #999;
+  color: rgba(137,145,156,0.9);
 font-size: 11px;
 }
 
@@ -6336,7 +6343,7 @@ margin-top: -5px;
 
 #popup .content #page-header span {
   font-size: 11px;
-  color: #999;
+  color: rgba(137,145,156,0.9);
 }
 
 #popup .content #page-header.new-message {
@@ -6405,7 +6412,7 @@ margin-top: -5px;
 #popup .networks li a span.url {
   font-size: 11px;
   display: block;
-  color: #999;
+  color: rgba(137,145,156,0.9);
 }
 
 #popup .networks li a:hover span.url {
@@ -6790,17 +6797,64 @@ width: 260px;
   width: 100%;
 }
 
+#body.note > div.float {
+  position: fixed;
+  left: 900px;
+  top: 52px;
+}
+
+#body > li ul.comments div.comments-list>li.comment:last-child {
+  margin: 0;
+  padding-bottom: 10px;
+}
+
+#body.note {
+  width: 800px;
+  box-shadow: none;
+  border: 0;
+  margin-top: 40px;
+  padding-bottom: 50px;
+  min-height: auto;
+}
+
+#body.note section {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  width: 600px;
+}
+
+#body.note section article {
+  background: none;
+  padding: 5px;
+}
+
+#body.note section > footer {
+  margin: 10px 0;
+  width: 532px;
+  border: 1px solid rgba(196,205,224,0.4);
+  border-top: 0;
+}
+
+#body.note section > header .options {
+  top: 13px;
+}
+
 #body.post {
-margin-top: 50px;
-width: 534px;
-border: none;
-padding: 0;
-box-shadow: none;
-left: 50%;
-position: absolute;
-margin-left: -265px;
-background: none;
-padding-bottom: 50px;
+  margin-top: 50px;
+  width: 534px;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  position: absolute;
+  padding-bottom: 50px;
+  min-height: auto;
+}
+
+#body.post > div.float {
+  position: fixed;
+  left: 750px;
+  top: 60px;
 }
 
 #body.post li.feed {
@@ -6858,7 +6912,7 @@ top: 8px;
 }
 
 #popup .people span.email {
-  color: #999;
+  color: rgba(137,145,156,0.9);
   font-size: 11px;
   margin-top: -2px;
   float: left;
@@ -7382,7 +7436,7 @@ div.messages div.ts {
 
 div.messages div.chatbox ul.messages div.message, div.ts {
   font-size: 11px;
-  color: #999;
+  color: rgba(137,145,156,0.9);
   text-overflow: ellipsis;
   overflow: hidden;
   float: right;
@@ -7499,7 +7553,7 @@ div.messages div.chatbox > div.status {
   bottom: 75px;
   padding: 5px 13px 5px 14px;
   font-size: 10px;
-  color: #999;
+  color: rgba(137,145,156,0.9);
   text-align: right;
   right: 0;
   background: white;

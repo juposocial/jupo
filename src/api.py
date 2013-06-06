@@ -3544,8 +3544,8 @@ def get_note(session_id, note_id, version=None):
   db = DATABASE[db_name]
   
   if not session_id:
-    info = db.stream.find_one({'_id': long(feed_id),
-                                     'is_removed': {'$exists': False}})
+    info = db.stream.find_one({'_id': long(note_id),
+                               'is_removed': {'$exists': False}})
     if not info or info.has_key('is_removed'):
       return Note({})
     

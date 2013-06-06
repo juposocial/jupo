@@ -1124,7 +1124,7 @@ def notes(page=1):
 @app.route("/note/<int:note_id>/edit", methods=["OPTIONS"])
 @app.route("/note/<int:note_id>/v<int:version>", methods=["OPTIONS", "POST"])
 @app.route("/note/<int:note_id>/<action>", methods=["GET", "OPTIONS", "POST"])
-@login_required
+@line_profile
 def note(note_id=None, action=None, version=None):  
   session_id = session.get("session_id")
   owner = api.get_owner_info(session_id)
@@ -1267,7 +1267,6 @@ def note(note_id=None, action=None, version=None):
                            mode=mode,
                            action=action,
                            version=version,
-#                            recents=recents,
                            note=note,
                            group=group,
                            owner=owner,
@@ -1279,9 +1278,20 @@ def note(note_id=None, action=None, version=None):
       info['title'] = 'Untitle Note'
     return Response(dumps(info), mimetype='application/json')
   else:
-    return render_homepage(session_id, note.title,
-                           version=version,
-                           group=group, note=note, view='notes', mode='view')
+    full = True if 'full' in request.query_string else False
+    if not owner.id or full is True:
+      title = note.title
+      description = note.content
+      return render_template('post.html',
+                             owner=owner,
+                             mode='view',
+                             full=True,
+                             title=title, description=description, 
+                             note=note)
+    else:
+      return render_homepage(session_id, note.title,
+                             version=version,
+                             group=group, note=note, view='notes', mode='view')
 
 @app.route('/u<key>')
 @app.route('/u/<int:note_id>')
@@ -2664,7 +2674,7 @@ def feed_actions(feed_id=None, action=None,
             image = url.favicon
       if request.path.startswith('/post/') or not owner.id:
         return render_template('post.html',
-                               background='dark-bg', 
+#                                background='dark-bg', 
                                owner=owner,
                                mode='view',
                                title=title, description=description, image=image, feed=feed)
