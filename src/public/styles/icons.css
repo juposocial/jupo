@@ -369,8 +369,8 @@ right: 16px !important;
 }
 
 .settings-icon:active {
-  border: 1px solid #ccc;
-  box-shadow: inset 0 1px 3px #ccc;
+  border: 1px solid rgba(196, 205, 224, 0.6);
+  box-shadow: inset 0 1px 3px #e2e2e2;
 }
 
 .close-icon {

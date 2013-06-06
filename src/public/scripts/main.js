@@ -2338,6 +2338,7 @@ $(document).ready(function(e) {
         $('textarea.mentions', _this).attr("readonly", false);
         $('textarea.mentions', _this).attr('placeholder', "Write a message...").val('').focus();
         $("textarea.mentions", _this).css('height', "");
+        $("ul.messages", _boxchat).css('height', "");
         
         $("textarea.mentions", _this).mentionsInput('reset');
         
