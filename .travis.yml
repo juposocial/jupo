@@ -25,6 +25,7 @@ before_script:
   - ls ~/virtualenv/python2.7/bin
   - mkdir -p ~/log/jupo
   - cp src/settings.example.py src/settings.py
+  - sed -i "s/jupo.com/jupo.dev/g" src/settings.py
   - sudo mkdir /var/log/jupo
   - cd src
 
