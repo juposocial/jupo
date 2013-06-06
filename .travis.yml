@@ -26,7 +26,7 @@ before_script:
   - mkdir -p ~/log/jupo
   - cp src/settings.example.py src/settings.py
   - sed -i "s/jupo.com/jupo.dev/g" src/settings.py
-  - sudo echo "127.0.0.1 play.jupo.dev" >> /etc/hosts 
+  - echo '127.0.0.1 play.jupo.dev' | sudo tee -a /etc/hosts
   - sudo mkdir /var/log/jupo
   - cd src
 
