@@ -299,13 +299,13 @@ class User(Model):
       attachment = api.get_attachment_info(avatar, db_name=self.db_name)
       filename = '%s_60.jpg' % attachment.md5
       if attachment.md5 and api.is_s3_file(filename, db_name=self.db_name):
-        return 'https://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME, filename)
+        return 'http://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME, filename)
       
       return '/img/' + str(avatar) + '.jpg'
     
     # try gravatar
     
-    default = "https://5works.s3.amazonaws.com/images/user2.png"
+    default = "http://jupo.s3.amazonaws.com/images/user2.png"
     if not self.email:
       return default
     
