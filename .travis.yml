@@ -26,6 +26,7 @@ before_script:
   - mkdir -p ~/log/jupo
   - cp src/settings.example.py src/settings.py
   - sed -i "s/jupo.com/jupo.dev/g" src/settings.py
+  - sudo echo "127.0.0.1 play.jupo.dev" >> /etc/hosts 
   - sudo mkdir /var/log/jupo
   - cd src
 
@@ -39,6 +40,7 @@ script:
   - nohup rqworker push notification send_mail index invite urls move_to_s3 > ~/log/jupo/rqworker.log &
   - sleep 1
   - nohup sudo python mail_server.py > ~/log/jupo/mail_server.log &
+  - curl -i http://play.jupo.dev
   - cd ..
   - Xvfb :0 -screen 0 1366x768x24 2> /dev/null &
   - nohup xvfb-run java -jar src/tests/features/selenium-server-standalone-2.32.0.jar &
