@@ -175,7 +175,7 @@ div.fixed {
   border: 1px solid #ccc;
 }
 
-#chat .chatbox .message .content a.image-expander {
+/*#chat .chatbox .message .content a.image-expander {
   float: left;
   margin-top: 2px;
 }
@@ -187,7 +187,7 @@ div.fixed {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
+}*/
 
 #chat div.chatbox .mentions-autocomplete-list {
   bottom: 6px;
