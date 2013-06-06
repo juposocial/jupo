@@ -1,7 +1,7 @@
 <li id="post-{{ note.id }}" class="note feed {% if note.is_official() %}official{% endif %} {% if request.path.startswith('/u') %}single{% endif %}"> 
 
 
-    <a href='/user/{{ note.last_action.owner.id }}' class='async'>
+    <a href='/user/{{ note.last_action.owner.id }}' class='async' title='{{ note.last_action.owner.name }}'>
       <img src='{{ note.last_action.owner.avatar }}' class="medium-avatar">
     </a>
 
@@ -98,8 +98,23 @@
       
     </header>
     <article class='note'>
-         
-      {% if mode != 'view' %}
+        
+      {% if full or action == 'compare' %}
+        {% autoescape on %}
+           {{ note.content | sanitize | fix_unclosed_tags }}
+        {% endautoescape %}        
+        
+        {% if note.attachments %}
+          <br> 
+          {% for file in note.attachments %}
+            <i class='attach-icon'></i>
+            <a href='/attachment/{{ file.id }}?rel={{ note.id }}' target='_blank' title="{{ file.name }}" download="{{ file.name }}">{{ file.name | truncate(50, True)}}</a>
+            <br>  
+          {% endfor %}
+        {% endif %}
+        
+      {% else %}
+        
           
         {% set content = note.content | sanitize %}
         {% set summary = content | lines_truncate | fix_unclosed_tags %}
@@ -116,38 +131,15 @@
         {% endif %}
         
         {% if note.content and content | length > summary | length %}
-        <a class="async read-more" href="/note/{{ note.id }}">Continue Reading...</a>
+        <a class="read-more" href="/note/{{ note.id }}?full" target='_blank'>Continue Reading...</a>
         {% endif %}
-        
-      {% else %}
-        {% autoescape on %}
-          {% if action == 'compare' %}
-           {{ note.content | sanitize | fix_unclosed_tags }}
-          {% else %}
-           {{ note.content | sanitize | fix_unclosed_tags }}
-          {% endif %}
-        {% endautoescape %}        
-        
-
-        
-        {% if note.attachments %}
-          <br> 
-          {% for file in note.attachments %}
-            <i class='attach-icon'></i>
-            <a href='/attachment/{{ file.id }}?rel={{ note.id }}' target='_blank' title="{{ file.name }}" download="{{ file.name }}">{{ file.name | truncate(50, True)}}</a>
-            <br>  
-          {% endfor %}
-        {% endif %}
-        
-        
         
       {% endif %}
     </article>
     <footer>              
-      
+      {% if owner.id %}
       <div class='actions'>
         <div class='rfloat'>
-         {% if owner.id %}
            {% set read_receipts = note.seen_by %}         
            <a href='/note/{{ note.id }}#comments' class="quick-stats async" title='{% include "read_receipts.html" %}'>
             {% if note.comments_count != 0 or read_receipts | length != 0 or note.liked_user_ids | length != 0 %}
@@ -172,19 +164,9 @@
             {% endif %}
             
            </a>
-         {% endif %}
         </div>
         
-        <div class='lfloat'>  
-{#
-{% if mode != 'view' %}          
-          <a href='/note/{{ note.id }}' class='async'>View Full Note</a> · 
-{% endif %}   
-
-#}     
-        {% if owner.id %}
-        
-         
+        <div class='lfloat'>      
           
           <a href="#!/note/{{ note.id }}/edit" class="overlay">Edit Note</a>
            
@@ -219,20 +201,16 @@
              · <a class="reply" rel="#{{ note.id }}-comments">Comment</a>
           {% else %}
              · <a class="async" href='/note/{{ note.id }}#comments'>Comment</a>
-          {% endif %}      
-        {% else %}
-          {% if mode == 'view' %}  
-                     · <a class="overlay" href='#!/sign_in'>Comment</a>
-          {% endif %}      
-        {% endif %}
-        </div>
+          {% endif %}    
+        </div>    
         
       </div>
+      {% endif %}
 
-{% if mode == 'view' %}     
-      {% set item = note %}
-      {% include 'comments.html' %}
-{% endif %}      
+      {% if mode == 'view' %}     
+            {% set item = note %}
+            {% include 'comments.html' %}
+      {% endif %}      
     </footer>
   </section>
 </li>

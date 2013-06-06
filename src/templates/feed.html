@@ -139,7 +139,7 @@
     
     {# settings icon #}
     
-    {% if owner %}
+    {% if owner.id %}
     <div class='options rfloat'>
     
       
@@ -496,6 +496,7 @@
   {% endif %}
   
   <footer>
+    {% if owner.id %}
     <div class='actions'>
        <div class='rfloat'>
          
@@ -529,10 +530,6 @@
    
        <div class='lfloat'>
          
-         
-         
-        {% if owner.id %}
-         
            {% if owner.id not in feed.liked_user_ids %}
               <a class='toggle' href='/like/{{ feed.id }}' data-name='Unlike' data-href='/unlike/{{ feed.id }}'>Like</a> ·
            {% else %}
@@ -542,20 +539,13 @@
          
            <a href='/feed/{{ feed.id }}/reshare' class='forward'>Share</a> ·
            <a class="reply" rel="#{{ feed.id }}-comments">Comment</a>
-                    
-        {% else %}
-          <a href='/'>Login</a> or 
-          <a href='/'>sign up</a>
-          to post comments
-          
-        {% endif %}
-          
-          
+                  
           
       </div>
   
     </div> 
   
+  {% endif %}
   
   {% set item = feed.details %}
   {% if not hide_comments %}
