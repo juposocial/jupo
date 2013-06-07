@@ -99,10 +99,16 @@
     </header>
     <article class='note'>
         
-      {% if full or action == 'compare' %}
+      {% if full %}
         {% autoescape on %}
+          {% if action == 'compare' %}
            {{ note.content | sanitize | fix_unclosed_tags }}
+          {% else %}
+           {{ note.content | sanitize | fix_unclosed_tags }}
+          {% endif %}
         {% endautoescape %}        
+        
+
         
         {% if note.attachments %}
           <br> 
