@@ -168,6 +168,8 @@
         {% include "new.html" %}
       {% elif view == 'feed'%}
         {% include 'news_feed.html' %}
+      {% elif view == 'messages'%}
+        {% include 'expanded_chatbox.html' %}
       {% else %}
         {% set template = view + '.html' %}
         {% include template %}
@@ -190,6 +192,7 @@
           <link rel="stylesheet" href="/public/styles/home.css">
           <link rel="stylesheet" href="/public/styles/wysihtml5.css">
           <link rel="stylesheet" href="/public/styles/jquery.notice.css">
+          <link type="text/css" rel="stylesheet" href="/public/styles/prettify.css">
           <link rel="stylesheet" href="/public/styles/chat.css">
   
   
@@ -202,6 +205,7 @@
               "styles/icons.css",
               "styles/home.css",
               "styles/wysihtml5.css",
+              "styles/prettify.css",
               "styles/chat.css" %}
           <link rel="stylesheet" href="{{ ASSET_URL }}">
     {% endassets %} 
@@ -214,6 +218,7 @@
   
   
   <script type='text/javascript' src='//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
+  <script type='text/javascript' src="/public/scripts/google-code-prettify/prettify.js"></script>
   {% if debug == True %}
     <script type='text/javascript' src='/public/scripts/detect_timezone.min.js'></script>
     <script type='text/javascript' src='/public/scripts/jquery.caret.js'></script>

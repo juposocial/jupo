@@ -340,7 +340,7 @@ $(document).ready(function(e) {
     }
   });
 
-  $('#body, #overlay').on('click', 'a.dropdown-menu-icon', function() {
+  $('#body, #overlay, #chat').on('click', 'a.dropdown-menu-icon', function() {
 
     $('div#filters > ul').hide();
 
@@ -2018,6 +2018,10 @@ $(document).ready(function(e) {
     
     $('a.chat.' + chat_id).removeClass('unread');
     
+    if (window.location.pathname.indexOf('/messages') != -1) {
+      $('ul.topics a.chat.' + chat_id + ' div.unread-messages').html('0').hide();
+    }
+    
     // hide notification center 
     if ($('nav ul.notifications').is(':visible')) {
       $('html').trigger('click');
@@ -2057,7 +2061,7 @@ $(document).ready(function(e) {
 
   
   
-  $('#chat').on('mouseenter', '.chatbox.unread', function() {
+  $('#chat, #body').on('mouseenter', '.chatbox.unread', function() {
     var _this = $(this);
     var type = _this.attr('id').split('-')[1] 
     var id = _this.attr('id').split('-')[2] 
@@ -2075,6 +2079,9 @@ $(document).ready(function(e) {
         _this.removeClass('unread');
         $('a.chat.' + chat_id).removeClass('unread');
         
+        if (window.location.pathname.indexOf('/messages') != -1) {
+          $('ul.topics a.chat.' + chat_id + ' div.unread-messages').html('0').hide();
+        }
         
         var unread_count = decr('#unread-notification-counter');
         if (unread_count == 0) {
@@ -2098,13 +2105,87 @@ $(document).ready(function(e) {
     
   })
   
+  $('#body, #chat').on('click', 'div.chatbox div.header a.archive', function() {
+    var _this = $(this);
+    var chat_id = _this.parents('div.chatbox').attr('id').replace('chat-', '');
+    $.ajax({
+        url: _this.attr('href'),
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        success: function(html){ 
+          if (window.location.pathname.indexOf('/messages') != -1) {          
+            $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages/archived' class='async'>Show Archived</a></div></div>").removeAttr('id');
+            $('ul.topics a.chat.' + chat_id).parent().remove();
+          } else {
+            close_chat(chat_id);
+          }
+        }
+    })
+    return false;
+  })
+  
+  
+  $('#body, #chat').on('click', 'div.chatbox div.header a.unarchive', function() {
+    var _this = $(this);
+    var chat_id = _this.parents('div.chatbox').attr('id').replace('chat-', '');
+    $.ajax({
+        url: _this.attr('href'),
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        success: function(html){ 
+          if (window.location.pathname.indexOf('/messages') != -1) {      
+            $('div.messages #chat-' + chat_id).html("<div class='empty'>No Conversation Selected<div><a class='popup' href='/contacts'>New Message</a> · <a href='/messages' class='async'>Show Inbox</a></div></div>").removeAttr('id');
+            $('ul.topics a.chat.' + chat_id).parent().remove();
+          } else {
+            _this.attr('href', '/messages/' + chat_id.replace('-', '/') + '/archive').attr('class', 'archive').text('Archive');
+          }
+        }
+    })
+    return false;
+  })
+  
+  $('#body, #chat').on('click', 'div.chatbox div.header a.leave', function() {
+    var r = confirm("You will stop receiving messages from this conversation and people will see that you left.");
+    if (r == true) {
+      var _this = $(this);
+      var chatbox = _this.parents('div.chatbox');
+      $.ajax({
+          url: _this.attr('href'),
+          type: 'POST',
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          success: function(html){ 
+            code = '<li class="message"><div class="content">You left the conversation.</div></li>'
+            
+            $('ul.messages', chatbox).append(code);
+            
+            setTimeout(function() {
+              $('ul.messages', chatbox).scrollTop(99999);
+            }, 10)
+            
+            $('html').trigger('click');
+            
+          }
+      })
+    }
+    return false;
+  })
+  
+  $('#body, #chat').on('click', 'div.header a.add-friends-to-chat', function() {
+    var chatbox = $(this).parents('div.chatbox');
+    $('html').trigger('click');
+    $('form.chat textarea.mentions', chatbox).attr('placeholder', "Type a person's name, starts with @").focus();
+    return false;
+  })
   
   $('#chat').on('click', 'div.header a.close', function() {
-    
     var chat_id = $(this).attr('data-chat-id');
-    
     close_chat(chat_id);
-    
     return false;
 
   })
@@ -2115,9 +2196,71 @@ $(document).ready(function(e) {
     toggle_chatbox(chatbox_id);
   })
   
+  $('#chat, #body').on('click', '.chatbox .message a.image-expander', function(e) {
+    $(this).next().toggleClass('hidden');
+    return false;
+  })
   
   
-  $('#chat').on('keydown', 'textarea', function(e) {
+  $('#chat, #body').on('click', '.chatbox li.more a', function(e) {
+    var _this = $(this);
+    var href = _this.attr('href');
+    var chatbox_id = _this.parents('div.chatbox').attr('id');
+    
+    if (href) {
+      _this.replaceWith('Loading...');
+      
+      $.ajax({
+        url: _this.attr('href'),
+        type: 'OPTIONS',
+        success: function(html){ 
+          last = $('#' + chatbox_id + ' ul.messages .message:not(.more):first');
+          prev_offset = last.offset().top;
+          
+          $('#' + chatbox_id + ' li.more').replaceWith(html);
+          
+          setTimeout(function() {
+            new_offset = last.offset().top;
+            $('#' + chatbox_id + ' ul.messages').scrollTop(new_offset - prev_offset);
+          }, 0)
+          
+          $('#' + chatbox_id + " .messages li.message a.async").tipsy({
+            gravity: 'e'
+          });
+          
+          // highlight code snippets
+          prettyPrint()
+          
+          // Remove duplicate datetime titles
+          var seen = {};
+          $('#' + chatbox_id + ' div.title').each(function() {
+            var txt = $(this).text();
+            if (seen[txt])
+              $(this).remove();
+            else
+              seen[txt] = true;
+          });
+        }
+      })
+    }
+    
+    return false;
+  })
+  
+  
+  $('#chat, #body').on('paste', 'form.chat textarea', function () {
+    var _this = $(this);
+    var form = _this.parents('form.chat');
+    setTimeout(function () {
+      var text = _this.val();
+      if (text.indexOf('\n') != -1) {
+        $('input[name="codeblock"]', form).val('1');
+      }
+    }, 100);
+  });
+  
+  
+  $('#chat, #body').on('keydown', 'form.chat textarea', function(e) {
     
     if (e.keyCode == 13) {    // Enter
         if (e.ctrlKey || e.shiftKey) {
@@ -2166,10 +2309,11 @@ $(document).ready(function(e) {
   
   
   
-  $('#chat').on('submit', '.chatbox form', function() {
+  $('#chat, #body').on('submit', '.chatbox form', function() {
     
     var _this = $(this);
     var _boxchat = _this.parents('.chatbox');
+    
     
     $('textarea.mentions', _this).attr('readonly', 'readonly')
     $('form', _boxchat).addClass('gray-bg')
@@ -2192,10 +2336,13 @@ $(document).ready(function(e) {
 
         $('form', _boxchat).removeClass('gray-bg');
         $('textarea.mentions', _this).attr("readonly", false);
-        $('textarea.mentions', _this).val('').focus();
+        $('textarea.mentions', _this).attr('placeholder', "Write a message...").val('').focus();
         $("textarea.mentions", _this).css('height', "");
+        $("ul.messages", _boxchat).css('height', "");
         
         $("textarea.mentions", _this).mentionsInput('reset');
+        
+        $('input[name="codeblock"]', _this).val('');
         
         if (data != '') {
           var msg = $(data);
@@ -2207,7 +2354,7 @@ $(document).ready(function(e) {
           var last_msg = $('li.message:last', _boxchat);
           
           if (last_msg.length == 0 || last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-            if (last_msg.length != 0 && msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
+            if (last_msg.length != 0 && $('> a > img.small-avatar', last_msg).length != 0 && msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
               var content = $('.content', msg).html();
               $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
               $(last_msg).data('ts', msg_ts);
@@ -2215,6 +2362,11 @@ $(document).ready(function(e) {
               
             } else {
               $('.messages', _boxchat).append(data);
+              
+              $('#chat-' + chat_id + " .messages li.message:last a.async").tipsy({
+                gravity: 'e'
+              });
+              
             }
             
             setTimeout(function() {
@@ -2222,6 +2374,16 @@ $(document).ready(function(e) {
             }, 10)
           }
           
+          var chat_id = _boxchat.attr('id').replace('chat-', '');
+          var message = $('.content', msg).text();
+          message = '<i class="msg-reply-icon"></i>' + message;
+          
+          $('ul.topics a.chat.' + chat_id + ' div.message').html(message);
+          $('ul.topics a.chat.' + chat_id + ' div.ts').html($('div.ts', msg).text());
+          
+          // highlight code snippets
+          prettyPrint()
+              
         }
         
       }
@@ -2232,6 +2394,28 @@ $(document).ready(function(e) {
     
   })
   
+
+  $('#body').on('keydown', 'div.messages div.header div[contenteditable=true]', function(e) {
+    if (e.keyCode === 13) {
+      var _this = $(this);
+      var name = $(this).text();
+      var url = $(this).data('url');
+      var topic_id = $(this).attr('data-topic-id');
+      $.ajax({
+            type: 'POST',
+            headers: {
+              'X-CSRFToken': get_cookie('_csrf_token')
+            },
+            url: url + '?name=' + name,
+            async: true,
+            success: function(resp) {
+              _this.blur();
+              $('ul.topics li a.topic-' + topic_id + ' div.title').html(name);
+            }
+       })
+      return false;
+    }
+  })
 
   $('#friends-online').on('submit', 'form', function(e) {
     e.preventDefault();

@@ -2018,6 +2018,8 @@ def get_mentions(raw_text):
               .match(user)\
               .groupdict()
       tag['type'], tag['id'] = tag['id'].split(':', 1)
+      if tag['id'].isdigit():
+        tag['id'] = long(tag['id'])
       user_list.append(tag)
   return user_list
 
@@ -2151,7 +2153,7 @@ def archive_post(session_id, post_id):
   
   user_id = get_user_id(session_id)
   db.stream.update({'_id': long(post_id)}, 
-                         {'$push': {'archived_by': user_id}})
+                   {'$push': {'archived_by': user_id}})
   clear_html_cache(post_id)  
   return True
 
@@ -2161,7 +2163,7 @@ def unarchive_post(session_id, post_id):
   
   user_id = get_user_id(session_id)
   db.stream.update({'_id': long(post_id)}, 
-                         {'$pull': {'archived_by': user_id}})
+                   {'$pull': {'archived_by': user_id}})
   clear_html_cache(post_id)  
   return True
 
@@ -2173,8 +2175,8 @@ def archive_posts(session_id, ts):
   viewers = get_group_ids(user_id)
   viewers.append(user_id)
   db.stream.update({'viewers': {'$in': viewers},
-                          'last_updated': {'$lte': ts}},  
-                         {'$push': {'archived_by': user_id}}, multi=True)
+                    'last_updated': {'$lte': ts}},  
+                   {'$push': {'archived_by': user_id}}, multi=True)
   # TODO: clear cache?
   return True
 
@@ -2212,9 +2214,9 @@ def new_post_from_email(message_id, receivers, sender,
         if attachments:
           comment['attachments'] = attachments
         db.stream.update({'message_id': ref}, 
-                               {'$push': {'comments': comment},
-                                '$set': {'last_updated': utctime()},
-                                '$unset': {'archived_by': 1}})
+                         {'$push': {'comments': comment},
+                          '$set': {'last_updated': utctime()},
+                          '$unset': {'archived_by': 1}})
         
         
         parent = db.stream.find_one({'message_id': ref})
@@ -2634,11 +2636,11 @@ def get_archived_posts(session_id, page=1):
   
   user_id = get_user_id(session_id)
   feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'message_id': {'$exists': False},
-                                'archived_by': user_id})\
-                         .sort('last_updated', -1)\
-                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                         .limit(settings.ITEMS_PER_PAGE)
+                          'message_id': {'$exists': False},
+                          'archived_by': user_id})\
+                   .sort('last_updated', -1)\
+                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                   .limit(settings.ITEMS_PER_PAGE)
   return [Feed(i, db_name=db_name) for i in feeds if i]
 
 def get_incoming_posts(session_id, page=1):
@@ -2821,9 +2823,9 @@ def get_pinned_posts(session_id, category='default'):
   
   user_id = get_user_id(session_id)
   feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'archived_by': {'$nin': [user_id]},
-                                'pinned': user_id})\
-                         .sort('last_updated', -1)
+                          'archived_by': {'$nin': [user_id]},
+                          'pinned': user_id})\
+                   .sort('last_updated', -1)
                            
   return [Feed(i, db_name=db_name) for i in feeds if i]
 
@@ -3542,8 +3544,8 @@ def get_note(session_id, note_id, version=None):
   db = DATABASE[db_name]
   
   if not session_id:
-    info = db.stream.find_one({'_id': long(feed_id),
-                                     'is_removed': {'$exists': False}})
+    info = db.stream.find_one({'_id': long(note_id),
+                               'is_removed': {'$exists': False}})
     if not info or info.has_key('is_removed'):
       return Note({})
     
@@ -3732,7 +3734,7 @@ def update_note(session_id, doc_id, title, content, attachments=None, viewers=No
                                  'timestamp': utctime(),
                                  'owner': user_id},
                      'history': {'owner': user_id,
-                                 'action': 'update',
+                                 'action': 'updated',
                                  'timestamp': utctime()}}}
   if not attachments:
     query['$unset'] = {'archived_by': 1, 'attachments': 1}
@@ -5594,13 +5596,92 @@ def new_topic(owner_id, user_ids, db_name=None):
   db.message.insert(info)
   return info['_id']
 
+def archive_topic(session_id, topic_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = get_user_id(session_id)
+  
+  key = '%s:%s:unread_messages' % (db_name, user_id)
+  cache.delete(key)
+  
+  key = '%s:%s:messages' % (db_name, user_id)
+  cache.delete(key)
+  
+  db.message.update({'_id': long(topic_id)}, 
+                    {'$addToSet': {'archived_by': user_id},
+                     '$set': {'ts': utctime()}})
+  return True
 
-def get_topic_ids(user_id, db_name=None):
+def unarchive_topic(session_id, topic_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = get_user_id(session_id)
+  
+  key = '%s:%s:unread_messages' % (db_name, user_id)
+  cache.delete(key)
+  
+  key = '%s:%s:messages' % (db_name, user_id)
+  cache.delete(key)
+  
+  db.message.update({'_id': long(topic_id)}, 
+                    {'$pull': {'archived_by': user_id},
+                     '$set': {'ts': utctime()}})
+  return True
+
+
+def leave_topic(session_id, topic_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = get_user_id(session_id)
+  user = get_user_info(user_id)
+  
+  message = '@[%s](user:%s) left the conversation.' % (user.name, user.id)
+  new_message(session_id, message, 
+              topic_id=topic_id, is_auto_generated=True)
+  
+  db.message.update({'_id': long(topic_id)}, 
+                    {'$pull': {'members': user_id}})
+  return True
+  
+
+
+def update_topic(session_id, topic_id, name, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  records = db.message.find({'members': long(user_id)})
+  name = name.strip()
+  
+  user_id = get_user_id(session_id)
+  if not user_id:
+    return False
+  
+  db.message.update({'_id': long(topic_id)}, {'$set': {'name': name.strip()}})
+  
+  owner = get_user_info(user_id)
+  message = '@[%s](user:%s) set topic to "%s"' % (owner.name, owner.id, name)
+  
+  new_message(session_id, message, topic_id=topic_id, 
+              is_auto_generated=True, db_name=db_name)
+  
+  return True
+
+
+def get_topic_ids(user_id, archived=False, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = long(user_id)
+  if archived:
+    records = db.message.find({'members': user_id, 
+                               'archived_by': user_id})
+  else:
+    records = db.message.find({'members': user_id, 
+                               'archived_by': {'$nin': [user_id]}})
   return [i['_id'] for i in records]
     
 def get_topic_info(topic_id, db_name=None):
@@ -5608,7 +5689,8 @@ def get_topic_info(topic_id, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  info = db.message.find_one({'_id': int(topic_id)})
+  info = db.message.find_one({'_id': int(topic_id), 
+                              'members': {'$exists': True}})
   return Topic(info)
 
 def add_topic_members(topic_id, members, db_name=None):
@@ -5628,7 +5710,8 @@ def strip_mentions(text):
   return out
   
 
-def new_message(session_id, message, user_id=None, topic_id=None, is_auto_generated=False, db_name=None):
+def new_message(session_id, message, user_id=None, topic_id=None, 
+                is_codeblock=False, is_auto_generated=False, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5647,6 +5730,8 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
     mentions = []
   else:
     mentions = get_mentions(str(message))
+    mentions = [i for i in mentions \
+                if i['id'] != owner_id and i['id'] != user_id]
   
   return_empty_html = False
   if user_id and mentions and topic_id is None:
@@ -5669,6 +5754,7 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
     
     else:
       message = msg
+      is_auto_generated = True
       
     info = {'_id': new_id(),
             'topic': topic_id,
@@ -5684,6 +5770,10 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
     if owner_id not in topic.member_ids:
       return False
     
+    db.message.update({'_id': int(topic_id)}, 
+                      {'$unset': {'archived_by': 1}})
+    
+    
     if mentions:
       mentioned = [int(i.get('id')) for i in mentions]
       new_members = [i for i in mentioned if i not in topic.member_ids]
@@ -5696,12 +5786,14 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
                ', '.join(['@[%s](user:%s)' \
                               % (i['name'], i['id']) for i in mentions]))
    
+        # the message only contains mentions or anything else?
         if ''.join(e for e in strip_mentions(message) if e.isalnum()):
           new_message(session_id, msg, 
                       user_id=user_id, topic_id=topic_id, 
                       is_auto_generated=True, db_name=db_name)
         else:
           message = msg
+          is_auto_generated = True
                     
       
     info = {'_id': new_id(),
@@ -5719,6 +5811,9 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
     
   if is_auto_generated:
     info['auto_generated'] = True
+    
+  if is_codeblock:
+    info['codeblock'] = True
   
   msg_id = db.message.insert(info)
   info['_id'] = msg_id
@@ -5759,7 +5854,7 @@ def new_message(session_id, message, user_id=None, topic_id=None, is_auto_genera
     return html
 
 
-def get_messages(session_id, db_name=None):
+def get_messages(session_id, archived=False, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5769,33 +5864,36 @@ def get_messages(session_id, db_name=None):
     return False
   
   key = '%s:%s:messages' % (db_name, owner_id)
-  messages = cache.get(key)
-  if messages is not None:
-    return messages 
+  if archived is False:
+    messages = cache.get(key)
+    if messages is not None:
+      return messages 
   
   messages = []
-  users = db.message.find({'owner': owner_id,
-                           'user_id': {'$exists': True}})
-  for user in users:
-    user_id = user.get('user_id')
-    msg = db.message.find({'$or': [{'from': user_id, 'to': owner_id},
-                                   {'from': owner_id, 'to': user_id}],
-                           'topic': {'$exists': False}})\
-                    .sort('ts', -1)\
-                    .limit(1)
-    msg = list(msg)
-    if msg:
-      msg = msg[0]
-      
-      if msg.get('to') == owner_id:
-        last_viewed = get_last_viewed(owner_id, user_id, db_name=db_name)
+  
+  if archived is False:
+    users = db.message.find({'owner': owner_id,
+                             'user_id': {'$exists': True}})
+    for user in users:
+      user_id = user.get('user_id')
+      msg = db.message.find({'$or': [{'from': user_id, 'to': owner_id},
+                                     {'from': owner_id, 'to': user_id}],
+                             'topic': {'$exists': False}})\
+                      .sort('ts', -1)\
+                      .limit(1)
+      msg = list(msg)
+      if msg:
+        msg = msg[0]
         
-        if last_viewed < msg.get('ts'):
-          msg['is_unread'] = True
+        if msg.get('to') == owner_id:
+          last_viewed = get_last_viewed(owner_id, user_id, db_name=db_name)
           
-      messages.append(msg)
-      
-  topic_ids = get_topic_ids(owner_id, db_name=db_name)
+          if last_viewed < msg.get('ts'):
+            msg['is_unread'] = True
+            
+        messages.append(msg)
+        
+  topic_ids = get_topic_ids(owner_id, archived=archived, db_name=db_name)
   for topic_id in topic_ids:
     msg = db.message.find({'topic': topic_id})\
                     .sort('ts', -1)\
@@ -5810,7 +5908,9 @@ def get_messages(session_id, db_name=None):
   utcoffset = get_utcoffset(owner_id, db_name=db_name)
   
   messages = [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
-  cache.set(key, messages)
+  
+  if archived is False:
+    cache.set(key, messages)
   
   return messages
 
@@ -5852,7 +5952,7 @@ def get_unread_messages_count(session_id, user_id=None, topic_id=None, db_name=N
     return count
   
 
-def get_unread_messages(session_id, db_name=None):
+def get_unread_messages(session_id, archived=False, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5862,29 +5962,37 @@ def get_unread_messages(session_id, db_name=None):
     return False
   
   key = '%s:%s:unread_messages' % (db_name, owner_id)
-  out = cache.get(key)
-  if out is not None:
-    return out
+  if archived is False:
+    out = cache.get(key)
+    if out is not None:
+      return out
   
   out = []
-  records = db.message.find({'owner': owner_id, 
-                             'user_id': {'$exists': True}})
-  for record in records:
-    uid = record.get('user_id')
-    count = get_unread_messages_count(session_id, uid, db_name=db_name)
-    if count > 0:
-      out.append({'sender': get_user_info(uid, db_name=db_name), 
-                  'unread_count': count})
   
-  records = db.message.find({'members': owner_id})
+  if archived:
+    records = db.message.find({'members': owner_id, 
+                               'archived_by': owner_id})
+  else:
+    records = db.message.find({'owner': owner_id, 
+                               'user_id': {'$exists': True}})
+    for record in records:
+      uid = record.get('user_id')
+      count = get_unread_messages_count(session_id, uid, db_name=db_name)
+      if count > 0:
+        out.append({'sender': get_user_info(uid, db_name=db_name), 
+                    'unread_count': count})
+        
+    records = db.message.find({'members': owner_id, 
+                               'archived_by': {'$nin': [owner_id]}})
   for record in records:
     topic_id = record.get('_id')
     count = get_unread_messages_count(session_id, topic_id=topic_id, db_name=db_name)
     if count > 0:
       out.append({'topic': get_topic_info(topic_id, db_name=db_name), 
                   'unread_count': count})
-      
-  cache.set(key, out)
+  
+  if archived is False:
+    cache.set(key, out)
   return out
     
     
@@ -5941,14 +6049,18 @@ def update_last_viewed(owner_id, user_id=None, topic_id=None, db_name=None):
         seen_by.append(user_id)
       
     if len(seen_by) == len(topic.member_ids):
-      text = 'Seen by everyone'
+      seen_by_everyone = True
     else:
-      text = 'Seen by %s' % (', '.join([get_user_info(i).name for i in seen_by]))
-    
-    info['html'] = text
-    
+      seen_by_everyone = False
+      seen_by = [get_user_info(i) for i in seen_by]
+      
     for user_id in topic.member_ids:
       if user_id != owner_id:
+        if seen_by_everyone:
+          info['html'] = 'Seen by everyone'
+        else:
+          info['html'] = 'Seen by %s' % (', '.join([i.name for i in seen_by \
+                                                    if i.id != user_id]))
         push_queue.enqueue(publish, user_id, 
                            event_type='seen-by', 
                            info=info, 
@@ -5970,7 +6082,7 @@ def get_last_message(topic_id, db_name=None):
   if msg:
     return list(msg)[0]
 
-def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=None):
+def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -5985,23 +6097,33 @@ def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=No
   if user_id:
     user_id = int(user_id)
   
-    records = db.message.find({'$or': [{'from': owner_id, 'to': user_id},
-                                       {'from': user_id, 'to': owner_id}]})\
-                        .sort('ts', -1)\
-                        .limit(50)
+    query = {'$or': [{'from': owner_id, 'to': user_id},
+                     {'from': user_id, 'to': owner_id}]}
+    
   else:
     topic_id = int(topic_id)
     
-    if topic_id not in get_topic_ids(owner_id, db_name=db_name):
+    topic = get_topic_info(topic_id)
+    if owner_id not in topic.member_ids:
       return False
     
-    records = db.message.find({'topic': topic_id})\
-                        .sort('ts', -1)\
-                        .limit(50)
+    query = {'topic': topic_id}
     
-  last_viewed = get_last_viewed(owner_id, user_id, topic_id, db_name)
+    
+  if timestamp:
+    query['ts'] = {'$lt': float(timestamp)}
+    
+  
+  records = db.message.find(query)\
+                      .sort('ts', -1)\
+                      .limit(50)
+    
   records = list(records)
   records.reverse()
+  if records and len(records) < 50:
+    records[0]['is_first_message'] = True
+  
+  last_viewed = get_last_viewed(owner_id, user_id, topic_id, db_name)
   
   messages = []
   last_msg = None
@@ -6015,11 +6137,23 @@ def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=No
     
       if is_snowflake_id(msg):
         attachment = get_attachment_info(msg, db_name=db_name)
-        msg = "<a href='/attachment/%s' target='_blank' title='%s (%s)'>%s (%s)</a>"\
-            % (attachment.id, attachment.name, attachment.size, 
-               attachment.name[:20] + '...' if len(attachment.name) > 20 else attachment.name, attachment.size)
           
-      last_msg['text'] += '\n' + msg
+        msg = "<a href='/attachment/%s' target='_blank' title='%s (%s)' %s>%s (%s)</a>"\
+            % (attachment.id, attachment.name, attachment.size, 
+               '' if attachment.mimetype.startswith('image/') else "download='%s'" % attachment.name,
+               attachment.name, attachment.size)
+        if attachment.mimetype.startswith('image/'):
+          msg += '''<a class='image-expander'>...</a>
+          <div class='hidden'><a href='/attachment/%s' target="_blank" title='%s (%s)'><img src='/attachment/%s'></a></div>''' \
+          % (attachment.id, attachment.name, attachment.size, attachment.id)
+          
+      elif record.get('codeblock'):
+        msg = '<pre class="prettyprint">%s</pre>' % msg
+      
+      if '</' in msg or '</' in last_msg['text']:
+        last_msg['text'] += '<br>' + msg
+      else:
+        last_msg['text'] += '\n' + msg
       last_msg['ts'] = record.get('ts')
       last_msg['msg_ids'].append(record.get('_id'))
     else:
@@ -6027,12 +6161,24 @@ def get_chat_history(session_id, user_id=None, topic_id=None, page=1, db_name=No
         messages.append(last_msg)
       last_msg = record
       last_msg['msg_ids'] = [record['_id']]
+      last_msg['_ts'] = record['ts']
       
       if is_snowflake_id(msg):
         attachment = get_attachment_info(msg, db_name=db_name)
-        last_msg['text'] = "<a href='/attachment/%s' target='_blank' title='%s (%s)'>%s (%s)</a>"\
+        
+        last_msg['text'] = "<a href='/attachment/%s' target='_blank' title='%s (%s)' %s>%s (%s)</a>"\
             % (attachment.id, attachment.name, attachment.size, 
-               attachment.name[:20] + '...' if len(attachment.name) > 20 else attachment.name, attachment.size)
+               '' if attachment.mimetype.startswith('image/') else "download='%s'" % attachment.name,
+               attachment.name, attachment.size)
+            
+        if attachment.mimetype.startswith('image/'):
+          last_msg['text'] += '''<a class='image-expander'>...</a>
+          <div class='hidden'><a href='/attachment/%s' target="_blank" title='%s (%s)'><img src='/attachment/%s'></a></div>''' \
+          % (attachment.id, attachment.name, attachment.size, attachment.id)
+      
+      elif record.get('codeblock'):
+        last_msg['text'] = '<pre class="prettyprint">%s</pre>' % msg
+      
       else:
         last_msg['text'] = msg
   

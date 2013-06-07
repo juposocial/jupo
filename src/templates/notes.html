@@ -93,10 +93,39 @@
     
     {% include "wysihtml5_toolbar.html" %} 
       
-      <script src="/public/scripts/parser_rules/5w.js?v1" type="text/javascript"></script>
       <script src="/public/scripts/wysihtml5-0.3.0.min.js?v1" type="text/javascript"></script>
     
       <script type='text/javascript'>
+      
+        var wysihtml5ParserRules = {
+          tags: {
+            h3:     {},
+            strong: {},
+            b:      {},
+            i:      {},
+            u:      {},
+            em:     {},
+            ul:     {},
+            ol:     {},
+            li:     {},    
+            pre:    {},
+            code:   {},   
+            strike: {},    
+            p:      {},      
+            br: {"add_class": {"clear": "clear_br"}},
+            "a": {
+                "check_attributes": {
+                    "href": "url" // if you compiled master manually then change this from 'url' to 'href'
+                },
+                "set_attributes": {
+                    "rel": "nofollow",
+                    "target": "_blank"
+                }
+            },
+          }
+        };
+      
+      
         $(document).ready(function () {   
           
           {% set viewers = note.viewers | exclude(owner.id) %}         

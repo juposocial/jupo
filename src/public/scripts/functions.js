@@ -20,19 +20,25 @@ function close_chat(chat_id) {
   localStorage.removeItem('state-chat-' + chat_id);
   $('#chat-' + chat_id).parents('.inflow').remove();
   
-  var chat_ids = localStorage.getItem('chats').split(',');
-  chat_ids.pop(chat_id);
-  
-  out = [];
-  for (var i = 0; i < chat_ids.length; i++) {
-    var chat_id = chat_ids[i];
-    
-    if (chat_id != '' && chat_id.split('-')[1] != undefined && isNaN(chat_id.split('-')[1]) == false) {
-      out.push(chat_id);
+  var chats = localStorage.getItem('chats');
+  if (chats != null) {
+    var chat_ids = localStorage.getItem('chats').split(',');
+    chat_ids.pop(chat_id);
+      
+    out = [];
+    for (var i = 0; i < chat_ids.length; i++) {
+      var chat_id = chat_ids[i];
+      
+      if (chat_id != '' && chat_id.split('-')[1] != undefined && isNaN(chat_id.split('-')[1]) == false) {
+        out.push(chat_id);
+      }
     }
+    
+    localStorage['chats'] = out.join(',')
   }
+  
  
-  localStorage['chats'] = out.join(',')
+  
   
   
   
@@ -40,19 +46,91 @@ function close_chat(chat_id) {
   
 }
 
+function add_to_sidebar(chat_id) {
+  var chatbox = $('#chat-' + chat_id);
+  if (chatbox.length == 0) {
+    $.ajax({
+      url: '/chat/' + chat_id.replace('-', '/'),
+      type: 'GET',
+      async: false,
+      success: function(html){ 
+        chatbox = $(html);
+      }
+    })
+  }
+  
+  if ($('.user-info', chatbox).length != 0) {
+    var avatar = $('img.small-avatar', chatbox).attr('src');
+    var name = $('.user-info .name', chatbox).text();
+    var status = $('.user-info i.' + chat_id + '-status', chatbox).attr('class');
+    var last_msg = $('ul.messages li.message:last', chatbox);
+    if (last_msg.length == 0) {
+      var ts = '';
+      var message = '';
+    } else {
+      var ts = $('div.ts', last_msg).text();
+      var message = $('div.content', last_msg).text();
+    }
+    
+    code = '<a href="/chat/' + chat_id.replace('-', '/') + '" class="selected chat ' + chat_id + '">'
+    code += '<div class="ts rfloat">' + ts + '</div>';
+    code += '<div class="unread-messages hidden">0</div>';
+    code += '<img class="small-avatar lfloat" src="' + avatar + '">';
+    code += '<div class="title">' + name + ' <i class="' + status + '" title=""></i></div>';
+    code += '<div class="message">' + message + '</div>';
+    code += '</a>';
+     
+    $('ul.topics').prepend('<li>' + code + '</li>');
+  } else {
+    var name = $('div[contenteditable]', chatbox).text();
+    var last_msg = $('ul.messages li.message:last', chatbox);
+    if (last_msg.length == 0) {
+      var ts = '';
+      var message = '';
+    } else {
+      var ts = $('div.ts', last_msg).text();
+      var message = $('div.content', last_msg).text();
+    }
+    
+    code = '<a href="/chat/' + chat_id.replace('-', '/') + '" class="selected chat ' + chat_id + '">'
+    code += '<div class="ts rfloat">' + ts + '</div>';
+    code += '<div class="unread-messages hidden">0</div>';
+    code += '<i class="group-icon"></i>';
+    code += '<div class="title">' + name + '</div>';
+    code += '<div class="message">' + message + '</div>';
+    code += '</a>';
+     
+    $('ul.topics').prepend('<li>' + code + '</li>');
+    
+  }
+}
+
     
 function start_chat(chat_id) {
-  if (chat_id.indexOf('-') == -1) {
-    return false;
-  }
-  
-  if ($('#chat-' + chat_id).length > 0) {
+  if (window.location.pathname.indexOf('/messages') == -1) {
+    
+    if (chat_id.indexOf('-') == -1) {
       return false;
-  }
+    }
+    
+    if ($('#chat-' + chat_id).length > 0) {
+        return false;
+    }
+    
+    var parts = chat_id.split('-');
+    if (parts.length != 2) {
+      return false;
+    }
   
-  var parts = chat_id.split('-');
-  if (parts.length != 2) {
-    return false;
+  } else {
+    close_chat(chat_id);
+    
+    $('ul.topics a.selected').removeClass('selected');
+    
+    if ($('ul.topics a.' + chat_id).length > 0) {
+      $('ul.topics a.' + chat_id).addClass('selected');
+      $('ul.topics a.' + chat_id + ' div.unread-messages').html('0').hide();
+    }
   }
   
   
@@ -61,7 +139,7 @@ function start_chat(chat_id) {
   show_loading();
   $.ajax({
     url: href,
-    type: 'GET',
+    type: 'OPTIONS',
     success: function(html){ 
       hide_loading();
       
@@ -76,52 +154,172 @@ function start_chat(chat_id) {
         localStorage['chats'] = chat_id;
       }
       
-      $('#chat').prepend(html);
-      
+      if (window.location.pathname.indexOf('/messages') == -1) {
+        $('#chat').prepend(html);
+        
+        var textbox = $('#chat-' + chat_id + ' form textarea.mentions');
+        var last_textbox_height = textbox.height();
+        
+        textbox.elastic();
+        
+        textbox.resize(function() { // resize messages panel 
+          console.log('resized')
+          
+          var delta = ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
+          var new_height = $('#chat-' + chat_id + ' .messages').height() - delta;
+          
+          $('#chat-' + chat_id + ' .messages').css('height', new_height + 'px');
+          $('#chat-' + chat_id + ' .status').css('bottom', parseInt($('#chat-' + chat_id + ' .status').css('bottom')) + delta + 'px');
+          
+          last_textbox_height = $('#chat-' + chat_id + ' form textarea.mentions').height();
+          
+          
+          $('#chat-' + chat_id + ' .messages').scrollTop(99999);
+        
+        })
+        
+        
+        $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
+          minChars: 1,
+          fullNameTrigger: false,
+          onDataRequest: function(mode, query, callback) {
+            search_mentions(query, callback)
+          }
+        });
+        
+        $('#chat-' + chat_id + ' .header div[contenteditable]').attr('contenteditable', 'false').attr('title', '').attr('onclick', '');
+        
+      } else {
+        $('div.messages div.chatbox').html($('div.chatbox', $(html)).html());
+        $('div.messages div.chatbox').attr('id', $('div.chatbox', $(html)).attr('id'));
+        
+        if ($('div.chatbox', $(html)).hasClass('unread')) {
+          $('div.messages div.chatbox').addClass('unread');
+        }
+        
+        $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
+          minChars: 1,
+          fullNameTrigger: false,
+          elastic: false,
+          onDataRequest: function(mode, query, callback) {
+            search_mentions(query, callback)
+          }
+        });
+      }
       
       if (localStorage.getItem('state-chat-' + chat_id) == 'minimize') {
         toggle_chatbox('chat-' + chat_id);
       }
       
+      // highlight code snippets
+      prettyPrint()
+      
+      $('#chat-' + chat_id + " div[contenteditable] span").tipsy({
+        gravity: 's'
+      });
+      
+      $('#chat-' + chat_id + " .messages li.message a.async").tipsy({
+        gravity: 'e'
+      });
         
       $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
         minChars: 1,
         fullNameTrigger: false,
+        elastic: false,
         onDataRequest: function(mode, query, callback) {
           search_mentions(query, callback)
         }
       });
       
-      var textbox = $('#chat-' + chat_id + ' form textarea.mentions');
-      var last_textbox_height = textbox.height();
-      
-      textbox.elastic();
-      
-      textbox.resize(function() { // resize messages panel 
-        console.log('resized')
-        
-        var delta = ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
-        var new_height = $('#chat-' + chat_id + ' .messages').height() - delta;
-        
-        $('#chat-' + chat_id + ' .messages').css('height', new_height + 'px');
-        $('#chat-' + chat_id + ' .status').css('bottom', parseInt($('#chat-' + chat_id + ' .status').css('bottom')) + delta + 'px');
-        
-        last_textbox_height = $('#chat-' + chat_id + ' form textarea.mentions').height();
-        
-        
-        $('#chat-' + chat_id + ' .messages').animate({
-            scrollTop: 99999
-        }, 'fast');
-      
-      })
     
-      $('#chat-' + chat_id + ' .messages').animate({
-          scrollTop: 99999
-      }, 'fast');
+      $('#chat-' + chat_id + ' .messages').scrollTop(99999);
       
       setTimeout(function() {
         $('#chat-' + chat_id + ' textarea.mentions').focus();
       }, 50)
+      
+      // Right sidebar link
+      if ($('ul.topics a.' + chat_id).length == 0) {
+        add_to_sidebar(chat_id);
+      }
+      
+      
+      
+      // Send File
+      var uploader_id = chat_id.replace('-', '_');
+            
+      $.global['uploader_chat_' + uploader_id] = new plupload.Uploader({
+            runtimes : 'html5',
+            browse_button : 'chatbox-pick-file',
+            container : 'chatbox-file-container',
+            url : '/chat/' + chat_id.replace('-', '/') + '/new_file',
+            multi_selection : false,
+            // drop_element: 'intro',
+            max_file_size : '10mb',
+            headers: {
+              'X-CSRFToken': get_cookie('_csrf_token')
+            }
+      });
+          
+      $.global['uploader_chat_' + uploader_id].bind('Init', function(up, params) {});
+      $.global['uploader_chat_' + uploader_id].init();
+      
+      
+      $.global['uploader_chat_' + uploader_id].bind('FilesAdded', function(up, files) {
+        $.global['uploader_chat_' + uploader_id].start();
+        update_status(chat_id + '|is uploading file...');
+      });
+      
+      
+      $.global['uploader_chat_' + uploader_id].bind('UploadProgress', function(up, file) {
+        if(file.percent != 100) {
+          $('#chat-' + chat_id + ' div.status').html("Uploading " + file.percent + "%").show();
+        } else {
+          $('#chat-' + chat_id + ' div.status').html("Verifying...").show();
+        }
+      });
+      
+      $.global['uploader_chat_' + uploader_id].bind('Error', function(up, err) {
+          show_error();
+      });
+      
+      
+      $.global['uploader_chat_' + uploader_id].bind('FileUploaded', function(up, file, response) {
+          
+          $('#chat-' + chat_id + ' div.status').html('').fadeOut('fast');
+          
+          
+          var last_msg = $('#chat-' + chat_id + ' li.message:last');
+          var msg = $(response.response);
+  
+          var msg_id = msg.attr('id').split('-')[1];
+          var msg_ts = msg.data('ts');
+          var sender_id = msg.attr('data-sender-id');
+          
+          if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+            var content = $('.content', msg).html();
+            $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+            $(last_msg).data('ts', msg_ts);
+            $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+            
+          } else {
+            $('#chat-' + chat_id + ' .messages').append(response.response);
+          }
+          
+          
+          setTimeout(function() {
+            $('#chat-' + chat_id + ' .messages').scrollTop(99999);
+          }, 10)
+        
+      });
+  
+  
+      
+      
+      
+      
+      
+      
     },
     error: function(data) {
       hide_loading();
@@ -948,6 +1146,9 @@ function stream() {
       // Update user status led
       if (user.status.indexOf('|') == -1) {
         $('.user-' + user.id + '-status').removeClass('online offline away').addClass(user.status);
+        if (window.location.pathname.indexOf('/messages') != -1) {
+          $('div.messages .chatbox div.header .user-info i.user-' + user.id + '-status').text(user.status);
+        }
       }
       
       if ((element.length == 0 && user.status == 'online') || user.status == 'offline') {
@@ -1126,7 +1327,7 @@ function stream() {
             // refresh timeago
             
             
-            msg = $('.message .text', comment).html().replace(/\s\s+/, ' ').slice(0, 50);
+            msg = $('.message .text', comment).text().replace(/\s\s+/, ' ').slice(0, 50);
             username = $('.message strong', comment).html();
             avatar = $('img.small-avatar', comment).attr('src');
             
@@ -1407,14 +1608,14 @@ function stream() {
       if (sender_id != owner_id) {
         $('#chat-' + chat_id).addClass('unread');  
         
-        if ($('#chat-' + chat_id + ' textarea._elastic').is(':focus') == true) {
+        if ($('#chat-' + chat_id + ' textarea.mentions').is(':focus') == true) {
           $('#chat-' + chat_id).mouseover()
         }
         
         
         var username = $('a.async[title]', msg).attr('title');
         var avatar = $('a.async[title] img.small-avatar', msg).attr('src');
-        var message_content = $('div.content', msg).html();
+        var message_content = $('div.content', msg).text();
         
         // flashing message in the browser title bar
         $.titleAlert(username + " messaged you", {
@@ -1432,36 +1633,83 @@ function stream() {
       }
       
       
-      if ($('#chat-' + chat_id).length == 0) {
+      if (window.location.pathname.indexOf('/messages') == -1 && $('#chat-' + chat_id).length == 0) {
+        start_chat(chat_id);
+      } else if (window.location.pathname.indexOf('/messages') != -1 && $('ul.topics a.selected').length == 0) {
         start_chat(chat_id);
       }
       
-      var boxchat = $('#chat-' + chat_id);
-      var last_msg = $('li.message:last', boxchat);
-
-      var msg_id = msg.attr('id').split('-')[1];
-      var msg_ts = msg.data('ts');
-      var sender_id = msg.attr('data-sender-id');
-      
-      if (last_msg.length == 1 && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-        if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
-          if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-            var content = $('.content', msg).html();
-            $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
-            $(last_msg).data('ts', msg_ts);
-            $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+      console.log(chat_id);
+      console.log($('#chat-' + chat_id).length);
+      if ($('#chat-' + chat_id).length != 0) {
+        var boxchat = $('#chat-' + chat_id);
+        var last_msg = $('li.message:last', boxchat);
+  
+        var msg_id = msg.attr('id').split('-')[1];
+        var msg_ts = msg.data('ts');
+        var sender_id = msg.attr('data-sender-id');
+        
+        if (last_msg.length == 1 && $('> a > img.small-avatar', last_msg).length != 0 && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+          if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
+            if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+              var content = $('.content', msg).html();
+              $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+              $(last_msg).data('ts', msg_ts);
+              $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+            }
+          } else {
+            $('.messages', boxchat).append(_msg);
           }
-        } else {
-          $('.messages', boxchat).append(_msg);
+          
+          setTimeout(function() {
+            $('.messages', boxchat).scrollTop(99999);
+          }, 10)  
+          
+          var new_group_chat_link = $('a.chat[href^="/chat/topic/"]', msg);
+          if (new_group_chat_link.length == 1) {
+            var topic_id = new_group_chat_link.attr('href').split('/topic/')[1];
+            start_chat('topic-' + topic_id);
+          }
+          
         }
         
-        setTimeout(function() {
-          $('.messages', boxchat).scrollTop(99999);
-        }, 10)  
+        $('div.status', boxchat).fadeOut('fast');
+        
+        
+        if ($('form.chat', boxchat).hasClass('gray-bg') == true) {
+          $('form.chat', boxchat).removeClass('gray-bg');
+          $('form.chat textarea.mentions', boxchat).attr("readonly", false);
+          $('form.chat textarea.mentions', boxchat).attr('placeholder', "Write a message...").val('').focus();
+          $("form.chat textarea.mentions", boxchat).css('height', "");
+          
+          $("form.chat textarea.mentions", boxchat).mentionsInput('reset');
+        }
+        
+      } 
+      
+      if (window.location.pathname.indexOf('/messages') != -1) {
+        var message = $('.content', msg).text();
+        
+        if (sender_id == owner_id) {
+          message = '<i class="msg-reply-icon"></i>' + message;
+        }
+        
+        $('ul.topics a.chat.' + chat_id + ' div.message').html(message);
+        $('ul.topics a.chat.' + chat_id + ' div.ts').html($('div.ts', msg).text());
+        
+        if (sender_id != owner_id) {
+          if ($('ul.topics a.chat.' + chat_id).length == 0) {
+            add_to_sidebar(chat_id);
+          }
+          incr('ul.topics a.chat.' + chat_id + ' div.unread-messages');
+          
+          $('ul.topics').scrollTop(0);
+          var offset = $('ul.topics a.chat.' + chat_id).offset().top - $('ul.topics').offset().top + 1;
+          $('ul.topics').animate({
+            scrollTop: offset
+          }, 'fast');
+        }
       }
-      
-      $('div.status', boxchat).fadeOut('fast');
-      
 
     }
     
@@ -1526,12 +1774,16 @@ function open_in_async_mode(href, rel, data, f) {
 
       $(".current").removeClass("current");
 
-      $("#left-sidebar .active").addClass("async");
-      $("#left-sidebar .active").removeClass("active");
-      parent_id = '#' + rel;
-      $(parent_id).html(resp.menu);
+      $("#left-sidebar .active").addClass("async").removeClass("active");
+      parent_id = '#left-sidebar #' + rel;
+      if (resp.menu) {
+        $(parent_id).html(resp.menu);
+      }
       $(parent_id).addClass("current");
       $(parent_id).removeClass("async");
+      
+      $(parent_id + ' > a').addClass("active");
+
     }
     
 
@@ -1624,12 +1876,13 @@ function open_in_async_mode(href, rel, data, f) {
 
           $(".current").removeClass("current");
 
-          $("#left-sidebar .active").addClass("async");
-          $("#left-sidebar .active").removeClass("active");
-          parent_id = '#' + rel;
-          $(parent_id).html(resp.menu);
-          $(parent_id).addClass("current");
-          $(parent_id).removeClass("async");
+          $("#left-sidebar .active").addClass("async").removeClass("active");
+          parent_id = '#left-sidebar #' + rel;
+          if (resp.menu) {
+            $(parent_id).html(resp.menu);
+          }
+          $(parent_id).addClass("current").removeClass("async");
+          $(parent_id + ' > a').addClass("active");
           
         }
    

@@ -299,19 +299,19 @@ class User(Model):
       attachment = api.get_attachment_info(avatar, db_name=self.db_name)
       filename = '%s_60.jpg' % attachment.md5
       if attachment.md5 and api.is_s3_file(filename, db_name=self.db_name):
-        return 'https://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME, filename)
+        return 'http://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME, filename)
       
       return '/img/' + str(avatar) + '.jpg'
     
     # try gravatar
     
-    default = "https://5works.s3.amazonaws.com/images/user2.png"
+    default = "http://jupo.s3.amazonaws.com/images/user2.png"
     if not self.email:
       return default
     
     email = self.email.strip().lower()
     size = 50
-    gravatar_url = "https://secure.gravatar.com/avatar/" + md5(email.lower()).hexdigest() + "?"
+    gravatar_url = "http://www.gravatar.com/avatar/" + md5(email.lower()).hexdigest() + "?"
     gravatar_url += urlencode({'d':default, 's':str(size)})
     return gravatar_url
   
@@ -1383,6 +1383,10 @@ class Message(Model):
   @property
   def timestamp(self):
     return self.info.get('ts', 0) + self.utcoffset
+  
+  @property
+  def _ts(self):
+    return self.info.get('_ts')
     
   @property
   def date(self):
@@ -1412,11 +1416,21 @@ class Message(Model):
   
   def is_auto_generated(self):
     return self.info.get('auto_generated')
+  
+  def is_first_message(self):
+    return self.info.get('is_first_message')
+  
+  def is_codeblock(self):
+    return self.info.get('codeblock')
     
 
 class Topic(Model):
   def __init__(self, info):
     self.info = info
+    
+  @property
+  def name(self):
+    return self.info.get('name')
     
   @property
   def member_ids(self):
@@ -1429,6 +1443,10 @@ class Topic(Model):
   def members(self):
     return [api.get_user_info(user_id) for user_id in self.member_ids]
 
+  @property
+  def archived_by(self):
+    return self.info.get('archived_by', [])
+  
 
 class ESResult(Model):
   def __init__(self, info, query, db_name=None):

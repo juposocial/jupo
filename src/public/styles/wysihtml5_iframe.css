@@ -1,11 +1,11 @@
 body {
   line-height: 21px;
   background-image: url(data:image/gif;base64,R0lGODlhDQIUAJECAPnq0+fy1P///wAAACH5BAEAAAIALAAAAAANAhQAAAKyhI6py+0Po5y02ouz3rz7D4biSIZGiabqyrbuC8fyLJ70jef6zvf+D7IBh8Si8YhM+oTKpvMJjUqLzKn1is1qt40q9wsOi8cwL/mMTqvXCTP7DY/Lke65/Y7Pq+r6vv8P6MAXSFhoCDd4qLjImJXYCBkpSfQ4aXmJ+VKZydnpybH5KTpKuhBaipqaeara6roIECA7S1tre4ubq7vL2+v7CxwsPExcbHyMnKy8zNzs/MxcAAA7);
-  background-position: 33px 15px;
+  background-position: 28px 14px;
   background-repeat: repeat-y;
   background-attachment: scroll;
   
-  padding: 0 0 0 40px !important;
+  padding: 0 0 0 30px !important;
 }
 
 code {
@@ -13,15 +13,8 @@ code {
 }
 
 pre {
-font-family: monospace;
-font-size: 12px!important;
-color: whiteSmoke;
-word-wrap: break-word;
-white-space: nowrap;
-padding: 10px;
-background: #222;
-text-shadow: 0 1px 0 black;
-overflow-x: auto;
+  font-family: monospace;
+  margin: 0;
 }
 
 
@@ -43,8 +36,12 @@ ul li {
   list-style-type: disc;
 }
 
-p, div, ol, ul {
+div, ol, ul {
   margin: 0
+}
+
+p {
+  margin: 20px 0;
 }
 
 h2 {
@@ -60,7 +57,13 @@ h3 {
 }
 
 a {
-  word-wrap: break-word
+  word-wrap: break-word;
+  color: #3b5998;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 ul li {

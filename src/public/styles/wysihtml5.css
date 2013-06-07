@@ -5,15 +5,8 @@ article code {
 
 
 article pre {
-font-family: monospace;
-font-size: 12px!important;
-color: whiteSmoke;
-word-wrap: break-word;
-white-space: nowrap;
-padding: 10px;
-background: #222;
-text-shadow: 0 1px 0 black;
-overflow-x: auto;
+  font-family: monospace;
+  margin: 0;
 }
 
 article pre::-webkit-scrollbar {
@@ -23,10 +16,6 @@ article pre::-webkit-scrollbar {
 
 article pre a {
   color: #bbb;
-}
-
-article.message pre {
-  margin: 10px 0;
 }
 
 article ul, article ol {
@@ -42,6 +31,10 @@ article p, article div, article ol, article ul {
   margin: 0
 }
 
+article.note p {
+  margin: 20px 0 0;
+}
+
 article h2 {
   margin: 0 !important;
   font: bold 18px Arial, sans-serif !important;
@@ -55,7 +48,13 @@ article h3 {
 }
 
 article a {
-  word-wrap: break-word
+  word-wrap: break-word;
+  color: #3b5998;
+  text-decoration: none;
+}
+
+article a:hover {
+  text-decoration: underline;
 }
 
 article ul li {

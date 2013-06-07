@@ -148,7 +148,7 @@ def parse_json(text):
     return None
 
 EMAIL_RE = re.compile('^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,4})$')
-MENTIONS_RE = re.compile('(@\[.*?\))')
+MENTIONS_RE = re.compile('(@\[.*?\]\(.*?\))')
 
 def autolink(text):  
   if not text:
@@ -206,22 +206,27 @@ def autolink(text):
   if mentions:
     for mention in mentions:
       if '](topic:' in mention:
-        topic = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
-        topic['id'] = topic['id'].split(':', 1)[-1]
+        parts = mention.split("](topic:")
+        topic_id = parts[1][:-1]
+        topic_name = parts[0][2:]
         
         #TODO: update topic name?
         s = s.replace(mention, 
-             '<a href="/chat/topic/%s" class="chat">%s</a>' % (topic.get('id'), topic.get('name')))
+             '<a href="/chat/topic/%s" class="chat">%s</a>' % (topic_id, topic_name))
       elif '](user:' in mention:
-        user = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
-        user['id'] = user['id'].split(':', 1)[-1]
+        parts = mention.split("](user:")
+        user_id = parts[1][:-1]
+        username = parts[0][2:]
         s = s.replace(mention, 
-             '<a href="/user/%s" class="async"><span class="tag">%s</span></a>' % (user.get('id'), user.get('name')))
+             '<a href="/user/%s" class="async"><span class="tag">%s</span></a>' % (user_id, username))
+      elif '](group:' in mention:
+        parts = mention.split("](group:")
+        group_id = parts[1][:-1]
+        group_name = parts[0][2:]
+        s = s.replace(mention, 
+             '<a href="/group/%s" class="async"><span class="tag">%s</span></a>' % (group_id, group_name))
       else:
-        group = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
-        group['id'] = group['id'].split(':', 1)[-1]
-        s = s.replace(mention, 
-             '<a href="/group/%s" class="async"><span class="tag">%s</span></a>' % (group.get('id'), group.get('name')))
+        continue
         
 #  hashtags = re.compile('(#\[.*?\))').findall(s)
 #  if hashtags:
@@ -349,18 +354,22 @@ def flavored_markdown(text):
                           '<a href="%s" target="_blank" title="%s">%s</a>' % (url, title, url))
   
   for mention in mentions:
+        
     hash_string = md5(mention).hexdigest()
-    user = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
-    user['id'] = user['id'].split(':', 1)[-1]
+    
+    
+    parts = mention.split("](user:")
+    username = parts[0][2:]
+    user_id = parts[1][:-1]
     html = html.replace(hash_string, 
-                        '<a href="#!/user/%s" class="overlay"><span class="tag">%s</span></a>' % (user.get('id'), user.get('name')))
+                        '<a href="/user/%s" class="async"><span class="tag">%s</span></a>' % (user_id, username))
   
-  for hashtag in hashtags:
-    hash_string = md5(hashtag).hexdigest()
-    tag = re.compile('#\[(?P<name>.+)\]\((?P<id>.*)\)').match(hashtag).groupdict()
-    tag['id'] = tag['id'].split(':', 1)[-1]
-    html = html.replace(hash_string, 
-                        '<a href="?hashtag=%s" class="overlay"><span class="tag">%s</span></a>' % (tag.get('id'), tag.get('name')))  
+#   for hashtag in hashtags:
+#     hash_string = md5(hashtag).hexdigest()
+#     tag = re.compile('#\[(?P<name>.+)\]\((?P<id>.*)\)').match(hashtag).groupdict()
+#     tag['id'] = tag['id'].split(':', 1)[-1]
+#     html = html.replace(hash_string, 
+#                         '<a href="?hashtag=%s" class="overlay"><span class="tag">%s</span></a>' % (tag.get('id'), tag.get('name')))  
     
   # Restore code blocks
   for block in code_blocks:
@@ -583,7 +592,11 @@ def remove_empty_lines(html):
     html = html.strip().replace('\n', '')
     soup = BeautifulSoup(html)
     lines = []
-    for element in soup.contents:
+    if len(soup.contents) == 1:
+      contents = soup.contents[0].contents
+    else:
+      contents = soup.contents
+    for element in contents:
       if isinstance(element, Tag):
         if element.text:
           lines.append(str(element).strip())
@@ -594,6 +607,7 @@ def remove_empty_lines(html):
     out = ''.join(lines).strip()
     while '\n\n' in out:
       out = out.replace('\n\n', '\n')
+    out = out.replace('\n', '<br>')
   else:
     out = '\n'.join([line for line in html.split('\n') if line.strip()])
   cache.set(key, out, namespace="filters")
@@ -622,13 +636,20 @@ def clean(text):
 #  out = cache.get(key, namespace="filters")
 #  if out:
 #    return out
-  
-  mentions = re.findall('(@\[.*?\))', text)
+  mentions = re.findall('(@\[.*?]\(.*?\))', text)
   if mentions:
     for mention in mentions:
-      user = re.compile('@\[(?P<name>.+)\]\((?P<id>.*)\)').match(mention).groupdict()
-      user['id'] = user['id'].split(':', 1)[-1]
-      text = text.replace(mention, user.get('name'))
+      if '](topic:' in mention:
+        parts = mention.split("](topic:")
+        name = parts[0][2:]
+      elif '](user:' in mention:
+        parts = mention.split("](user:")
+        name = parts[0][2:]
+      else:
+        parts = mention.split("](group:")
+        name = parts[0][2:]
+      
+      text = text.replace(mention, name)
       
 #  hashtags = re.compile('(#\[.*?\))').findall(text)
 #  if hashtags:
@@ -758,7 +779,7 @@ def sanitize_html(value):
   re_scripts = re.compile('(%s)|(%s)' % (rjs, rvb), re.IGNORECASE)
 #  validTags = 'p i strong b u a h1 h2 h3 h4 pre br img ul ol li blockquote em code hr'.split()
   validTags = 'a abbr b blockquote code del ins dd dl dt em h2 h3 h4 i img kbd li ol p pre s small sup sub strong strike table tbody th tr td ul br hr div span'.split()
-  validAttrs = 'src width height alt title class href'.split()
+  validAttrs = 'src width height alt title class href target'.split()
   urlAttrs = 'href title'.split() # Attributes which should have a URL
   
   soup = BeautifulSoup(value.decode('utf-8'))

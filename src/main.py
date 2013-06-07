@@ -1124,7 +1124,7 @@ def notes(page=1):
 @app.route("/note/<int:note_id>/edit", methods=["OPTIONS"])
 @app.route("/note/<int:note_id>/v<int:version>", methods=["OPTIONS", "POST"])
 @app.route("/note/<int:note_id>/<action>", methods=["GET", "OPTIONS", "POST"])
-@login_required
+@line_profile
 def note(note_id=None, action=None, version=None):  
   session_id = session.get("session_id")
   owner = api.get_owner_info(session_id)
@@ -1267,7 +1267,6 @@ def note(note_id=None, action=None, version=None):
                            mode=mode,
                            action=action,
                            version=version,
-#                            recents=recents,
                            note=note,
                            group=group,
                            owner=owner,
@@ -1279,9 +1278,20 @@ def note(note_id=None, action=None, version=None):
       info['title'] = 'Untitle Note'
     return Response(dumps(info), mimetype='application/json')
   else:
-    return render_homepage(session_id, note.title,
-                           version=version,
-                           group=group, note=note, view='notes', mode='view')
+    full = True if 'full' in request.query_string else False
+    if not owner.id or full is True:
+      title = note.title
+      description = note.content
+      return render_template('post.html',
+                             owner=owner,
+                             mode='view',
+                             full=True,
+                             title=title, description=description, 
+                             note=note)
+    else:
+      return render_homepage(session_id, note.title,
+                             version=version,
+                             group=group, note=note, view='notes', mode='view')
 
 @app.route('/u<key>')
 @app.route('/u/<int:note_id>')
@@ -1966,16 +1976,23 @@ def group(group_id=None, view='group', page=1):
 @app.route('/chat/user/<int:user_id>', methods=['GET', 'OPTIONS'])
 @app.route('/chat/user/<int:user_id>/<action>', methods=['POST'])
 @app.route('/chat/topic/<int:topic_id>', methods=['GET', 'OPTIONS'])
-@app.route('/chat/topic/<int:topic_id>/<action>', methods=['POST'])
+@app.route('/chat/topic/<int:topic_id>/<action>', methods=['OPTIONS', 'POST'])
 @login_required
 def chat(topic_id=None, user_id=None, action=None):
   session_id = session.get("session_id")
+  timestamp = request.args.get('ts')
   
   if action == 'new_message':    
     msg = request.form.get('message')
+    codeblock = request.form.get('codeblock')
+    if '\n' in msg.strip() and codeblock:
+      codeblock = True
+    else:
+      codeblock = False
     html = api.new_message(session_id, msg, 
-                           user_id=user_id, topic_id=topic_id)
-    
+                           user_id=user_id, 
+                           topic_id=topic_id,
+                           is_codeblock=codeblock)
     return html
   
   elif action == 'new_file':
@@ -1997,79 +2014,155 @@ def chat(topic_id=None, user_id=None, action=None):
       api.update_last_viewed(owner_id, topic_id=topic_id)
       
     return 'OK'
+  
+  elif action == 'update':
+    name = request.args.get('name')
+    api.update_topic(session_id, topic_id, name)
+    return 'OK'
+  
+  elif action == 'members':
+    topic = api.get_topic_info(topic_id)
+    owner = api.get_owner_info(session_id)
+    body = render_template('topic_members.html', topic=topic, owner=owner)
+
+    return Response(dumps({'body': body}), 
+                    mimetype='application/json')  
     
   else:
+    if request.method == 'GET':
+      if user_id:
+        return redirect('/messages/user/%s' % user_id)
+      elif topic_id:
+        return redirect('/messages/topic/%s' % topic_id)
+      else:
+        abort(400)
+        
     owner_id = api.get_user_id(session_id)
     user = topic = seen_by = None
     if user_id:
       user = api.get_user_info(user_id)
+      messages = api.get_chat_history(session_id, 
+                                      user_id=user_id, 
+                                      timestamp=timestamp)
       
-      last_viewed = api.get_last_viewed(user_id, owner_id) \
-                  + int(api.get_utcoffset(owner_id))
-                  
-      last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
-      if last_viewed_friendly_format.startswith('Today'):
-        last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
-      
-      messages = api.get_chat_history(session_id, user_id)
-      
-      if messages and (messages[-1].sender.id == owner_id) and (messages[-1].timestamp < last_viewed):
-        seen_by = 'Seen %s' % last_viewed_friendly_format
+      if not timestamp:
+        last_viewed = api.get_last_viewed(user_id, owner_id) \
+                    + int(api.get_utcoffset(owner_id))
+                    
+        last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
+        if last_viewed_friendly_format.startswith('Today'):
+          last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
         
+        
+        if messages and (messages[-1].sender.id == owner_id) and (messages[-1].timestamp < last_viewed):
+          seen_by = 'Seen %s' % last_viewed_friendly_format
+          
     else:
       last_viewed = last_viewed_friendly_format = 0
       topic = api.get_topic_info(topic_id)
-      messages = api.get_chat_history(session_id, topic_id=topic_id)  
+      messages = api.get_chat_history(session_id, 
+                                      topic_id=topic_id, 
+                                      timestamp=timestamp)  
       
-      if messages:
-        utcoffset = int(api.get_utcoffset(owner_id))
-        last_viewed = {}
-        seen_by = []
-        for i in topic.member_ids:
-          ts = api.get_last_viewed(i, topic_id=topic_id) + utcoffset
-          last_viewed[i] = ts
-          if messages[-1].timestamp < ts:
-            seen_by.append(i)
-      
-      app.logger.debug(seen_by)
-      app.logger.debug(last_viewed)
-      app.logger.debug(messages[-1].timestamp)
-      if seen_by:
-        if len(seen_by) >= len(topic.member_ids):
-          seen_by = 'Seen by everyone.'
-        else:
-          seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name for i in seen_by])
-              
-    return render_template('chat.html', 
-                           owner={'id': owner_id},
-                           seen_by=seen_by,
-                           messages=messages, user=user, topic=topic)
+      if not timestamp:
+        if messages:
+          utcoffset = int(api.get_utcoffset(owner_id))
+          last_viewed = {}
+          seen_by = []
+          for i in topic.member_ids:
+            ts = api.get_last_viewed(i, topic_id=topic_id) + utcoffset
+            last_viewed[i] = ts
+            if messages[-1].timestamp < ts:
+              seen_by.append(i)
+        
+        if seen_by:
+          if len(seen_by) >= len(topic.member_ids):
+            seen_by = 'Seen by everyone.'
+          elif len(seen_by) == 1 and seen_by[0] == owner_id:
+            seen_by = None
+          else:
+            seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name \
+                                                for i in seen_by \
+                                                if i != owner_id])
+            
+    
+    if timestamp:
+      return render_template('messages.html', 
+                             owner={'id': owner_id},
+                             timestamp=timestamp,
+                             messages=messages, user=user, topic=topic)
+    else:
+      return render_template('chatbox.html', 
+                             owner={'id': owner_id},
+                             seen_by=seen_by,
+                             timestamp=timestamp,
+                             messages=messages, user=user, topic=topic)
     
     
 
 @app.route("/messages", methods=['GET', 'OPTIONS'])
+@app.route("/messages/archived", methods=['GET', 'OPTIONS'])
+@app.route("/messages/user/<int:user_id>", methods=['GET', 'OPTIONS'])
+@app.route("/messages/topic/<int:topic_id>", methods=['GET', 'OPTIONS'])
+@app.route("/messages/topic/<int:topic_id>/<action>", methods=['POST'])
 @login_required
 @line_profile
-def messages():
+def messages(user_id=None, topic_id=None, action=None):
   session_id = session.get("session_id")
-  user_id = api.get_user_id(session_id)
-  owner = api.get_user_info(user_id)
-  suggested_friends = api.get_friend_suggestions(owner.to_dict())
-  coworkers = api.get_coworkers(session_id)
   
-  messages = api.get_messages(session_id)
+  if topic_id and request.method == 'POST':
+    if action == 'archive':
+      api.archive_topic(session_id, topic_id)
+    elif action == 'unarchive':
+      api.unarchive_topic(session_id, topic_id)
+    elif action == 'leave':
+      api.leave_topic(session_id, topic_id)
+      
+    return 'OK'
+    
+  
+  owner = api.get_user_info(api.get_user_id(session_id))
+  suggested_friends = [] # api.get_friend_suggestions(owner.to_dict())
+  coworkers = [] # api.get_coworkers(session_id)
+  
+  archived = True if request.path.endswith('/archived') else False
+  
+  topics = api.get_messages(session_id, archived=archived)
+  
+  unread_messages = {}
+  for i in api.get_unread_messages(session_id, archived=archived):
+    if i and i.get('sender'):
+      unread_messages[i['sender'].id] = i['unread_count']
+    else:
+      unread_messages[i['topic'].id] = i['unread_count']
+      
+  for message in topics:
+    if message.topic_id:
+      _id = message.topic_id
+    elif message.sender.id == owner.id:
+      _id = message.receiver.id
+    else:
+      _id = message.sender.id
+    if unread_messages.has_key(_id):
+      message.unread_count = unread_messages[_id]
+    else:
+      message.unread_count = 0
 
   if request.method == 'GET':
     return render_homepage(session_id, 'Messages',
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
-                           messages=messages,
+                           topics=topics, 
+                           user_id=user_id, topic_id=topic_id,
+                           archived=archived,
                            view='messages')
   else:
-    body = render_template('messages.html',
+    body = render_template('expanded_chatbox.html',
                            suggested_friends=suggested_friends,
                            coworkers=coworkers,
-                           messages=messages,
+                           topics=topics, 
+                           user_id=user_id, topic_id=topic_id,
+                           archived=archived,
                            owner=owner)
     resp = Response(dumps({'body': body,
                            'title': 'Messages'}))
@@ -2581,7 +2674,7 @@ def feed_actions(feed_id=None, action=None,
             image = url.favicon
       if request.path.startswith('/post/') or not owner.id:
         return render_template('post.html',
-                               background='dark-bg', 
+#                                background='dark-bg', 
                                owner=owner,
                                mode='view',
                                title=title, description=description, image=image, feed=feed)

@@ -28,32 +28,52 @@ div.fixed {
   background: white;
   width: 260px;
   height: 285px;
-  -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, .3);
-  border: 1px solid rgba(0, 0, 0, .3);
+  box-shadow: 0 0 10px rgba(196, 205, 224, 0.6);
+  border: 1px solid rgba(0, 0, 0, .2);
   border-width: 0 1px;
   position: relative;
 }
 
 .chatbox .header {
-  border: 1px solid rgba(29, 49, 91, .3);
-  border-bottom: 1px solid rgba(29, 49, 91, .2);
+  border: 1px solid rgba(29, 49, 91, .2);
+  border-bottom: 1px solid rgba(29, 49, 91, .1);
   cursor: pointer;
-  height: 28px;
+  height: 32px;
   color: #333;
   font-weight: bold;
   padding: 0 10px;
   font-size: 11px;
-  line-height: 28px;
+  line-height: 32px;
   margin: 0 -1px;
   background: #ebeef4;
-  box-shadow: inset 0 1px rgba(255, 255, 255, .5);
 }
 
-div.chatbox div.header i.online,
-div.chatbox div.header i.away,
-div.chatbox div.header i.offline {
+#chat div.chatbox div.header div.rfloat {
+  right: 7px;
+  top: 3px;
+}
+
+#chat div.chatbox div.header div[contenteditable] {
+  display: inline-block;
+  white-space: nowrap;
+  width: 165px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#chat div.chatbox div.header .info {
+  display: none;
+}
+
+#chat div.chatbox div.header i.online,
+#chat div.chatbox div.header i.away,
+#chat div.chatbox div.header i.offline {
   float: left;
-  margin: 6px 2px 0 0;
+  margin: 8px 2px 0 0;
+}
+
+#chat div.chatbox div.header img.small-avatar {
+  display: none;
 }
 
 .chatbox .header .name {
@@ -79,6 +99,10 @@ div.chatbox div.header i.offline {
   margin-top: -2px;
 }
 
+.chatbox .header a span {
+  display: none;
+}
+
 
 .chatbox .header .upload-icon:hover {
   opacity: 1;
@@ -97,7 +121,7 @@ div.chatbox div.header i.offline {
   padding: 0 7px;
   font-size: 11px;
   line-height: 16px;
-  height: 225px;
+  height: 215px;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -111,7 +135,7 @@ div.chatbox div.header i.offline {
 }
 
 .chatbox .message {
-  border-bottom: 1px solid #f2f2f2;
+  border-bottom: 1px solid rgba(242, 242, 242, 0.5);
   position: relative;
   padding: 5px 0;
   overflow: hidden;
@@ -134,7 +158,7 @@ div.chatbox div.header i.offline {
   right: 0;
   background: white;
   padding: 0 3px;
-  margin-top: 1px;
+  margin-top: -1px;
 }
 
 .chatbox .message:hover .ts {
@@ -146,6 +170,29 @@ div.chatbox div.header i.offline {
   color: #444;
 }
 
+#chat .chatbox .message .content div a img {
+  width: 125px;
+  border: 1px solid #ccc;
+}
+
+/*#chat .chatbox .message .content a.image-expander {
+  float: left;
+  margin-top: 2px;
+}
+
+#chat .chatbox .message .content a[target='_blank'] {
+  float: left;
+  display: block;
+  max-width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}*/
+
+#chat div.chatbox .mentions-autocomplete-list {
+  bottom: 6px;
+}
+
 .chatbox form.gray-bg {
   background: #eee;
   color: #999;
@@ -153,7 +200,7 @@ div.chatbox div.header i.offline {
 }
 
 .chatbox form {
-  padding: 5px 0 4px;
+  padding: 8px 2px 4px;
   border-top: 1px solid #ccc;
   bottom: 0;
   background: white;
@@ -171,9 +218,14 @@ div.chatbox div.header i.offline {
   background: transparent;
 }
 
-.chatbox div.status {
+.chatbox li.more {
+  text-align: center;
+  color: #999;
+}
+
+#chat .chatbox > div.status {
   position: absolute;
-  bottom: 31px;
+  bottom: 36px;
   padding: 0 5px;
   font-size: 9px;
   color: #999;
@@ -190,13 +242,20 @@ div.chatbox div.header i.offline {
 
 .chatbox.minimize {
   position: absolute;
-  bottom: -256px;
+  bottom: -252px;
   width: 235px;
 }
 
-.chatbox.minimize .header .upload-icon {
+.chatbox.minimize .header .options-icon,
+.chatbox.minimize .header .close-icon {
   display: none;
 }
+
+.chatbox.minimize:hover .close-icon {
+  display: inline-block;
+}
+
+
 
 
 @-moz-keyframes bgflash {
