@@ -44,12 +44,14 @@
           <i class='{{ user.status }}  user-{{ user.id }}-status'></i>
           <br>
           
-          <span class="email">{{ user.email }}</span>
-{#          
+          {% if group.id == 'public' %}
           <time class='timeago' title='{{ user.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ user.timestamp | isoformat(owner.utcoffset) }}'>
             {{ user.timestamp | friendly_format(owner.utcoffset, short=True) }}
           </time>
-#}      
+          {% else %}
+          <span class="email">{{ user.email }}</span>
+          {% endif %}
+
         </li>
     
       {% endif %}
