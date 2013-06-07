@@ -133,7 +133,7 @@
         {% endif %}
         
         {% if note.content and content | length > summary | length %}
-        <a class="read-more" href="/note/{{ note.id }}" target='_blank'>Continue Reading...</a>
+        <a class="read-more async" href="/note/{{ note.id }}">Continue Reading...</a>
         {% endif %}
         
       {% endif %}
