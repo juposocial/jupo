@@ -3734,7 +3734,7 @@ def update_note(session_id, doc_id, title, content, attachments=None, viewers=No
                                  'timestamp': utctime(),
                                  'owner': user_id},
                      'history': {'owner': user_id,
-                                 'action': 'update',
+                                 'action': 'updated',
                                  'timestamp': utctime()}}}
   if not attachments:
     query['$unset'] = {'archived_by': 1, 'attachments': 1}
