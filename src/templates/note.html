@@ -22,7 +22,9 @@
           {% endif %}
           
           
-          <li><a href='/u/{{ note.id }}' class='share' target='_blank' title='Anyone who has this link can access. No sign-in required.'>Get link</a></li>
+ {#         <li><a href='/u/{{ note.id }}' class='share' target='_blank' title='Anyone who has this link can access. No sign-in required.'>Get link</a></li> #}
+          <li><a href='/note/{{ note.id }}?full' target='_blank'>Pop-out</a></li>
+          
           
           {% if group and group.id %}
             {% if note.id in group.highlight_ids %}
@@ -99,16 +101,10 @@
     </header>
     <article class='note'>
         
-      {% if full %}
+      {% if full or action == 'compare' or mode == 'view' %}
         {% autoescape on %}
-          {% if action == 'compare' %}
            {{ note.content | sanitize | fix_unclosed_tags }}
-          {% else %}
-           {{ note.content | sanitize | fix_unclosed_tags }}
-          {% endif %}
         {% endautoescape %}        
-        
-
         
         {% if note.attachments %}
           <br> 
@@ -137,7 +133,7 @@
         {% endif %}
         
         {% if note.content and content | length > summary | length %}
-        <a class="read-more" href="/note/{{ note.id }}?full" target='_blank'>Continue Reading...</a>
+        <a class="read-more" href="/note/{{ note.id }}" target='_blank'>Continue Reading...</a>
         {% endif %}
         
       {% endif %}
