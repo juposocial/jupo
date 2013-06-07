@@ -543,7 +543,7 @@
   {% endif %}
   
   {% set item = feed.details %}
-  {% if not hide_comments %}
+  {% if not hide_comments and not mode == 'view' %}
     {% if not feed.liked_user_ids %}
       {% if feed.last_comments and feed.last_comments[-1].timestamp <= feed.timestamp %}
         {% set hide_comments = True %}

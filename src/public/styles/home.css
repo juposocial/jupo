@@ -1879,7 +1879,7 @@ div#right-sidebar li {
 div#right-sidebar ul li > a {
   padding: 6px 5px;
   display: block;
-  line-height: 17px;
+  line-height: 16px;
 }
 
 div#right-sidebar div.body ul li a:hover {
@@ -6045,10 +6045,6 @@ form.new #notes a.overlay {
   padding: 3px 5px 2px;
 }
 
-#right-sidebar #owners li > a {
-  line-height: 16px;
-}
-
 #right-sidebar #groups i.group-icon { 
   margin: 5px 5px 0 0;
   
@@ -6113,7 +6109,6 @@ ul#stream.files > li > a {
 
 ul#stream.files section {
   padding: 2px 15px 9px;
-  border-bottom: 1px solid rgba(34, 113, 168, 0.7);
 }
 
 ul#stream.files div.title {
@@ -6144,6 +6139,11 @@ ul#stream.files section footer.forward {
 
 form#new-file a#pickfiles {
   padding: 6px 10px 5px;
+}
+
+form#new-file div.upload-status {
+  padding: 3px;
+  color: rgba(137, 145, 156, .9);
 }
 
 form#new-file div#attachments {
@@ -6317,21 +6317,21 @@ article .file-attachment .title.image-name a {
 
 
 #popup .content #page-header.settings {
-  padding: 10px 0 0 !important;
+  padding: 10px 0 1px !important;
 }
 
 #popup .content #page-header h2 a {
   font-size: 16px;
-font-weight: bold;
-font-family: arial;
-color: #37404e;
+  font-weight: bold;
+  font-family: arial;
+  color: #37404e;
 }
 
 #popup .content #page-header .info {
   font-size: 11px;
-color: rgba(0, 0, 0, 0.35);
-margin-top: -5px;
-}
+  color: rgba(0, 0, 0, 0.35);
+  margin-top: -5px;
+  }
 
 
 #popup .mentions-input-box textarea {
@@ -6496,14 +6496,17 @@ ul.reminders {
   box-shadow: 0 1px 5px rgba(196, 205, 224, 0.5);
 }
 
+ul.reminders li form {
+  padding: 10px 20px 8px;
+}
+
 ul.reminders li {
-  border-bottom: 1px solid rgba(34, 113, 168, 0.07);
+  border-bottom: 1px solid rgba(34, 113, 168, 0.03);
   background: white;
-  padding: 6px 20px 5px;
 }
 
 ul.reminders li.done {
-  opacity: 0.5;
+  text-decoration: line-through;
 }
 
 .reminders label:hover {
@@ -6519,6 +6522,7 @@ ul.reminders label {
   color: #114495;
   white-space: nowrap;
   text-indent: 22px;
+  padding: 8px 20px;
 }
 
 ul.reminders input[type="checkbox"] {
@@ -6543,7 +6547,13 @@ ul.reminders form input {
 
 ul.contacts, ul.groups {
   width: 550px;
-  margin-top: 10px;
+  margin-top: 15px;
+  float: left;
+}
+
+#body ul.groups:last-child,
+#overlay ul.groups:last-child {
+  margin-bottom: 100px;
 }
 
 .clearfix:after {
@@ -6559,25 +6569,30 @@ ul.contacts:last-child {
 }
 
 ul.contacts li > a, ul.groups li > a {
-  width: 225px;
+  width: 223px;
   float: left;
   margin: 10px 20px 10px 0;
   padding: 12px 15px 11px;
   background: white;
   min-height: 36px;
-  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.15);
-  border-bottom: 1px solid rgba(34, 113, 168, 0.7);
   position: relative;
+  border: 1px solid rgba(196,205,224,0.6);
+  border-bottom: 1px solid rgba(34,113,168,0.25);
+  border-radius: 1px;
+  box-shadow: 0 1px 5px #e5e5e5;
 }
 
 
 ul.contacts li > a:hover, ul.groups li > a:hover {
   text-decoration: none;
-  border-bottom: 1px solid rgba(34, 113, 168, 1);
+  border: 1px solid rgba(196,205,224,1);
+  border-bottom: 1px solid rgba(34,113,168,0.4);
 }
 
 ul.contacts li > a:active, ul.groups li > a:active {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid rgba(196,205,224,0.6);
+  border-bottom: 1px solid rgba(34,113,168,0.25);
   background: #fafafa;
 }
 
@@ -6900,19 +6915,19 @@ top: 8px;
 }
 
 #popup .people {
-  margin: 10px 0 4px;
+  margin: 9px 0 0;
   height: 285px;
   overflow-y: auto;
 }
 
 #popup .people li {
-  padding: 10px 20px;
+  padding: 15px 20px 13px;
   display: block;
   border-bottom: 1px solid #f2f2f2;
-
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: 16px;
 }
 
 #popup .people li:nth-child(even) {
@@ -6922,14 +6937,12 @@ top: 8px;
 #popup .people span.email {
   color: rgba(137,145,156,0.9);
   font-size: 11px;
-  margin-top: -2px;
   float: left;
 }
 
 #popup .people .button {
   float: right;
   margin-left: 7px;
-  margin-top: 4px;
   text-align: center;
   opacity: 0;
 }
@@ -7125,15 +7138,18 @@ div.body .intro {
 
 
 ul.groups div.title {
-  display: block;
   width: 530px;
   float: left;
-  margin: 50px 0 10px;
+  padding: 50px 0 10px;
   font-size: 14px;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 5px;
+  border-bottom: 1px solid rgb(196, 205, 224);
+  margin-bottom: 15px;
 }
 
+
+ul.groups div.title div.actions {
+  margin-top: -7px;
+}
 
 form.invite {
   padding: 20px 25px;
@@ -7145,14 +7161,15 @@ form.invite label {
 }
 
 form.invite textarea {
-  width: 468px;
+  width: 466px;
   padding: 5px 8px;
   height: 54px;
   resize: none;
 }
 
 form.invite ul.token-input-list {
-  width: 484px;
+  width: 478px;
+  padding: 2px 2px 1px;
 }
 
 /*form.invite ul.token-input-list li.token-input-token {
@@ -7178,7 +7195,6 @@ form.invite ul.token-input-list li.token-input-selected-token {
 form.invite textarea, form.invite ul.token-input-list {
   border: 1px solid rgba(196, 205, 224, 0.6);
   box-shadow: inset 0 1px 3px -1px #ddd;
-  padding: 2px 2px 1px;
 }
 
 
