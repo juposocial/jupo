@@ -3260,6 +3260,32 @@ def diff(text1, text2):
   return html
 
 
+def update_post(session_id, post_id, message):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user_id = get_user_id(session_id)
+  if not user_id:
+    return False
+  
+  record = db.stream.find_and_modify({'_id': long(post_id), 'owner': user_id},
+                                     {"$set": {"new_message": message,
+                                               "last_edited": utctime()}})
+  
+  if not record:
+    return False
+  
+  # TODO: push changes?
+  for _id in record.get('viewers', []):
+    cache.clear(_id)
+
+  clear_html_cache(record['_id'])
+    
+  return True
+  
+  
+
+
 def update_comment(session_id, comment_id, message, post_id=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
@@ -3270,9 +3296,9 @@ def update_comment(session_id, comment_id, message, post_id=None):
     
   # TODO: lưu history các lần chỉnh sửa?
   record = db.stream.find_and_modify({'$and': [{"comments.owner": user_id}, 
-                                                     {"comments._id": long(comment_id)}]},
-                                           {"$set": {"comments.$.new_message": message,
-                                                     "comments.$.last_edited": utctime()}})
+                                               {"comments._id": long(comment_id)}]},
+                                     {"$set": {"comments.$.new_message": message,
+                                               "comments.$.last_edited": utctime()}})
 
   if not record:
     return False

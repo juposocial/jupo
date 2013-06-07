@@ -2558,6 +2558,11 @@ def feed_actions(feed_id=None, action=None,
   
   elif action == 'remove_comment':
     api.remove_comment(session_id, comment_id, post_id=feed_id)
+  
+  elif action == 'update':
+    message = request.args.get('msg').strip()
+    api.update_post(session_id, feed_id, message)
+    return 'OK'
     
   elif action == 'update_comment':
     message = request.form.get('message')

@@ -926,7 +926,7 @@ class Feed(Model):
   @property
   def message(self):
     if self.is_system_message():
-      msg = self.info.get('message')
+      msg = self.info.get('new_message', self.info.get('message', ''))
       if msg.get('group_id'):
         msg['group'] = api.get_owner_info_from_uuid(msg['group_id'], 
                                                     db_name=self.db_name)
@@ -942,10 +942,21 @@ class Feed(Model):
     if self.is_email():
       return self.info.get('subject', '')
     
-    message = self.info.get('message', '')    
+    message = self.info.get('new_message', self.info.get('message', ''))
     
     return message
-  
+    
+  @property
+  def original_message(self):
+    return self.info.get('message')
+
+  @property
+  def last_edited_timestamp(self):
+    return self.info.get('last_edited', 0)
+
+  @property
+  def changes(self):
+    return api.diff(api.filters.clean(self.original_message), self.message)
   
   @property
   def owner(self):
@@ -999,6 +1010,9 @@ class Feed(Model):
     if self.info.has_key('attachments'):
       return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
               for attachment_id in self.info.get('attachments')]
+  
+  def is_edited(self):
+    return True if self.info.has_key('new_message') else False
   
   def is_task(self):
     if self.info and self.info.get('priority') is not None:

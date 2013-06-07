@@ -1306,7 +1306,7 @@ ul.comments div.comments-list > li:first-child {
 }
 
 ul.comments div.comments-list > li.comment:first-child {
-  padding-top: 12px;
+  padding-top: 8px;
 }
 
 ul.comments div.comments-list > li.comment:last-child {
@@ -2983,6 +2983,10 @@ li.feed div.attachment + a.see-more {
 margin-left: 17px;
 }
 
+li.feed article div[contenteditable] {
+  color: #999;
+}
+
 li.feed article iframe {
   margin: 7px 0;
   width: 475px;
@@ -3125,19 +3129,17 @@ div#body .description, div#overlay .description {
 }
 
 div#body span.i, div#overlay span.i, li.note article ins {
-background-color: rgba(103, 174, 63, 0.9);
-color: #262626;
-padding: 3px;
-text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
-text-decoration: none;
+  background-color: rgba(103, 174, 63, 0.9);
+  color: #262626;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  text-decoration: none;
 }
 
 div#body span.x, div#overlay span.x, li.note article del {
-background-color: rgba(209, 72, 54, 0.9);
-text-decoration: line-through;
-color: #262626;
-padding: 3px;
-text-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+  background-color: rgba(209, 72, 54, 0.9);
+  text-decoration: line-through;
+  color: #262626;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 div#body span.x > span, div#overlay span.x > span {
@@ -4120,18 +4122,22 @@ ul#stream > li.topic > div.message {
   background: #2271A8;
 }
 
+form.new-comment .mentions-input-box .mentions {
+  padding: 7px 3px;
+}
+
 .mentions-input-box .mentions {
   position: absolute;
   left: 3px;
   right: 0;
   top: 1px;
   bottom: 0;
-  padding: 7px 3px;
   color: #fff;
   overflow: hidden;
   white-space: pre-wrap;
   word-wrap: break-word;
   font-size: 12px;
+  padding: 5px;
 }
 
 .mentions-input-box .mentions > div {
@@ -5228,6 +5234,7 @@ section > footer > .actions {
   background: #fafbfb;
   font-size: 11px;
   border-top: 1px solid #e9e9e9;
+  white-space: nowrap;
 }
 
 
@@ -7442,6 +7449,10 @@ div.messages div.chatbox div.header div[contenteditable=true] {
   text-overflow: ellipsis;
   width: 350px;
   white-space: nowrap;
+}
+
+article.message p {
+  margin: 0;
 }
 
 div.messages .header .info {

@@ -147,11 +147,16 @@
         <ul class='dropdown-menu hidden'>
           <div class="arrow-top-border"></div>
           <div class="arrow-top"></div>
-        
           
           <li>
             <a href='/post/{{ feed.id }}' target='_blank'>Permanent link</a>
           </li>
+        
+          {% if feed.owner.id == owner.id and not feed.is_note() and not feed.is_system_message() %}
+          <li>
+            <a class='edit-post' data-href='/feed/{{ feed.id }}/update'>Edit post</a>
+          </li>
+          {% endif %}
           
           {% if feed.owner.id == owner.id %}
           
@@ -413,6 +418,16 @@
                   {% endif %}
             {% endif %}
         </div>
+        
+        {% if feed.is_edited() %}
+        <div class='hidden'>
+          {% if feed.last_comments and feed.timestamp < feed.last_comments[-1].timestamp %}
+            <div class='attachment'>{{ feed.changes | safe }}</div>
+          {% else %}
+            <div>{{ feed.changes | safe }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
       {% endif %}
         
         
@@ -495,8 +510,14 @@
     <div class='actions'>
        <div class='rfloat'>
          
+         
+      
+          {% if feed.is_edited() %}
+            <a class='see-changes' title='Last edited: {{ feed.last_edited_timestamp | strftime(owner.utcoffset, "%I:%M%p - %b %d, %Y") }} (click to see changes)'><i class='edited-icon'></i></a>
+          {% endif %}
+         
          {% set read_receipts = feed.seen_by %}         
-         <a href='/feed/{{ feed.id }}/read_receipts' class="quick-stats popup" title='{% include "read_receipts.html" %}'>
+         <a href='/feed/{{ feed.id }}/read_receipts' class="quick-stats popup" {% if read_receipts | length != 0 %}title='{% include "read_receipts.html" %}'{% endif %}>
           {% if feed.comments_count != 0 or read_receipts | length != 0 or feed.liked_user_ids | length != 0 %}
             
             <span class='comments {% if feed.comments_count == 0 %}hidden{% endif %}'>
