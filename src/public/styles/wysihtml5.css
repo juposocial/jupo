@@ -18,10 +18,6 @@ article pre a {
   color: #bbb;
 }
 
-article.message pre {
-  margin: 10px 0;
-}
-
 article ul, article ol {
   margin: 0;
   padding: 0 0 0 20px
@@ -33,6 +29,10 @@ article ul:not(.dropdown-menu) li {
 
 article p, article div, article ol, article ul {
   margin: 0
+}
+
+article.note p {
+  margin: 20px 0 0;
 }
 
 article h2 {

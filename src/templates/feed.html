@@ -1,4 +1,4 @@
-<li id="post-{{ feed.id }}" class='feed {% if feed.is_note() or feed.is_system_message() %}hide-article{% endif %} {% if not owner.id %}public{% endif %} {% if hidden %}hidden{% endif %} {% if owner.id and owner.id != feed.last_action.owner.id and owner.id not in feed.read_receipt_ids and view != "discover" %}unread{% endif %} {% if owner.id in feed.pinned_by %}pinned{% endif %}'>
+<li id="post-{{ feed.id }}" class='feed {% if feed.is_system_message() %}hide-article{% endif %} {% if not owner.id %}public{% endif %} {% if hidden %}hidden{% endif %} {% if owner.id and owner.id != feed.last_action.owner.id and owner.id not in feed.read_receipt_ids and view != "discover" %}unread{% endif %} {% if owner.id in feed.pinned_by %}pinned{% endif %}'>
 
 {% if mode == 'view' or view == 'discover' %}
   {% set viewers = feed.viewers | exclude(feed.owner.id) %}  
@@ -58,7 +58,7 @@
           {% elif feed.is_task() %}
             <a href='/focus/{{ feed.id }}' class='overlay'>task</a>
           {% elif feed.is_note() %}
-            <a href='/note/{{ feed.id }}' class='async'>note</a>: "<a href='/note/{{ feed.id }}' class='async'>{{ feed.details.title }}</a>"
+            <a href='/note/{{ feed.id }}' class='async'>note</a>: "<a href='/note/{{ feed.id }}' class='async' title='{{ feed.details.title }}'>{{ feed.details.title }}</a>"
           {% elif feed.is_file() %}
             <a href='/file/{{ feed.id }}' class='async'>file</a>
           {% else %}
@@ -82,7 +82,7 @@
                 {% if owner.gender == 'male' %}his own{% elif owner.gender == 'female' %}her own{% else %}a{% endif %}
               {% endif %}
               
-              <a href='/note/{{ feed.id }}' class='async'>note</a>: "<a href='/note/{{ feed.id }}' class='async'>{{ feed.details.title }}</a>"
+              <a href='/note/{{ feed.id }}' class='async'>note</a>: "<a href='/note/{{ feed.id }}' class='async' title='{{ feed.details.title }}'>{{ feed.details.title }}</a>"
             
           {% elif feed.is_file() %}
           
@@ -229,26 +229,21 @@
   </header>
   
   {% if not feed.is_system_message() %}
-  <article class="message {% if feed.is_email() %}email{% endif %}">  
+  <article class="message {% if feed.is_email() %}email{% elif feed.is_note() %}note{% endif %}">  
     
       {% if feed.is_note() %}
-{#          <div class="file-attachment">
-            <div class="title">
-                  <a href='/note/{{ feed.id }}' class='async'>{{ feed.details.title }}</a>
-            </div>
-           
-            {% set content = feed.details.content | autoemoticon | nl2br | sanitize %}
-            {% set summary = content | lines_truncate | nl2br | fix_unclosed_tags %}
+          <div class="note-attachment">
+            
+            {% set content = feed.details.content | sanitize %}
+            {% set summary = content | lines_truncate | fix_unclosed_tags %}
             
             <div class="info">
-              {{ summary | e }}
+              {{ summary | nl2br  | remove_empty_lines | safe }}
             </div>
-            
-            {% if content | length > (summary | length + 3) %}
-            <a href="/note/{{ feed.details.id }}" class='async read-more'>Continue Reading...</a>
-            {% endif %}
+             
+            <a href="/note/{{ feed.details.id }}/last_changes" class='async'>See Last Changes</a>
           </div>
-#}
+
           
       {% elif feed.is_email() %}
           {% if '</html>' in feed.body or 'table' in feed.body %}
