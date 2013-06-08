@@ -2806,6 +2806,12 @@ div#overlay div.note-attachment p {
   margin: 0;
 }
 
+div#body div.note-attachment .info,
+div#overlay div.note-attachment .info {
+  height: 100px;
+  overflow: hidden;
+}
+
 
 div#overlay li.email {
   padding: 0 !important;
@@ -7250,6 +7256,7 @@ div.messages div.chatbox div.header {
   border-bottom: 1px solid #e9eaed;
 }
 
+
 div.messages div.chatbox div.header img {
   margin-top: -6px;
 }
@@ -7425,14 +7432,15 @@ ul.topics li a:hover div.message, ul.topics li a:active div.message, ul.topics l
   color: rgba(255,255,255,0.5);
 }
 
-div.messages .header div[contenteditable=true] {
+
+div.messages div.chatbox div.header div[contenteditable=true] {
   cursor: text;
   margin-top: -4px;
-  font-size: 12px;
-  line-height: 22px;
+  font-size: 11px;
+  line-height: 20px;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 290px;
+  width: 350px;
   white-space: nowrap;
 }
 
@@ -7499,8 +7507,11 @@ div.chatbox ul.messages div.content .image-expander {
   line-height: 6px;
   font-family: Helvetica, arial, freesans, clean, sans-serif;
   letter-spacing: 1px;
-  margin-left: 5px;
   margin-top: -2px;
+}
+
+div.chatbox ul.messages div.content a[target='_blank'] {
+  margin-right: 5px;
 }
 
 
