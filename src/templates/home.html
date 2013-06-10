@@ -120,9 +120,8 @@
                 <div id="filelist"></div>
               </div>  
             </li>
-{#
-            <li><a onclick="start_tour()">Take a Tour</a></li>
-#}
+            <li><a onclick="hopscotch.startTour(tour);">Take a Tour</a></li>
+
 <!--             <li><a href="/keyboard_shortcuts" class='overlay'>Keyboard shortcuts</a></li> -->
             
             <li><a href="/sign_out">Sign out</a></li> 
@@ -193,6 +192,7 @@
           <link rel="stylesheet" href="/public/styles/wysihtml5.css">
           <link rel="stylesheet" href="/public/styles/jquery.notice.css">
           <link type="text/css" rel="stylesheet" href="/public/styles/prettify.css">
+          <link rel="stylesheet" href="/public/styles/hopscotch.css">
           <link rel="stylesheet" href="/public/styles/chat.css">
   
   
@@ -204,6 +204,7 @@
               "styles/jquery.notice.css",
               "styles/icons.css",
               "styles/home.css",
+              "styles/hopscotch.css",
               "styles/wysihtml5.css",
               "styles/prettify.css",
               "styles/chat.css" %}
@@ -271,13 +272,15 @@
     
     
     <script type='text/javascript' src='/public/scripts/main.js'></script>
-    <script type='text/javascript' src='/public/scripts/guiders-1.2.7.js'></script>
+    <script type='text/javascript' src='/public/scripts/hopscotch-0.1.js'></script>
+    <script type='text/javascript' src='/public/scripts/product_tours/getting_started.js'></script>
     
   {% else %}  
     {% assets filters="jsmin", 
               output="core.js",
               "scripts/main.js",
-              "scripts/guiders-1.2.7.js" %}
+              "scripts/hopscotch-0.1.js",
+              "scripts/product_tours/getting_started.js" %}
               
              <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %}

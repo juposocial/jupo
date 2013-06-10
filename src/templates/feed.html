@@ -396,16 +396,23 @@
             {% if "</iframe>" in feed.message %}
               {{ feed.message | sanitize | fix_unclosed_tags | safe }}
             {% elif feed.last_comments and feed.timestamp < feed.last_comments[-1].timestamp %}
+              {% if mode != 'view' %}
                 <div class='attachment'>
                     {{ summary | nl2br | safe }}
                 </div>
-                {% if content | length > (summary | length + 3) %}  {# '...' = 3 characters #}
+                {% if content | length > (summary | length) %}  {# '...' = 3 characters #}
                 <a class='see-more'>See more</a>
                 <div class='attachment hidden'>
                   {{ content | nl2br | safe }}
                 </div>
                 {% endif %}
+              {% else %}
+                <div class='attachment'>
+                  {{ content | nl2br | safe }}
+                </div>
+              {% endif %}
             {% else %}
+              {% if mode != 'view' %}
                   <div>
                     {{ summary | nl2br | safe }}
                   </div>
@@ -416,6 +423,11 @@
                     {{ content | nl2br | safe }}
                   </div>
                   {% endif %}
+               {% else %}
+                <div>
+                  {{ content | nl2br | safe }}
+                </div>
+               {% endif %}
             {% endif %}
         </div>
         
