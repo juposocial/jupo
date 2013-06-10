@@ -1249,7 +1249,7 @@ def note(note_id=None, action=None, version=None):
     mode = 'view'
     
 #   recents = api.get_notes(session_id, limit=5) 
-  if not note or (note and not note.id):
+  if note is False or (note and not note.id):
     abort(404)
   
   view = 'notes'
