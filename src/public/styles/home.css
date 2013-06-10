@@ -3409,7 +3409,7 @@ ul.notification a.chat span.info {
 
 
 ul.notifications li > a {
-  padding: 7px 25px 7px 55px !important;
+  padding: 7px 15px 7px 55px !important;
   display: block;
   border: 1px solid transparent;
   overflow: hidden;
