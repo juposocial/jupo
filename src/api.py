@@ -3411,6 +3411,9 @@ def compare_with_previous_version(session_id, doc_id, revision):
   if not user_id:
     return False
   info = get_note(session_id, doc_id).to_dict()
+  if not info:
+    return False
+  
   version = info.get('version')
   version.reverse()
   try:

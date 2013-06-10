@@ -1246,11 +1246,12 @@ def note(note_id=None, action=None, version=None):
     if not session_id and note is False:
       return redirect('/?back_to=%s' % request.path)
     
-    if not note.id:
-      abort(404)
     mode = 'view'
     
 #   recents = api.get_notes(session_id, limit=5) 
+  if not note or (note and not note.id):
+    abort(404)
+  
   view = 'notes'
   if version is None and info:
     version = len(note.to_dict()['version'])
@@ -1259,8 +1260,8 @@ def note(note_id=None, action=None, version=None):
   if group_id:
     group = api.get_group_info(session_id, group_id)
   else:
-    group = None
-    
+    group = None  
+  
   if request.method in ["POST", "OPTIONS"]:
     body = render_template('notes.html', 
                            view='notes',
