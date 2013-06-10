@@ -399,7 +399,9 @@ function show_notification(img, title, description, timeout, callback) {
   var havePermission = window.webkitNotifications.checkPermission();
   if (havePermission == 0) {
     // 0 is PERMISSION_ALLOWED
-    var notification = window.webkitNotifications.createNotification(img, title, description);
+    
+    var message = description.replace(/(^\s+|\s+$)/g, '');
+    var notification = window.webkitNotifications.createNotification(img, title, message);
 
     notification.onclick = function () {
                 notification.cancel();
