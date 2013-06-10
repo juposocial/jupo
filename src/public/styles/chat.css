@@ -190,7 +190,12 @@ div.fixed {
 }*/
 
 #chat div.chatbox .mentions-autocomplete-list {
-  bottom: 6px;
+  bottom: 30px;
+  margin: 0 -2px;
+}
+
+#chat form textarea:focus {
+  box-shadow: none;
 }
 
 .chatbox form.gray-bg {
@@ -373,13 +378,13 @@ div.fixed {
   margin-top: -231px;
 }
 
-.chatbox .mentions-input-box .mentions {
-padding: 0 4px;
-color: #333;
-overflow: visible;
+.chatbox .mentions-input-box div.mentions {
+  padding: 0 4px;
+  color: #333;
+  overflow: visible;
 }
 
-.chatbox .mentions-input-box .mentions > div {
+.chatbox .mentions-input-box div.mentions > div {
   line-height: 16px;
 }
 

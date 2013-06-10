@@ -4046,11 +4046,6 @@ ul#stream > li.topic > div.message {
   height: 30px;
 }
 
-/*ul.comments .mentions-input-box textarea:focus {
-  box-shadow: rgba(81, 167, 232, 0.25) 0 0 5px;
-  border-color: rgba(81, 167, 232, 0.65);
-  border-radius: 1px;
-}*/
 
 .mentions-input-box .mentions-autocomplete-list {
   display: none;
@@ -4122,15 +4117,19 @@ ul#stream > li.topic > div.message {
   background: #2271A8;
 }
 
-form.new-comment .mentions-input-box .mentions {
-  padding: 7px 3px;
+form.new-comment .mentions-input-box div.mentions {
+  padding: 9px 3px;
 }
 
-.mentions-input-box .mentions {
+form.new-comment .mentions-input-box textarea {
+  padding: 4px 5px;
+}
+
+.mentions-input-box div.mentions {
   position: absolute;
   left: 3px;
   right: 0;
-  top: 1px;
+  top: 0;
   bottom: 0;
   color: #fff;
   overflow: hidden;
@@ -4140,7 +4139,7 @@ form.new-comment .mentions-input-box .mentions {
   padding: 5px;
 }
 
-.mentions-input-box .mentions > div {
+.mentions-input-box div.mentions > div {
   color: #fff;
   white-space: pre-wrap;
   width: 100%;
@@ -7246,7 +7245,7 @@ div.messages div.chatbox {
   bottom: 0;
   border: 0;
   height: 100% !important;
-  z-index: 10;
+  z-index: 3;
   box-shadow: none;
   border-right: 1px solid rgba(196, 205, 224, 0.6);
 }
@@ -7405,7 +7404,6 @@ ul.topics li a div.unread-messages {
   background-image: -ms-linear-gradient(top,#DD4B39,#D14836);
   background-image: -o-linear-gradient(top,#DD4B39,#D14836);
   background-image: linear-gradient(top,#DD4B39,#D14836);
-  padding: 1px 6px 0 5px;
   color: white;
   font-weight: bold;
   font-size: 9px;
@@ -7414,6 +7412,11 @@ ul.topics li a div.unread-messages {
   top: 12px;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.38);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.21);
+  width: 18px;
+  padding: 0;
+  height: 18px;
+  text-align: center;
+  line-height: 19px;
 }
 
 ul.topics li a:hover, ul.topics li a.selected {
@@ -7557,6 +7560,10 @@ div.messages div.chatbox form textarea.mentions {
   resize: none;
   box-shadow: 0 0 0 11px #f6f7f8, inset 0 1px 3px -1px #ccc;
   border-radius: 0;
+  position: absolute;
+  top: 1px;
+  bottom: 0;
+  left: 3px;
 }
 
 div.messages div.chatbox ul.messages {
@@ -7572,7 +7579,7 @@ div.messages div.chatbox ul.messages {
 }
 
 div.messages div.chatbox .mentions-input-box .mentions {
-  padding: 16px 14px;
+  padding: 20px 19px;
 }
 
 div.messages div.chatbox.unread .header {
