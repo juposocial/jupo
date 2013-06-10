@@ -615,8 +615,10 @@ def remove_empty_lines(html):
 
 
 def exclude(users, user_id):
-  return [user for user in users if str(user.id) != str(user_id)]
-
+  if users:
+    return [user for user in users if str(user.id) != str(user_id)]
+  else:
+    return []
 
 def title(text):
   return capwords(text.replace('_', ' '))
