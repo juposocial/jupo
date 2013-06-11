@@ -1552,25 +1552,38 @@ class Notification(Model):
           info.owner = i.owner
           info.timestamp = i.timestamp
           break
-    elif record.get('version'):
-      info = Note(record)
+    elif record.has_key('version'):
+      info = Note(record, db_name=self.db_name)
       info.message = info.title
-    elif record.get('when'):
+    elif record.has_key('when'):
       info = Event(record)
       info.message = info.name
+    elif record.has_key('members'):
+      info = Group(info, db_name=self.db_name)
+    elif record.has_key('password'):
+      info = User(info, db_name=self.db_name)
     else:
       info = Feed(record, db_name=self.db_name)
     return info
       
   @property
   def details(self):
+    if self.ref_id == 'public':
+      info = api.get_network_info(self.db_name)
+      return info
+    
     record = api.get_record(self.ref_id, 
                             self.info.get('ref_collection', 'stream'), 
                             db_name=self.db_name)
     if not record or record.has_key('is_removed'):
-      return Feed({})
-    return Feed(record, db_name=self.db_name)
-    
+      return None
+    elif record.has_key('members'):
+      info = Group(record, db_name=self.db_name)
+    elif record.has_key('password'):
+      info = User(record, db_name=self.db_name)
+    else:
+      info = Feed(record, db_name=self.db_name)
+    return info
   
   @property
   def type(self):

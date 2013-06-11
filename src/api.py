@@ -1655,7 +1655,7 @@ def is_removed(feed_id):
   return True
 
 def new_notification(session_id, receiver, type, 
-                     ref_id=None, comment_id=None, db_name=None):
+                     ref_id=None, ref_collection=None, comment_id=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -1668,6 +1668,7 @@ def new_notification(session_id, receiver, type,
           'sender': sender,
           'receiver': receiver,
           'ref_id': ref_id,
+          'ref_collection': ref_collection,
           'comment_id': comment_id,
           'type': type,
           'is_unread': True,
@@ -1745,7 +1746,7 @@ def get_notifications(session_id, limit=25):
   
   user_ids = {}
   for i in notifications:
-    if not i.details.id: # deleted post
+    if not i.details:
       continue
     
     if not i.type:
@@ -1799,7 +1800,7 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   
     
   for i in notifications:
-    if not i.details.id: # deleted post 
+    if not i.details:
       continue
     
     if not i.type:
@@ -4514,6 +4515,10 @@ def add_member(session_id, group_id, user_id):
   else:
     is_new_user = True
     
+    
+  new_notification(session_id, user_id, type='add_member', 
+                   ref_id=group_id, ref_collection='owner', db_name=db_name)
+    
   send_mail_queue.enqueue(send_mail, user.email, 
                           mail_type='invite',
                           is_new_user=is_new_user,
@@ -4575,6 +4580,10 @@ def make_admin(session_id, group_id, user_id):
       key = '%s:info' % user_id
       cache.delete(key)
       
+      new_notification(session_id, user_id, 'make_admin', 
+                       ref_id=group_id, 
+                       ref_collection='owner', db_name=db_name)
+      
       return True
     else:
       return False
@@ -4586,6 +4595,11 @@ def make_admin(session_id, group_id, user_id):
   
   db.owner.update({'_id': group_id},
                   {'$addToSet': {'leaders': user_id}})
+      
+  new_notification(session_id, user_id, 'make_admin', 
+                   ref_id=group_id, 
+                   ref_collection='owner',
+                   db_name=db_name)
   
   if user_id not in group_info.get('members', []):
     db.owner.update({'_id': group_id},
@@ -5615,7 +5629,11 @@ def get_network_info(db_name):
   if info is not None:
     return info 
   
-  info = DATABASE[db_name].info.find_one()
+  if db_name == settings.PRIMARY_DOMAIN.replace('.', '_'):
+    info = {'name': 'Jupo', 'timestamp': 0}
+  else:
+    info = DATABASE[db_name].info.find_one()
+    
   cache.set(key, info, 86400)
   return info
 
@@ -5648,10 +5666,7 @@ def get_networks(user_id, user_email=None):
   db_names = get_db_names(email)
   networks_list = []
   for db_name in db_names:
-    if db_name == 'play_jupo_com':
-      info = {'name': 'Jupo', 'timestamp': 0}
-    else:
-      info = get_network_info(db_name)
+    info = get_network_info(db_name)
     
     if info:
       info['unread_notifications'] = get_unread_notifications_count(user_id=user_id, db_name=db_name)

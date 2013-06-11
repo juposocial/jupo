@@ -70,7 +70,21 @@
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
         <span class='username'>{{ message.sender.name }}</span> added you to {% if message.sender.gender == 'female' %}her{% else %}his{% endif %} contact list
       
+    {% elif key.startswith('make_admin:') %}
+      {% if message.ref_id == 'public' %}
+      <a href='#!/notification/{{ message.id }}?continue=/everyone' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> made you an administrator of this network.
+      {% else %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> made you an administrator of the group {{ message.details.name }}.
+      {% endif %}
       
+    {% elif key.startswith('add_member:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> added you to the group <strong>{{ message.details.name }}</strong>.
       
     {% endif %} 
     
