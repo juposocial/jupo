@@ -985,6 +985,12 @@ def sign_in_with_google(email, name, gender, avatar,
       info['google_contacts'] = google_contacts
     db.owner.insert(info)
     
+    for user_id in get_network_admin_ids(db_name):
+      notification_queue.enqueue(new_notification, 
+                                 session_id, user_id, 
+                                 'new_user', 
+                                 None, None, db_name=db_name)
+    
 
   if notify_list:
     for email in notify_list:
@@ -999,11 +1005,6 @@ def sign_in_with_google(email, name, gender, avatar,
                                    None, None, 
                                    db_name=db_name)
   
-  for user_id in get_network_admin_ids(db_name):
-    notification_queue.enqueue(new_notification, 
-                               session_id, user_id, 
-                               'new_user', 
-                               None, None, db_name=db_name)
 
   return session_id
 
@@ -1067,6 +1068,12 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
       notify_list = facebook_friend_ids
       
     db.owner.insert(info)
+  
+    for user_id in get_network_admin_ids(db_name):
+      notification_queue.enqueue(new_notification, 
+                                 session_id, user_id, 
+                                 'new_user', 
+                                 None, None, db_name=db_name)
       
   if notify_list:
     for i in notify_list:
@@ -1076,12 +1083,6 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
                                    session_id, user_id, 
                                    'facebook_friend_just_joined', 
                                    None, None, db_name=db_name)
-  
-  for user_id in get_network_admin_ids(db_name):
-    notification_queue.enqueue(new_notification, 
-                               session_id, user_id, 
-                               'new_user', 
-                               None, None, db_name=db_name)
   
   return session_id
   
