@@ -1703,7 +1703,8 @@ def get_unread_notifications(session_id, db_name=None):
       
   results = odict()
   for i in notifications:
-    if not i.details.id: # post đã xoá
+    if i.type in ['new_post', 'comment', 'mention', 
+                  'message', 'like', 'update'] and not i.details:
       continue
     
     if not i.type:
@@ -1746,7 +1747,8 @@ def get_notifications(session_id, limit=25):
   
   user_ids = {}
   for i in notifications:
-    if not i.details:
+    if i.type in ['new_post', 'comment', 'mention', 
+                  'message', 'like', 'update'] and not i.details:
       continue
     
     if not i.type:
@@ -1800,7 +1802,8 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   
     
   for i in notifications:
-    if not i.details:
+    if i.type in ['new_post', 'comment', 'mention', 
+                  'message', 'like', 'update'] and not i.details:
       continue
     
     if not i.type:
