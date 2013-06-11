@@ -6,7 +6,8 @@ var tour = {
       title: "My Header",
       content: "This is the header of my page.",
       target: "logo",
-      placement: "bottom"
+      placement: "bottom",
+      fixedElement: true,
     },
     {
       title: "Navigate around Jupo",
@@ -14,12 +15,14 @@ var tour = {
       target: 'main-nav',
       placement: "right",
       yOffset: 150,
+      fixedElement: true,
     },
     {
       title: "Recent Groups",
       content: "Here is where I put my content.",
       target: 'groups-nav',
-      placement: "right"
+      placement: "right",
+      fixedElement: true,
     },
     {
       title: "Friends Online",
@@ -27,12 +30,14 @@ var tour = {
       target: 'friends-online',
       placement: "right",
       yOffset: -10,
+      fixedElement: true,
     },
     {
       title: "Menu",
       content: "Here is where I put my content.",
       target: document.querySelector("#menu a.user"),
-      placement: "bottom"
+      placement: "bottom",
+      fixedElement: true,
     },
     {
       title: "Notification Center",
@@ -41,6 +46,7 @@ var tour = {
       placement: "bottom",
       xOffset: -230,
       arrowOffset: 230,
+      fixedElement: true,
     },
     {
       title: "Share what's new",
@@ -55,7 +61,7 @@ var tour = {
       placement: "top",
     },
     {
-      title: "Seen by",
+      title: "People who saw this post",
       content: "Here is where I put my content.",
       target: document.querySelector("li.feed footer div.actions .rfloat"),
       placement: "top",
