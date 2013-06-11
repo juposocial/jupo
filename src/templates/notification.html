@@ -74,7 +74,7 @@
       {% if message.ref_id == 'public' %}
       <a href='#!/notification/{{ message.id }}?continue=/everyone' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
-        <span class='username'>{{ message.sender.name }}</span> made you an administrator of this network.
+        <span class='username'>{{ message.sender.name }}</span> made you an administrator of the network {{ message.details.name }}.
       {% else %}
       <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
