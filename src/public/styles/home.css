@@ -555,14 +555,6 @@ a.dropdown-menu-active:hover {
   background: rgba(0, 0, 0, 0.35) !important;
 }
 
-ul.dropdown-menu.user .username {
-  font-weight: bold;
-  display: block;
-  font-size: 12px;
-  overflow: hidden;
-white-space: nowrap;
-text-overflow: ellipsis;
-}
 
 
 .drop-shadow .h1 {
@@ -1587,9 +1579,25 @@ header nav .account-info a {
   padding: 0 !important;
 }
 
+
+header nav .account-info .username {
+  font-weight: bold;
+  display: block;
+  font-size: 12px;
+}
+
 header nav .account-info a:hover .username {
   text-decoration: underline;
 }
+
+header nav .account-info .username,
+header nav .account-info .email {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
 
 header nav ul.dropdown-menu a {
   padding: 5px 15px;

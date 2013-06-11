@@ -68,8 +68,8 @@
                 <img class='small-avatar lfloat' src='{{ owner.avatar }}'>
               </a>
               <a href='/user/{{ owner.id }}' class='async'>
-                <span class='username'>{{ owner.name}}</span>
-                <span>{{ owner.email}}</span>
+                <span class='username' title='{{ owner.name }}'>{{ owner.name}}</span>
+                <span class='email' title='{{ owner.email }}'>{{ owner.email}}</span>
               </a>
               {% if owner.last_login %}
               <div class='history'>
