@@ -1776,6 +1776,8 @@ def get_notifications(session_id, limit=25):
     
     if i.type == 'like':
       id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
+    elif i.type in ['new_user', 'make_admin', 'add_member']:
+      id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
     else:
       id = '%s:%s' % (i.type, i.ref_id)
     
