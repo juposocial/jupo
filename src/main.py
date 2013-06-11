@@ -168,6 +168,7 @@ def stream():
   resp = Response(event_stream(channel_id),
                   mimetype="text/event-stream")
   resp.headers['X-Accel-Buffering'] = 'no'
+#   resp.headers['Access-Control-Allow-Origin'] = '*'
   return resp
 
 
@@ -1665,8 +1666,8 @@ def network():
 @app.route("/group/<int:group_id>/unhighlight", methods=["POST"])
 @app.route("/group/<int:group_id>/add_member", methods=["POST"])
 @app.route("/group/<int:group_id>/remove_member", methods=["POST"])
-@app.route("/group/<int:group_id>/make_admin", methods=["POST"])
-@app.route("/group/<int:group_id>/remove_as_admin", methods=["POST"])
+@app.route("/group/<group_id>/make_admin", methods=["POST"])
+@app.route("/group/<group_id>/remove_as_admin", methods=["POST"])
 @app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
 @app.route("/group/<int:group_id>/page<int:page>", methods=["OPTIONS"])
 @app.route("/group/<int:group_id>/<view>", methods=["GET", "OPTIONS"])

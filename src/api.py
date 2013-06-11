@@ -4556,10 +4556,29 @@ def make_admin(session_id, group_id, user_id):
   db = DATABASE[db_name]
   
   user_id = long(user_id)
-  group_id = long(group_id)
+  
+  if str(group_id).isdigit():
+    group_id = long(group_id)
+  elif group_id == 'public':
+    pass
+  else:
+    return False
+  
   owner_id = get_user_id(session_id)
   if not owner_id:
     return False
+  
+  if group_id == 'public':
+    if is_admin(owner_id, group_id):
+      db.owner.update({'_id': user_id}, {'$set': {'admin': True}})
+      
+      key = '%s:info' % user_id
+      cache.delete(key)
+      
+      return True
+    else:
+      return False
+  
   group_info = db.owner.find_one({'_id': long(group_id),
                                   'leaders': owner_id})
   if not group_info:
@@ -4585,10 +4604,31 @@ def remove_as_admin(session_id, group_id, user_id):
   db = DATABASE[db_name]
   
   user_id = long(user_id)
-  group_id = long(group_id)
+  
+  if str(group_id).isdigit():
+    group_id = long(group_id)
+  elif group_id == 'public':
+    pass
+  else:
+    return False
+  
   owner_id = get_user_id(session_id)
   if not owner_id:
     return False
+  
+  if group_id == 'public':
+    if is_admin(owner_id, group_id):
+      db.owner.update({'_id': user_id}, {'$unset': {'admin': True}})
+      
+      key = '%s:info' % user_id
+      cache.delete(key)
+      
+      return True
+    
+    else:
+      return False
+    
+  
   group_info = db.owner.find_one({'_id': long(group_id),
                                   'leaders': owner_id})
   if not group_info:
@@ -4815,6 +4855,30 @@ def get_featured_groups(session_id, limit=5):
   
   return featured_groups
   
+def get_first_user_id(db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  key = 'first_user_id:%s' % db_name
+  user_id = cache.get(key)
+  if user_id:
+    return user_id
+  
+  user = db.owner.find({'password': {'$exists': True},
+                        'timestamp': {'$exists': True}}, 
+                       {'_id': True}).sort('timestamp', 1).limit(1)
+  user = list(user)
+  if user:
+    user_id = user[0]['_id']
+    cache.set(key, user_id)
+    
+    db.owner.update({'_id': user_id}, {'$set': {'admin': True}})
+    
+    key = '%s:info' % user_id
+    cache.delete(key)
+    
+    return user_id
 
 def is_admin(user_id, group_id=None, db_name=None):
   if not db_name:
@@ -4831,11 +4895,11 @@ def is_admin(user_id, group_id=None, db_name=None):
     else:
       return False
   else:
-    user = db.owner.find({'password': {'$exists': True},
-                          'timestamp': {'$exists': True}}, 
-                         {'_id': True}).sort('timestamp', 1).limit(1)
-    user = list(user)
-    if user and user[0]['_id'] == user_id:
+    user = get_user_info(user_id)
+    if user.is_admin():
+      return True
+    
+    if user_id == get_first_user_id():
       return True
     else:
       return False
@@ -4901,12 +4965,10 @@ def get_group_info(session_id, group_id, db_name=None):
   db = DATABASE[db_name]
   
   if group_id == 'public':
-    user = db.owner.find({'password': {'$exists': True},
-                          'timestamp': {'$exists': True}}, 
-                         {'_id': True}).sort('timestamp', 1).limit(1)
-    user = list(user)
-    if user:
-      leaders = [user[0]['_id']]
+    users = db.owner.find({'admin': True}, {'_id': True})
+    users = list(users)
+    if users:
+      leaders = [i['_id'] for i in users]
     else:
       leaders = []
       

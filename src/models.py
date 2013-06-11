@@ -440,6 +440,9 @@ class User(Model):
   def is_registered(self):
     return True if self.info.get('password') else False
   
+  def is_admin(self):
+    return True if self.info.get('admin') else False
+  
   def has_password(self):
     passwd = self.info.get('password')
     if passwd and not isinstance(passwd, bool):
