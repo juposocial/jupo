@@ -998,6 +998,12 @@ def sign_in_with_google(email, name, gender, avatar,
                                    'google_friend_just_joined', 
                                    None, None, 
                                    db_name=db_name)
+  
+  for user_id in get_network_admin_ids(db_name):
+    notification_queue.enqueue(new_notification, 
+                               session_id, user_id, 
+                               'new_user', 
+                               None, None, db_name=db_name)
 
   return session_id
 
@@ -1071,6 +1077,12 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
                                    'facebook_friend_just_joined', 
                                    None, None, db_name=db_name)
   
+  for user_id in get_network_admin_ids(db_name):
+    notification_queue.enqueue(new_notification, 
+                               session_id, user_id, 
+                               'new_user', 
+                               None, None, db_name=db_name)
+  
   return session_id
   
 def sign_in_with_twitter():
@@ -1119,7 +1131,15 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
     
     info['_id'] = user['_id']
     
+  
   session_id = sign_in(email, raw_password, user_agent, remote_addr)
+  
+  for user_id in get_network_admin_ids(db_name):
+    notification_queue.enqueue(new_notification, 
+                               session_id, user_id, 
+                               'new_user', 
+                               None, None, db_name=db_name)
+    
   
 #  subject = 'E-mail verification for the 5works Public Beta'
 #  body = render_template('email/verification.html', 
@@ -4982,12 +5002,7 @@ def get_group_info(session_id, group_id, db_name=None):
   db = DATABASE[db_name]
   
   if group_id == 'public':
-    users = db.owner.find({'admin': True}, {'_id': True})
-    users = list(users)
-    if users:
-      leaders = [i['_id'] for i in users]
-    else:
-      leaders = []
+    leaders = get_network_admin_ids(db_name)
       
     info = {'name': 'Public',
             'leaders': leaders,
@@ -5624,6 +5639,17 @@ def new_network(db_name, organization_name, description=None):
   
   ensure_index(db_name)
   return True
+
+
+def get_network_admin_ids(db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  users = db.owner.find({'admin': True}, {'_id': True})
+  users = list(users)
+  if users:
+    return [i['_id'] for i in users]
+  return [get_first_user_id(db_name)]
 
 
 def get_network_info(db_name):

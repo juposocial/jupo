@@ -86,6 +86,10 @@
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
         <span class='username'>{{ message.sender.name }}</span> added you to the group <strong>{{ message.details.name }}</strong>.
       
+    {% elif key.startswith('new_user:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        {{ network.name }} network has just got a new member: <span class='username'>{{ message.sender.name }}</span> ({{ message.sender.email }})
     {% endif %} 
     
     <br>

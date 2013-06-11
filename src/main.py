@@ -3007,11 +3007,15 @@ def notifications():
   notifications = api.get_notifications(session_id)
   unread_messages = api.get_unread_messages(session_id)
   unread_messages_count = len(unread_messages)
+  
+  hostname = request.headers.get('Host')
+  network = api.get_network_info(hostname.replace('.', '_'))
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
     body = render_template('notifications.html',
                            owner=owner, 
+                           network=network,
                            unread_messages=unread_messages,
                            notifications=notifications)
     resp = {'body': body,
@@ -3033,6 +3037,7 @@ def notifications():
   else:
     return render_homepage(session_id, 'Notifications',
                            notifications=notifications,
+                           network=network,
                            unread_messages=unread_messages,
                            view='notifications')
 
