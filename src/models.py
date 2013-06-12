@@ -1625,6 +1625,10 @@ class Notification(Model):
     return self.info.get('ref_id')
   
   @property
+  def ref_collection(self):
+    return self.info.get('ref_collection')
+  
+  @property
   def comment_id(self):
     return self.info.get('comment_id')
   

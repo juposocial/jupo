@@ -1733,11 +1733,7 @@ def get_unread_notifications(session_id, db_name=None):
     
     if i.type == 'like':
       id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
-    elif i.type in ['new_user', 
-                    'make_admin', 
-                    'add_member', 
-                    'new_member', 
-                    'ask_to_join']:
+    elif i.type == 'new_user' or i.ref_collection == 'owner':
       id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
     else:
       id = '%s:%s' % (i.type, i.ref_id)
@@ -1783,11 +1779,7 @@ def get_notifications(session_id, limit=25):
     
     if i.type == 'like':
       id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
-    elif i.type in ['new_user', 
-                    'make_admin', 
-                    'add_member', 
-                    'new_member', 
-                    'ask_to_join']:
+    elif i.type == 'new_user' or i.ref_collection == 'owner':
       id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
     else:
       id = '%s:%s' % (i.type, i.ref_id)
@@ -1844,11 +1836,7 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
     
     if i.type == 'like':
       id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
-    elif i.type in ['new_user', 
-                    'make_admin', 
-                    'add_member', 
-                    'new_member', 
-                    'ask_to_join']:
+    elif i.type == 'new_user' or i.ref_collection == 'owner':
       id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
     else:
       id = '%s:%s' % (i.type, i.ref_id)
@@ -4542,9 +4530,15 @@ def add_member(session_id, group_id, user_id):
   key = '%s:groups' % user_id
   cache.delete(key)
   
-  db.owner.update({'_id': group_id},
-                  {'$addToSet': {'members': user_id},
-                   '$pull': {'pending_members': user_id}})
+  is_approved = False
+  if user_id in group_info['pending_members']:
+    db.owner.update({'_id': group_id},
+                    {'$addToSet': {'members': user_id},
+                     '$pull': {'pending_members': user_id}})
+    is_approved = True
+  else:
+    db.owner.update({'_id': group_id},
+                    {'$addToSet': {'members': user_id}})
   
   new_feed(session_id, {'action': 'added',
                         'user_id': user_id, 
@@ -4560,18 +4554,22 @@ def add_member(session_id, group_id, user_id):
   else:
     is_new_user = True
     
-    
-  new_notification(session_id, user_id, type='add_member', 
-                   ref_id=group_id, ref_collection='owner', db_name=db_name)
-    
-  send_mail_queue.enqueue(send_mail, user.email, 
-                          mail_type='invite',
-                          is_new_user=is_new_user,
-                          user_id=owner.id,
-                          username=owner.name,
-                          group_id=group.id,
-                          group_name=group.name,
-                          db_name=db_name)
+  
+  if is_approved:
+    new_notification(session_id, user_id, type='approved', 
+                     ref_id=group_id, ref_collection='owner', db_name=db_name)
+  else:
+    new_notification(session_id, user_id, type='add_member', 
+                     ref_id=group_id, ref_collection='owner', db_name=db_name)
+      
+    send_mail_queue.enqueue(send_mail, user.email, 
+                            mail_type='invite',
+                            is_new_user=is_new_user,
+                            user_id=owner.id,
+                            username=owner.name,
+                            group_id=group.id,
+                            group_name=group.name,
+                            db_name=db_name)
   
   return True
   
@@ -5042,19 +5040,15 @@ def get_group_info(session_id, group_id, db_name=None):
     group_id = long(group_id)
     
   user_id = get_user_id(session_id, db_name=db_name)
-  info = db.owner.find_one({"_id": group_id, 
-                            'members': user_id})
-  if not info:
-    info = db.owner.find_one({'_id': group_id,
-                              'privacy': {'$in': ['open', 'closed']}})
-
-    
-  # TODO: xem lại chỗ này
-  if info and not info.has_key('recently_viewed'): # preinitialize recently_viewed arrays with nulls
-    db.owner.update({'_id': group_id},
-                    {'$set': 
-                     {'recently_viewed': [None for __ in xrange(0, 250)]}})
-  return Group(info, db_name=db_name)
+  info = db.owner.find_one({"_id": group_id})
+  if info and info.get('privacy') in ['open', 'closed'] or user_id in info['members']:
+    if not info.has_key('recently_viewed'): # preinitialize recently_viewed arrays with nulls
+      db.owner.update({'_id': group_id},
+                      {'$set': 
+                       {'recently_viewed': [None for __ in xrange(0, 250)]}})
+    return Group(info, db_name=db_name)
+  else:
+    return Group({}) 
 
 def add_to_recently_viewed_list(session_id, group_id):
   db_name = get_database_name()

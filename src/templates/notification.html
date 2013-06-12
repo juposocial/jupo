@@ -97,6 +97,11 @@
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
         <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> has just joined <strong>{{ message.details.name }}</strong>.
         
+    {% elif key.startswith('approved:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> approved your request to join the group {{ message.details.name }}.
+        
     {% elif key.startswith('ask_to_join:') %}
       <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
