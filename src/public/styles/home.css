@@ -7550,7 +7550,8 @@ div.chatbox ul.messages div.content .image-expander:active {
   text-shadow: none;
 }
 
-div.chatbox ul.messages div.content .image-expander + div:not(.hidden) + br {
+div.chatbox ul.messages div.content .image-expander + div:not(.hidden) + br,
+div.chatbox ul.messages div.content pre.prettyprint + br {
   display: none;
 }
   
