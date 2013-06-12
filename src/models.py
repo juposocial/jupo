@@ -763,6 +763,18 @@ class Group(Model):
       return []
     
   @property
+  def pending_members(self):
+    pending_members = self.info.get('pending_members', [])
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in pending_members]
+    
+  
+  @property
+  def pending_member_ids(self):
+    return self.info.get('pending_members', [])
+    
+    
+  @property
   def leaders(self):
     return [api.get_user_info(user_id, db_name=self.db_name) \
             for user_id in self.info.get('leaders')]

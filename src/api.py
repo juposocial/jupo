@@ -1733,7 +1733,11 @@ def get_unread_notifications(session_id, db_name=None):
     
     if i.type == 'like':
       id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
-    elif i.type in ['new_user', 'make_admin', 'add_member']:
+    elif i.type in ['new_user', 
+                    'make_admin', 
+                    'add_member', 
+                    'new_member', 
+                    'ask_to_join']:
       id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
     else:
       id = '%s:%s' % (i.type, i.ref_id)
@@ -1779,7 +1783,11 @@ def get_notifications(session_id, limit=25):
     
     if i.type == 'like':
       id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
-    elif i.type in ['new_user', 'make_admin', 'add_member']:
+    elif i.type in ['new_user', 
+                    'make_admin', 
+                    'add_member', 
+                    'new_member', 
+                    'ask_to_join']:
       id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
     else:
       id = '%s:%s' % (i.type, i.ref_id)
@@ -1836,7 +1844,11 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
     
     if i.type == 'like':
       id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
-    elif i.type in ['new_user', 'make_admin', 'add_member']:
+    elif i.type in ['new_user', 
+                    'make_admin', 
+                    'add_member', 
+                    'new_member', 
+                    'ask_to_join']:
       id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
     else:
       id = '%s:%s' % (i.type, i.ref_id)
@@ -4469,6 +4481,14 @@ def join_group(session_id, group_id):
   if group_info.get('privacy') == 'open':
     db.owner.update({'_id': group_id}, 
                           {'$addToSet': {'members': user_id}})
+    
+    for user_id in group_info.get('leaders', []):
+      notification_queue.enqueue(new_notification, 
+                                 session_id, user_id, 
+                                 'new_member', 
+                                 ref_id=group_id, 
+                                 ref_collection='owner', 
+                                 db_name=db_name)
     return True
   
   elif group_info.get('privacy') == 'closed':
@@ -4476,7 +4496,17 @@ def join_group(session_id, group_id):
     if user_id not in pending_members:
       pending_members.append(user_id)
       db.owner.update({'_id': group_id}, 
-                            {'$set': {'pending_members': pending_members}})
+                      {'$set': {'pending_members': pending_members}})
+      
+      
+      for user_id in group_info.get('leaders', []):
+        notification_queue.enqueue(new_notification, 
+                                   session_id, user_id, 
+                                   'ask_to_join', 
+                                   ref_id=group_id, 
+                                   ref_collection='owner', 
+                                   db_name=db_name)
+      
       return None
     
     return False
@@ -4498,6 +4528,7 @@ def leave_group(session_id, group_id):
   
   if group_info.get('privacy') == 'open':
     db.owner.update({'_id': group_id}, {'$pull': {'members': user_id}})
+    db.owner.update({'_id': group_id}, {'$pull': {'pending_members': user_id}})
     
     return True
   elif group_info.get('privacy') == 'closed':
@@ -4529,7 +4560,8 @@ def add_member(session_id, group_id, user_id):
   cache.delete(key)
   
   db.owner.update({'_id': group_id},
-                  {'$addToSet': {'members': user_id}})
+                  {'$addToSet': {'members': user_id},
+                   '$pull': {'pending_members': user_id}})
   
   new_feed(session_id, {'action': 'added',
                         'user_id': user_id, 
@@ -4576,6 +4608,10 @@ def remove_member(session_id, group_id, user_id):
   
   db.owner.update({'_id': group_id},
                   {'$pull': {'members': user_id}})
+  
+  if group_info.get('privacy') != 'open':
+    db.owner.update({'_id': group_id},
+                    {'$pull': {'pending_members': user_id}})
   
   db.owner.update({'_id': group_id},
                   {'$pull': {'leaders': user_id}})

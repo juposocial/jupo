@@ -738,6 +738,29 @@ $(document).ready(function(e) {
     }
     return false;
   });
+  
+  
+  
+
+  $('#body').on('click', 'a.accept, a.reject', function() {
+    var _this = $(this);
+    var element = $(this).parents('li.user');
+    var href = $(this).attr('href');
+
+    $.ajax({
+      type: "POST",
+      headers: {
+        'X-CSRFToken': get_cookie('_csrf_token')
+      },
+      url: href,
+      success: function(resp) {
+        $('div.info', element).html(_this.text() + 'ed');
+      }
+    });
+    
+    return false;
+  });
+  
 
   $('div#body').on('click', 'a.unread-posts', function() {
     $('ul#stream > li.hidden').removeClass('hidden').fadeIn();

@@ -91,6 +91,16 @@
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
         <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> has just signed up {{ network.name }}.
         Go and say welcome to {{ message.sender.name }}
+        
+    {% elif key.startswith('new_member:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> has just joined <strong>{{ message.details.name }}</strong>.
+        
+    {% elif key.startswith('ask_to_join:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> asked to join <strong>{{ message.details.name }}</strong>.
     {% endif %} 
     
     <br>

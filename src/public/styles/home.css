@@ -7116,16 +7116,18 @@ top: 8px;
 
 
 
-ul.suggested-users li.user {
+ul.suggested-users li.user, 
+ul.pending-members li.user {
   clear: both;
   padding: 6px 5px;
 }
 
-ul.suggested-users li a {
+ul.suggested-users li a, ul.pending-members li a {
   padding: 0 !important;
 }
 
-ul.suggested-users li a.username {
+ul.suggested-users li a.username,
+ul.pending-members li a.username {
   white-space: nowrap;
   width: 160px;
   overflow: hidden;
@@ -7133,9 +7135,14 @@ ul.suggested-users li a.username {
 }
 
 
-ul.suggested-users li a.follow, ul.suggested-users li a.unfollow {
+ul.suggested-users li a.follow, 
+ul.suggested-users li a.unfollow,
+ul.pending-members li a.accept,
+ul.pending-members li a.reject,
+ul.pending-members li div.info {
   font-size: 11px;
   color: #37404e;
+  display: inline-block !important;
 }
 
 ul.suggested-users li a:hover {
