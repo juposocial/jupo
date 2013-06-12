@@ -3438,7 +3438,7 @@ ul.notifications > li > time {
 }
 
 ul.notifications span.username {
-  color: #114495;
+  font-weight: bold;
 }
 
 ul.notifications a time {
