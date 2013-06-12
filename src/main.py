@@ -163,6 +163,13 @@ def stream():
   session_id = session.get('session_id')
   if not session_id:
     abort(400)
+    
+  # Update utcoffset
+  user_id = api.get_user_id(session_id)
+  if user_id:
+    utcoffset = request.cookies.get('utcoffset')
+    if utcoffset:
+      api.update_utcoffset(user_id, utcoffset)
   
   channel_id = request.cookies.get('channel_id')
   resp = Response(event_stream(channel_id),
@@ -2412,8 +2419,15 @@ def feed_actions(feed_id=None, action=None,
 #      return render_homepage(session_id, message['subject'],
 #                             view='email', mode='view', feed=message)
   
+  user_id = api.get_user_id(session_id)
+  if not user_id:
+    abort(400)
+    
+  utcoffset = request.cookies.get('utcoffset')
+  if utcoffset:
+    api.update_utcoffset(user_id, utcoffset)
   
-  owner = api.get_owner_info(session_id)
+  owner = api.get_user_info(user_id)
 #  if not owner.id:
 #    return redirect('/sign_in?continue=%s' % request.path)
   
@@ -2432,7 +2446,6 @@ def feed_actions(feed_id=None, action=None,
       attachments = list(set(attachments))
     else:
       attachments = []
-        
 
     feed_id = api.new_feed(session_id, 
                            message, 

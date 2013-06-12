@@ -1509,6 +1509,10 @@ def update_utcoffset(session_id, offset):
   if cache.get('utcoffset', namespace=user_id) != offset:
     db.owner.update({'_id': user_id}, 
                     {'$set': {'utcoffset': offset}})
+    
+    key = '%s:info' % user_id
+    cache.delete(key)
+    
     cache.set('utcoffset', offset, namespace=user_id)
   return True
 
