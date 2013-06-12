@@ -346,13 +346,14 @@ function start_chat(chat_id) {
 
 function search_mentions(query, callback) {
       data = _.filter($.global.coworkers, function(item) {
-        return item.name.toLowerCase().indexOf(query.toLowerCase()) != -1;
+        return item.name.toLowerCase().indexOf(query.toLowerCase()) == 0;
       });
       
       var ids;
       var owners;
       ids = [];
       owners = [];
+      
       for (i in data) {
         var id;
         id = data[i].id + data[i].name;
@@ -362,6 +363,26 @@ function search_mentions(query, callback) {
           
           if (owners.length >= 3) {
             break
+          }
+        }
+      }
+      
+      if (owners.length < 3) {
+        
+        data = _.filter($.global.coworkers, function(item) {
+          return item.name.toLowerCase().indexOf(query.toLowerCase()) != -1;
+        });
+        
+        for (i in data) {
+          var id;
+          id = data[i].id + data[i].name;
+          if (ids.indexOf(id) == -1) {
+            ids.push(id);
+            owners.push(data[i]);
+            
+            if (owners.length >= 3) {
+              break
+            }
           }
         }
       }
@@ -473,6 +494,11 @@ function preload_autocomplete() {
 
         $.global.coworkers = resp.filter(function(e) {
           return e.type == 'user'
+        });
+        
+        
+        $.global.emoticons = resp.filter(function(e) {
+          return e.type == 'emoticon'
         });
       }
     })

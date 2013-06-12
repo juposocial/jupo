@@ -16,7 +16,7 @@
     triggerChar     : '@',
     fullNameTrigger : false,
     onDataRequest   : $.noop,
-    minChars        : 2,
+    minChars        : 1,
     showAvatars     : true,
     elastic       : true,
     classes         : {
