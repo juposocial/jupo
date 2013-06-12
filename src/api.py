@@ -1733,6 +1733,8 @@ def get_unread_notifications(session_id, db_name=None):
     
     if i.type == 'like':
       id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
+    elif i.type in ['new_user', 'make_admin', 'add_member']:
+      id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
     else:
       id = '%s:%s' % (i.type, i.ref_id)
     
@@ -1834,6 +1836,8 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
     
     if i.type == 'like':
       id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
+    elif i.type in ['new_user', 'make_admin', 'add_member']:
+      id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
     else:
       id = '%s:%s' % (i.type, i.ref_id)
     
