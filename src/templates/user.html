@@ -391,7 +391,7 @@
 #}
           <div class='stats'>
             
-            <a href='/user/{{ user.id }}/groups' class='async'>Member of {{ user.groups | length }} group{% if user.groups | length != 1 %}s{% endif %}</a>
+            <a href='#!/user/{{ user.id }}/groups' class='overlay'>Member of {{ user.groups | length }} group{% if user.groups | length != 1 %}s{% endif %}</a>
                      
 
           </div>      
@@ -462,7 +462,7 @@
             <br>
           {% endif %}
           
-          <a href='/user/{{ user.id }}/groups' class='async'>Member of {{ user.groups | length }} group{% if user.groups | length != 1 %}s{% endif %}</a>
+          <a href='#!/user/{{ user.id }}/groups' class='overlay'>Member of {{ user.groups | length }} group{% if user.groups | length != 1 %}s{% endif %}</a>
 
           {% if user.id == owner.id %}
             <br>

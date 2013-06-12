@@ -1782,10 +1782,9 @@ span.label {
   text-shadow: 0 -1px 1px black;
 }
 
-/*span.tag {
-  background: #F2F2F2;
-  padding: 1px 4px;
-}*/
+span.tag {
+  color: #3b5998;
+}
 
 div#right-sidebar .box {
   margin-bottom: 15px;
@@ -3404,9 +3403,7 @@ div#overlay #close {
 }
 
 ul.notifications a.chat span.username {
-  font-size: 12px;
-  line-height: 15px;
-  margin-top: 3px;
+  margin-top: 1px;
   display: block;
 }
 

@@ -2563,42 +2563,34 @@ def get_feed(session_id, feed_id, group_id=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  if not session_id:
-    info = db.stream.find_one({'_id': long(feed_id),
-                               'is_removed': {'$exists': False}})
-    if not info or info.has_key('is_removed'):
-      return Feed({})
-    
-    public = False
-    if 'public' in info['viewers']:
-      public = True
-    else:
-      for i in info.get('viewers'):
-        if is_public(i):
-          public = True
-          break
-    
-    if info and public is True:
-      return Feed(info, db_name=db_name)
-    elif info:
-      return False
-    else:
-      return Feed({})
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
+  info = db.stream.find_one({'_id': long(feed_id),
+                             'is_removed': {'$exists': False}})
+  if not info or info.has_key('is_removed'):
     return Feed({})
   
-  if group_id:
-    info = db.stream.find_one({'_id': long(feed_id),
-                               'viewers': group_id})
+  public = False
+  if 'public' in info['viewers']:
+    public = True
   else:
-    viewers = get_group_ids(user_id)
-    viewers.append(user_id)
-    viewers.append('public')
-    info = db.stream.find_one({'_id': long(feed_id),
-                               'viewers': {'$in': viewers}})
-  return Feed(info, db_name=db_name)
+    for i in info.get('viewers'):
+      if is_public(i):
+        public = True
+        break
+  
+  if info and public is True:
+    return Feed(info, db_name=db_name)
+  elif info:
+    if group_id and group_id in info['viewers']:
+      return Feed(info, db_name=db_name)
+    else:
+      user_id = get_user_id(session_id)
+      viewers = get_group_ids(user_id)
+      viewers.append(user_id)
+      viewers.append('public')
+      for i in viewers:
+        if i in info['viewers']:
+          return Feed(info, db_name=db_name)
+  return Feed({})
 
 def unread_count(session_id, timestamp):
   db_name = get_database_name()
@@ -3615,44 +3607,35 @@ def get_note(session_id, note_id, version=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  if not session_id:
-    info = db.stream.find_one({'_id': long(note_id),
-                               'is_removed': {'$exists': False}})
-    if not info or info.has_key('is_removed'):
-      return Note({})
-    
-    public = False
-    if 'public' in info['viewers']:
-      public = True
-    else:
-      for i in info.get('viewers'):
-        if is_public(i):
-          public = True
-          break
-    
-    if info and public is True:
-      return Note(info)
-    elif info:
-      return False
-    else:
-      return Note({})
-    
-  user_id = get_user_id(session_id)
-  viewers = get_group_ids(user_id)
-  viewers.append(user_id)
-  viewers.append('public')
-  
-  info = db.stream.find_one({'is_removed': {'$exists': False},
-                                   "viewers": {'$in': viewers}, 
-                                   '_id': long(note_id)})
-  if not info:
+  info = db.stream.find_one({'_id': long(note_id),
+                             'is_removed': {'$exists': False}})
+  if not info or info.has_key('is_removed'):
     return Note({})
   
-  if version:
-    version = version - 1 # python list index start from 0
+  public = False
+  if 'public' in info['viewers']:
+    public = True
   else:
-    version = len(info['version']) - 1
-  return Note(info, version=version)
+    for i in info.get('viewers'):
+      if is_public(i):
+        public = True
+        break
+  
+  if info and public is True:
+    return Note(info, db_name=db_name)
+  elif info:
+    user_id = get_user_id(session_id)
+    viewers = get_group_ids(user_id)
+    viewers.append(user_id)
+    viewers.append('public')
+    for i in viewers:
+      if i in info['viewers']:
+        if version:
+          version = version - 1 # python list index start from 0
+        else:
+          version = len(info['version']) - 1
+        return Note(info, version=version, db_name=db_name)
+  return Note({})
 
 
 def get_docs_count(group_id):
@@ -4461,7 +4444,7 @@ def update_group_info(session_id, group_id, info):
     info['members'] = [long(i) for i in info.get('members')]
   
   db.owner.update({'leaders': user_id, 
-                         '_id': long(group_id)}, {'$set': info})
+                   '_id': long(group_id)}, {'$set': info})
   return True
 
 def join_group(session_id, group_id):

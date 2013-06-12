@@ -407,16 +407,22 @@
           <div class='stats'>
             {% if group.id == 'public' %}
             <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
-            {% else %}
+            {% elif owner.id in group.member_ids or group.privacy == 'open' %}
             <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            {% else %}
+            {{ group.about }}
             {% endif %}
           </div>    
         </div>
         
 </div>
 
-  {% if owner and (group.post_permission != 'administrators' or owner.id in group.administrator_ids) %}
-    {% include 'new.html' %}
+  {% if owner.id in group.member_ids or group.privacy == 'open' %}
+    {% if owner and (group.post_permission != 'administrators' or owner.id in group.administrator_ids) %}
+      {% include 'new.html' %}
+    {% endif%}
+  {% else %}
+    {% set view = 'members' %}
   {% endif%}
   
     

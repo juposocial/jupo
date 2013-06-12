@@ -736,9 +736,6 @@ class Group(Model):
   @property
   def privacy(self):
     state = self.info.get('privacy', 'closed')
-    # temporary disable secret group
-    if state == 'secret':
-      state = 'closed'
     return state
   
   
