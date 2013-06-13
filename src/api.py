@@ -4535,7 +4535,7 @@ def add_member(session_id, group_id, user_id):
   cache.delete(key)
   
   is_approved = False
-  if user_id in group_info['pending_members']:
+  if user_id in group_info.get('pending_members', []):
     db.owner.update({'_id': group_id},
                     {'$addToSet': {'members': user_id},
                      '$pull': {'pending_members': user_id}})
@@ -5634,6 +5634,8 @@ def ensure_index(db_name=None):
 
 
 def add_db_name(email, db_name):
+  if not email:
+    return False
   email = email.lower().strip()
   db_name = db_name.lower().strip()
   DATABASE['global']['user'].update({'email': email},
