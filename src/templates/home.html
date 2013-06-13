@@ -120,7 +120,7 @@
                 <div id="filelist"></div>
               </div>  
             </li>
-            <li><a onclick="hopscotch.startTour(tour);">Take a Tour</a></li>
+            <li><a onclick="window.location.href = '/everyone?getting_started=1'">Take a Tour</a></li>
 
 <!--             <li><a href="/keyboard_shortcuts" class='overlay'>Keyboard shortcuts</a></li> -->
             
@@ -278,13 +278,15 @@
     <script type='text/javascript' src='/public/scripts/main.js'></script>
     <script type='text/javascript' src='/public/scripts/hopscotch-0.1.js'></script>
     <script type='text/javascript' src='/public/scripts/product_tours/getting_started.js'></script>
+    <script type='text/javascript' src='/public/scripts/product_tours/share_a_post.js'></script>
     
   {% else %}  
     {% assets filters="jsmin", 
               output="core.js",
               "scripts/main.js",
               "scripts/hopscotch-0.1.js",
-              "scripts/product_tours/getting_started.js" %}
+              "scripts/product_tours/getting_started.js",
+              "scripts/product_tours/share_a_post.js" %}
               
              <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %}
@@ -315,6 +317,12 @@
   <script type="text/javascript">
       if (top.location.href != self.location.href)
          top.location.href = self.location.href;
+         
+      {% if request.args %}
+        $(document).ready(function() {
+            hopscotch.startTour({{ request.args.keys()[0] }});
+        })
+      {% endif %}
   </script>
    
    

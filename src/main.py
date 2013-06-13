@@ -130,6 +130,7 @@ def render_homepage(session_id, title, **kwargs):
                                   debug=settings.DEBUG,
                                   logo_text=logo_text,
                                   domain=hostname,
+                                  request=request,
                                   **kwargs))
   if owner:
     resp.set_cookie('channel_id', api.get_channel_id(session_id))
@@ -1113,7 +1114,6 @@ def notes(page=1):
   else:
     return render_homepage(session_id, title,
                            view=view,
-                           request=request,
                            reference_notes=reference_notes,
                            notes=notes)
     

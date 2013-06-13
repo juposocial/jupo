@@ -1,6 +1,6 @@
 // Define the tour!
-var tour = {
-  id: "welcome_tour",
+var getting_started = {
+  id: "getting_started",
   steps: [
     {
       title: "Network Name",
@@ -10,7 +10,15 @@ var tour = {
       fixedElement: true,
     },
     {
-      title: "Jupo navigation",
+      title: "Public Posts",
+      content: "All posts that shared with public will available right here.",
+      target: 'discover',
+      placement: "right",
+      fixedElement: true,
+      yOffset: -15,
+    },
+    {
+      title: "Navigation",
       content: "All the tools of Jupo.",
       target: 'main-nav',
       placement: "right",
@@ -53,6 +61,20 @@ var tour = {
       content: "Tell the world what's on your mind.",
       target: document.querySelector("#new-feed"),
       placement: "bottom",
+      showCTAButton: true,
+      nextOnTargetClick: true,
+      ctaLabel: 'Demo',
+      onCTA: function() {
+        hopscotch.endTour(getting_started);
+        
+        if (window.location.pathname != '/everyone') {
+          open_in_async_mode('/everyone');
+        }
+        
+        setTimeout(function() {
+          hopscotch.startTour(share_a_post);
+        }, 1000)
+      }
     },
     {
       title: "Like, share and post comments",
