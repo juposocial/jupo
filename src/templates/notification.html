@@ -88,14 +88,15 @@
       
     {% elif key.startswith('new_user:') %}
       <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
-        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
-        <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> has just signed up {{ network.name }}.
+        <img src='/public/images/wall-e.png' class='lfloat small-avatar'>     
+        <strong>{{ network.name }}</strong> has a new user: <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span>.
         Go and say welcome to {{ message.sender.name }}
         
     {% elif key.startswith('new_member:') %}
       <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
-        <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> has just joined <strong>{{ message.details.name }}</strong>.
+        The group <strong>{{ message.details.name }}</strong> has a new member: <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span>.
+        Go and say welcome to {{ message.sender.name }}
         
     {% elif key.startswith('approved:') %}
       <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
@@ -106,6 +107,11 @@
       <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
         <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> asked to join <strong>{{ message.details.name }}</strong>.
+        
+    {% elif key.startswith('new_network:') %}
+      <a href='#!/notification/{{ message.id }}?continue=http://{{ message.details.domain }}/' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='/public/images/wall-e.png' class='lfloat small-avatar'>     
+        A new network named <strong>{{ message.details.name }}</strong> is created.
     {% endif %} 
     
     <br>

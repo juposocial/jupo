@@ -1581,9 +1581,14 @@ class Notification(Model):
       info = api.get_network_info(self.db_name)
       return info
     
+    if self.info.get('type') == 'new_network':
+      info = api.get_network_info(self.ref_id)
+      return info
+    
     record = api.get_record(self.ref_id, 
                             self.info.get('ref_collection', 'stream'), 
                             db_name=self.db_name)
+      
     if not record or record.has_key('is_removed'):
       return None
     elif record.has_key('members'):

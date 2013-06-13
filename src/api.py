@@ -1685,12 +1685,7 @@ def new_notification(session_id, receiver, type,
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  sender = get_user_id(session_id, db_name=db_name)
-  if not sender:
-    return False
-  
   info = {'_id': new_id(),
-          'sender': sender,
           'receiver': receiver,
           'ref_id': ref_id,
           'ref_collection': ref_collection,
@@ -1698,6 +1693,12 @@ def new_notification(session_id, receiver, type,
           'type': type,
           'is_unread': True,
           'timestamp': utctime()}
+  
+  if session_id:
+    sender = get_user_id(session_id, db_name=db_name)
+    if sender:
+      info['sender'] = sender
+  
   notification_id = db.notification.insert(info)
   
   key = '%s:%s:unread_count' % (receiver, db_name)
@@ -5657,11 +5658,22 @@ def new_network(db_name, organization_name, description=None):
   if is_exists(db_name=db_name):
     return False
   
-  DATABASE[db_name].info.insert({'name': organization_name,
-                                 'description': description,
-                                 'timestamp': utctime()})
+  info = {'domain': db_name.replace('_', '.'),
+          'name': organization_name,
+          'description': description,
+          'timestamp': utctime()}
+  DATABASE[db_name].info.insert(info)
   key = 'db_names'
   cache.delete(key)
+  
+  primary_db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
+  for user_id in get_network_admin_ids(primary_db_name):
+    notification_queue.enqueue(new_notification, 
+                               None, user_id, 
+                               'new_network', 
+                               ref_id=db_name, 
+                               ref_collection='info', 
+                               db_name=primary_db_name)
   
   ensure_index(db_name)
   return True
