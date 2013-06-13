@@ -231,16 +231,16 @@ def autocomplete():
           items.append(info)  
           
           
-    emoticons = [{'id': 'happy',
-                  'type': 'emoticon',
-                  'name': ':)',
-                  'avatar': 'http://jupo.s3.amazonaws.com/emoticons/1.gif'},
-                 {'id': 'sad',
-                  'type': 'emoticon',
-                  'name': ':(',
-                  'avatar': 'http://jupo.s3.amazonaws.com/emoticons/2.gif'},
-                 ]    
-    items.extend(emoticons)
+#     emoticons = [{'id': ':)',
+#                   'type': 'emoticon',
+#                   'name': 'happy',
+#                   'avatar': 'http://jupo.s3.amazonaws.com/emoticons/1.gif'},
+#                  {'id': ':(',
+#                   'type': 'emoticon',
+#                   'name': 'sad',
+#                   'avatar': 'http://jupo.s3.amazonaws.com/emoticons/2.gif'},
+#                  ]    
+#     items.extend(emoticons)
       
   else:
       
