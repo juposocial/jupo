@@ -4122,6 +4122,10 @@ ul#stream > li.topic > div.message {
   background: #2271A8;
 }
 
+form#new-feed .mentions-input-box div.mentions {
+  top: 1px;
+}
+
 form.new-comment .mentions-input-box div.mentions {
   padding: 9px 3px;
 }

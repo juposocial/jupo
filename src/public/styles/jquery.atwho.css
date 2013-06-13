@@ -1,0 +1,52 @@
+.atwho-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+  margin-top: 18px;
+  background: #fff;
+  border: 1px solid #ADB6CA;
+  box-shadow: 0 3px 10px rgba(0,0,0,.2);
+  min-width: 120px;
+  z-index: 10
+}
+.atwho-view .cur {
+  color: white;
+  background-color: #2271A9;
+  background-repeat: repeat-x;
+  background-image: -moz-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#2F7EB6),color-stop(100%,#2271A9));
+  background-image: -webkit-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -ms-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  background-image: -o-linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2f7eb6',endColorstr='#2271a9',GradientType=0);
+  background-image: linear-gradient(top,#2F7EB6 0,#2271A9 100%);
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.25);
+}
+.atwho-view .cur small {
+  color: #fff
+}
+.atwho-view strong {
+  color: #36F
+}
+.atwho-view .cur strong {
+  color: #fff;
+  font: bold
+}
+.atwho-view ul {
+  list-style: none;
+  padding: 0;
+  margin: auto
+}
+.atwho-view ul li {
+  display: block;
+  padding: 4px 10px;
+  border: 1px solid white;
+  font-size: 11px;
+  cursor: pointer
+}
+.atwho-view small {
+  font-size: smaller;
+  color: #777;
+  font-weight: 400
+}

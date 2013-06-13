@@ -988,7 +988,10 @@ $(document).ready(function(e) {
   
   $('#body, #overlay').on('keydown', 'form.new-comment textarea, form.update-comment textarea', function(e) {
     if (e.keyCode == 13) {    // Enter
-        if (e.ctrlKey || e.shiftKey) {
+        if ($.global.emoticon_inserted == true) {
+          return false;
+        }
+        else if (e.ctrlKey || e.shiftKey) {
             var val = this.value;
             if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
                 var start = this.selectionStart;
@@ -1017,6 +1020,7 @@ $(document).ready(function(e) {
           }
           
         }
+        
         return false;
     } 
     
@@ -1032,6 +1036,7 @@ $(document).ready(function(e) {
       
       
     }
+    
   });
 
   $("#body, #overlay").on("submit", 'form.new-comment', function() {
@@ -2334,7 +2339,10 @@ $(document).ready(function(e) {
   
   
   $('#chat, #body').on('keydown', 'form.chat textarea', function(e) {
-    
+    if ($.global.emoticon_inserted == true) {
+        return false;
+    }
+        
     if (e.keyCode == 13) {    // Enter
         if (e.ctrlKey || e.shiftKey) {
             var val = this.value;
