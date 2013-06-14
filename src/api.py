@@ -433,6 +433,7 @@ def get_database_name():
     DATABASE[db_name].owner.ensure_index('session_id', background=True)
     DATABASE[db_name].owner.ensure_index('email', background=True)
     DATABASE[db_name].owner.ensure_index('name', background=True)
+    DATABASE[db_name].owner.ensure_index('password', background=True)
     DATABASE[db_name].owner.ensure_index('members', background=True)
     DATABASE[db_name].notification.ensure_index('receiver', background=True)
     DATABASE[db_name].notification.ensure_index('is_unread', background=True)
