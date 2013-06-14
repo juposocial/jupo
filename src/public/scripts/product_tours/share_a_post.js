@@ -1,6 +1,6 @@
 // Define the tour!
-var post_a_message = {
-  id: "post_a_message",
+var share_a_post = {
+  id: "share_a_post",
   steps: [
     {
       title: "Enter your message",
