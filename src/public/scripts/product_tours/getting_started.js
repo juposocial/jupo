@@ -3,8 +3,8 @@ var getting_started = {
   id: "getting_started",
   steps: [
     {
-      title: "Network Name",
-      content: "Here lies the name of your network.",
+      title: "Let's do great things",
+      content: "Jupo is the communication platform for your team. The place to discuss, share things & stay updated on the latest activity.",
       target: "logo",
       placement: "bottom",
       fixedElement: true,

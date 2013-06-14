@@ -715,7 +715,6 @@ def authentication(action=None):
                                       message=message,
                                       PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
                                       network_info=network_info))
-      resp.set_cookie('new_user', '0')
       return resp
         
 
@@ -772,7 +771,7 @@ def authentication(action=None):
         if api.is_admin(user_id):
           return redirect('/groups')
         else:
-          return redirect('/everyone')  
+          return redirect('/everyone?getting_started=1')  
       else:
         return redirect('/')
       
@@ -896,6 +895,8 @@ def google_authorized():
     contacts = list(set(contacts))
   
   db_name = domain.lower().strip().replace('.', '_')
+  
+  user_info = api.get_user_info(email=user.get('email'), db_name=db_name)
   session_id = api.sign_in_with_google(email=user.get('email'), 
                                        name=user.get('name'), 
                                        gender=user.get('gender'), 
@@ -919,7 +920,10 @@ def google_authorized():
   
   if domain == settings.PRIMARY_DOMAIN:
     session['session_id'] = session_id
-    return redirect('/')
+    if user_info.id:
+      return redirect('/')
+    else: # new user
+      return redirect('/everyone?getting_started=1')
   else:
     url = 'http://%s/?session_id=%s' % (domain, session_id)
     resp = redirect(url)
@@ -989,6 +993,9 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
   
     db_name = domain.lower().strip().replace('.', '_')
+    
+    user_info = api.get_user_info(email=user.get('email'), db_name=db_name)
+  
     session_id = api.sign_in_with_facebook(email=me.data.get('email'), 
                                            name=me.data.get('name'), 
                                            gender=me.data.get('gender'), 
@@ -1014,7 +1021,10 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
           
     if domain == settings.PRIMARY_DOMAIN:
       session['session_id'] = session_id
-      return redirect('/')
+      if user_info.id:
+        return redirect('/')
+      else: # new user
+        return redirect('/everyone?getting_started=1')
     else:
       url = 'http://%s/?session_id=%s' % (domain, session_id)
       resp = redirect(url)
@@ -2207,13 +2217,11 @@ def home():
     if hostname != settings.PRIMARY_DOMAIN:
       return redirect('/sign_in')
     
-    new_user = request.cookies.get('new_user', "1")
     email = request.args.get('email')
     message = request.args.get('message')
     resp = Response(render_template('landing_page.html',
                                     email=email,
-                                    message=message,
-                                    new_user=new_user))
+                                    message=message))
     
     back_to = request.args.get('back_to')
     if back_to:
@@ -2358,7 +2366,6 @@ def news_feed(page=1):
                            suggested_friends=suggested_friends,
                            feeds=feeds)
     
-    resp.set_cookie('new_user', "0")
   resp.delete_cookie('redirect_to')
   return resp
 
