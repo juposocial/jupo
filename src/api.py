@@ -37,6 +37,7 @@ from datetime import datetime, timedelta
 from httplib import CannotSendRequest
 from pyelasticsearch import ElasticSearch, ElasticHttpNotFoundError
 from diff_match_patch import diff_match_patch
+from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 
 from lib import cache
 from lib import encode_url
@@ -1382,7 +1383,7 @@ def get_all_groups(limit=300):
   groups = db.owner.find({'members': {'$exists': True}}).limit(limit)
   return [Group(i, db_name=db_name) for i in groups]
   
-
+@line_profile
 def get_coworkers(session_id, limit=100):
   if str(session_id).isdigit():
     user_id = long(session_id)
@@ -1406,7 +1407,7 @@ def get_coworkers(session_id, limit=100):
         _ids.add(member.id)
         
   coworkers = list(coworkers)
-  cache.set(key, coworkers, 3600)
+  cache.set(key, coworkers, 86400)
   
   coworkers = sorted(coworkers[:limit], 
                      key=lambda user: last_online(user.id), reverse=True)
@@ -2555,6 +2556,7 @@ def undo_remove(session_id, feed_id):
   # TODO: chỉ cho xóa nếu chưa có ai đọc
   return feed_id
 
+@line_profile
 def get_feed(session_id, feed_id, group_id=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
@@ -2604,6 +2606,7 @@ def unread_count(session_id, timestamp):
                          'timestamp': {'$gt': timestamp}}).count()
   return feeds + docs
 
+@line_profile
 def get_public_posts(session_id=None, user_id=None, page=1):
   db_name = get_database_name()
   db = DATABASE[db_name]
@@ -2853,12 +2856,22 @@ def get_pinned_posts(session_id, category='default'):
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
+  
+  key = '%s:pinned_post' % category
+  namespace = user_id
+  out = cache.get(key, namespace)
+  if out:
+    return out
+  
   feeds = db.stream.find({'is_removed': {'$exists': False},
                           'archived_by': {'$nin': [user_id]},
                           'pinned': user_id})\
                    .sort('last_updated', -1)
                            
-  return [Feed(i, db_name=db_name) for i in feeds if i]
+  feeds = [Feed(i, db_name=db_name) for i in feeds if i]
+  cache.set(key, feeds, 3600, namespace)
+  return feeds
+
 
 def get_direct_messages(session_id, page=1):
   db_name = get_database_name()
@@ -2875,13 +2888,18 @@ def get_direct_messages(session_id, page=1):
                            .limit(5)
   return [Feed(i, db_name=db_name) for i in feeds]
   
-
+@line_profile
 def get_feeds(session_id, group_id=None, page=1, 
               limit=settings.ITEMS_PER_PAGE, include_archived_posts=False):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
+  key = '%s:%s:%s:%s' % (group_id, page, limit, include_archived_posts)
+  out = cache.get(key, user_id)
+  if out:
+    return out
+  
   if not user_id:
     if group_id:
       group = get_record(group_id, 'owner')
@@ -2891,8 +2909,9 @@ def get_feeds(session_id, group_id=None, page=1,
                                 .sort('last_updated', -1)\
                                 .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                                 .limit(limit)
-        return [Feed(i, db_name=db_name) for i in feeds if i]
-      
+        feeds = [Feed(i, db_name=db_name) for i in feeds if i]
+        cache.set(key, feeds, 3600, user_id)
+        return feeds
     return []
 
   if group_id:
@@ -2901,14 +2920,6 @@ def get_feeds(session_id, group_id=None, page=1,
     else:
       group_id = 'public'
     
-#     feeds = db.stream.find({'is_removed': {'$exists': False},
-#                             'viewers': group_id,
-#                             '$or': [{'comments': {'$exists': True}, 
-#                                      'message.action': {'$exists': True}},
-#                                     {'message.action': {'$exists': False}}]})\
-#                             .sort('last_updated', -1)\
-#                             .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-#                             .limit(limit)
     feeds = db.stream.find({'is_removed': {'$exists': False},
                             'viewers': group_id})\
                             .sort('last_updated', -1)\
@@ -2918,13 +2929,7 @@ def get_feeds(session_id, group_id=None, page=1,
   else:
     viewers = get_group_ids(user_id)
     viewers.append(user_id)
-  
-#     query = {'$and': [{'viewers': {'$in': viewers}},
-#                       {'viewers': {'$ne': [user_id]}}],
-#              '$or': [{'comments': {'$exists': True}, 
-#                       'message.action': {'$exists': True}},                                 
-#                      {'message.action': {'$exists': False}}],
-#              'is_removed': {'$exists': False}}  
+    
     query = {'viewers': {'$in': viewers},
              '$or': [{'comments': {'$exists': True}, 
                       'message.action': {'$exists': True}},                                 
@@ -2938,9 +2943,11 @@ def get_feeds(session_id, group_id=None, page=1,
                      .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                      .limit(limit)
                                     
-  return [Feed(i, db_name=db_name) for i in feeds if i]
+  feeds = [Feed(i, db_name=db_name) for i in feeds if i]
+  cache.set(key, feeds, 3600, user_id)
+  return feeds
 
-
+@line_profile
 def get_unread_feeds(session_id, timestamp, group_id=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
@@ -2962,7 +2969,7 @@ def get_unread_feeds(session_id, timestamp, group_id=None):
 #  feeds.sort(key=lambda k: k.get('last_updated'), reverse=True)
   return [Feed(i, db_name=db_name) for i in feeds]
 
-
+@line_profile
 def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -4422,6 +4429,9 @@ def new_group(session_id, name, privacy="closed", about=None):
   key = '%s:groups' % user_id
   cache.delete(key)
   
+  key = '%s:group_ids'
+  cache.delete(key)
+  
   new_feed(session_id, {'action': 'created',
                         'group_id': group_id}, [group_id])
   
@@ -4455,6 +4465,9 @@ def join_group(session_id, group_id):
     return False
   
   key = '%s:groups' % user_id
+  cache.delete(key)
+  
+  key = '%s:group_ids' % user_id
   cache.delete(key)
   
   if group_info.get('privacy') == 'open':
@@ -4505,6 +4518,9 @@ def leave_group(session_id, group_id):
   key = '%s:groups' % user_id
   cache.delete(key)
   
+  key = '%s:group_ids' % user_id
+  cache.delete(key)
+  
   if group_info.get('privacy') == 'open':
     db.owner.update({'_id': group_id}, {'$pull': {'members': user_id}})
     db.owner.update({'_id': group_id}, {'$pull': {'pending_members': user_id}})
@@ -4536,6 +4552,9 @@ def add_member(session_id, group_id, user_id):
     return False
   
   key = '%s:groups' % user_id
+  cache.delete(key)
+  
+  key = '%s:group_ids' % user_id
   cache.delete(key)
   
   is_approved = False
@@ -4609,6 +4628,9 @@ def remove_member(session_id, group_id, user_id):
   key = '%s:groups' % user_id
   cache.delete(key)
   
+  key = '%s:group_ids' % user_id
+  cache.delete(key)
+  
   return True
   
 def make_admin(session_id, group_id, user_id):
@@ -4666,6 +4688,9 @@ def make_admin(session_id, group_id, user_id):
   key = '%s:groups' % user_id
   cache.delete(key)
   
+  key = '%s:group_ids' % user_id
+  cache.delete(key)
+  
   return True
   
 def remove_as_admin(session_id, group_id, user_id):
@@ -4707,6 +4732,9 @@ def remove_as_admin(session_id, group_id, user_id):
                   {'$pull': {'leaders': user_id}})
   
   key = '%s:groups' % user_id
+  cache.delete(key)
+  
+  key = '%s:group_ids' % user_id
   cache.delete(key)
   
   return True
@@ -4837,12 +4865,13 @@ def get_group_ids(user_id, db_name=None):
   
   if not user_id or not str(user_id).isdigit():
     return []
-#  key = '%s:group_ids' % user_id
-  ids = None # cache.get(key)
+  
+  key = '%s:group_ids' % user_id
+  ids = cache.get(key)
   if not ids:
     groups = db.owner.find({"members": long(user_id)}, {'_id': True})
     ids = [i.get('_id') for i in groups]
-#    cache.set(key, ids)
+    cache.set(key, ids)
   return ids
 
 
@@ -4865,11 +4894,11 @@ def get_groups_count(user_id, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  return db.owner.find({"members": user_id}).count()
+  return len(get_group_ids(user_id, db_name=db_name))
   
   
   
-
+@line_profile
 def get_groups(session_id, limit=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -4883,15 +4912,15 @@ def get_groups(session_id, limit=None, db_name=None):
   groups = cache.get(key)
   if groups is None:
     groups = db.owner.find({"members": user_id}).sort('last_updated', -1)
-    groups = list(groups)
+    groups = [Group(i, db_name=db_name) for i in groups]
     cache.set(key, groups)
 
   if not groups:
     return []
   elif limit:
-    return [Group(i, db_name=db_name) for i in groups[:limit]]
+    return groups[:limit]
   else:
-    return [Group(i, db_name=db_name) for i in groups]
+    return groups
   
 
 def get_open_groups(user_id=None, limit=5):
@@ -5582,7 +5611,7 @@ def is_liked_item(user_id, item_id):
   db = DATABASE[db_name]
   
   info = db.like.find_one({'user_id': long(user_id),
-                                 'item_id': long(item_id)})
+                           'item_id': long(item_id)})
   if info:
     return True
   else:
@@ -5630,6 +5659,9 @@ def ensure_index(db_name=None):
   db.message.ensure_index('user_id', background=True)
   db.message.ensure_index('topic_id', background=True)
   db.message.ensure_index('members', background=True)
+  
+  db.like.ensure_index('item_id', background=True)
+  db.like.ensure_index('user_id', background=True)
   
   db.status.ensure_index('user_id', background=True)
   db['s3'].ensure_index('name', background=True)
@@ -5693,7 +5725,7 @@ def get_network_admin_ids(db_name=None):
     return [i['_id'] for i in users]
   return [get_first_user_id(db_name)]
 
-
+@line_profile
 def get_network_info(db_name):
   key = '%s:info' % db_name
   info = cache.get(key)
@@ -6030,7 +6062,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   else:
     return html
 
-
+@line_profile
 def get_messages(session_id, archived=False, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -6092,6 +6124,7 @@ def get_messages(session_id, archived=False, db_name=None):
   return messages
 
 
+@line_profile
 def get_unread_messages_count(session_id, user_id=None, topic_id=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -6129,6 +6162,7 @@ def get_unread_messages_count(session_id, user_id=None, topic_id=None, db_name=N
     return count
   
 
+@line_profile
 def get_unread_messages(session_id, archived=False, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -6259,6 +6293,7 @@ def get_last_message(topic_id, db_name=None):
   if msg:
     return list(msg)[0]
 
+@line_profile
 def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db_name=None):
   if not db_name:
     db_name = get_database_name()

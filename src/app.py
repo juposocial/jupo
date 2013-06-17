@@ -6,6 +6,8 @@ from datetime import timedelta
 from flask import Flask, render_template
 from werkzeug.contrib.cache import MemcachedCache
 
+from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
+
 from lib import cache
 from helpers import extensions
 from helpers.converters import (SnowflakeIDConverter, 
@@ -85,6 +87,7 @@ NOTE_TEMPLATE = CURRENT_APP.jinja_env.get_template('note.html')
 FILE_TEMPLATE = CURRENT_APP.jinja_env.get_template('file.html')
 COMMENT_TEMPLATE = CURRENT_APP.jinja_env.get_template('comment.html')
 
+@line_profile
 def render(info, post_type, owner, viewport=None, mode=None, **kwargs): 
   if isinstance(info, list):
     return ''.join([_render(i, post_type, owner, 
@@ -95,7 +98,7 @@ def render(info, post_type, owner, viewport=None, mode=None, **kwargs):
                    viewport, mode, **kwargs)
 
 
-
+@line_profile
 def _render(info, post_type, owner, viewport, mode=None, **kwargs):  
   
   if post_type == 'comment':

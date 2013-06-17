@@ -2181,6 +2181,7 @@ def messages(user_id=None, topic_id=None, action=None):
 
 
 @app.route("/", methods=["GET"])
+@line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
   session_id = request.args.get('session_id')

@@ -16,6 +16,7 @@ from lib import cache
 from markdown2 import markdown
 from lib.wordunmunger import unmungeHtml
 from BeautifulSoup import BeautifulSoup, Tag, NavigableString, Comment
+from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 
 months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
 
@@ -26,6 +27,7 @@ def last_starred_user(following_users, starred_list):
     user_id = list(user_ids)[-1]
     return api.get_user_info(user_id)
 
+@line_profile
 def lines_truncate(text, lines_count=5):
   
   key = '%s:lines_truncate' % hash(text)
@@ -96,6 +98,7 @@ def lines_truncate(text, lines_count=5):
   return out  
 
 
+@line_profile
 def nl2br(value):
   # Giữ các ký tự <br> hoặc \n là text
   value = value.replace('<br>', '8b0f0ea73162b7552dda3c149b6c045d')
@@ -150,6 +153,7 @@ def parse_json(text):
 EMAIL_RE = re.compile('^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,4})$')
 MENTIONS_RE = re.compile('(@\[.*?\]\(.*?\))')
 
+@line_profile
 def autolink(text):  
   if not text:
     return text
@@ -408,6 +412,7 @@ def flavored_markdown(text):
   cache.set(key, html, namespace="filters")
   return html  
   
+@line_profile
 def to_embed_code(url, width=437, height=246): 
   youtube_embed_code_template = '<iframe width="%s" height="%s" src="https://www.youtube.com/embed/%s?wmode=opaque" frameborder="0" allowfullscreen></iframe>'
   if not url.startswith('http'):
@@ -428,6 +433,7 @@ def to_embed_code(url, width=437, height=246):
   return embed_code 
   
 
+@line_profile
 def autoemoticon(text):
   text = " %s" % text # add a space at first of line - simple hack for emoticon bugs &xxx;) -> ;)
   symbols = EMOTICONS.keys()
@@ -468,6 +474,7 @@ def strftime(ts, offset=None, time_format='%b %d %I:%M%p'):
   return text.replace(' 0', ' ').replace('AM', 'am').replace('PM', 'pm')
                                                              
 
+@line_profile
 def friendly_format(ts, offset=None, short=False):
   try:
     ts = float(ts)
@@ -503,6 +510,7 @@ def friendly_format(ts, offset=None, short=False):
   
   return text.replace(' 0', ' ').replace('AM', 'am').replace('PM', 'pm')
 
+@line_profile
 def isoformat(ts, offset=None, last_hour=True):
   try:
     ts = float(ts)
@@ -523,6 +531,7 @@ def isoformat(ts, offset=None, last_hour=True):
     return ts.isoformat()
 
 
+@line_profile
 def fix_unclosed_tags(html):
   if not html:
     return html
@@ -582,6 +591,7 @@ def remove_signature(text):
   return text
 
 
+@line_profile
 def remove_empty_lines(html):
   key = '%s:remove_empty_lines' % hash(html)
   out = cache.get(key, namespace="filters")
@@ -615,10 +625,7 @@ def remove_empty_lines(html):
 
 
 def exclude(users, user_id):
-  if users:
-    return [user for user in users if str(user.id) != str(user_id)]
-  else:
-    return []
+  return [user for user in users if str(user.id) != str(user_id)] if users else []
 
 def title(text):
   return capwords(text.replace('_', ' '))
@@ -628,6 +635,7 @@ def split(s, sep):
   return s.split(sep)
   
 
+@line_profile
 def clean(text):
   if not text:
     return ''
@@ -763,6 +771,7 @@ def description(html):
   return out
   
   
+@line_profile
 def sanitize_html(value):
   '''
   https://stackoverflow.com/questions/16861/sanitising-user-input-using-python
