@@ -954,9 +954,9 @@ def sign_in_with_google(email, name, gender, avatar,
   if user:
     if user.get('google_contacts'):
       notify_list = [i for i in google_contacts \
-                     if i not in user.get('google_contacts')]
+                     if i not in user.get('google_contacts') and i != email]
     else:
-      notify_list = google_contacts
+      notify_list = [i for i in google_contacts if i != email]
     
     
     session_id = user.get('session_id')
@@ -984,6 +984,8 @@ def sign_in_with_google(email, name, gender, avatar,
     info['locale'] = locale
     if google_contacts:
       info['google_contacts'] = google_contacts
+      notify_list = [i for i in google_contacts if i != email]
+    
     db.owner.insert(info)
     
     for user_id in get_network_admin_ids(db_name):
@@ -1028,8 +1030,8 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
   user = db.owner.find_one({'email': email})
   if user:
     if user.get('facebook_friend_ids'):
-       notify_list = [i for i in facebook_friend_ids \
-                      if i not in set(user.get('facebook_friend_ids'))]
+      notify_list = [i for i in facebook_friend_ids \
+                     if i not in set(user.get('facebook_friend_ids'))]
     else:
       notify_list = facebook_friend_ids
     
@@ -1079,7 +1081,7 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
   if notify_list:
     for i in notify_list:
       user_id = get_user_id(facebook_id=i)
-      if user_id:
+      if user_id and user_id != info['_id']:
         notification_queue.enqueue(new_notification, 
                                    session_id, user_id, 
                                    'facebook_friend_just_joined', 
