@@ -4319,7 +4319,7 @@ def get_files_count(group_id):
   else:
     group_id = 'public'
   return db.stream.find({'viewers': group_id,
-                               'history.attachment_id': {"$exists": True}}).count()
+                         'history.attachment_id': {"$exists": True}}).count()
 
 def get_attachments(session_id, group_id=None, limit=10):
   db_name = get_database_name()
@@ -4340,17 +4340,17 @@ def get_attachments(session_id, group_id=None, limit=10):
   
   if group_id:
     posts = db.stream.find({'$or': [{'history.attachment_id': {'$exists': True}},
-                                          {'attachments': {'$exists': True}},
-                                          {'comments.attachments': {'$exists': True}}], 
-                                  'viewers': {'$in': viewers}})\
-                           .sort('last_updated', -1)\
-                           .limit(limit)
+                                    {'attachments': {'$exists': True}},
+                                    {'comments.attachments': {'$exists': True}}], 
+                            'viewers': {'$in': viewers}})\
+                     .sort('last_updated', -1)\
+                     .limit(limit)
   else:
     posts = db.stream.find({'$or': [{'attachments': {'$exists': True}},
-                                          {'comments.attachments': {'$exists': True}}], 
-                                  'viewers': {'$in': viewers}})\
-                           .sort('last_updated', -1)\
-                           .limit(limit)
+                                    {'comments.attachments': {'$exists': True}}], 
+                            'viewers': {'$in': viewers}})\
+                     .sort('last_updated', -1)\
+                     .limit(limit)
     
   attachments = []
   ids = set() 
@@ -5613,6 +5613,7 @@ def ensure_index(db_name=None):
   db.stream.ensure_index('last_updated', background=True)
   db.stream.ensure_index('archived_by', background=True)
   db.stream.ensure_index('attachments', background=True)
+  db.stream.ensure_index('comments.attachments', background=True)
   db.stream.ensure_index('version', background=True)
   db.stream.ensure_index('history.attachment_id', background=True)
   db.stream.ensure_index('is_removed', background=True)

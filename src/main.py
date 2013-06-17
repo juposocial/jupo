@@ -79,8 +79,9 @@ def render_homepage(session_id, title, **kwargs):
     owner = None
     
   if owner:
-    friends_online = [i for i in owner.contacts \
-                      if i.status in ['online', 'away']]
+    friends_online = [i for i in owner.contact_ids \
+                      if api.check_status(i) in ['online', 'away']]
+    friends_online = [api.get_user_info(i) for i in friends_online]
     friends_online.sort(key=lambda k: k.last_online, reverse=True)
     if not kwargs.has_key('groups'):
       groups = api.get_groups(session_id, limit=3)
@@ -88,7 +89,7 @@ def render_homepage(session_id, title, **kwargs):
       groups = kwargs.pop('groups')
     
     for group in groups[:3]:
-      group.unread_posts = api.get_unread_posts_count(session_id, group.id)
+      group.unread_posts = 0 # api.get_unread_posts_count(session_id, group.id)
     
     unread_messages = api.get_unread_messages(session_id)
 #     unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
@@ -994,7 +995,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   
     db_name = domain.lower().strip().replace('.', '_')
     
-    user_info = api.get_user_info(email=user.get('email'), db_name=db_name)
+    user_info = api.get_user_info(email=me.data.get('email'), db_name=db_name)
   
     session_id = api.sign_in_with_facebook(email=me.data.get('email'), 
                                            name=me.data.get('name'), 

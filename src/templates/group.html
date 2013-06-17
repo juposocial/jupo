@@ -408,7 +408,7 @@
             {% if group.id == 'public' %}
             <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
             {% elif owner.id in group.member_ids or group.privacy == 'open' %}
-            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.member_ids | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             {% else %}
             {{ group.about }}
             {% endif %}
