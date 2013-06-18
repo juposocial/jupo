@@ -1048,8 +1048,8 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
         info['facebook_friend_ids'] = facebook_friend_ids
       
       db.owner.update({'_id': user.get('_id')}, {'$set': info})      
-      
-       
+    
+    info = user
       
   else:
     session_id = hashlib.md5(email + str(utctime())).hexdigest()
