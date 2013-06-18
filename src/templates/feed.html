@@ -239,11 +239,11 @@
       {% if feed.is_note() %}
           <div class="note-attachment">
             
-            {% set content = feed.details.content | sanitize %}
+            {% set content = feed.details.content %}
             {% set summary = content | lines_truncate | fix_unclosed_tags %}
             
             <div class="info">
-              {{ summary | nl2br  | remove_empty_lines | safe }}
+              {{ summary | remove_empty_lines | sanitize | safe }}
             </div>
              
             <a href="/note/{{ feed.details.id }}/last_changes" class='async'>See Last Changes</a>

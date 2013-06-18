@@ -121,7 +121,7 @@
         {% set content = note.content | sanitize %}
         {% set summary = content | lines_truncate | fix_unclosed_tags %}
         
-        {{ summary | nl2br | remove_empty_lines | safe }}
+        {{ summary | remove_empty_lines | safe }}
         
         {% if note.attachments %}
           <br> 
