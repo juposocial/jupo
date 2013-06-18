@@ -633,8 +633,8 @@ $(document).ready(function(e) {
       success: function(html) {
         $.global.loading = false;
         more_button.replaceWith(html);
-        refresh('#body');
-        refresh('#overlay');
+        refresh('#body #stream');
+        refresh('#overlay #stream');
       }
     });
     return false;
