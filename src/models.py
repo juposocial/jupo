@@ -294,6 +294,8 @@ class User(Model):
     avatar = self.info.get('avatar')
     
     if avatar and isinstance(avatar, str) or isinstance(avatar, unicode):
+      if 'googleusercontent' in avatar:
+        avatar = avatar.replace('/photo.jpg', '/s60-c/photo.jpg')
       return avatar
     elif avatar:
       attachment = api.get_attachment_info(avatar, db_name=self.db_name)
