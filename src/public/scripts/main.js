@@ -2420,7 +2420,7 @@ $(document).ready(function(e) {
         $('textarea.mentions', _this).attr('placeholder', "Write a message...").val('').focus();
         $("textarea.mentions", _this).css('height', "");
         $("ul.messages", _boxchat).css('height', "");
-        $('#chat div.status').css('bottom', "");
+        $('div.status', _boxchat).css('bottom', "");
         
         $("textarea.mentions", _this).mentionsInput('reset');
         
