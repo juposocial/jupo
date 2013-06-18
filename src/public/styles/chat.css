@@ -201,14 +201,16 @@ div.fixed {
 .chatbox form.gray-bg {
   background: #eee;
   color: #999;
-  height: 100px;
 }
 
 .chatbox form {
   padding: 8px 2px 4px;
   border-top: 1px solid #ccc;
+  right: 0;
+  left: 0;
   bottom: 0;
   background: white;
+  position: absolute;
 }
 
 .chatbox form textarea {
