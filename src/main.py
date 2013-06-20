@@ -3038,12 +3038,13 @@ def notifications():
     unread_count = api.get_unread_notifications_count(session_id) \
                  + unread_messages_count
     
-    if unread_count:
-      #  mark as read luôn các notifications không quan trọng
-      api.mark_notification_as_read(session_id, type='like')
-      api.mark_notification_as_read(session_id, type='add_contact')
-      api.mark_notification_as_read(session_id, type='google_friend_just_joined')
-      api.mark_notification_as_read(session_id, type='facebook_friend_just_joined')
+#     if unread_count:
+#       #  mark as read luôn các notifications không quan trọng
+#       api.mark_notification_as_read(session_id, type='like')
+#       api.mark_notification_as_read(session_id, type='add_contact')
+#       api.mark_notification_as_read(session_id, type='google_friend_just_joined')
+#       api.mark_notification_as_read(session_id, type='facebook_friend_just_joined')
+#       api.mark_all_notifications_as_read(session_id)
       
     resp['unread_notifications_count'] = unread_count
     return dumps(resp)
