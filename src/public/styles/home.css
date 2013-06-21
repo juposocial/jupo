@@ -4146,6 +4146,8 @@ form.new-comment .mentions-input-box textarea {
   word-wrap: break-word;
   font-size: 12px;
   padding: 5px;
+  
+  display: none;
 }
 
 .mentions-input-box div.mentions > div {
