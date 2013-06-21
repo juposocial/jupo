@@ -969,6 +969,11 @@ def sign_in_with_google(email, name, gender, avatar,
       if notify_list:
         info['google_contacts'] = google_contacts
       db.owner.update({'_id': user.get('_id')}, {'$set': info})
+    else:
+      if notify_list:
+        db.owner.update({'_id': user.get('_id')}, 
+                        {'$set': {'google_contacts': google_contacts}})
+        
   else:
     session_id = hashlib.md5(email + str(utctime())).hexdigest()
     info = {}
@@ -1032,7 +1037,7 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
   if user:
     if user.get('facebook_friend_ids'):
       notify_list = [i for i in facebook_friend_ids \
-                     if i not in set(user.get('facebook_friend_ids'))]
+                     if i not in user.get('facebook_friend_ids')]
     else:
       notify_list = facebook_friend_ids
     
@@ -1048,7 +1053,11 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
         info['facebook_friend_ids'] = facebook_friend_ids
       
       db.owner.update({'_id': user.get('_id')}, {'$set': info})      
-    
+    else:
+      if notify_list:
+        db.owner.update({'_id': user.get('_id')}, 
+                        {'$set': {'facebook_friend_ids': facebook_friend_ids}})    
+      
     info = user
       
   else:
@@ -1869,12 +1878,15 @@ def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
   
     
 def get_record(_id, collection='stream', db_name=None):
+  if not collection:
+    return False
+  
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
   if str(_id).isdigit():
-    return db[collection].find_one({'_id': long(_id)})
+    return db[str(collection)].find_one({'_id': long(_id)})
 
 def mark_all_notifications_as_read(session_id):
   db_name = get_database_name()
@@ -1926,6 +1938,7 @@ def mark_as_read(session_id, post_id):
   post = get_feed(session_id, post_id)
   if not post.id:
     return False
+  
   user_id = get_user_id(session_id)
   if (post.last_action.owner.id != user_id and 
       user_id not in post.read_receipt_ids):   # 1 user mở nhiều hơn 1 tab có thể dẫn đến gửi lặp nhiều lần
