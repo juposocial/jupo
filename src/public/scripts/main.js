@@ -495,7 +495,11 @@ $(document).ready(function(e) {
       dm.addClass('hidden');
       $(this).removeClass('dropdown-menu-active');
       
-      $('header a.notification.rfloat', dm).trigger('click');
+      // Clear New
+      if ($('#unread-notification-counter').hasClass('grey') == false) {
+        $('header a.notification.rfloat', dm).trigger('click');
+      }
+      
     }
     return false;
     
@@ -1800,7 +1804,8 @@ $(document).ready(function(e) {
     $('a.dropdown-menu-icon.active').removeClass('active');
 
 
-    if ($('header nav ul.dropdown-menu.notifications').is(':visible') == true) {
+    // Clear Unread Nofications Counter
+    if ($('header nav ul.dropdown-menu.notifications').is(':visible') == true && $('#unread-notification-counter').hasClass('grey') == false) {
       $('header nav ul.dropdown-menu.notifications ul header a.notification.rfloat').trigger('click');
     }
 
