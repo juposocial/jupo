@@ -15,7 +15,7 @@ def _get_version(namespace):
   return version
 
 
-def set(key, value, expire=3600, namespace=None):
+def set(key, value, expire=86400, namespace=None):
   if namespace:
     version = _get_version(namespace)
     key = md5('%s|%s|%s' % (namespace, version, key)).hexdigest()
