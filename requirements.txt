@@ -58,4 +58,4 @@ logilab-astng==0.24.3
 logilab-common==0.59.1
 pylint==0.28.0
 lettuce==0.2.16
--e git://github.com/xgdlm/python-goose.git@master#egg=goose
+-e git://github.com/grangier/python-goose.git@master#egg=goose
