@@ -953,6 +953,7 @@ $(document).ready(function(e) {
     
     $('textarea.mention', this).mentionsInput('val', function(text) {
       $('#' + comment_id + ' form.update-comment textarea.marked-up').val(text);
+      $('#' + comment_id + ' form.update-comment span.raw-message').html(text);
     });
     
     var textarea = $('textarea.mention', this);
@@ -1015,7 +1016,6 @@ $(document).ready(function(e) {
         else {
           
           new_comment_form = $(this).parents('form');
-
           var ts = Math.round((new Date()).getTime() / 1000);
 
           if (new_comment_form.data('last_submited') === undefined || 
