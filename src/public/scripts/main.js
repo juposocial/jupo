@@ -994,6 +994,7 @@ $(document).ready(function(e) {
   
   $('#body, #overlay').on('keydown', 'form.new-comment textarea, form.update-comment textarea', function(e) {
     if (e.keyCode == 13) {    // Enter
+        if (this.value.trim().length == 0) return false;
         if ($.global.emoticon_inserted == true) {
           return false;
         }
