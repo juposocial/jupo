@@ -992,9 +992,15 @@ $(document).ready(function(e) {
   })
   
   
-  
   $('#body, #overlay').on('keydown', 'form.new-comment textarea, form.update-comment textarea', function(e) {
-    if (e.keyCode == 13) {    // Enter
+    if (e.keyCode == 13) {    // Enter                        
+        _this_form = ($(this).closest("form"));
+        if (_this_form.hasClass('update-comment') == true) {
+          if (this.value.trim().length == 0) return false;
+        }
+        else if (_this_form.hasClass('new-comment') == true) {
+          if (_this_form.find('a.remove-attachment').length == 0) return false;
+        }
         if ($.global.emoticon_inserted == true) {
           return false;
         }
