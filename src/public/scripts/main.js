@@ -999,7 +999,9 @@ $(document).ready(function(e) {
           if (this.value.trim().length == 0) return false;
         }
         else if (_this_form.hasClass('new-comment') == true) {
-          if (_this_form.find('a.remove-attachment').length == 0) return false;
+          if (this.value.trim().length == 0) {
+            if (_this_form.find('a.remove-attachment').length == 0) return false;
+          }
         }
         if ($.global.emoticon_inserted == true) {
           return false;
