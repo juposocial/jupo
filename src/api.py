@@ -5715,10 +5715,10 @@ def get_network_info(db_name):
   return info
 
 def get_networks(user_id, user_email=None):
-  key = '%s:networks' % user_id
-  out = cache.get(key)
-  if out is not None:
-    return out
+#   key = '%s:networks' % user_id
+#   out = cache.get(key)
+#   if out is not None:
+#     return out
   
   
   def sortkeypicker(keynames):
@@ -5742,10 +5742,11 @@ def get_networks(user_id, user_email=None):
     email = get_email_addresses(user_id)
   db_names = get_db_names(email)
   networks_list = []
+
   for db_name in db_names:
     info = get_network_info(db_name)
-    
     if info:
+      user_id = get_user_id(email=user_email, db_name=db_name)
       info['unread_notifications'] = get_unread_notifications_count(user_id, db_name=db_name)
       info['domain'] = db_name.replace('_', '.')
       info['url'] = 'http://%s/' % info['domain']
@@ -5756,7 +5757,7 @@ def get_networks(user_id, user_email=None):
   out = sorted(networks_list, 
                key=sortkeypicker(['-unread_notifications', 
                                   'name', '-timestamp']))
-  cache.set(key, out)
+#   cache.set(key, out)
   return out
 
 PRIMARY_IP = socket.gethostbyname(settings.PRIMARY_DOMAIN)
