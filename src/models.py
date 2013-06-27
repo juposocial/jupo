@@ -1588,7 +1588,7 @@ class Notification(Model):
       return info
     
     record = api.get_record(self.ref_id, 
-                            self.info.get('ref_collection', 'stream'), 
+                            self.ref_collection, 
                             db_name=self.db_name)
       
     if not record or record.has_key('is_removed'):
@@ -1633,7 +1633,10 @@ class Notification(Model):
   
   @property
   def ref_collection(self):
-    return self.info.get('ref_collection')
+    collection = self.info.get('ref_collection', 'stream')
+    if isinstance(collection, int) or isinstance(collection, long):
+      collection = 'stream'
+    return collection
   
   @property
   def comment_id(self):

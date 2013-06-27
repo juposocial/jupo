@@ -1714,13 +1714,10 @@ def new_notification(session_id, receiver, type,
   
   notification_id = db.notification.insert(info)
   
-  key = '%s:%s:unread_count' % (receiver, db_name)
-  cache.delete(key)
-  
   key = '%s:networks' % get_email_addresses(receiver)
   cache.delete(key)
   
-  unread_notifications_count = get_unread_notifications_count(user_id=receiver, 
+  unread_notifications_count = get_unread_notifications_count(receiver, 
                                                               db_name=db_name)
   push_queue.enqueue(publish, receiver, 'unread-notifications', 
                      unread_notifications_count, db_name=db_name)
@@ -1732,7 +1729,11 @@ def get_unread_notifications(session_id, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id, db_name=db_name)
+  if isinstance(session_id, int) or isinstance(session_id, long):
+    user_id = session_id
+  else:
+    user_id = get_user_id(session_id, db_name=db_name)
+
   notifications = db.notification.find({'receiver': user_id,
                                         'is_unread': True})\
                                  .sort('timestamp', -1)
@@ -1819,74 +1820,33 @@ def get_notifications(session_id, limit=25):
   return results
 
   
-def get_unread_notifications_count(session_id=None, user_id=None, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not user_id:
+def get_unread_notifications_count(session_id, db_name=None):
+  if isinstance(session_id, int) or isinstance(session_id, long):
+    user_id = session_id
+  else:
     user_id = get_user_id(session_id, db_name=db_name)
-  
-  key = '%s:%s:unread_count' % (user_id, db_name)
-  count = cache.get(key)
-  if count is not None:
-    return count 
-  
-  notifications = db.notification.find({'receiver': user_id,
-                                        'is_unread': True})\
-                                 .sort('timestamp', -1)
-
-  offset = get_utcoffset(user_id, db_name=db_name)
-  notifications = [Notification(i, offset, db_name) for i in notifications]
-      
+    
+  unread_notifications = get_unread_notifications(session_id, db_name)
   count = 0
-  results = odict()
-  
-  
-    
-  for i in notifications:
-    if i.type in ['new_post', 'comment', 'mention', 
-                  'message', 'like', 'update'] and not i.details:
-      continue
-    
-    if not i.type:
-      continue
-    
-    if i.type == 'like':
-      id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
-    elif i.type == 'new_user' or i.ref_collection == 'owner':
-      id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
-    else:
-      id = '%s:%s' % (i.type, i.ref_id)
-    
-    if not results.has_key(i.date):
-      results[i.date] = odict()
-      
-    
-    if not results[i.date].has_key(id):
-      results[i.date][id] = [i]
-      user_ids = [i.sender.id]
-      count += 1
-    else:
-      # duplicate prevention
-      if i.sender.id not in user_ids:
-        results[i.date][id].append(i)
-        user_ids.append(i.sender.id)
-  
-  cache.set(key, count)
+  for k in unread_notifications.keys():
+    for id in unread_notifications[k].keys():
+      for n in unread_notifications[k][id]:
+        count += 1
   return count
   
     
 def get_record(_id, collection='stream', db_name=None):
-  if not collection:
-    return False
+  if not collection \
+  or isinstance(collection, int) \
+  or isinstance(collection, long):
+    collection = 'stream'
   
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
   if str(_id).isdigit():
-    return db[str(collection)].find_one({'_id': long(_id)})
+    return db[collection].find_one({'_id': long(_id)})
 
 def mark_all_notifications_as_read(session_id):
   db_name = get_database_name()
@@ -1895,10 +1855,6 @@ def mark_all_notifications_as_read(session_id):
   user_id = get_user_id(session_id)
   db.notification.update({'receiver': user_id}, 
                          {'$unset': {'is_unread': 1}}, multi=True)
-  
-  
-  key = '%s:%s:unread_count' % (user_id, db_name)
-  cache.delete(key)
   
   return True
 
@@ -1923,10 +1879,6 @@ def mark_notification_as_read(session_id, notification_id=None,
                             'type': type,
                             'timestamp': {'$lt': float(ts)}},
                            {'$unset': {'is_unread': 1}}, multi=True)
-    
-  
-  key = '%s:%s:unread_count' % (user_id, db_name)
-  cache.delete(key)
     
   return True
 
@@ -1978,7 +1930,7 @@ def mark_as_read(session_id, post_id):
     # update notification
     mark_notification_as_read(session_id, ref_id=post_id)
     
-    unread_notifications_count = get_unread_notifications_count(user_id=user_id,
+    unread_notifications_count = get_unread_notifications_count(user_id,
                                                                 db_name=db_name)
     push_queue.enqueue(publish, user_id, 'unread-notifications', 
                        unread_notifications_count, db_name=db_name)
@@ -2405,7 +2357,7 @@ def new_feed(session_id, message, viewers,
     if not is_group(id) and id != user_id:
       notification_queue.enqueue(new_notification, 
                                  session_id, id, 'message', 
-                                 info.get('_id'), db_name=db_name)
+                                 ref_id=info.get('_id'), db_name=db_name)
       push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
 
       # send email
@@ -2463,7 +2415,7 @@ def set_viewers(session_id, feed_id, viewers):
     if i != user_id:
       notification_queue.enqueue(new_notification, 
                                  session_id, i, 'message', 
-                                 _id, db_name=db_name)
+                                 ref_id=_id, db_name=db_name)
 
   
   clear_html_cache(feed_id)
@@ -2514,7 +2466,7 @@ def reshare(session_id, feed_id, viewers):
     if i != user_id:
       notification_queue.enqueue(new_notification, 
                                  session_id, i, 'message', 
-                                 _id, db_name=db_name)
+                                 ref_id=_id, db_name=db_name)
       
       u = get_user_info(i)
       send_mail_queue.enqueue(send_mail, 
@@ -3162,7 +3114,7 @@ def new_comment(session_id, message, ref_id,
   if user_id != owner_id:
     notification_queue.enqueue(new_notification, 
                                session_id, owner_id, 'comment', 
-                               ref_id, comment['_id'], db_name=db_name)
+                               ref_id=ref_id, comment_id=comment['_id'], db_name=db_name)
     
   db.stream.update({"_id": long(ref_id)}, 
                    {"$push": {"comments": comment},
@@ -3189,7 +3141,7 @@ def new_comment(session_id, message, ref_id,
     if uid != user_id:
       notification_queue.enqueue(new_notification, 
                                  session_id, uid, 'mention', 
-                                 ref_id, comment['_id'], db_name=db_name)
+                                 ref_id=ref_id, comment_id=comment['_id'], db_name=db_name)
       u = get_user_info(uid)
       if u.email and 'mentions' not in u.disabled_notifications:
         send_mail_queue.enqueue(send_mail, u.email, 
@@ -3204,9 +3156,12 @@ def new_comment(session_id, message, ref_id,
       if i.get('owner') != user_id and i.get('owner') not in mentions and i.get('owner') not in receivers:
         receivers.append(i.get('owner'))
         notification_queue.enqueue(new_notification, 
-                                   session_id, i.get('owner'), 
-                                   'comment', ref_id, 
-                                   comment['_id'], db_name=db_name)
+                                   session_id, 
+                                   i.get('owner'), 
+                                   'comment', 
+                                   ref_id=ref_id, 
+                                   comment_id=comment['_id'], 
+                                   db_name=db_name)
         
   owner = get_user_info(user_id)
   if owner.email and '@' in owner.email and 'comments' not in owner.disabled_notifications and user_id not in mentions:
@@ -3246,7 +3201,7 @@ def new_comment(session_id, message, ref_id,
   # upate unread notifications
   mark_notification_as_read(session_id, ref_id=ref_id)
   
-  unread_notifications_count = get_unread_notifications_count(user_id=user_id,
+  unread_notifications_count = get_unread_notifications_count(user_id,
                                                               db_name=db_name)
   push_queue.enqueue(publish, user_id, 'unread-notifications', 
                      unread_notifications_count, db_name=db_name)
@@ -3285,8 +3240,7 @@ def remove_comment(session_id, comment_id, post_id=None):
   for _id in record.get('viewers'):
     cache.clear(_id)
     push_queue.enqueue(publish, _id, 'unread-notifications', 
-                       get_unread_notifications_count(user_id=user_id, 
-                                                       db_name=db_name), 
+                       get_unread_notifications_count(user_id, db_name=db_name), 
                        db_name=db_name)
                   
     # Note: phải ép comment_id về str vì javascript không xử lý được số int lớn 
@@ -5792,7 +5746,7 @@ def get_networks(user_id, user_email=None):
     info = get_network_info(db_name)
     
     if info:
-      info['unread_notifications'] = get_unread_notifications_count(user_id=user_id, db_name=db_name)
+      info['unread_notifications'] = get_unread_notifications_count(user_id, db_name=db_name)
       info['domain'] = db_name.replace('_', '.')
       info['url'] = 'http://%s/' % info['domain']
       
