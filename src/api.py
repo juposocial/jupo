@@ -3297,9 +3297,16 @@ def remove_comment(session_id, comment_id, post_id=None):
     
   return True
 
-  
 def diff(text1, text2):
+  if isinstance(text1, basestring):
+    if not isinstance(text1, unicode):
+      text1 = unicode(text1, 'utf-8')
+  if isinstance(text2, basestring):
+    if not isinstance(text2, unicode):
+      text2 = unicode(text2, 'utf-8')
+  
   diffs = dmp.diff_main(text1, text2)
+
   html = ''
   for i in diffs:
     if i[0] == -1:
@@ -3308,7 +3315,7 @@ def diff(text1, text2):
       html += '<span class="diff i">%s</span>' % i[1]
     else:
       html += '<span>%s</span>' % i[1]
-  return html
+  return html.encode('utf-8')
 
 
 def update_post(session_id, post_id, message):

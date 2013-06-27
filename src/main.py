@@ -37,7 +37,6 @@ from helpers.decorators import *
 from helpers.converters import *
 
 import os
-import sys
 import logging
 import requests
 import traceback
@@ -50,10 +49,6 @@ import filters
 import settings
 from app import CURRENT_APP, render
 
-
-# switch from the default ASCII to UTF-8 encoding
-reload(sys)
-sys.setdefaultencoding("utf-8") #@UndefinedVariable
 
 requests.adapters.DEFAULT_RETRIES = 3
 

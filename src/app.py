@@ -14,10 +14,15 @@ from helpers.converters import (SnowflakeIDConverter,
                                 RegexConverter, UUIDConverter)
 
 import api
+import sys
 import urllib
 import filters
 import settings
 
+
+# switch from the default ASCII to UTF-8 encoding
+reload(sys)
+sys.setdefaultencoding("utf-8")
 
 
 CURRENT_APP = Flask(__name__, 
