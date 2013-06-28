@@ -1,5 +1,5 @@
 #!/bin/bash
-# Create workspace
+
 # Install required packages
 sudo apt-get install vim curl vim build-essential git libpcre3-dev libssl-dev python-dev libevent-dev python-setuptools libxslt-dev python-gevent python-virtualenv  
 

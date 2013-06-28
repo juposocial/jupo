@@ -1,8 +1,6 @@
 language: python
 python:
   - "2.7"
-# command to install dependencies
-# whitelist
 branches:
   only:
     - develop
@@ -35,17 +33,14 @@ script:
   - sleep 1
   - nohup gunicorn -k tornado -w 4 --max-requests 1000 -b 0.0.0.0:9000 main:app > ~/log/jupo/gunicorn.log &
   - sleep 1  
-  - nohup sudo nginx -c /home/travis/build/thomph/jupo/conf/nginx.min.conf > ~/log/jupo/nginx.log &
+  - nohup sudo nginx -c /home/travis/build/juposocial/jupo/conf/nginx.min.conf > ~/log/jupo/nginx.log &
   - sleep 1
   - nohup rqworker push notification send_mail index invite urls move_to_s3 > ~/log/jupo/rqworker.log &
   - sleep 1
   - nohup sudo python mail_server.py > ~/log/jupo/mail_server.log &
-  - tail -n 50 ~/log/jupo/nginx.log
   - curl -i http://play.jupo.dev
   - cd ..
   - Xvfb :0 -screen 0 1366x768x24 2> /dev/null &
   - nohup xvfb-run java -jar src/tests/features/selenium-server-standalone-2.32.0.jar &
   - export DISPLAY=:0
   - cd src/tests && lettuce
-  - sudo pkill -9 -f 'Xvfb'
-  - sudo pkill -9 -f 'selenium-server'
