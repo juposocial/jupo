@@ -201,9 +201,7 @@
         · <a class='toggle' href='/unlike/{{ comment.id }}?post_id={{ item.id }}' data-name='Like' data-href='/like/{{ comment.id }}?post_id={{ item.id }}'>Unlike</a>
       {% endif %}
         
-      · <a class='reply' data-comment-id="{{ comment.id }}" data-owner-id="{{ comment.owner.id }}" data-owner-name="{{ comment.owner.name }}" title='Reply to this comment'>
-          Reply
-        </a>
+      · <a class='reply' data-comment-id="{{ comment.id }}" data-owner-id="{{ comment.owner.id }}" data-owner-name="{{ comment.owner.name }}" title='Reply to this comment'>Reply</a>
     {% endif %}
       
       
