@@ -1,9 +1,20 @@
 <li id="post-{{ note.id }}" class="note feed {% if note.is_official() %}official{% endif %} {% if request.path.startswith('/u') %}single{% endif %}"> 
 
 
+{% if mode == 'view' %}
+  {% set viewers = note.viewers | exclude(note.owner.id) %}  
+  
+  <a href='/user/{{ note.owner.id }}' class='async' data-user-id='{{ note.owner.id }}'>
+    <img src='{{ note.owner.avatar }}' class="medium-avatar">
+  </a>
+{% else %}
+  {% set viewers = note.viewers | exclude(note.last_action.owner.id) %}
+  
+
     <a href='/user/{{ note.last_action.owner.id }}' class='async' title='{{ note.last_action.owner.name }}'>
       <img src='{{ note.last_action.owner.avatar }}' class="medium-avatar">
     </a>
+{% endif %}
 
     
 <i class='spine-pointer'></i>
@@ -66,8 +77,7 @@
         
         
         
-       
-        {% set viewers = note.viewers | exclude(note.last_action.owner.id) %}      
+            
 
         {% if owner %}
           {% if not viewers %}
