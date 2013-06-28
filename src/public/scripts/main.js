@@ -793,7 +793,7 @@ $(document).ready(function(e) {
     return false;
   });
   
-    $('#popup').on("submit", 'form.new-group', function() {
+  $('#popup').on("submit", 'form.new-group', function() {
     $.ajax({
       type: "POST",
       cache: false,
@@ -810,6 +810,24 @@ $(document).ready(function(e) {
     return false;
   });
   
+  
+  $('#popup').on("submit", 'form.invite', function() {
+    var _this = $(this);
+    $.ajax({
+      type: "POST",
+      cache: false,
+      url: $(this).attr('action'),
+      data: $(this).serializeArray(),
+      success: function(group_id) {
+        $('textarea.msg', _this).val('');
+        $('input.friends', _this).tokenInput('clear');
+        
+        $('span.status', _this).html(' ✔ Invitation sent!')
+        return false;
+      }
+    });
+    return false;
+  });
   
 
 
