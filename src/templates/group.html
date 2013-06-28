@@ -373,8 +373,14 @@
               <a class='popup button' href='/group/{{ group.id }}/edit'>Edit Group</a>
             {% elif owner.id in group.member_ids %}
               <a class='unfollow button' href='/group/{{ group.id }}/unfollow'>{% if group.privacy == 'open' %}Unfollow{% else %}Leave Group{% endif %}</a>
+            {% elif owner.id in group.pending_member_ids %}
+              <a class='toggle button' href='/group/{{ group.id }}/unfollow' data-name='Ask to Join Group' data-href='/group/{{ group.id }}/follow'>Cancel Request</a>
             {% else %}
-              <a class='follow button' href='/group/{{ group.id }}/follow'>{% if group.privacy == 'open' %}Follow{% else %}Ask to Join Group{% endif %}</a>
+              {% if group.privacy == 'open' %}
+              <a class='button toggle' href='/group/{{ group.id }}/follow' data-name='Unfollow' data-href='/group/{{ group.id }}/unfollow'>Follow</a>
+              {% else %}
+              <a class='button toggle' href='/group/{{ group.id }}/follow' data-name='Cancel Request' data-href='/group/{{ group.id }}/unfollow'>Ask to Join Group</a>
+              {% endif %}
             {% endif %}
           </div>
           {% endif %}
@@ -401,16 +407,22 @@
           <div class='stats'>
             {% if group.id == 'public' %}
             <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
+            {% elif owner.id in group.member_ids or group.privacy == 'open' %}
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.member_ids | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
             {% else %}
-            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            {{ group.about }}
             {% endif %}
           </div>    
         </div>
         
 </div>
 
-  {% if owner and (group.post_permission != 'administrators' or owner.id in group.administrator_ids) %}
-    {% include 'new.html' %}
+  {% if owner.id in group.member_ids or group.privacy == 'open' %}
+    {% if owner and (group.post_permission != 'administrators' or owner.id in group.administrator_ids) %}
+      {% include 'new.html' %}
+    {% endif%}
+  {% else %}
+    {% set view = 'members' %}
   {% endif%}
   
     
@@ -586,6 +598,33 @@
           </div>
         </div>
       </div>
+      
+      {% if owner.id in group.administrator_ids and group.pending_member_ids %}
+      <div class="box">
+        <div class="header">
+          <div class="title">Requests ({{ group.pending_member_ids | length }})</div>
+        </div>
+        <div class="body">
+          <ul class='pending-members'>
+          {% for user in group.pending_members %}
+            <li class='user'>
+              <a href='/user/{{ user.id }}' class='async'>
+                <img class='small-avatar lfloat' src='{{ user.avatar }}'>
+              </a>
+              <a href='/user/{{ user.id }}' class='async username'>
+                {{ user.name }}
+              </a>
+              
+              <div class='info'>
+                <a class='accept' href='/group/{{ group.id }}/add_member?user_id={{ user.id }}'>Accept</a>
+              · <a class='reject' href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}'>Reject</a>
+              </div>
+            </li>
+          {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% endif %}
       
 {#      
       {% if owner.id in group.administrator_ids %}

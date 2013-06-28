@@ -190,20 +190,27 @@ div.fixed {
 }*/
 
 #chat div.chatbox .mentions-autocomplete-list {
-  bottom: 6px;
+  bottom: 30px;
+  margin: 0 -2px;
+}
+
+#chat form textarea:focus {
+  box-shadow: none;
 }
 
 .chatbox form.gray-bg {
   background: #eee;
   color: #999;
-  height: 100px;
 }
 
 .chatbox form {
   padding: 8px 2px 4px;
   border-top: 1px solid #ccc;
+  right: 0;
+  left: 0;
   bottom: 0;
   background: white;
+  position: absolute;
 }
 
 .chatbox form textarea {
@@ -373,13 +380,13 @@ div.fixed {
   margin-top: -231px;
 }
 
-.chatbox .mentions-input-box .mentions {
-padding: 0 4px;
-color: #333;
-overflow: visible;
+.chatbox .mentions-input-box div.mentions {
+  padding: 0 4px;
+  color: #333;
+  overflow: visible;
 }
 
-.chatbox .mentions-input-box .mentions > div {
+.chatbox .mentions-input-box div.mentions > div {
   line-height: 16px;
 }
 

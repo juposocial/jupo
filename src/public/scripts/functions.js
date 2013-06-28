@@ -1,4 +1,19 @@
-
+jQuery.fn.selectText = function(){
+   var doc = document;
+   var element = this[0];
+   console.log(this, element);
+   if (doc.body.createTextRange) {
+       var range = document.body.createTextRange();
+       range.moveToElementText(element);
+       range.select();
+   } else if (window.getSelection) {
+       var selection = window.getSelection();        
+       var range = document.createRange();
+       range.selectNodeContents(element);
+       selection.removeAllRanges();
+       selection.addRange(range);
+   }
+};
 
 function toggle_chatbox(chatbox_id) {
   
@@ -243,7 +258,7 @@ function start_chat(chat_id) {
         add_to_sidebar(chat_id);
       }
       
-      
+      enable_emoticons_autocomplete('#chat-' + chat_id)
       
       // Send File
       var uploader_id = chat_id.replace('-', '_');
@@ -331,13 +346,14 @@ function start_chat(chat_id) {
 
 function search_mentions(query, callback) {
       data = _.filter($.global.coworkers, function(item) {
-        return item.name.toLowerCase().indexOf(query.toLowerCase()) != -1;
+        return item.name.toLowerCase().indexOf(query.toLowerCase()) == 0;
       });
       
       var ids;
       var owners;
       ids = [];
       owners = [];
+      
       for (i in data) {
         var id;
         id = data[i].id + data[i].name;
@@ -347,6 +363,26 @@ function search_mentions(query, callback) {
           
           if (owners.length >= 3) {
             break
+          }
+        }
+      }
+      
+      if (owners.length < 3) {
+        
+        data = _.filter($.global.coworkers, function(item) {
+          return item.name.toLowerCase().indexOf(query.toLowerCase()) != -1;
+        });
+        
+        for (i in data) {
+          var id;
+          id = data[i].id + data[i].name;
+          if (ids.indexOf(id) == -1) {
+            ids.push(id);
+            owners.push(data[i]);
+            
+            if (owners.length >= 3) {
+              break
+            }
           }
         }
       }
@@ -384,7 +420,9 @@ function show_notification(img, title, description, timeout, callback) {
   var havePermission = window.webkitNotifications.checkPermission();
   if (havePermission == 0) {
     // 0 is PERMISSION_ALLOWED
-    var notification = window.webkitNotifications.createNotification(img, title, description);
+    
+    var message = description.replace(/(^\s+|\s+$)/g, '');
+    var notification = window.webkitNotifications.createNotification(img, title, message);
 
     notification.onclick = function () {
                 notification.cancel();
@@ -457,6 +495,7 @@ function preload_autocomplete() {
         $.global.coworkers = resp.filter(function(e) {
           return e.type == 'user'
         });
+        
       }
     })
   }
@@ -565,450 +604,6 @@ function enable_scroll() {
   window.onmousewheel = document.onmousewheel = document.onkeydown = null;
 }
 
-/* Tour */
-function start_tour() {
-
-  // Start tour
-  guiders.createGuider({
-    buttons: [{
-      name: "Take a Tour",
-      onclick: function() {
-        guiders.hideAll();
-        $('li#news-feed > a.async').trigger('click');
-        setTimeout(function() {
-          guiders.next();
-        }, 1000)
-      }
-    }],
-    title: "Welcome to Jupo!",
-    description: "Jupo is an online working environment. It keeps your discussions, notes, files, tasks and team together.",
-    id: "tour-1",
-    next: "tour-3",
-    overlay: true,
-  }).show();
-
-
-  // guiders.createGuider({
-    // attachTo: "#welcome-box",
-    // autoFocus: true,
-    // buttons: [{
-      // name: "Exit Tour",
-      // onclick: guiders.hideAll
-    // }, {
-      // name: "Next",
-      // onclick: guiders.next
-    // }],
-    // title: "Customize your profile",
-    // description: "Update your profile picture and share some interesting details about yourself",
-    // onShow: disable_scroll,
-    // onHide: enable_scroll,
-    // id: "tour-2",
-    // next: "tour-3",
-    // position: 3,
-    // offset: {
-      // left: -35,
-      // top: 27
-    // }
-  // });
-
-  guiders.createGuider({
-    attachTo: "tr#message",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Start Writing",
-      onclick: guiders.next
-    }],
-    title: "Share the latest",
-    description: "Compose a new message and send it to your coworkers",
-    onShow: function() {
-      disable_scroll();
-      $('form#new-feed textarea.mention').focus();
-    },
-    onHide: enable_scroll,
-    id: "tour-3",
-    next: "tour-5",
-    position: 7,
-    offset: {
-      left: -5,
-      top: -30
-    }
-  });
-
-  // guiders.createGuider({
-    // attachTo: "a#focus",
-    // autoFocus: true,
-    // buttons: [{
-      // name: "Exit Tour",
-      // onclick: guiders.hideAll
-    // }, {
-      // name: "Next"
-    // }],
-    // title: "Assign this as a task",
-    // description: "Set as a task with urgent, important or normal priority",
-    // onShow: function() {
-      // disable_scroll();
-      // $('a#focus').trigger('click');
-    // },
-    // onHide: enable_scroll,
-    // id: "tour-4",
-    // next: "tour-5",
-    // position: 7,
-    // offset: {
-      // left: -12,
-      // top: -36
-    // },
-  // });
-
-  guiders.createGuider({
-    attachTo: "a#attach",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Next"
-    }],
-    title: "Attach files",
-    description: "Add any files - easy as fast.",
-    onShow: function() {
-      disable_scroll();
-      $('a#attach').trigger('click');
-    },
-    onHide: enable_scroll,
-    id: "tour-5",
-    next: "tour-6",
-    position: 7,
-    offset: {
-      left: -12,
-      top: -36
-    },
-  });
-
-  guiders.createGuider({
-    attachTo: "tr#send-to",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Continue",
-      onclick: guiders.next
-    }],
-    title: "Choose who to share this with",
-    description: "- Enter a group names to share with anyone in those groups, or enter names or email addresses to share with specific people<br>- Click \"x\" to delete a group or person",
-    onShow: function() {
-      disable_scroll();
-      $('a#send-to').trigger('click');
-    },
-    onHide: enable_scroll,
-    id: "tour-6",
-    next: "tour-7",
-    position: 7,
-    offset: {
-      left: -5,
-      top: -30
-    }
-  });
-
-  guiders.createGuider({
-    attachTo: "form#new-feed .button",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Continue",
-      onclick: guiders.next
-    }],
-    description: "Click Share when you're ready to post",
-    onShow: disable_scroll,
-    onHide: enable_scroll,
-    id: "tour-7",
-    next: "tour-9",
-    position: 9,
-    offset: {
-      left: 20,
-      top: 25
-    },
-    title: "Ready, set, share!"
-  });
-
-  // guiders.createGuider({
-    // attachTo: "form#invite input[type='email']",
-    // autoFocus: true,
-    // buttons: [{
-      // name: "Exit Tour",
-      // onclick: guiders.hideAll
-    // }, {
-      // name: "Continue",
-      // onclick: guiders.next
-    // }],
-    // description: "Enter your coworker email addresses to invite them to join Jupo",
-    // onShow: disable_scroll,
-    // onHide: enable_scroll,
-    // id: "tour-8",
-    // next: "tour-9",
-    // position: 9,
-    // offset: {
-      // left: 20,
-      // top: 26
-    // },
-    // title: "Invite your coworkers"
-  // });
-
-  guiders.createGuider({
-    attachTo: "li#reminders > a.async",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Continue",
-      onclick: guiders.next
-    }],
-    title: "Your personal to-to list",
-    description: "Quick & easy way to getting things done.",
-    onShow: function() {
-      disable_scroll();
-      $('li#news-feed > a').removeClass('active');
-      $('li#reminders > a').addClass('active');
-    },
-    onHide: function() {
-      enable_scroll();
-      $('li#reminders > a').removeClass('active');
-    },
-    id: "tour-9",
-    next: "tour-10",
-    offset: {
-      left: -100,
-      top: 27
-    },
-    position: 3
-  });
-
-  guiders.createGuider({
-    attachTo: "li#notes > a.async",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Continue",
-      onclick: guiders.next
-    }],
-    title: "Notes",
-    description: "Write without fear of losing or overwriting a good idea.",
-    onShow: function() {
-      disable_scroll();
-      $('li#notes > a').addClass('active');
-    },
-    onHide: function() {
-      enable_scroll();
-      $('li#notes > a').removeClass('active');
-    },
-    id: "tour-10",
-    next: "tour-11",
-    offset: {
-      left: -100,
-      top: 27
-    },
-    position: 3
-  });
-
-  guiders.createGuider({
-    attachTo: "li#files > a.async",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Continue",
-      onclick: guiders.next
-    }],
-    title: "Files & Attachments",
-    description: "File with versioning support",
-    onShow: function() {
-      disable_scroll();
-      $('li#files > a').addClass('active');
-    },
-    onHide: function() {
-      enable_scroll();
-      $('li#files > a').removeClass('active');
-      $('li#news-feed > a').addClass('active');
-    },
-    id: "tour-11",
-    next: "tour-12",
-    offset: {
-      left: -100,
-      top: 27
-    },
-    position: 3
-  });
-
-  guiders.createGuider({
-    attachTo: "#groups-nav",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Continue",
-      onclick: guiders.next
-    }],
-    title: "Recent groups",
-    description: "foobar",
-    onShow: disable_scroll,
-    onHide: enable_scroll,
-    id: "tour-12",
-    next: "tour-13",
-    position: 3
-  });
-
-  guiders.createGuider({
-    attachTo: "#stream li.feed:first-child section > footer a.reply",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Continue",
-      onclick: function() {
-        $("#stream li.feed:first-child section > footer a.reply").trigger('click');
-        guiders.next();
-      }
-    }],
-    title: "Join the conversation",
-    description: "- Hover mouse across post to tell other you already read this<br>- Star the things you really love<br>",
-    onShow: disable_scroll,
-    onHide: enable_scroll,
-    id: "tour-13",
-    next: "tour-14",
-    offset: {
-      left: 0,
-      top: 30
-    },
-    position: 11
-  });
-
-  guiders.createGuider({
-    attachTo: "#stream li.feed:first-child form.new-comment textarea.mention",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Next",
-      onclick: guiders.next
-    }],
-    title: "Real-time commenting",
-    description: "- Press Enter to Post<br>- Press Ctrl+Enter for new line<br>- <a>Jupo Flavored Markdown</a> supported",
-    onShow: disable_scroll,
-    onHide: enable_scroll,
-    id: "tour-14",
-    next: "tour-15",
-    offset: {
-      left: 0,
-      top: -30
-    },
-    position: 7
-  });
-
-  guiders.createGuider({
-    attachTo: "#stream li.feed:first-child form.new-comment a.attach-button",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Next",
-      onclick: guiders.next
-    }],
-    title: "Attach files, pictures and links",
-    description: "Click to choose file",
-    onShow: disable_scroll,
-    onHide: enable_scroll,
-    id: "tour-15",
-    next: "tour-16",
-    offset: {
-      left: 0,
-      top: -30
-    },
-    position: 7
-  });
-
-  guiders.createGuider({
-    attachTo: "#stream div.actions a.archive:first",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Next",
-      onclick: guiders.next
-    }],
-    title: "Archive post",
-    description: "Archiving lets you tidy up your stream by hiding posts from your What's new. When someone responds to a post you've archived, the conversation containing that message will reappear in What's new stream.",
-    onShow: disable_scroll,
-    onHide: enable_scroll,
-    id: "tour-16",
-    next: "tour-17",
-    offset: {
-      left: 0,
-      top: 25
-    },
-    position: 11
-  });
-
-  guiders.createGuider({
-    attachTo: "#stream div.actions a.toggle:first",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Next",
-      onclick: guiders.next
-    }],
-    title: "Pinned post",
-    description: "A pinned post always appears in the to of What's new stream",
-    onShow: disable_scroll,
-    onHide: enable_scroll,
-    id: "tour-17",
-    next: "tour-18",
-    offset: {
-      left: 0,
-      top: 25
-    },
-    position: 11
-  });
-
-  guiders.createGuider({
-    attachTo: "#stream div.options a.viewers:first",
-    autoFocus: true,
-    buttons: [{
-      name: "Exit Tour",
-      onclick: guiders.hideAll
-    }, {
-      name: "Next",
-      onclick: guiders.next
-    }],
-    title: "Control who can see/comment on your post",
-    description: "Hover mouse over this icon to show viewers list. Click to change it.",
-    onShow: disable_scroll,
-    onHide: enable_scroll,
-    id: "tour-18",
-    next: "tour-19",
-    offset: {
-      left: 20,
-      top: 24
-    },
-    position: 9
-  });
-
-}
 
 
 
@@ -2213,6 +1808,497 @@ function close_overlay() {
   }
 }
 
+function enable_emoticons_autocomplete(element) {
+    var emoticons_1 = [
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/1.gif",
+      "key": ":)",
+      "name": "happy"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/2.gif",
+      "key": ":(",
+      "name": "sad"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/10.gif",
+      "key": ":p",
+      "name": "tongue"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/4.gif",
+      "key": ":D",
+      "name": "big grin"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/13.gif",
+      "key": ":o",
+      "name": "surprise"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/32.gif",
+      "key": ":$",
+      "name": "don't tell anyone"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/15.gif",
+      "key": ":>",
+      "name": "smug"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/27.gif",
+      "key": "=;",
+      "name": "talk to the hand"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/22.gif",
+      "key": ":|",
+      "name": "straight face"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/8.gif",
+      "key": ":x",
+      "name": "love struck"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/17.gif",
+      "key": ":s",
+      "name": "worried"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/14.gif",
+      "key": ":@",
+      "name": "angry"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/3.gif",
+      "key": ";)",
+      "name": "winking"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/39.gif",
+      "key": "*-)",
+      "name": "thinking"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/24.gif",
+      "key": "=))",
+      "name": "rolling on the floor"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/16.gif",
+      "key": "B-)",
+      "name": "cool"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/43.gif",
+      "key": "@-)",
+      "name": "hypnotized"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/33.gif",
+      "key": "[-(",
+      "name": "no talking"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/thumbs-up.png",
+      "key": "(y)",
+      "name": "thumbs up"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/20.gif",
+      "key": ":'(",
+      "name": "crying"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/57.gif",
+      "key": "~O)",
+      "name": "coffee"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/75.gif",
+      "key": "(%)",
+      "name": "yin yang"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/62.gif",
+      "key": ":-L",
+      "name": "frustrated"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/28.gif",
+      "key": "I-)",
+      "name": "sleepy"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/59.gif",
+      "key": "8-X",
+      "name": "skull"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/71.gif",
+      "key": ";))",
+      "name": "hee hee"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/101.gif",
+      "key": ":-c",
+      "name": "call me"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/26.gif",
+      "key": "8-|",
+      "name": "nerd"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/35.gif",
+      "key": "8-}",
+      "name": "silly"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/112.gif",
+      "key": ":-q",
+      "name": "thumbs down"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/45.gif",
+      "key": ":-w",
+      "name": "waiting"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/104.gif",
+      "key": ":-t",
+      "name": "time out"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/11.gif",
+      "key": ":-*",
+      "name": "kiss"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/7.gif",
+      "key": ":-/",
+      "name": "confused"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/65.gif",
+      "key": ":-\"",
+      "name": "whistling"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/31.gif",
+      "key": ":-&",
+      "name": "sick"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/105.gif",
+      "key": "8->",
+      "name": "day dreaming"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/5.gif",
+      "key": ";;)",
+      "name": "batting eyelashes"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/12.gif",
+      "key": "=((",
+      "name": "broken heart"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/73.gif",
+      "key": "o=>",
+      "name": "billy"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/9.gif",
+      "key": ":\">",
+      "name": "blushing"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/19.gif",
+      "key": ">:)",
+      "name": "devil"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/61.gif",
+      "key": ">-)",
+      "name": "alien"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/37.gif",
+      "key": "(:|",
+      "name": "yawn"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/44.gif",
+      "key": ":^o",
+      "name": "liar"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/49.gif",
+      "key": ":@)",
+      "name": "pig"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/34.gif",
+      "key": ":O)",
+      "name": "clown"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/102.gif",
+      "key": "~X(",
+      "name": "at wits' end"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/47.gif",
+      "key": ">:P",
+      "name": "phbbbbt"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/79.gif",
+      "key": "(*)",
+      "name": "star"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/29.gif",
+      "key": "8-)",
+      "name": "rolling eyes"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/41.gif",
+      "key": "=D>",
+      "name": "applause"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/106.gif",
+      "key": ":^)",
+      "name": "I don't know"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/111.gif",
+      "key": "\\m/",
+      "name": "rock on!"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/100.gif",
+      "key": ":)]",
+      "name": "on the phone"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/23.gif",
+      "key": "/:)",
+      "name": "raised eyebrows"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/109.gif",
+      "key": "X_X",
+      "name": "I don't want to see"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/30.gif",
+      "key": "L-)",
+      "name": "loser"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/40.gif",
+      "key": "#-o",
+      "name": "d'oh"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/46.gif",
+      "key": ":-<",
+      "name": "sigh"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/103.gif",
+      "key": ":-h",
+      "name": "wave"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/110.gif",
+      "key": ":!!",
+      "name": "hurry up!"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/38.gif",
+      "key": "=P~",
+      "name": "drooling"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/21.gif",
+      "key": ":))",
+      "name": "laughing"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/42.gif",
+      "key": ":-SS",
+      "name": "nail biting"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/36.gif",
+      "key": "<:o)",
+      "name": "party"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/69.gif",
+      "key": "\\:D/",
+      "name": "dancing"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/63.gif",
+      "key": "[-O<",
+      "name": "praying"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/25.gif",
+      "key": "O:-)",
+      "name": "angel"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/pirate_2.gif",
+      "key": ":ar!",
+      "name": "pirate"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/transformer.gif",
+      "key": "[..]",
+      "name": "transformer*"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/67.gif",
+      "key": ":)>-",
+      "name": "peace sign"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/77.gif",
+      "key": "^:)^",
+      "name": "not worthy"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/53.gif",
+      "key": "@};-",
+      "name": "rose"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/114.gif",
+      "key": "^#(^",
+      "name": "it wasn't me"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/55.gif",
+      "key": "**==",
+      "name": "flag"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/6.gif",
+      "key": ">:D<",
+      "name": "big hug"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/51.gif",
+      "key": ":(|)",
+      "name": "monkey"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/18.gif",
+      "key": "#:-S",
+      "name": "whew!"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/48.gif",
+      "key": "<):)",
+      "name": "cowboy"
+    }
+  ]
+  
+  var emoticons_2 = [
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/3.gif",
+      "key": ";)",
+      "name": "winking"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/71.gif",
+      "key": ";))",
+      "name": "hee hee"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/5.gif",
+      "key": ";;)",
+      "name": "batting eyelashes"
+    }
+  ]
+  
+  var emoticons_3 = [
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/24.gif",
+      "key": "=))",
+      "name": "rolling on the floor"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/41.gif",
+      "key": "=D>",
+      "name": "applause"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/12.gif",
+      "key": "=((",
+      "name": "broken heart"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/27.gif",
+      "key": "=;",
+      "name": "talk to the hand"
+    },
+    {
+      "img": "http://jupo.s3.amazonaws.com/emoticons/38.gif",
+      "key": "=P~",
+      "name": "drooling"
+    }
+  ]
+  
+  var emoticons_4 = [
+    {'key': '(y)',
+     'name': 'thumbs up',
+     'img': 'http://jupo.s3.amazonaws.com/emoticons/thumbs-up.png'},
+  ]
+  
+  
+  $(element + ' textarea').atwho('run').atwho({
+      at: ":",
+      search_key: "name",
+      tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
+      'data': emoticons_1,
+      display_flag: false,
+  }).atwho({
+      at: ";",
+      search_key: "name",
+      tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
+      'data': emoticons_2,
+      display_flag: false
+  }).atwho({
+      at: "=",
+      search_key: "name",
+      tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
+      'data': emoticons_3,
+      display_flag: false
+  }).atwho({
+      at: "(",
+      search_key: "name",
+      tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
+      'data': emoticons_4,
+      display_flag: false
+  }).on('inserted.atwho', function(e) {
+    console.log('emo inserted')
+    $.global.emoticon_inserted = true;
+    
+    setTimeout(function () {
+      $.global.emoticon_inserted = false;
+    }, 100)
+  })
+}
+
 function refresh(element) {
   preload_autocomplete();
 
@@ -2247,6 +2333,8 @@ function refresh(element) {
   // user_url = $('#menu a.profile').attr('href');
   // $('form.new-comment a.async:first-child').attr('href', user_url);
   // $('form.new-comment img.small-avatar').attr('src', avatar_url);
+  
+  enable_emoticons_autocomplete(element);
   
 
   if ($.global.timer) {

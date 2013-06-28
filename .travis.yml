@@ -1,0 +1,46 @@
+language: python
+python:
+  - "2.7"
+branches:
+  only:
+    - develop
+    - master
+
+services:
+  - mongodb
+  - memcache
+  - redis-server
+  - elasticsearch
+
+before_install:
+  - sh install.sh 
+
+install:
+  - pip install -r requirements.txt --use-mirrors
+
+before_script:
+  - pip install selenium
+  - ls ~/virtualenv/python2.7/bin
+  - mkdir -p ~/log/jupo
+  - cp src/settings.example.py src/settings.py
+  - sed -i "s/jupo.com/jupo.dev/g" src/settings.py
+  - echo '127.0.0.1 play.jupo.dev' | sudo tee -a /etc/hosts
+  - sudo mkdir /var/log/jupo
+  - cd src
+
+script:
+  - nohup python flake.py --worker_id=0 --port=2300 > ~/log/jupo/flake.log &
+  - sleep 1
+  - nohup gunicorn -k tornado -w 4 --max-requests 1000 -b 0.0.0.0:9000 main:app > ~/log/jupo/gunicorn.log &
+  - sleep 1  
+  - nohup sudo nginx -c /home/travis/build/juposocial/jupo/conf/nginx.min.conf > ~/log/jupo/nginx.log &
+  - sleep 1
+  - nohup rqworker push notification send_mail index invite urls move_to_s3 > ~/log/jupo/rqworker.log &
+  - sleep 1
+  - nohup sudo python mail_server.py > ~/log/jupo/mail_server.log &
+  - curl -i http://play.jupo.dev
+  - cd ..
+  - Xvfb :0 -screen 0 1366x768x24 2> /dev/null &
+  - nohup xvfb-run java -jar src/tests/features/selenium-server-standalone-2.32.0.jar &
+  - export DISPLAY=:0
+  - cd src/tests && lettuce

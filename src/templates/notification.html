@@ -70,8 +70,48 @@
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
         <span class='username'>{{ message.sender.name }}</span> added you to {% if message.sender.gender == 'female' %}her{% else %}his{% endif %} contact list
       
+    {% elif key.startswith('make_admin:') %}
+      {% if message.ref_id == 'public' %}
+      <a href='#!/notification/{{ message.id }}?continue=/everyone' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> made you an administrator of the network {{ message.details.name }}.
+      {% else %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> made you an administrator of the group {{ message.details.name }}.
+      {% endif %}
       
+    {% elif key.startswith('add_member:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> added you to the group <strong>{{ message.details.name }}</strong>.
       
+    {% elif key.startswith('new_user:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='/public/images/wall-e.png' class='lfloat small-avatar'>     
+        <strong>{{ network.name }}</strong> has a new user: <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span>.
+        Go and say welcome to {{ message.sender.name }}
+        
+    {% elif key.startswith('new_member:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        The group <strong>{{ message.details.name }}</strong> has a new member: <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span>.
+        Go and say welcome to {{ message.sender.name }}
+        
+    {% elif key.startswith('approved:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> approved your request to join the group {{ message.details.name }}.
+        
+    {% elif key.startswith('ask_to_join:') %}
+      <a href='#!/notification/{{ message.id }}?continue=/group/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username' title='{{ message.sender.email }}'>{{ message.sender.name }}</span> asked to join <strong>{{ message.details.name }}</strong>.
+        
+    {% elif key.startswith('new_network:') %}
+      <a href='#!/notification/{{ message.id }}?continue=http://{{ message.details.domain }}/' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='/public/images/wall-e.png' class='lfloat small-avatar'>     
+        A new network named <strong>{{ message.details.name }}</strong> is created.
     {% endif %} 
     
     <br>

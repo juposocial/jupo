@@ -1,60 +1,4 @@
 <div id="left-sidebar">
-  {% if not owner %}
-  <ul id="main-nav" class='account intro'>
-    
-    <li>
-      <a href='#'>Features</a>
-    </li>
-    <li>
-      <a href='#'>Stories</a>
-    </li>
-    <li>
-      <a href='#'>@Jupo</a>
-    </li>
-    <li>
-      <a href='#'>Find Us on Facebook</a>
-    </li>
-
-{#
-    <h2>New to Jupo?</h2>
-
-    <br>
-
-    <del>&nbsp;<strong>Sign up</strong> </del>
-    <br>
-    (Skip it! No sign up needed)
-
-    <br>
-    <br>
-    <li>
-      <a href='#!/sign_up' class='overlay'><i class="email-icon img-wrap"></i>Email</a>
-    </li>
-#}
-    <strong>Already have an account? <br>Sign in with:</strong>
-
-  
-    <li>
-      <a href='/oauth/google'><i class="google-icon img-wrap"></i> Google</a>
-    </li>
-    <li>
-      <a href='/oauth/facebook'><i class="facebook-icon img-wrap img-wrap"></i> Facebook</a>
-    </li>
-    <li>
-      <a href='#!/sign_in' class='overlay'><i class="password-icon img-wrap"></i> Password</a>
-
-    </li>
-{#
-    <br>
-    <br>
-    <br>
-    <h2>Jupo keeps your discussions, docs, files and team together.</h2>
-    » <a href='/welcome' class='overlay'>Learn more</a>
-#}  
-  </ul>
-
-  {% else %}
-
-
   <ul id="main-nav">
     <li id='welcome'>
       <a href="/welcome" class="{% if view == 'welcome' %}active async{% else %}async{% endif %}"> Welcome </a>
@@ -112,19 +56,12 @@
     </li>
     {% endfor %}
 
-{#
-    <li id='see-all'>
-      <a href="/groups" class='{% if view == "groups" %}active async{% else %}async{% endif %} no-icon'> See All Groups </a>
-    </li>
-#}
-
     <li id='new-group'>
       <a href="/group/new" class='no-icon popup'> + New Group </a>
     </li>
 
   </ul>
   
-  {% block online_now %}
       
       
   <ul id="friends-online">
@@ -151,8 +88,5 @@
     
   </ul>
 
-  {% endblock %}
-
-  {% endif %}
 
 </div>

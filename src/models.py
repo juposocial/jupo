@@ -294,6 +294,8 @@ class User(Model):
     avatar = self.info.get('avatar')
     
     if avatar and isinstance(avatar, str) or isinstance(avatar, unicode):
+      if 'googleusercontent' in avatar:
+        avatar = avatar.replace('/photo.jpg', '/s60-c/photo.jpg')
       return avatar
     elif avatar:
       attachment = api.get_attachment_info(avatar, db_name=self.db_name)
@@ -439,6 +441,9 @@ class User(Model):
   
   def is_registered(self):
     return True if self.info.get('password') else False
+  
+  def is_admin(self):
+    return True if self.info.get('admin') else False
   
   def has_password(self):
     passwd = self.info.get('password')
@@ -733,9 +738,6 @@ class Group(Model):
   @property
   def privacy(self):
     state = self.info.get('privacy', 'closed')
-    # temporary disable secret group
-    if state == 'secret':
-      state = 'closed'
     return state
   
   
@@ -758,6 +760,18 @@ class Group(Model):
       return members
     else:
       return []
+    
+  @property
+  def pending_members(self):
+    pending_members = self.info.get('pending_members', [])
+    return [api.get_user_info(user_id, db_name=self.db_name) \
+            for user_id in pending_members]
+    
+  
+  @property
+  def pending_member_ids(self):
+    return self.info.get('pending_members', [])
+    
     
   @property
   def leaders(self):
@@ -926,7 +940,7 @@ class Feed(Model):
   @property
   def message(self):
     if self.is_system_message():
-      msg = self.info.get('message')
+      msg = self.info.get('new_message', self.info.get('message', ''))
       if msg.get('group_id'):
         msg['group'] = api.get_owner_info_from_uuid(msg['group_id'], 
                                                     db_name=self.db_name)
@@ -942,10 +956,21 @@ class Feed(Model):
     if self.is_email():
       return self.info.get('subject', '')
     
-    message = self.info.get('message', '')    
+    message = self.info.get('new_message', self.info.get('message', ''))
     
     return message
-  
+    
+  @property
+  def original_message(self):
+    return self.info.get('message')
+
+  @property
+  def last_edited_timestamp(self):
+    return self.info.get('last_edited', 0)
+
+  @property
+  def changes(self):
+    return api.diff(api.filters.clean(self.original_message), self.message)
   
   @property
   def owner(self):
@@ -999,6 +1024,9 @@ class Feed(Model):
     if self.info.has_key('attachments'):
       return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
               for attachment_id in self.info.get('attachments')]
+  
+  def is_edited(self):
+    return True if self.info.has_key('new_message') else False
   
   def is_task(self):
     if self.info and self.info.get('priority') is not None:
@@ -1535,25 +1563,43 @@ class Notification(Model):
           info.owner = i.owner
           info.timestamp = i.timestamp
           break
-    elif record.get('version'):
-      info = Note(record)
+    elif record.has_key('version'):
+      info = Note(record, db_name=self.db_name)
       info.message = info.title
-    elif record.get('when'):
+    elif record.has_key('when'):
       info = Event(record)
       info.message = info.name
+    elif record.has_key('members'):
+      info = Group(info, db_name=self.db_name)
+    elif record.has_key('password'):
+      info = User(info, db_name=self.db_name)
     else:
       info = Feed(record, db_name=self.db_name)
     return info
       
   @property
   def details(self):
-    record = api.get_record(self.ref_id, 
-                            self.info.get('ref_collection', 'stream'), 
-                            db_name=self.db_name)
-    if not record or record.has_key('is_removed'):
-      return Feed({})
-    return Feed(record, db_name=self.db_name)
+    if self.ref_id == 'public':
+      info = api.get_network_info(self.db_name)
+      return info
     
+    if self.info.get('type') == 'new_network':
+      info = api.get_network_info(self.ref_id)
+      return info
+    
+    record = api.get_record(self.ref_id, 
+                            self.ref_collection, 
+                            db_name=self.db_name)
+      
+    if not record or record.has_key('is_removed'):
+      return None
+    elif record.has_key('members'):
+      info = Group(record, db_name=self.db_name)
+    elif record.has_key('password'):
+      info = User(record, db_name=self.db_name)
+    else:
+      info = Feed(record, db_name=self.db_name)
+    return info
   
   @property
   def type(self):
@@ -1584,6 +1630,13 @@ class Notification(Model):
   @property
   def ref_id(self):
     return self.info.get('ref_id')
+  
+  @property
+  def ref_collection(self):
+    collection = self.info.get('ref_collection', 'stream')
+    if isinstance(collection, int) or isinstance(collection, long):
+      collection = 'stream'
+    return collection
   
   @property
   def comment_id(self):

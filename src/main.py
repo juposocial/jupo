@@ -37,7 +37,6 @@ from helpers.decorators import *
 from helpers.converters import *
 
 import os
-import sys
 import logging
 import requests
 import traceback
@@ -50,10 +49,6 @@ import filters
 import settings
 from app import CURRENT_APP, render
 
-
-# switch from the default ASCII to UTF-8 encoding
-reload(sys)
-sys.setdefaultencoding("utf-8") #@UndefinedVariable
 
 requests.adapters.DEFAULT_RETRIES = 3
 
@@ -79,8 +74,9 @@ def render_homepage(session_id, title, **kwargs):
     owner = None
     
   if owner:
-    friends_online = [i for i in owner.contacts \
-                      if i.status in ['online', 'away']]
+    friends_online = [i for i in owner.contact_ids \
+                      if api.check_status(i) in ['online', 'away']]
+    friends_online = [api.get_user_info(i) for i in friends_online]
     friends_online.sort(key=lambda k: k.last_online, reverse=True)
     if not kwargs.has_key('groups'):
       groups = api.get_groups(session_id, limit=3)
@@ -88,7 +84,7 @@ def render_homepage(session_id, title, **kwargs):
       groups = kwargs.pop('groups')
     
     for group in groups[:3]:
-      group.unread_posts = api.get_unread_posts_count(session_id, group.id)
+      group.unread_posts = 0 # api.get_unread_posts_count(session_id, group.id)
     
     unread_messages = api.get_unread_messages(session_id)
 #     unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
@@ -130,6 +126,7 @@ def render_homepage(session_id, title, **kwargs):
                                   debug=settings.DEBUG,
                                   logo_text=logo_text,
                                   domain=hostname,
+                                  request=request,
                                   **kwargs))
   if owner:
     resp.set_cookie('channel_id', api.get_channel_id(session_id))
@@ -163,11 +160,19 @@ def stream():
   session_id = session.get('session_id')
   if not session_id:
     abort(400)
+    
+  # Update utcoffset
+  user_id = api.get_user_id(session_id)
+  if user_id:
+    utcoffset = request.cookies.get('utcoffset')
+    if utcoffset:
+      api.update_utcoffset(user_id, utcoffset)
   
   channel_id = request.cookies.get('channel_id')
   resp = Response(event_stream(channel_id),
                   mimetype="text/event-stream")
   resp.headers['X-Accel-Buffering'] = 'no'
+#   resp.headers['Access-Control-Allow-Origin'] = '*'
   return resp
 
 
@@ -221,6 +226,7 @@ def autocomplete():
                   'type': 'user'}
           
           items.append(info)  
+          
       
   else:
       
@@ -249,16 +255,6 @@ def autocomplete():
                       'avatar': avatar,
                       'type': item.get('type')})
       
-#  emoticons = [{'id': 'happy',
-#                'type': 'emoticon',
-#                'name': 'happy',
-#                'avatar': 'https://5works.s3.amazonaws.com/emoticons/1.gif'},
-#               {'id': 'sad',
-#                'type': 'emoticon',
-#                'name': 'sad',
-#                'avatar': 'https://5works.s3.amazonaws.com/emoticons/2.gif'},
-#               ]    
-#  items.extend(emoticons)
   return dumps(items)
 
 
@@ -715,7 +711,6 @@ def authentication(action=None):
                                       message=message,
                                       PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
                                       network_info=network_info))
-      resp.set_cookie('new_user', '0')
       return resp
         
 
@@ -772,7 +767,7 @@ def authentication(action=None):
         if api.is_admin(user_id):
           return redirect('/groups')
         else:
-          return redirect('/everyone')  
+          return redirect('/everyone?getting_started=1')  
       else:
         return redirect('/')
       
@@ -896,6 +891,8 @@ def google_authorized():
     contacts = list(set(contacts))
   
   db_name = domain.lower().strip().replace('.', '_')
+  
+  user_info = api.get_user_info(email=user.get('email'), db_name=db_name)
   session_id = api.sign_in_with_google(email=user.get('email'), 
                                        name=user.get('name'), 
                                        gender=user.get('gender'), 
@@ -919,7 +916,10 @@ def google_authorized():
   
   if domain == settings.PRIMARY_DOMAIN:
     session['session_id'] = session_id
-    return redirect('/')
+    if user_info.id:
+      return redirect('/')
+    else: # new user
+      return redirect('/everyone?getting_started=1')
   else:
     url = 'http://%s/?session_id=%s' % (domain, session_id)
     resp = redirect(url)
@@ -989,6 +989,9 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
   
     db_name = domain.lower().strip().replace('.', '_')
+    
+    user_info = api.get_user_info(email=me.data.get('email'), db_name=db_name)
+  
     session_id = api.sign_in_with_facebook(email=me.data.get('email'), 
                                            name=me.data.get('name'), 
                                            gender=me.data.get('gender'), 
@@ -1014,7 +1017,10 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
           
     if domain == settings.PRIMARY_DOMAIN:
       session['session_id'] = session_id
-      return redirect('/')
+      if user_info.id:
+        return redirect('/')
+      else: # new user
+        return redirect('/everyone?getting_started=1')
     else:
       url = 'http://%s/?session_id=%s' % (domain, session_id)
       resp = redirect(url)
@@ -1114,7 +1120,6 @@ def notes(page=1):
   else:
     return render_homepage(session_id, title,
                            view=view,
-                           request=request,
                            reference_notes=reference_notes,
                            notes=notes)
     
@@ -1246,11 +1251,12 @@ def note(note_id=None, action=None, version=None):
     if not session_id and note is False:
       return redirect('/?back_to=%s' % request.path)
     
-    if not note.id:
-      abort(404)
     mode = 'view'
     
 #   recents = api.get_notes(session_id, limit=5) 
+  if note is False or (note and not note.id):
+    abort(404)
+  
   view = 'notes'
   if version is None and info:
     version = len(note.to_dict()['version'])
@@ -1259,8 +1265,8 @@ def note(note_id=None, action=None, version=None):
   if group_id:
     group = api.get_group_info(session_id, group_id)
   else:
-    group = None
-    
+    group = None  
+  
   if request.method in ["POST", "OPTIONS"]:
     body = render_template('notes.html', 
                            view='notes',
@@ -1664,8 +1670,8 @@ def network():
 @app.route("/group/<int:group_id>/unhighlight", methods=["POST"])
 @app.route("/group/<int:group_id>/add_member", methods=["POST"])
 @app.route("/group/<int:group_id>/remove_member", methods=["POST"])
-@app.route("/group/<int:group_id>/make_admin", methods=["POST"])
-@app.route("/group/<int:group_id>/remove_as_admin", methods=["POST"])
+@app.route("/group/<group_id>/make_admin", methods=["POST"])
+@app.route("/group/<group_id>/remove_as_admin", methods=["POST"])
 @app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
 @app.route("/group/<int:group_id>/page<int:page>", methods=["OPTIONS"])
 @app.route("/group/<int:group_id>/<view>", methods=["GET", "OPTIONS"])
@@ -2170,6 +2176,7 @@ def messages(user_id=None, topic_id=None, action=None):
 
 
 @app.route("/", methods=["GET"])
+@line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
   session_id = request.args.get('session_id')
@@ -2207,13 +2214,11 @@ def home():
     if hostname != settings.PRIMARY_DOMAIN:
       return redirect('/sign_in')
     
-    new_user = request.cookies.get('new_user', "1")
     email = request.args.get('email')
     message = request.args.get('message')
     resp = Response(render_template('landing_page.html',
                                     email=email,
-                                    message=message,
-                                    new_user=new_user))
+                                    message=message))
     
     back_to = request.args.get('back_to')
     if back_to:
@@ -2358,7 +2363,6 @@ def news_feed(page=1):
                            suggested_friends=suggested_friends,
                            feeds=feeds)
     
-    resp.set_cookie('new_user', "0")
   resp.delete_cookie('redirect_to')
   return resp
 
@@ -2410,8 +2414,15 @@ def feed_actions(feed_id=None, action=None,
 #      return render_homepage(session_id, message['subject'],
 #                             view='email', mode='view', feed=message)
   
+  user_id = api.get_user_id(session_id)
+  if not user_id:
+    abort(400)
+    
+  utcoffset = request.cookies.get('utcoffset')
+  if utcoffset:
+    api.update_utcoffset(user_id, utcoffset)
   
-  owner = api.get_owner_info(session_id)
+  owner = api.get_user_info(user_id)
 #  if not owner.id:
 #    return redirect('/sign_in?continue=%s' % request.path)
   
@@ -2430,7 +2441,6 @@ def feed_actions(feed_id=None, action=None,
       attachments = list(set(attachments))
     else:
       attachments = []
-        
 
     feed_id = api.new_feed(session_id, 
                            message, 
@@ -2558,6 +2568,11 @@ def feed_actions(feed_id=None, action=None,
   
   elif action == 'remove_comment':
     api.remove_comment(session_id, comment_id, post_id=feed_id)
+  
+  elif action == 'update':
+    message = request.args.get('msg').strip()
+    api.update_post(session_id, feed_id, message)
+    return 'OK'
     
   elif action == 'update_comment':
     message = request.form.get('message')
@@ -3000,11 +3015,15 @@ def notifications():
   notifications = api.get_notifications(session_id)
   unread_messages = api.get_unread_messages(session_id)
   unread_messages_count = len(unread_messages)
+  
+  hostname = request.headers.get('Host')
+  network = api.get_network_info(hostname.replace('.', '_'))
     
   if request.method == 'OPTIONS':
     owner = api.get_owner_info(session_id)
     body = render_template('notifications.html',
                            owner=owner, 
+                           network=network,
                            unread_messages=unread_messages,
                            notifications=notifications)
     resp = {'body': body,
@@ -3014,18 +3033,20 @@ def notifications():
     unread_count = api.get_unread_notifications_count(session_id) \
                  + unread_messages_count
     
-    if unread_count:
-      #  mark as read luôn các notifications không quan trọng
-      api.mark_notification_as_read(session_id, type='like')
-      api.mark_notification_as_read(session_id, type='add_contact')
-      api.mark_notification_as_read(session_id, type='google_friend_just_joined')
-      api.mark_notification_as_read(session_id, type='facebook_friend_just_joined')
+#     if unread_count:
+#       #  mark as read luôn các notifications không quan trọng
+#       api.mark_notification_as_read(session_id, type='like')
+#       api.mark_notification_as_read(session_id, type='add_contact')
+#       api.mark_notification_as_read(session_id, type='google_friend_just_joined')
+#       api.mark_notification_as_read(session_id, type='facebook_friend_just_joined')
+#       api.mark_all_notifications_as_read(session_id)
       
     resp['unread_notifications_count'] = unread_count
     return dumps(resp)
   else:
     return render_homepage(session_id, 'Notifications',
                            notifications=notifications,
+                           network=network,
                            unread_messages=unread_messages,
                            view='notifications')
 

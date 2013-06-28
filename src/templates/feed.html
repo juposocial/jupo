@@ -147,11 +147,16 @@
         <ul class='dropdown-menu hidden'>
           <div class="arrow-top-border"></div>
           <div class="arrow-top"></div>
-        
           
           <li>
             <a href='/post/{{ feed.id }}' target='_blank'>Permanent link</a>
           </li>
+        
+          {% if feed.owner.id == owner.id and not feed.is_note() and not feed.is_system_message() %}
+          <li>
+            <a class='edit-post' data-href='/feed/{{ feed.id }}/update'>Edit post</a>
+          </li>
+          {% endif %}
           
           {% if feed.owner.id == owner.id %}
           
@@ -234,11 +239,11 @@
       {% if feed.is_note() %}
           <div class="note-attachment">
             
-            {% set content = feed.details.content | sanitize %}
+            {% set content = feed.details.content %}
             {% set summary = content | lines_truncate | fix_unclosed_tags %}
             
             <div class="info">
-              {{ summary | nl2br  | remove_empty_lines | safe }}
+              {{ summary | remove_empty_lines | sanitize | safe }}
             </div>
              
             <a href="/note/{{ feed.details.id }}/last_changes" class='async'>See Last Changes</a>
@@ -391,16 +396,23 @@
             {% if "</iframe>" in feed.message %}
               {{ feed.message | sanitize | fix_unclosed_tags | safe }}
             {% elif feed.last_comments and feed.timestamp < feed.last_comments[-1].timestamp %}
+              {% if mode != 'view' %}
                 <div class='attachment'>
                     {{ summary | nl2br | safe }}
                 </div>
-                {% if content | length > (summary | length + 3) %}  {# '...' = 3 characters #}
+                {% if content | length > (summary | length) %}  {# '...' = 3 characters #}
                 <a class='see-more'>See more</a>
                 <div class='attachment hidden'>
                   {{ content | nl2br | safe }}
                 </div>
                 {% endif %}
+              {% else %}
+                <div class='attachment'>
+                  {{ content | nl2br | safe }}
+                </div>
+              {% endif %}
             {% else %}
+              {% if mode != 'view' %}
                   <div>
                     {{ summary | nl2br | safe }}
                   </div>
@@ -411,8 +423,23 @@
                     {{ content | nl2br | safe }}
                   </div>
                   {% endif %}
+               {% else %}
+                <div>
+                  {{ content | nl2br | safe }}
+                </div>
+               {% endif %}
             {% endif %}
         </div>
+        
+        {% if feed.is_edited() %}
+        <div class='hidden'>
+          {% if feed.last_comments and feed.timestamp < feed.last_comments[-1].timestamp %}
+            <div class='attachment'>{{ feed.changes | safe }}</div>
+          {% else %}
+            <div>{{ feed.changes | safe }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
       {% endif %}
         
         
@@ -495,8 +522,14 @@
     <div class='actions'>
        <div class='rfloat'>
          
+         
+      
+          {% if feed.is_edited() %}
+            <a class='see-changes' title='Last edited: {{ feed.last_edited_timestamp | strftime(owner.utcoffset, "%I:%M%p - %b %d, %Y") }} (click to see changes)'><i class='edited-icon'></i></a>
+          {% endif %}
+         
          {% set read_receipts = feed.seen_by %}         
-         <a href='/feed/{{ feed.id }}/read_receipts' class="quick-stats popup" title='{% include "read_receipts.html" %}'>
+         <a href='/feed/{{ feed.id }}/read_receipts' class="quick-stats popup" {% if read_receipts | length != 0 %}title='{% include "read_receipts.html" %}'{% endif %}>
           {% if feed.comments_count != 0 or read_receipts | length != 0 or feed.liked_user_ids | length != 0 %}
             
             <span class='comments {% if feed.comments_count == 0 %}hidden{% endif %}'>
@@ -543,7 +576,7 @@
   {% endif %}
   
   {% set item = feed.details %}
-  {% if not hide_comments %}
+  {% if not hide_comments and not mode == 'view' %}
     {% if not feed.liked_user_ids %}
       {% if feed.last_comments and feed.last_comments[-1].timestamp <= feed.timestamp %}
         {% set hide_comments = True %}

@@ -555,14 +555,6 @@ a.dropdown-menu-active:hover {
   background: rgba(0, 0, 0, 0.35) !important;
 }
 
-ul.dropdown-menu.user .username {
-  font-weight: bold;
-  display: block;
-  font-size: 12px;
-  overflow: hidden;
-white-space: nowrap;
-text-overflow: ellipsis;
-}
 
 
 .drop-shadow .h1 {
@@ -1306,7 +1298,7 @@ ul.comments div.comments-list > li:first-child {
 }
 
 ul.comments div.comments-list > li.comment:first-child {
-  padding-top: 12px;
+  padding-top: 8px;
 }
 
 ul.comments div.comments-list > li.comment:last-child {
@@ -1587,9 +1579,25 @@ header nav .account-info a {
   padding: 0 !important;
 }
 
+
+header nav .account-info .username {
+  font-weight: bold;
+  display: block;
+  font-size: 12px;
+}
+
 header nav .account-info a:hover .username {
   text-decoration: underline;
 }
+
+header nav .account-info .username,
+header nav .account-info .email {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
 
 header nav ul.dropdown-menu a {
   padding: 5px 15px;
@@ -1774,10 +1782,9 @@ span.label {
   text-shadow: 0 -1px 1px black;
 }
 
-/*span.tag {
-  background: #F2F2F2;
-  padding: 1px 4px;
-}*/
+span.tag {
+  color: #3b5998;
+}
 
 div#right-sidebar .box {
   margin-bottom: 15px;
@@ -1879,7 +1886,7 @@ div#right-sidebar li {
 div#right-sidebar ul li > a {
   padding: 6px 5px;
   display: block;
-  line-height: 17px;
+  line-height: 16px;
 }
 
 div#right-sidebar div.body ul li a:hover {
@@ -2806,6 +2813,11 @@ div#overlay div.note-attachment p {
   margin: 0;
 }
 
+div#body div.note-attachment .info,
+div#overlay div.note-attachment .info {
+  height: 100px;
+  overflow: hidden;
+}
 
 div#overlay li.email {
   padding: 0 !important;
@@ -2977,6 +2989,10 @@ li.feed div.attachment + a.see-more {
 margin-left: 17px;
 }
 
+li.feed article div[contenteditable] {
+  color: #999;
+}
+
 li.feed article iframe {
   margin: 7px 0;
   width: 475px;
@@ -3119,19 +3135,17 @@ div#body .description, div#overlay .description {
 }
 
 div#body span.i, div#overlay span.i, li.note article ins {
-background-color: rgba(103, 174, 63, 0.9);
-color: #262626;
-padding: 3px;
-text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
-text-decoration: none;
+  background-color: rgba(103, 174, 63, 0.9);
+  color: #262626;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  text-decoration: none;
 }
 
 div#body span.x, div#overlay span.x, li.note article del {
-background-color: rgba(209, 72, 54, 0.9);
-text-decoration: line-through;
-color: #262626;
-padding: 3px;
-text-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+  background-color: rgba(209, 72, 54, 0.9);
+  text-decoration: line-through;
+  color: #262626;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 div#body span.x > span, div#overlay span.x > span {
@@ -3388,9 +3402,7 @@ div#overlay #close {
 }
 
 ul.notifications a.chat span.username {
-  font-size: 12px;
-  line-height: 15px;
-  margin-top: 3px;
+  margin-top: 1px;
   display: block;
 }
 
@@ -3401,7 +3413,7 @@ ul.notification a.chat span.info {
 
 
 ul.notifications li > a {
-  padding: 7px 25px 7px 55px !important;
+  padding: 7px 15px 7px 55px !important;
   display: block;
   border: 1px solid transparent;
   overflow: hidden;
@@ -3422,7 +3434,7 @@ ul.notifications > li > time {
 }
 
 ul.notifications span.username {
-  color: #114495;
+  font-weight: bold;
 }
 
 ul.notifications a time {
@@ -4038,12 +4050,6 @@ ul#stream > li.topic > div.message {
   height: 30px;
 }
 
-/*ul.comments .mentions-input-box textarea:focus {
-  box-shadow: rgba(81, 167, 232, 0.25) 0 0 5px;
-  border-color: rgba(81, 167, 232, 0.65);
-  border-radius: 1px;
-}*/
-
 .mentions-input-box .mentions-autocomplete-list {
   display: none;
   position: absolute;
@@ -4114,21 +4120,35 @@ ul#stream > li.topic > div.message {
   background: #2271A8;
 }
 
-.mentions-input-box .mentions {
+form#new-feed .mentions-input-box div.mentions {
+  top: 1px;
+}
+
+form.new-comment .mentions-input-box div.mentions {
+  padding: 9px 3px;
+}
+
+form.new-comment .mentions-input-box textarea {
+  padding: 4px 5px;
+}
+
+.mentions-input-box div.mentions {
   position: absolute;
   left: 3px;
   right: 0;
-  top: 1px;
+  top: 0;
   bottom: 0;
-  padding: 7px 3px;
   color: #fff;
   overflow: hidden;
   white-space: pre-wrap;
   word-wrap: break-word;
   font-size: 12px;
+  padding: 5px;
+  
+  display: none;
 }
 
-.mentions-input-box .mentions > div {
+.mentions-input-box div.mentions > div {
   color: #fff;
   white-space: pre-wrap;
   width: 100%;
@@ -5222,6 +5242,7 @@ section > footer > .actions {
   background: #fafbfb;
   font-size: 11px;
   border-top: 1px solid #e9e9e9;
+  white-space: nowrap;
 }
 
 
@@ -6045,10 +6066,6 @@ form.new #notes a.overlay {
   padding: 3px 5px 2px;
 }
 
-#right-sidebar #owners li > a {
-  line-height: 16px;
-}
-
 #right-sidebar #groups i.group-icon { 
   margin: 5px 5px 0 0;
   
@@ -6113,7 +6130,6 @@ ul#stream.files > li > a {
 
 ul#stream.files section {
   padding: 2px 15px 9px;
-  border-bottom: 1px solid rgba(34, 113, 168, 0.7);
 }
 
 ul#stream.files div.title {
@@ -6144,6 +6160,11 @@ ul#stream.files section footer.forward {
 
 form#new-file a#pickfiles {
   padding: 6px 10px 5px;
+}
+
+form#new-file div.upload-status {
+  padding: 3px;
+  color: rgba(137, 145, 156, .9);
 }
 
 form#new-file div#attachments {
@@ -6317,21 +6338,21 @@ article .file-attachment .title.image-name a {
 
 
 #popup .content #page-header.settings {
-  padding: 10px 0 0 !important;
+  padding: 10px 0 1px !important;
 }
 
 #popup .content #page-header h2 a {
   font-size: 16px;
-font-weight: bold;
-font-family: arial;
-color: #37404e;
+  font-weight: bold;
+  font-family: arial;
+  color: #37404e;
 }
 
 #popup .content #page-header .info {
   font-size: 11px;
-color: rgba(0, 0, 0, 0.35);
-margin-top: -5px;
-}
+  color: rgba(0, 0, 0, 0.35);
+  margin-top: -5px;
+  }
 
 
 #popup .mentions-input-box textarea {
@@ -6496,14 +6517,17 @@ ul.reminders {
   box-shadow: 0 1px 5px rgba(196, 205, 224, 0.5);
 }
 
+ul.reminders li form {
+  padding: 10px 20px 8px;
+}
+
 ul.reminders li {
-  border-bottom: 1px solid rgba(34, 113, 168, 0.07);
+  border-bottom: 1px solid rgba(34, 113, 168, 0.03);
   background: white;
-  padding: 6px 20px 5px;
 }
 
 ul.reminders li.done {
-  opacity: 0.5;
+  text-decoration: line-through;
 }
 
 .reminders label:hover {
@@ -6519,6 +6543,7 @@ ul.reminders label {
   color: #114495;
   white-space: nowrap;
   text-indent: 22px;
+  padding: 8px 20px;
 }
 
 ul.reminders input[type="checkbox"] {
@@ -6543,7 +6568,13 @@ ul.reminders form input {
 
 ul.contacts, ul.groups {
   width: 550px;
-  margin-top: 10px;
+  margin-top: 15px;
+  float: left;
+}
+
+#body ul.groups:last-child,
+#overlay ul.groups:last-child {
+  margin-bottom: 100px;
 }
 
 .clearfix:after {
@@ -6559,25 +6590,30 @@ ul.contacts:last-child {
 }
 
 ul.contacts li > a, ul.groups li > a {
-  width: 225px;
+  width: 223px;
   float: left;
   margin: 10px 20px 10px 0;
   padding: 12px 15px 11px;
   background: white;
   min-height: 36px;
-  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.15);
-  border-bottom: 1px solid rgba(34, 113, 168, 0.7);
   position: relative;
+  border: 1px solid rgba(196,205,224,0.6);
+  border-bottom: 1px solid rgba(34,113,168,0.25);
+  border-radius: 1px;
+  box-shadow: 0 1px 5px #e5e5e5;
 }
 
 
 ul.contacts li > a:hover, ul.groups li > a:hover {
   text-decoration: none;
-  border-bottom: 1px solid rgba(34, 113, 168, 1);
+  border: 1px solid rgba(196,205,224,1);
+  border-bottom: 1px solid rgba(34,113,168,0.4);
 }
 
 ul.contacts li > a:active, ul.groups li > a:active {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid rgba(196,205,224,0.6);
+  border-bottom: 1px solid rgba(34,113,168,0.25);
   background: #fafafa;
 }
 
@@ -6900,19 +6936,19 @@ top: 8px;
 }
 
 #popup .people {
-  margin: 10px 0 4px;
+  margin: 9px 0 0;
   height: 285px;
   overflow-y: auto;
 }
 
 #popup .people li {
-  padding: 10px 20px;
+  padding: 15px 20px 13px;
   display: block;
   border-bottom: 1px solid #f2f2f2;
-
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: 16px;
 }
 
 #popup .people li:nth-child(even) {
@@ -6922,14 +6958,12 @@ top: 8px;
 #popup .people span.email {
   color: rgba(137,145,156,0.9);
   font-size: 11px;
-  margin-top: -2px;
   float: left;
 }
 
 #popup .people .button {
   float: right;
   margin-left: 7px;
-  margin-top: 4px;
   text-align: center;
   opacity: 0;
 }
@@ -7083,16 +7117,18 @@ top: 8px;
 
 
 
-ul.suggested-users li.user {
+ul.suggested-users li.user, 
+ul.pending-members li.user {
   clear: both;
   padding: 6px 5px;
 }
 
-ul.suggested-users li a {
+ul.suggested-users li a, ul.pending-members li a {
   padding: 0 !important;
 }
 
-ul.suggested-users li a.username {
+ul.suggested-users li a.username,
+ul.pending-members li a.username {
   white-space: nowrap;
   width: 160px;
   overflow: hidden;
@@ -7100,9 +7136,14 @@ ul.suggested-users li a.username {
 }
 
 
-ul.suggested-users li a.follow, ul.suggested-users li a.unfollow {
+ul.suggested-users li a.follow, 
+ul.suggested-users li a.unfollow,
+ul.pending-members li a.accept,
+ul.pending-members li a.reject,
+ul.pending-members li div.info {
   font-size: 11px;
   color: #37404e;
+  display: inline-block !important;
 }
 
 ul.suggested-users li a:hover {
@@ -7125,15 +7166,18 @@ div.body .intro {
 
 
 ul.groups div.title {
-  display: block;
   width: 530px;
   float: left;
-  margin: 50px 0 10px;
+  padding: 50px 0 10px;
   font-size: 14px;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 5px;
+  border-bottom: 1px solid rgb(196, 205, 224);
+  margin-bottom: 15px;
 }
 
+
+ul.groups div.title div.actions {
+  margin-top: -7px;
+}
 
 form.invite {
   padding: 20px 25px;
@@ -7145,14 +7189,15 @@ form.invite label {
 }
 
 form.invite textarea {
-  width: 468px;
+  width: 466px;
   padding: 5px 8px;
   height: 54px;
   resize: none;
 }
 
 form.invite ul.token-input-list {
-  width: 484px;
+  width: 478px;
+  padding: 2px 2px 1px;
 }
 
 /*form.invite ul.token-input-list li.token-input-token {
@@ -7178,7 +7223,6 @@ form.invite ul.token-input-list li.token-input-selected-token {
 form.invite textarea, form.invite ul.token-input-list {
   border: 1px solid rgba(196, 205, 224, 0.6);
   box-shadow: inset 0 1px 3px -1px #ddd;
-  padding: 2px 2px 1px;
 }
 
 
@@ -7217,7 +7261,7 @@ div.messages div.chatbox {
   bottom: 0;
   border: 0;
   height: 100% !important;
-  z-index: 10;
+  z-index: 3;
   box-shadow: none;
   border-right: 1px solid rgba(196, 205, 224, 0.6);
 }
@@ -7233,6 +7277,7 @@ div.messages div.chatbox div.header {
   background: #f6f7f8;
   border-bottom: 1px solid #e9eaed;
 }
+
 
 div.messages div.chatbox div.header img {
   margin-top: -6px;
@@ -7375,7 +7420,6 @@ ul.topics li a div.unread-messages {
   background-image: -ms-linear-gradient(top,#DD4B39,#D14836);
   background-image: -o-linear-gradient(top,#DD4B39,#D14836);
   background-image: linear-gradient(top,#DD4B39,#D14836);
-  padding: 1px 6px 0 5px;
   color: white;
   font-weight: bold;
   font-size: 9px;
@@ -7384,6 +7428,11 @@ ul.topics li a div.unread-messages {
   top: 12px;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.38);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.21);
+  width: 18px;
+  padding: 0;
+  height: 18px;
+  text-align: center;
+  line-height: 19px;
 }
 
 ul.topics li a:hover, ul.topics li a.selected {
@@ -7409,15 +7458,20 @@ ul.topics li a:hover div.message, ul.topics li a:active div.message, ul.topics l
   color: rgba(255,255,255,0.5);
 }
 
-div.messages .header div[contenteditable=true] {
+
+div.messages div.chatbox div.header div[contenteditable=true] {
   cursor: text;
   margin-top: -4px;
-  font-size: 12px;
-  line-height: 22px;
+  font-size: 11px;
+  line-height: 20px;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 290px;
+  width: 350px;
   white-space: nowrap;
+}
+
+article.message p {
+  margin: 0;
 }
 
 div.messages .header .info {
@@ -7483,8 +7537,11 @@ div.chatbox ul.messages div.content .image-expander {
   line-height: 6px;
   font-family: Helvetica, arial, freesans, clean, sans-serif;
   letter-spacing: 1px;
-  margin-left: 5px;
   margin-top: -2px;
+}
+
+div.chatbox ul.messages div.content a[target='_blank'] {
+  margin-right: 5px;
 }
 
 
@@ -7497,7 +7554,8 @@ div.chatbox ul.messages div.content .image-expander:active {
   text-shadow: none;
 }
 
-div.chatbox ul.messages div.content .image-expander + div:not(.hidden) + br {
+div.chatbox ul.messages div.content .image-expander + div:not(.hidden) + br,
+div.chatbox ul.messages div.content pre.prettyprint + br {
   display: none;
 }
   
@@ -7519,6 +7577,10 @@ div.messages div.chatbox form textarea.mentions {
   resize: none;
   box-shadow: 0 0 0 11px #f6f7f8, inset 0 1px 3px -1px #ccc;
   border-radius: 0;
+  position: absolute;
+  top: 1px;
+  bottom: 0;
+  left: 3px;
 }
 
 div.messages div.chatbox ul.messages {
@@ -7534,7 +7596,7 @@ div.messages div.chatbox ul.messages {
 }
 
 div.messages div.chatbox .mentions-input-box .mentions {
-  padding: 16px 14px;
+  padding: 20px 19px;
 }
 
 div.messages div.chatbox.unread .header {

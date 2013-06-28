@@ -12,7 +12,7 @@
       {% endif %}
     </div>
     {% for group in groups %}      
-      {% if group.privacy == 'open' or owner.id in group.member_ids %}
+      {% if group.privacy in ['open', 'closed'] or owner.id in group.member_ids %}
       <li>
          <a href="/group/{{ group.id }}" class='async' rel='group-{{ group.id }}' title='{{ group.name }}'>
            

@@ -47,16 +47,6 @@ article h3 {
   line-height: 20px !important;
 }
 
-article a {
-  word-wrap: break-word;
-  color: #3b5998;
-  text-decoration: none;
-}
-
-article a:hover {
-  text-decoration: underline;
-}
-
 article ul li {
   display: list-item !important;
   margin: 0 !important;
