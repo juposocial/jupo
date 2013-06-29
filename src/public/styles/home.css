@@ -5473,7 +5473,7 @@ div.title .gray {
 }*/
 
 article > p:first-child {
-  margin: 0;
+  margin-top: 0 !important;
 }
 
 form.new {
