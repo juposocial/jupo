@@ -624,7 +624,7 @@ def notify_me():
 
 @app.route('/jobs')
 def jobs():
-  return render_template('jobs_v2.html', title='Jupo - Jobs')
+  return redirect('http://bit.ly/17J9aYk')
 
   
 @app.route("/<any(sign_in, sign_up, sign_out, forgot_password, reset_password):action>", methods=["GET", "OPTIONS", "POST"])
