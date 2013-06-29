@@ -30,30 +30,33 @@ def last_starred_user(following_users, starred_list):
 @line_profile
 def lines_truncate(text, lines_count=5):
   
-  key = '%s:lines_truncate' % hash(text)
-  out = cache.get(key, namespace="filters")
-  if out:
-    return out
+#   key = '%s:lines_truncate' % hash(text)
+#   out = cache.get(key, namespace="filters")
+#   if out:
+#     return out
   
   raw = text
   text = _normalize_newlines(text)
   is_html = True if ('<br>' in raw or '</' in raw) else False
   
   # remove blank lines
-  lines = [line for line in text.split('\n') if line.strip()]
-#  text = '\n'.join(lines)
-  
-  images = re.compile('<img.*?>', re.IGNORECASE).findall(text)
-  for i in images:
-    text = text.replace(i, md5(i).hexdigest())
-  
-  links = re.compile('<a.*?</a>', re.IGNORECASE).findall(text)
-  for i in links:
-    text = text.replace(i, md5(i).hexdigest())
-  
-  text = text.replace('<br/>', '<br>')
-  text = text.replace('<br>', '8b0f0ea73162b7552dda3c149b6c045d') # md5('<br>').hexdigest() = '8b0f0ea73162b7552dda3c149b6c045d'
-  text = text.strip().replace('\n', '<br>')
+  if is_html:
+    
+    images = re.compile('<img.*?>', re.IGNORECASE).findall(text)
+    for i in images:
+      text = text.replace(i, md5(i).hexdigest())
+    
+    links = re.compile('<a.*?</a>', re.IGNORECASE).findall(text)
+    for i in links:
+      text = text.replace(i, md5(i).hexdigest())
+      
+    text = text.replace('<br/>', '<br>')
+    
+    lines = [line for line in text.split('<br>') if line.strip()]
+    
+  else:
+    lines = [line for line in text.split('\n') if line.strip()]
+    text = text.strip().replace('\n', '<br>')
   
   words_per_line = 15
   longest_line = max(lines[:lines_count], key=len) if len(lines) != 0 else None
@@ -65,18 +68,15 @@ def lines_truncate(text, lines_count=5):
   # skip blank lines (and blank lines quote)
   if len([line for line in lines if line.strip() and line.strip() != '>']) >= lines_count:
     blank_lines = len([line for line in text.split('<br>') if line.strip() in ['', '>']])
-    out = ' '.join(lines[:lines_count+blank_lines])
+    out = '<br>'.join(lines[:lines_count+blank_lines])
   else:
     out = text
     
   is_truncated = False
   if len(out) < len(text):
-    if is_html:
-      text = ' '.join(text[:len(out)].split(' ')[0:-1]).rstrip('.')
-    else:
-      lines = text[:len(out)].split('<br>')
-      if len(lines) > 1:
-        text = '<br>'.join(lines[0:-1]).rstrip('.')
+    lines = text[:len(out)].split('<br>')
+    if len(lines) > 1:
+      text = '<br>'.join(lines[0:-1]).rstrip('.')
         
     is_truncated = True
     
@@ -84,17 +84,19 @@ def lines_truncate(text, lines_count=5):
       text = raw
       is_truncated = False
   
-  out = text.replace('<br>', '\n')
-  out = out.replace('8b0f0ea73162b7552dda3c149b6c045d', '<br>')
-  for i in images:
-    out = out.replace(md5(i).hexdigest(), i)
-  for i in links:
-    out = out.replace(md5(i).hexdigest(), i)
+  if not is_html:
+    out = text.replace('<br>', '\n')
+  
+  if is_html:
+    for i in images:
+      out = out.replace(md5(i).hexdigest(), i)
+    for i in links:
+      out = out.replace(md5(i).hexdigest(), i)
     
-  if is_truncated and not out.rstrip().endswith('...</a>'):
-    out = out + '...'
+    if is_truncated and not out.rstrip().endswith('...</a>'):
+      out = out + '...'
     
-  cache.set(key, out, namespace="filters")
+#   cache.set(key, out, namespace="filters")
   return out  
 
 
