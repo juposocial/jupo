@@ -245,8 +245,9 @@
             <div class="info">
               {{ summary | remove_empty_lines | sanitize | safe }}
             </div>
-             
-            <a href="/note/{{ feed.details.id }}/last_changes" class='async'>See Last Changes</a>
+            <br>
+            <a href="/note/{{ feed.details.id }}" class='async'>Continue Reading...</a>
+            (<a href="/note/{{ feed.details.id }}/last_changes" class='async gray'>See Last Changes</a>)
           </div>
 
           
