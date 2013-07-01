@@ -132,13 +132,17 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
   
   if not db_name:
     db_name = get_database_name()
-    
   domain = db_name.replace('_', '.')
 
   if mail_type == 'thanks':    
     subject = 'Thanks for Joining the Jupo Waiting List'
     template = app.CURRENT_APP.jinja_env.get_template('email/thanks.html')
     body = template.render()
+  
+  elif mail_type == 'non_active':
+    subject = "We haven’t seen you on Jupo"
+    template = app.CURRENT_APP.jinja_env.get_template('email/non_active.html') 
+    body = template.render(domain=domain, **kwargs)
     
   elif mail_type == 'invite':
     if kwargs.get('group_name'):
