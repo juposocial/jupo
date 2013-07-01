@@ -1328,8 +1328,13 @@ $(document).ready(function(e) {
       return false;
     }
 
-    open_in_async_mode(redirect_to);
-
+    if (redirect_to.indexOf('http') == 0) {
+      var win = window.open(redirect_to, '_blank');
+      win.focus();
+    } else {
+      open_in_async_mode(redirect_to);
+    }
+    
     $.ajax({
       type: "POST",
       headers: {
