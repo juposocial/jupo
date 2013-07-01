@@ -1405,7 +1405,7 @@ def user(user_id=None, page=1, view=None):
     new_session_id = api.complete_profile(session_id, 
                                           name, password, gender, fid)
     
-    resp = redirect('/news_feed')  
+    resp = redirect('/everyone?getting_started=1')  
     if new_session_id:
       session['session_id'] = new_session_id
     return resp
