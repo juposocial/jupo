@@ -583,7 +583,7 @@ def get_friend_suggestions(user_info):
       if len(users) >= 5:
         break
       
-  cache.set(key, users, 86400)
+  cache.set(key, users)
   
   return users
 
@@ -757,14 +757,14 @@ def is_s3_file(filename, db_name=None):
   k = Key(BUCKET)
   k.name = filename
   if k.exists():
-    cache.set(key, 1, 10)
+    cache.set(key, 1)
   
     # persitant cache
     db.s3.insert({'name': filename, 'exists': True})
     
     return True
   else:
-    cache.set(key, 0, 10)
+    cache.set(key, 0)
     
     # persitant cache
     db.s3.insert({'name': filename, 'exists': False})
@@ -912,6 +912,8 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
                           group_id=group.id, 
                           group_name=group.name,
                           db_name=db_name)
+  
+  db.owner.update({'_id': user_id}, {'$addToSet': {'google_contacts': email}})
     
   return True
   
@@ -926,13 +928,23 @@ def complete_profile(code, name, password, gender, avatar):
   info["gender"] = gender
   info['avatar'] = avatar
   info['session_id'] = hashlib.md5(code + str(utctime())).hexdigest()
-  db.owner.update({'session_id': code},
-                        {'$set': info})
+  db.owner.update({'session_id': code}, {'$set': info})
   user_id = get_user_id(code)
   cache.delete(code)
-  
   cache.delete('%s:info' % user_id)
-  return info['session_id']
+  
+  # Send notification to friends
+  user = get_user_info(user_id)
+  
+  session_id = info['session_id']
+  friends = db.owner.find({'google_contacts': user.email})
+  for user in friends:
+    notification_queue.enqueue(new_notification, 
+                               session_id, user['_id'], 
+                               'friend_just_joined', 
+                               None, None, db_name=db_name)
+  
+  return session_id
 
 def sign_in_with_google(email, name, gender, avatar, 
                         link, locale, verified=True, 
@@ -1154,6 +1166,19 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
                                'new_user', 
                                None, None, db_name=db_name)
     
+    
+  # notify friends
+  friends = db.owner.find({'google_contacts': email})
+  for user in friends:
+    user_id = user['_id']
+    notification_queue.enqueue(new_notification, 
+                               session_id, 
+                               user_id, 
+                               'google_friend_just_joined', 
+                               None, None, 
+                               db_name=db_name)
+    
+  
   
 #  subject = 'E-mail verification for the 5works Public Beta'
 #  body = render_template('email/verification.html', 
@@ -1734,6 +1759,11 @@ def get_unread_notifications(session_id, db_name=None):
   else:
     user_id = get_user_id(session_id, db_name=db_name)
 
+  key = 'unread_notifications'
+  out = cache.get(key, namespace=user_id)
+  if out is not None:
+    return out
+
   notifications = db.notification.find({'receiver': user_id,
                                         'is_unread': True})\
                                  .sort('timestamp', -1)
@@ -1771,7 +1801,7 @@ def get_unread_notifications(session_id, db_name=None):
         user_ids.append(i.sender.id)
         
     
-      
+  cache.set(key, results, namespace=user_id)
   return results
   
 def get_notifications(session_id, limit=25):
@@ -1825,6 +1855,10 @@ def get_unread_notifications_count(session_id, db_name=None):
     user_id = session_id
   else:
     user_id = get_user_id(session_id, db_name=db_name)
+  key = 'unread_notifications_count'
+  out = cache.get(key, namespace=user_id)
+  if out is not None:
+    return out
     
   unread_notifications = get_unread_notifications(session_id, db_name)
   count = 0
@@ -1832,6 +1866,8 @@ def get_unread_notifications_count(session_id, db_name=None):
     for id in unread_notifications[k].keys():
       for n in unread_notifications[k][id]:
         count += 1
+  
+  cache.set(key, count, namespace=user_id)
   return count
   
     
@@ -3732,6 +3768,18 @@ def new_note(session_id, title, content, attachments=None, viewers=None):
                       '%s\n\n%s' % (title, content), 
                       viewers, 'doc', db_name)
   
+  # clear cache
+  user_ids = set()
+  for i in viewers:
+    if is_group(i):
+      member_ids = get_group_member_ids(i)
+      for id in member_ids:
+        user_ids.add(id)
+    else:
+      user_ids.add(i)
+  for user_id in user_ids:
+    cache.clear(id)
+  
   return info['_id']
 
 def update_note(session_id, doc_id, title, content, attachments=None, viewers=None):
@@ -4034,7 +4082,7 @@ def get_attachment_info(attachment_id, db_name=None):
   if not is_snowflake_id(attachment_id):
     return Attachment({})
   key = '%s:info' % attachment_id
-  info = None # cache.get(key)
+  info = cache.get(key)
   if not info:
     info = db.attachment.find_one({'_id': long(attachment_id)})
     cache.set(key, info)
@@ -4221,8 +4269,10 @@ def get_file_data(attachment_id):
     filedata = f.read()
   if not info.md5:
     db.attachment.update({'_id': long(attachment_id)},
-                               {'$set': 
-                                {"md5": hashlib.md5(filedata).hexdigest()}})
+                         {'$set': 
+                          {"md5": hashlib.md5(filedata).hexdigest()}})
+    key = '%s:info' % attachment_id
+    cache.delete(key)
   return filedata
 
 
@@ -5711,9 +5761,10 @@ def get_network_info(db_name):
   else:
     info = DATABASE[db_name].info.find_one()
     
-  cache.set(key, info, 86400)
+  cache.set(key, info)
   return info
 
+@line_profile
 def get_networks(user_id, user_email=None):
 #   key = '%s:networks' % user_id
 #   out = cache.get(key)

@@ -306,7 +306,6 @@ class User(Model):
       return '/img/' + str(avatar) + '.jpg'
     
     # try gravatar
-    
     default = "http://jupo.s3.amazonaws.com/images/user2.png"
     if not self.email:
       return default
