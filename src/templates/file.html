@@ -45,7 +45,7 @@
               &#x21e2;
               {% for user in viewers %}
                   {% if user.id == 'public' %}
-                  <a href='/user/{{ file.last_action.owner.id }}/followers' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                  <a href='/everyone' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
                   {% elif user.is_group() %}
                     <a href='/group/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
                   {% else %}
