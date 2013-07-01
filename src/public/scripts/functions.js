@@ -2265,7 +2265,7 @@ function enable_emoticons_autocomplete(element) {
   ]
   
   
-  $(element + ' textarea').atwho('run').atwho({
+  $(element + ' form.new textarea.mention, form.new-comment textarea.mention').atwho('run').atwho({
       at: ":",
       search_key: "name",
       tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
