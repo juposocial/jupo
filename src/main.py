@@ -699,11 +699,16 @@ def authentication(action=None):
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
       return resp
     else:
-      if session_id is False:
-        message = "Incorrect password. <a href='/forgot_password'>Reset password</a>"
+      if not email:
+        message = "The email field must not be empty"
+      elif not password:
+        message = "The password field must not be empty"
       else:
-        message = """No account found for this email.
-        Retry, or <a href='/sign_up?email=%s'>Sign up for Jupo</a>""" % email
+        if session_id is False:
+          message = "Incorrect password. <a href='/forgot_password'>Reset password</a>"
+        else:
+          message = """No account found for this email.
+          Retry, or <a href='/sign_up?email=%s'>Sign up for Jupo</a>""" % email
       resp = Response(render_template('sign_in.html', 
                                       domain=hostname,
                                       email=email, 
@@ -805,14 +810,16 @@ def authentication(action=None):
     else:
       email = request.form.get('email')
       if not email:
-        abort(400)
-      r = api.forgot_password(email)
-      if r is True:
-        message = "We've sent you an email with instructions on how to reset your password. Please check your email."
-        ok = True
-      else:
-        message = 'No one with that email address was found'
+        message = 'The email field must not be empty'
         ok = False
+      else:
+        r = api.forgot_password(email)
+        if r is True:
+          message = "We've sent you an email with instructions on how to reset your password. Please check your email."
+          ok = True
+        else:
+          message = 'No one with that email address was found'
+          ok = False
       return render_template('forgot_password.html', 
                              ok=ok,
                              message=message)
@@ -1407,6 +1414,10 @@ def user(user_id=None, page=1, view=None):
     old_password = request.form.get('current_password')
     new_password = request.form.get('new_password')
     confirm_new_password = request.form.get('confirm_new_password')
+    
+    if not new_password:
+      return redirect('/?message=New password must not be empty')
+      
     
     if old_password:
       if new_password != confirm_new_password:
