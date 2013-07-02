@@ -2478,8 +2478,16 @@ form.new input[name='deadline'] {
 }
 
 form.new div#attachments {
-  margin-left: 75px;
+  margin-left: 9px;
   margin-top: 3px;
+}
+
+form.new div#pickfile-status {
+  background-color: #fff9d7;
+  border: 1px solid #e2c822;
+  color: #666;
+  font-size: 11px;
+  padding: 1px 9px;
 }
 
 a.remove-attachment {

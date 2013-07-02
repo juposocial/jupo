@@ -2407,7 +2407,7 @@ function refresh(element) {
   try {
     $.global.uploader = new plupload.Uploader({
       runtimes: 'html5',
-      browse_button: 'pickfiles',
+      browse_button: 'pickerfile',
       container: 'container',
       url: '/attachment/new',
       multi_selection: false,
@@ -2417,7 +2417,7 @@ function refresh(element) {
         'X-CSRFToken': get_cookie('_csrf_token')
       }
     });
-
+    $.global.uploader.IsFileUploading = false;
     $.global.uploader.bind('Init', function(up, params) {
       // $('#filelist').html("<div>Current runtime: " + params.runtime
       // + "</div>");
@@ -2433,10 +2433,11 @@ function refresh(element) {
     });
 
     $.global.uploader.bind('UploadProgress', function(up, file) {
+      $.global.uploader.IsFileUploading = true;
       if (file.percent != 100) {
-        $('#body > form.new .upload-status').html("Uploading " + file.percent + "%");
+        $('#body > form.new .upload-status').html("Uploading " + file.percent + "%");      
       } else {
-        $('#body > form.new .upload-status').html("Verifying...");
+        $('#body > form.new .upload-status').html("Verifying...");        
       }
     });
 
@@ -2447,6 +2448,11 @@ function refresh(element) {
     });
 
     $.global.uploader.bind('FileUploaded', function(up, file, response) {
+      
+      $.global.uploader.IsFileUploading = false;
+
+      $('#pickfile-status').css('display','none');
+
       $('#body > form.new .upload-status').html("");
       
       $('#' + file.id).hide();
