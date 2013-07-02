@@ -1889,6 +1889,10 @@ def mark_all_notifications_as_read(session_id):
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
+  
+  cache.delete('unread_notifications', user_id)
+  cache.delete('unread_notifications_count', user_id)
+  
   db.notification.update({'receiver': user_id}, 
                          {'$unset': {'is_unread': 1}}, multi=True)
   
@@ -1916,6 +1920,9 @@ def mark_notification_as_read(session_id, notification_id=None,
                             'timestamp': {'$lt': float(ts)}},
                            {'$unset': {'is_unread': 1}}, multi=True)
     
+  cache.delete('unread_notifications', user_id)
+  cache.delete('unread_notifications_count', user_id)
+  
   return True
 
 # Feed/Stream/Focus Actions ----------------------------------------------------

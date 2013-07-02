@@ -45,7 +45,11 @@ def clear(namespace):
     return False
 
 
-def delete(key):
-  key = md5(key).hexdigest()
+def delete(key, namespace=None):
+  if namespace:
+    version = _get_version(namespace)
+    key = md5('%s|%s|%s' % (namespace, version, key)).hexdigest()
+  else:
+    key = md5(key).hexdigest()
   return MEMCACHED.delete(key)
   
