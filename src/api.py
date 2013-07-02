@@ -1742,6 +1742,9 @@ def new_notification(session_id, receiver, type,
   key = '%s:networks' % get_email_addresses(receiver)
   cache.delete(key)
   
+  cache.delete('unread_notifications', receiver)
+  cache.delete('unread_notifications_count', receiver)
+  
   unread_notifications_count = get_unread_notifications_count(receiver, 
                                                               db_name=db_name)
   push_queue.enqueue(publish, receiver, 'unread-notifications', 
