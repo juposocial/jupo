@@ -894,6 +894,7 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
                      'ref': user_id,
                      'timestamp': utctime(),
                      'session_id': code})
+    
   if str(group_id).isdigit():
     db.owner.update({'_id': long(group_id), 'members': user_id}, 
                     {'$addToSet': {'members': _id}})
@@ -1006,6 +1007,8 @@ def sign_in_with_google(email, name, gender, avatar,
     
     db.owner.insert(info)
     
+    cache.delete('%s:all_users' % db_name)
+    
     for user_id in get_network_admin_ids(db_name):
       notification_queue.enqueue(new_notification, 
                                  session_id, user_id, 
@@ -1093,6 +1096,8 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
       notify_list = facebook_friend_ids
       
     db.owner.insert(info)
+    
+    cache.delete('%s:all_users' % db_name)
   
     for user_id in get_network_admin_ids(db_name):
       notification_queue.enqueue(new_notification, 
@@ -1157,6 +1162,7 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
     
     info['_id'] = user['_id']
     
+  cache.delete('%s:all_users' % db_name)
   
   session_id = sign_in(email, raw_password, user_agent, remote_addr)
   
@@ -1407,7 +1413,18 @@ def get_all_users(limit=1000):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  users = db.owner.find({'password': {'$exists': True}}).limit(limit).sort('timestamp', -1)
+  key = '%s:all_users' % db_name
+  users = cache.get(key)
+  if users is None:  
+    users = db.owner.find({'password': {'$exists': True}})\
+                    .sort('timestamp', -1)\
+                    .limit(limit)
+    users = list(users)
+    for user in users:
+      if user.has_key('history'):
+        user.pop('history')
+      user['password'] = True
+    cache.set(key, users)
   return [User(i, db_name=db_name) for i in users]
 
 def get_all_groups(limit=300):
@@ -1742,6 +1759,7 @@ def new_notification(session_id, receiver, type,
   key = '%s:networks' % get_email_addresses(receiver)
   cache.delete(key)
   
+  cache.delete('notifications', receiver)
   cache.delete('unread_notifications', receiver)
   cache.delete('unread_notifications_count', receiver)
   
@@ -1812,6 +1830,13 @@ def get_notifications(session_id, limit=25):
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
+  
+  key = 'notifications'
+  out = cache.get(key, namespace=user_id)
+  if out is not None:
+    return out
+  
+  
   notifications = db.notification.find({'receiver': user_id})\
                                  .sort('timestamp', -1)\
                                  .limit(limit)
@@ -1849,7 +1874,7 @@ def get_notifications(session_id, limit=25):
         results[i.date][id].append(i)
         user_ids[id].append(i.sender.id)
         
-    
+  cache.set(key, results, namespace=user_id)
   return results
 
   
@@ -1893,6 +1918,7 @@ def mark_all_notifications_as_read(session_id):
   
   user_id = get_user_id(session_id)
   
+  cache.delete('notifications', user_id)
   cache.delete('unread_notifications', user_id)
   cache.delete('unread_notifications_count', user_id)
   
@@ -1908,6 +1934,7 @@ def mark_notification_as_read(session_id, notification_id=None,
   
   if not ts:
     ts = utctime()
+    
   user_id = get_user_id(session_id)
   if notification_id:
     db.notification.update({'receiver': user_id, 
@@ -1923,6 +1950,7 @@ def mark_notification_as_read(session_id, notification_id=None,
                             'timestamp': {'$lt': float(ts)}},
                            {'$unset': {'is_unread': 1}}, multi=True)
     
+  cache.delete('notifications', user_id)
   cache.delete('unread_notifications', user_id)
   cache.delete('unread_notifications_count', user_id)
   
@@ -2181,14 +2209,16 @@ def update_user(email, name=None, owner=None, avatar=None):
                                                         'owner': owner}})
     else:
       db.owner.insert({'email': email,
-                             'name': name,
-                             'owner': owner,
-                             '_id': new_id()})
+                       'name': name,
+                       'owner': owner,
+                       '_id': new_id()})
   else:
     if db.owner.find_one({'email': email}):
       db.owner.update({'email': email}, {'$set': {'name': name}})
     else:
       db.owner.insert({'email': email, 'name': name, '_id': new_id()})
+  
+  cache.delete('%s:all_users' % db_name)
   return True
   
 def update_record(collection, query, info):
@@ -4457,6 +4487,7 @@ def new_group(session_id, name, privacy="closed", about=None):
           '_id': new_id()}
   if about:
     info['about'] = about.strip()
+    
   db.owner.insert(info)
   group_id = info['_id']
   
@@ -5052,8 +5083,8 @@ def get_group_member_ids(group_id, db_name=None):
     return ids
   else:
     group_id = 'public'
-    users = db.owner.find({'password': {'$exists': True}}).sort('timestamp', -1)
-    return [i.get('_id') for i in users]
+    users = get_all_users()
+    return [user.id for user in users]
 
 
 def highlight(session_id, group_id, note_id):
@@ -5561,6 +5592,8 @@ def like(session_id, item_id, post_id=None):
                   'item_id': item_id,
                   'timestamp': utctime()})
   
+  key = '%s:liked_user_ids' % item_id
+  cache.delete(key)  
     
   record = get_record(post_id, db_name=db_name)
   if not record:
@@ -5613,6 +5646,9 @@ def unlike(session_id, item_id, post_id=None):
   
   db.like.remove({'user_id': user_id, 'item_id': item_id})
   
+  key = '%s:liked_user_ids' % item_id
+  cache.delete(key)
+  
   record = get_record(post_id, db_name=db_name)
   if not record:
     return False
@@ -5652,12 +5688,15 @@ def is_liked_item(user_id, item_id):
     return False
   
 def get_liked_user_ids(item_id, db_name=None):
+  key = '%s:liked_user_ids' % item_id
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
   records = db.like.find({'item_id': long(item_id)}).sort('timestamp', -1)
-  return [i['user_id'] for i in records]
+  user_ids = [i['user_id'] for i in records]
+  cache.set(key, user_ids)
+  return user_ids
   
   
 
@@ -5669,6 +5708,7 @@ def ensure_index(db_name=None):
   db.owner.ensure_index('email', background=True)
   db.owner.ensure_index('name', background=True)
   db.owner.ensure_index('members', background=True)
+  db.owner.ensure_index('password', background=True)
   
   db.notification.ensure_index('receiver', background=True)
   db.notification.ensure_index('is_unread', background=True)
