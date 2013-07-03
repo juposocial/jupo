@@ -605,7 +605,7 @@ def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
   
   if email:
     user = db.owner.find_one({"email": email.lower().strip(),
-                              "password": {'$exists' : True}}, {'_id': True})
+                              "password": {"$ne": None}}, {'_id': True})
   elif facebook_id:
     user = db.owner.find_one({"facebook_id": facebook_id}, {'_id': True})
   else:  
@@ -649,7 +649,7 @@ def is_exists(email=None, db_name=None):
     
     email = email.strip().lower()
     user = db.owner.find_one({"email": email, 
-                              "password": {"$exists": True}}, 
+                              "password": {"$ne": None}}, 
                              {'_id': True})
     if user:
       return True
@@ -1019,7 +1019,7 @@ def sign_in_with_google(email, name, gender, avatar,
   if notify_list:
     for email in notify_list:
       user = db.owner.find_one({'email': email.lower(), 
-                                'password': {'$exists': True}}, {'_id': True})
+                                'password': {'$ne': None}}, {'_id': True})
       if user:
         user_id = user['_id']
         notification_queue.enqueue(new_notification, 
@@ -1416,13 +1416,17 @@ def get_all_users(limit=1000):
   key = '%s:all_users' % db_name
   users = cache.get(key)
   if users is None:  
-    users = db.owner.find({'password': {'$exists': True}})\
+    users = db.owner.find({'password': {'$ne': None}})\
                     .sort('timestamp', -1)\
                     .limit(limit)
     users = list(users)
     for user in users:
       if user.has_key('history'):
         user.pop('history')
+      if user.has_key('facebook_friend_ids'):
+        user.pop('facebook_friend_ids')
+      if user.has_key('google_contacts'):
+        user.pop('google_contacts')
       user['password'] = True
     cache.set(key, users)
   return [User(i, db_name=db_name) for i in users]
@@ -1431,7 +1435,7 @@ def get_all_groups(limit=300):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  groups = db.owner.find({'members': {'$exists': True}}).limit(limit)
+  groups = db.owner.find({'members': {'$ne': None}}).limit(limit)
   return [Group(i, db_name=db_name) for i in groups]
   
 @line_profile
@@ -1610,10 +1614,10 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
   if not info:  
     if facebook_id:
       info = db.owner.find_one({'facebook_id': facebook_id, 
-                                'password': {'$exists': True}})
+                                'password': {'$ne': None}})
     elif email:
       info = db.owner.find_one({'email': email.strip().lower(), 
-                                'password': {'$exists': True}})
+                                'password': {'$ne': None}})
     elif '@' in str(user_id):
       info = db.owner.find_one({'email': user_id})
     elif str(user_id).isdigit():
@@ -1621,6 +1625,9 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
     else:
       info = None
     
+    if info.has_key('history'):
+      info.pop('history')
+      
     if info:
       cache.set(key, info)
 
@@ -2132,9 +2139,10 @@ def reset_mail_fetcher():
   db = DATABASE[db_name]
   
   db.email.update({}, {'$set': {'last_uid': 0}}, multi=True)
-  db.stream.remove({'message_id': {'$exists': True}})
-  db.owner.remove({'password': {'$exists': False}, 
-                         'privacy': {'$exists': False}})
+  db.stream.remove({'message_id': {'$ne': None}})
+  db.owner.remove({'password': None, 
+                   'privacy': None})
+
   return True
 
 def get_email_addresses(session_id, db_name=None):
@@ -2603,7 +2611,7 @@ def get_feed(session_id, feed_id, group_id=None):
   db = DATABASE[db_name]
   
   info = db.stream.find_one({'_id': long(feed_id),
-                             'is_removed': {'$exists': False}})
+                             'is_removed': None})
   if not info or info.has_key('is_removed'):
     return Feed({})
   
@@ -2653,14 +2661,13 @@ def get_public_posts(session_id=None, user_id=None, page=1):
   db = DATABASE[db_name]
   
   if user_id:
-    feeds = db.stream.find({'is_removed': {'$exists': False},
-                                  'viewers': {'$all': [long(user_id), 
-                                                       'public']}})\
-                           .sort('last_updated', -1)\
-                           .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                           .limit(settings.ITEMS_PER_PAGE)
+    feeds = db.stream.find({'is_removed': None,
+                            'viewers': {'$all': [long(user_id), 'public']}})\
+                     .sort('last_updated', -1)\
+                     .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                     .limit(settings.ITEMS_PER_PAGE)
   else:
-    query = {'is_removed': {'$exists': False},
+    query = {'is_removed': None,
              'viewers': 'public'}
     if session_id:
       user_id = get_user_id(session_id)
@@ -2677,11 +2684,11 @@ def get_shared_by_me_posts(session_id, page=1):
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
-  feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'owner': user_id,
-                                'viewers': 'public'}).sort('last_updated', -1)\
-                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                         .limit(settings.ITEMS_PER_PAGE)
+  feeds = db.stream.find({'is_removed': None,
+                          'owner': user_id,
+                          'viewers': 'public'}).sort('last_updated', -1)\
+                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                   .limit(settings.ITEMS_PER_PAGE)
   return [Feed(i, db_name=db_name) for i in feeds if i]
   
 
@@ -2690,10 +2697,10 @@ def get_starred_posts(session_id, page=1):
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
-  feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'starred': user_id}).sort('last_updated', -1)\
-                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                         .limit(settings.ITEMS_PER_PAGE)
+  feeds = db.stream.find({'is_removed': None,
+                          'starred': user_id}).sort('last_updated', -1)\
+                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                   .limit(settings.ITEMS_PER_PAGE)
   return [Feed(i, db_name=db_name) for i in feeds if i]
 
 def get_starred_posts_count(user_id, db_name=None):
@@ -2701,8 +2708,8 @@ def get_starred_posts_count(user_id, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  return db.stream.find({'is_removed': {'$exists': False},
-                                'starred': user_id}).count()
+  return db.stream.find({'is_removed': None,
+                         'starred': user_id}).count()
   
 
 def get_archived_posts(session_id, page=1):
@@ -2710,8 +2717,8 @@ def get_archived_posts(session_id, page=1):
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
-  feeds = db.stream.find({'is_removed': {'$exists': False},
-                          'message_id': {'$exists': False},
+  feeds = db.stream.find({'is_removed': None,
+                          'message_id': None,
                           'archived_by': user_id})\
                    .sort('last_updated', -1)\
                    .skip((page - 1) * settings.ITEMS_PER_PAGE)\
@@ -2729,15 +2736,15 @@ def get_incoming_posts(session_id, page=1):
                                  .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                                  .limit(settings.ITEMS_PER_PAGE)
                                  
-  feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'message_id': {'$exists': False},
-                                '$and': [{'viewers': 'public'},
-                                         {'owner': {'$ne': user_id}},
-                                         {'viewers': {'$in': following_users}}]
-                                })\
-                         .sort('last_updated', -1)\
-                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                         .limit(settings.ITEMS_PER_PAGE)
+  feeds = db.stream.find({'is_removed': None,
+                          'message_id': None,
+                          '$and': [{'viewers': 'public'},
+                                   {'owner': {'$ne': user_id}},
+                                   {'viewers': {'$in': following_users}}]
+                          })\
+                   .sort('last_updated', -1)\
+                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                   .limit(settings.ITEMS_PER_PAGE)
   posts = list(feeds)
   post_ids = [i.get('_id') for i in posts]
   for post in starred_posts:
@@ -2759,16 +2766,16 @@ def get_discover_posts(session_id, page=1):
   following_users = get_following_users(user_id)
   following_users.append(user_id)
                                  
-  feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'message_id': {'$exists': False},
-                                '$or': [{'$and': [{'viewers': 'public'},
-                                                  {'viewers': {'$in': following_users}}]},
-                                        {'starred': {'$in': following_users}}]
-                                
-                                })\
-                         .sort('last_updated', -1)\
-                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                         .limit(settings.ITEMS_PER_PAGE)
+  feeds = db.stream.find({'is_removed': None,
+                          'message_id': None,
+                          '$or': [{'$and': [{'viewers': 'public'},
+                                            {'viewers': {'$in': following_users}}]},
+                                  {'starred': {'$in': following_users}}]
+                          
+                          })\
+                   .sort('last_updated', -1)\
+                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                   .limit(settings.ITEMS_PER_PAGE)
   return [Feed(i, db_name=db_name) for i in feeds]
   
   
@@ -2776,10 +2783,10 @@ def get_hot_posts(page=1):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'viewers': 'public'})\
-                         .sort('last_updated', -1)\
-                         .limit(100)
+  feeds = db.stream.find({'is_removed': None,
+                          'viewers': 'public'})\
+                   .sort('last_updated', -1)\
+                   .limit(100)
   feeds = list(feeds)
   feeds.sort(key=lambda k: get_score(k), reverse=True)
 
@@ -2791,12 +2798,12 @@ def get_focus_feeds(session_id, page=1):
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
-  feeds = db.stream.find({'is_removed': {'$exists': False},
+  feeds = db.stream.find({'is_removed': None,
                           'viewers': user_id,
-                          'priority': {'$exists': True}})\
-                         .sort('last_updated', -1)\
-                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                         .limit(settings.ITEMS_PER_PAGE)
+                          'priority': {'$ne': None}})\
+                   .sort('last_updated', -1)\
+                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                   .limit(settings.ITEMS_PER_PAGE)
   return [Feed(i, db_name=db_name) for i in feeds]
 
 def get_user_posts(session_id, user_id, page=1):
@@ -2813,7 +2820,7 @@ def get_user_posts(session_id, user_id, page=1):
 #  feeds = db.stream.find({'$or': [{'owner': user_id, 'viewers': {'$in': viewers}}, 
 #                                  {'$and': [{'viewers': user_id}, 
 #                                            {'viewers': owner_id}]}],
-#                          'is_removed': {'$exists': False}})\
+#                          'is_removed': None})\
 #                         .sort('last_updated', -1)\
 #                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
 #                         .limit(settings.ITEMS_PER_PAGE)
@@ -2822,11 +2829,11 @@ def get_user_posts(session_id, user_id, page=1):
   feeds = db.stream.find({'$or': [{'viewers': 'public', 'owner': user_id},
                                   {'$and': [{'viewers': user_id}, 
                                             {'viewers': owner_id}]}],
-                          'message.action': {'$exists': False},
-                          'is_removed': {'$exists': False}})\
-                         .sort('last_updated', -1)\
-                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                         .limit(settings.ITEMS_PER_PAGE)
+                          'message.action': None,
+                          'is_removed': None})\
+                   .sort('last_updated', -1)\
+                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                   .limit(settings.ITEMS_PER_PAGE)
                                         
   return [Feed(i, db_name=db_name) for i in feeds if i]
 
@@ -2845,10 +2852,10 @@ def get_user_notes(session_id, user_id, limit=3):
 
   notes = db.stream.find({'owner': user_id, 
                           'viewers': {'$in': viewers},
-                          'version': {'$exists': True},
-                          'is_removed': {'$exists': False}})\
-                         .sort('last_updated', -1)\
-                         .limit(limit)                    
+                          'version': {'$ne': None},
+                          'is_removed': None})\
+                   .sort('last_updated', -1)\
+                   .limit(limit)                    
                                         
   return [Note(i) for i in notes if i]
 
@@ -2868,10 +2875,10 @@ def get_user_files(session_id, user_id, limit=3):
 
   files = db.stream.find({'owner': user_id, 
                           'viewers': {'$in': viewers},
-                          'history.attachment_id': {'$exists': True},
-                          'is_removed': {'$exists': False}})\
-                         .sort('last_updated', -1)\
-                         .limit(limit)
+                          'history.attachment_id': {'$ne': None},
+                          'is_removed': None})\
+                   .sort('last_updated', -1)\
+                   .limit(limit)
                                         
   return [File(i) for i in files if i]
 
@@ -2884,12 +2891,12 @@ def get_emails(session_id, email_address=None, page=1):
   user_id = get_user_id(session_id)
   viewers = get_group_ids(user_id)
   viewers.append(user_id)
-  feeds = db.stream.find({'is_removed': {'$exists': False},
-                                'message_id': {'$exists': True},
-                                'viewers': {'$in': viewers}})\
-                         .sort('last_updated', -1)\
-                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                         .limit(settings.ITEMS_PER_PAGE)
+  feeds = db.stream.find({'is_removed': None,
+                          'message_id': {'$ne': None},
+                          'viewers': {'$in': viewers}})\
+                   .sort('last_updated', -1)\
+                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                   .limit(settings.ITEMS_PER_PAGE)
   return [Feed(i, db_name=db_name) for i in feeds if i]
 
 def get_pinned_posts(session_id, category='default'):
@@ -2904,7 +2911,7 @@ def get_pinned_posts(session_id, category='default'):
   if out:
     return out
   
-  feeds = db.stream.find({'is_removed': {'$exists': False},
+  feeds = db.stream.find({'is_removed': None,
                           'archived_by': {'$nin': [user_id]},
                           'pinned': user_id})\
                    .sort('last_updated', -1)
@@ -2922,7 +2929,7 @@ def get_direct_messages(session_id, page=1):
   query = {'$and': [{'viewers': user_id},
                     {'viewers': {'$nin': ['public']}}],
            'archived_by': {'$nin': [user_id]},
-           'is_removed': {'$exists': False}}
+           'is_removed': None}
   feeds = db.stream.find(query)\
                            .sort('last_updated', -1)\
                            .skip((page - 1) * 5)\
@@ -2945,11 +2952,11 @@ def get_feeds(session_id, group_id=None, page=1,
     if group_id:
       group = get_record(group_id, 'owner')
       if group.get('privacy') == 'open':
-        feeds = db.stream.find({'is_removed': {'$exists': False},
+        feeds = db.stream.find({'is_removed': None,
                                 'viewers': long(group_id)})\
-                                .sort('last_updated', -1)\
-                                .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                                .limit(limit)
+                         .sort('last_updated', -1)\
+                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                         .limit(limit)
         feeds = [Feed(i, db_name=db_name) for i in feeds if i]
         cache.set(key, feeds, 3600, user_id)
         return feeds
@@ -2961,7 +2968,7 @@ def get_feeds(session_id, group_id=None, page=1,
     else:
       group_id = 'public'
     
-    feeds = db.stream.find({'is_removed': {'$exists': False},
+    feeds = db.stream.find({'is_removed': None,
                             'viewers': group_id})\
                             .sort('last_updated', -1)\
                             .skip((page - 1) * settings.ITEMS_PER_PAGE)\
@@ -2972,10 +2979,10 @@ def get_feeds(session_id, group_id=None, page=1,
     viewers.append(user_id)
     
     query = {'viewers': {'$in': viewers},
-             '$or': [{'comments': {'$exists': True}, 
-                      'message.action': {'$exists': True}},                                 
-                     {'message.action': {'$exists': False}}],
-             'is_removed': {'$exists': False}}  
+             '$or': [{'comments': {'$ne': None}, 
+                      'message.action': {'$ne': None}},                                 
+                     {'message.action': None}],
+             'is_removed': None}  
     if not include_archived_posts:
       query['archived_by'] = {'$nin': [user_id]}
         
@@ -3044,9 +3051,9 @@ def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
 #                         'last_updated': {'$gt': last_ts}}).count()
   return db.stream.find({'viewers': group_id,
                          'owner': {'$ne': user_id},
-                         'is_removed': {'$exists': False},
+                         'is_removed': None,
                          'last_updated': {'$gt': last_ts},
-                         'message.action': {'$exists': False},
+                         'message.action': None,
                          'read_receipts.user_id': {'$ne': user_id}}).count()
                   
   
@@ -3661,7 +3668,7 @@ def get_note(session_id, note_id, version=None):
   db = DATABASE[db_name]
   
   info = db.stream.find_one({'_id': long(note_id),
-                             'is_removed': {'$exists': False}})
+                             'is_removed': None})
   if not info or info.has_key('is_removed'):
     return Note({})
   
@@ -3699,9 +3706,9 @@ def get_docs_count(group_id):
     group_id = long(group_id)
   else:
     group_id = 'public'
-  return db.stream.find({'is_removed': {'$exists': False},
-                               'viewers': group_id,
-                               'version': {"$exists": True}}).count()
+  return db.stream.find({'is_removed': None,
+                         'viewers': group_id,
+                         'version': {"$ne": None}}).count()
 
 
 def get_notes(session_id, group_id=None, limit=5, page=1):
@@ -3722,14 +3729,14 @@ def get_notes(session_id, group_id=None, limit=5, page=1):
     else:
       group_id = 'public'
   
-    notes = db.stream.find({'is_removed': {'$exists': False},
+    notes = db.stream.find({'is_removed': None,
                             'viewers': group_id,
-                            'version': {'$exists': True}})\
+                            'version': {'$ne': None}})\
                      .sort('last_updated', -1)\
                      .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                      .limit(limit)
   else:    
-    notes = db.stream.find({'is_removed': {'$exists': False},
+    notes = db.stream.find({'is_removed': None,
                             'version.owner': user_id})\
                      .sort('last_updated', -1)\
                      .skip((page - 1) * settings.ITEMS_PER_PAGE)\
@@ -3748,9 +3755,9 @@ def get_reference_notes(session_id, limit=10, page=1):
   viewers = get_group_ids(user_id)
   viewers.append(user_id)
    
-  notes = db.stream.find({'is_removed': {'$exists': False},
+  notes = db.stream.find({'is_removed': None,
                           'viewers': {'$in': viewers},
-                          '$and': [{'version': {'$exists': True}}, 
+                          '$and': [{'version': {'$ne': None}}, 
                                    {'version.owner': {'$ne': user_id}}]
                           })\
                    .sort('last_updated', -1)\
@@ -3766,12 +3773,12 @@ def get_drafts(session_id, page=1, limit=settings.ITEMS_PER_PAGE):
   user_id = get_user_id(session_id)
   if not user_id:
     return False
-  docs = db.stream.find({'is_removed': {'$exists': False},
-                               'viewers': [user_id], 
-                               'version': {'$exists': True}})\
-                              .sort('last_updated', -1)\
-                              .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                              .limit(limit)
+  docs = db.stream.find({'is_removed': None,
+                         'viewers': [user_id], 
+                         'version': {'$ne': None}})\
+                  .sort('last_updated', -1)\
+                  .skip((page - 1) * settings.ITEMS_PER_PAGE)\
+                  .limit(limit)
   return [Doc(i) for i in docs]
 
   
@@ -3994,7 +4001,7 @@ def get_reminders(session_id):
   if not user_id:
     return False
   reminders = db.reminder.find({'owner': user_id, 
-                                'checked': {'$exists': False}})\
+                                'checked': None})\
                          .sort('timestamp', -1)
   reminders = list(reminders)
   completed_list = db.reminder.find({'owner': user_id, 'checked': True})\
@@ -4064,14 +4071,14 @@ def get_events(session_id, group_id=None, as_feeds=False):
     return False
   if group_id:
     events = db.stream.find({'viewers': long(group_id), 
-                                   'is_removed': {'$exists': False},
-                                   'when': {"$exists": True}}).sort('when')
+                             'is_removed': None,
+                             'when': {"$ne": None}}).sort('when')
   else:
     viewers = get_group_ids(user_id)
     viewers.append(user_id)
     events = db.stream.find({'viewers': {'$in': viewers},
-                                   'is_removed': {'$exists': False},
-                                   'when': {'$exists': True}}).sort('when')
+                             'is_removed': None,
+                             'when': {'$ne': None}}).sort('when')
   if as_feeds:
     return [Feed(i, db_name=db_name) for i in events]
   return [Event(i) for i in events]
@@ -4086,20 +4093,20 @@ def get_upcoming_events(session_id, group_id=None):
       group = get_record(group_id, 'owner')
       if group.get('privacy') == 'open':
         events = db.stream.find({'viewers': long(group_id), 
-                                       'is_removed': {'$exists': False},
-                                       'when': {"$gte": utctime()}})\
-                                .sort('when')
+                                 'is_removed': None,
+                                 'when': {"$gte": utctime()}})\
+                          .sort('when')
     return []
   if group_id:
     events = db.stream.find({'viewers': long(group_id), 
-                                   'is_removed': {'$exists': False},
-                                   'when': {"$gte": utctime()}}).sort('when')
+                             'is_removed': None,
+                             'when': {"$gte": utctime()}}).sort('when')
   else:
     viewers = get_group_ids(user_id)
     viewers.append(user_id)
     events = db.stream.find({'viewers': {'$in': viewers},
-                                   'is_removed': {'$exists': False},
-                                   'when': {'$gte': utctime()}}).sort('when')
+                             'is_removed': None,
+                             'when': {'$gte': utctime()}}).sort('when')
   return [Event(i) for i in events]
 
 def get_file_info(session_id, file_id):  
@@ -4378,9 +4385,10 @@ def get_files(session_id, group_id=None, limit=5):
       return False
     viewers = [group.id]
   
-  files = db.stream.find({'history.attachment_id': {'$exists': True},
-                                'viewers': {'$in': viewers}})\
-                                      .sort('last_updated', -1).limit(limit)
+  files = db.stream.find({'history.attachment_id': {'$ne': None},
+                          'viewers': {'$in': viewers}})\
+                   .sort('last_updated', -1)\
+                   .limit(limit)
   return [File(f) for f in files]
 
 def get_files_count(group_id):
@@ -4392,7 +4400,7 @@ def get_files_count(group_id):
   else:
     group_id = 'public'
   return db.stream.find({'viewers': group_id,
-                         'history.attachment_id': {"$exists": True}}).count()
+                         'history.attachment_id': {"$ne": None}}).count()
 
 def get_attachments(session_id, group_id=None, limit=10):
   db_name = get_database_name()
@@ -4412,15 +4420,15 @@ def get_attachments(session_id, group_id=None, limit=10):
     viewers.append(user_id)
   
   if group_id:
-    posts = db.stream.find({'$or': [{'history.attachment_id': {'$exists': True}},
-                                    {'attachments': {'$exists': True}},
-                                    {'comments.attachments': {'$exists': True}}], 
+    posts = db.stream.find({'$or': [{'history.attachment_id': {'$ne': None}},
+                                    {'attachments': {'$ne': None}},
+                                    {'comments.attachments': {'$ne': None}}], 
                             'viewers': {'$in': viewers}})\
                      .sort('last_updated', -1)\
                      .limit(limit)
   else:
-    posts = db.stream.find({'$or': [{'attachments': {'$exists': True}},
-                                    {'comments.attachments': {'$exists': True}}], 
+    posts = db.stream.find({'$or': [{'attachments': {'$ne': None}},
+                                    {'comments.attachments': {'$ne': None}}], 
                             'viewers': {'$in': viewers}})\
                      .sort('last_updated', -1)\
                      .limit(limit)
@@ -5028,8 +5036,8 @@ def get_first_user_id(db_name=None):
   if user_id:
     return user_id
   
-  user = db.owner.find({'password': {'$exists': True},
-                        'timestamp': {'$exists': True}}, 
+  user = db.owner.find({'password': {'$ne': None},
+                        'timestamp': {'$ne': None}}, 
                        {'_id': True}).sort('timestamp', 1).limit(1)
   user = list(user)
   if user:
@@ -5366,8 +5374,8 @@ def _jupo_stats():
   db_name = get_database_name()
   db = DATABASE[db_name]
   
-  users = db.owner.find({'password': {'$exists': True}}).count()
-  groups = db.owner.find({'privacy': {'$exists': True}}).count()
+  users = db.owner.find({'password': {'$ne': None}}).count()
+  groups = db.owner.find({'privacy': {'$ne': None}}).count()
   emails = db.owner.find().count() - users - groups
   subscribers = db.waiting_list.find().count()
   return {'users': users,
@@ -5975,7 +5983,7 @@ def get_topic_info(topic_id, db_name=None):
   db = DATABASE[db_name]
   
   info = db.message.find_one({'_id': int(topic_id), 
-                              'members': {'$exists': True}})
+                              'members': {'$ne': None}})
   return Topic(info)
 
 def add_topic_members(topic_id, members, db_name=None):
@@ -6158,12 +6166,12 @@ def get_messages(session_id, archived=False, db_name=None):
   
   if archived is False:
     users = db.message.find({'owner': owner_id,
-                             'user_id': {'$exists': True}})
+                             'user_id': {'$ne': None}})
     for user in users:
       user_id = user.get('user_id')
       msg = db.message.find({'$or': [{'from': user_id, 'to': owner_id},
                                      {'from': owner_id, 'to': user_id}],
-                             'topic': {'$exists': False}})\
+                             'topic': None})\
                       .sort('ts', -1)\
                       .limit(1)
       msg = list(msg)
@@ -6225,7 +6233,7 @@ def get_unread_messages_count(session_id, user_id=None, topic_id=None, db_name=N
   else:
     count = 0
     records = db.message.find({'owner': owner_id, 
-                               'user_id': {'$exists': True}})
+                               'user_id': {'$ne': None}})
     for record in records:
       user_id = record.get('user_id')
       count += get_unread_messages_count(session_id, user_id, db_name=db_name)
@@ -6261,7 +6269,7 @@ def get_unread_messages(session_id, archived=False, db_name=None):
                                'archived_by': owner_id})
   else:
     records = db.message.find({'owner': owner_id, 
-                               'user_id': {'$exists': True}})
+                               'user_id': {'$ne': None}})
     for record in records:
       uid = record.get('user_id')
       count = get_unread_messages_count(session_id, uid, db_name=db_name)
