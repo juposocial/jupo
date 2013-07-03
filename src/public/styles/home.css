@@ -2488,6 +2488,7 @@ form.new div#pickfile-status {
   color: #666;
   font-size: 11px;
   padding: 1px 9px;
+  display: none;
 }
 
 a.remove-attachment {

@@ -2407,7 +2407,7 @@ function refresh(element) {
   try {
     $.global.uploader = new plupload.Uploader({
       runtimes: 'html5',
-      browse_button: 'pickerfile',
+      browse_button: 'pickfile',
       container: 'container',
       url: '/attachment/new',
       multi_selection: false,
@@ -2417,7 +2417,7 @@ function refresh(element) {
         'X-CSRFToken': get_cookie('_csrf_token')
       }
     });
-    $.global.uploader.IsFileUploading = false;
+    $.global.uploader.is_uploading = false;
     $.global.uploader.bind('Init', function(up, params) {
       // $('#filelist').html("<div>Current runtime: " + params.runtime
       // + "</div>");
@@ -2433,7 +2433,7 @@ function refresh(element) {
     });
 
     $.global.uploader.bind('UploadProgress', function(up, file) {
-      $.global.uploader.IsFileUploading = true;
+      $.global.uploader.is_uploading = true;
       if (file.percent != 100) {
         $('#body > form.new .upload-status').html("Uploading " + file.percent + "%");      
       } else {
@@ -2449,9 +2449,9 @@ function refresh(element) {
 
     $.global.uploader.bind('FileUploaded', function(up, file, response) {
       
-      $.global.uploader.IsFileUploading = false;
+      $.global.uploader.is_uploading = false;
 
-      $('#pickfile-status').css('display','none');
+      $('#pickfile-status').hide();
 
       $('#body > form.new .upload-status').html("");
       

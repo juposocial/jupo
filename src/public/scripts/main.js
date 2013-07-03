@@ -402,22 +402,22 @@ $(document).ready(function(e) {
   $('#body, #overlay, #popup').on('click', 'form.new footer a', function() {
     var id = $(this).attr('id');
     var form = $(this).parents('form');
-    var rowid = id;
+    var row_id = id;
 
     //check table row attach file is showing --> return, else active it
-    if (id=='pickerfile')
-      rowid = 'attach';    
+    if (id == 'pickfile')
+      row_id = 'attach';    
 
-    if(($.global.uploader.IsFileUploading == true || id=='pickerfile') && $('tr#' + rowid, form).css('display')!='none') {
+    if(($.global.uploader.is_uploading == true || id == 'pickfile') && $('tr#' + row_id, form).is(':visible') == true) {
        return false; 
     }
 
     // deactive all actived
-    $('tr.toggle:not(#' + rowid + ')', form).hide();
+    $('tr.toggle:not(#' + row_id + ')', form).hide();
     $('footer a:not(#' + id + ')', form).removeClass('active');
 
     $(this).toggleClass('active');
-    $('tr#' + rowid, form).toggle();
+    $('tr#' + row_id, form).toggle();
    
     if (id == 'send-to' && $('tr#send-to', form).is(':visible')) {
       $('tr#send-to .token-input-list input[type="text"]').focus();
@@ -844,8 +844,8 @@ $(document).ready(function(e) {
 
     var form = $(this);
     
-    if($.global.uploader.IsFileUploading == true) {                  
-      $('#pickfile-status').css('display','');         
+    if($.global.uploader.is_uploading == true) {                  
+      $('#pickfile-status').show();         
       return false;
     } 
 
@@ -1991,7 +1991,7 @@ $(document).ready(function(e) {
   $('#body, #overlay').on('focus', 'form.new:not(.doc.overlay) textarea', function() {
     
     // textarea focus, and button share submit not fire, so check upload file status
-    if($.global.uploader.IsFileUploading == true) {                  
+    if($.global.uploader.is_uploading == true) {                  
       $('#pickfile-status').css('display','');                   
     }
 
