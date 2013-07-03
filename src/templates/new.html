@@ -35,6 +35,7 @@ Leave a private message...
 {% else %}
 Leave a message...
 {% endif %}" required {% if view in ['new_message', 'user'] %}autofocus{% endif %}></textarea>
+          <div class='uploading-warning'>Uploading attachments...</div>
           <textarea class='hidden marked-up'
                     name='message'></textarea>
         </td>
@@ -90,13 +91,12 @@ Leave a message...
       {% endif %}
 #}
       <tr id='attach' class='toggle hidden'>
-        <td colspan="2">
-          <a id='pickfiles' class='lfloat'>Browse...</a>
+        <td colspan="2">          
+          <div class="upload-status"></div>
           <div id="container">
             <div id="filelist"></div>
           </div>  
           <div id="attachments"></div>
-          <div class="upload-status rfloat"></div>
         </td>
         
       </tr>
@@ -116,7 +116,7 @@ Leave a message...
     {% endif %}
 #}    
     {% if view != 'bookmarks' %}
-      <a id='attach' title='Attach Files' class='attachment-icon lfloat'></a>
+      <a id='pickfile' title='Attach Files' class='attachment-icon lfloat'></a>
     {% endif %}
     
     {% if view in ["docs", "bookmarks"] %}
