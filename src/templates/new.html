@@ -35,7 +35,7 @@ Leave a private message...
 {% else %}
 Leave a message...
 {% endif %}" required {% if view in ['new_message', 'user'] %}autofocus{% endif %}></textarea>
-          <div id="pickfile-status">Uploading attachments...</div>
+          <div class='uploading-warning'>Uploading attachments...</div>
           <textarea class='hidden marked-up'
                     name='message'></textarea>
         </td>
@@ -92,11 +92,11 @@ Leave a message...
 #}
       <tr id='attach' class='toggle hidden'>
         <td colspan="2">          
+          <div class="upload-status"></div>
           <div id="container">
             <div id="filelist"></div>
           </div>  
           <div id="attachments"></div>
-          <div class="upload-status rfloat"></div>
         </td>
         
       </tr>

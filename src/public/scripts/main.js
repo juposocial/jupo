@@ -845,7 +845,7 @@ $(document).ready(function(e) {
     var form = $(this);
     
     if($.global.uploader.is_uploading == true) {                  
-      $('#pickfile-status').show();         
+      $('.uploading-warning', form).show();         
       return false;
     } 
 
@@ -1992,7 +1992,7 @@ $(document).ready(function(e) {
     
     // textarea focus, and button share submit not fire, so check upload file status
     if($.global.uploader.is_uploading == true) {                  
-      $('#pickfile-status').css('display','');                   
+      $('form.new div.uploading-warning').show();                   
     }
 
     $('form.new:not(.doc.overlay) textarea').elastic();

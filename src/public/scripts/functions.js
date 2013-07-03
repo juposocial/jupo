@@ -2451,7 +2451,7 @@ function refresh(element) {
       
       $.global.uploader.is_uploading = false;
 
-      $('#pickfile-status').hide();
+      $('#body > form.new .uploading-warning').hide();
 
       $('#body > form.new .upload-status').html("");
       
