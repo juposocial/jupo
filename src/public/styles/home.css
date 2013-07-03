@@ -2490,6 +2490,13 @@ form.new div.upload-status {
   margin-top: 4px;
 }
 
+
+
+form.new a#pick-file.active:hover {
+  background-color: #eee;
+}
+
+
 form.new div.uploading-warning {
   background-color: rgba(255, 249, 215, 0.9);
   border-top: 1px solid rgba(226, 200, 34, 0.25);

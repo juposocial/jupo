@@ -2304,6 +2304,9 @@ function refresh(element) {
 
   $('div.tipsy').remove();
   
+  $(element + " form#new-feed a#send-to").tipsy();
+  $(element + " form#new-feed a#pick-file").tipsy();
+  
   $(element + " .post-stats a.async").tipsy({
     gravity: 's',  
     live: true
@@ -2407,7 +2410,7 @@ function refresh(element) {
   try {
     $.global.uploader = new plupload.Uploader({
       runtimes: 'html5',
-      browse_button: 'pickfile',
+      browse_button: 'pick-file',
       container: 'container',
       url: '/attachment/new',
       multi_selection: false,

@@ -405,10 +405,10 @@ $(document).ready(function(e) {
     var row_id = id;
 
     //check table row attach file is showing --> return, else active it
-    if (id == 'pickfile')
+    if (id == 'pick-file')
       row_id = 'attach';    
 
-    if(($.global.uploader.is_uploading == true || id == 'pickfile') && $('tr#' + row_id, form).is(':visible') == true) {
+    if(($.global.uploader.is_uploading == true || id == 'pick-file') && $('tr#' + row_id, form).is(':visible') == true) {
        return false; 
     }
 
@@ -416,8 +416,8 @@ $(document).ready(function(e) {
     $('tr.toggle:not(#' + row_id + ')', form).hide();
     $('footer a:not(#' + id + ')', form).removeClass('active');
 
-    $(this).toggleClass('active');
-    $('tr#' + row_id, form).toggle();
+    $(this).addClass('active');
+    $('tr#' + row_id, form).show();
    
     if (id == 'send-to' && $('tr#send-to', form).is(':visible')) {
       $('tr#send-to .token-input-list input[type="text"]').focus();
