@@ -220,6 +220,10 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       msg['Reply-To'] = Header(reply_to, "utf-8")
       
     MAIL = SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
+    
+    if settings.SMTP_USE_TLS is True:
+      MAIL.starttls()
+    
     if settings.SMTP_PASSWORD:
       MAIL.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
     
@@ -1624,11 +1628,11 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
       info = db.owner.find_one({"_id": long(user_id)})
     else:
       info = None
-    
-    if info.has_key('history'):
-      info.pop('history')
       
     if info:
+      if info.has_key('history'):
+        info.pop('history')
+    
       cache.set(key, info)
 
   return User(info, db_name=db_name) if info else User({})
