@@ -841,15 +841,23 @@ $(document).ready(function(e) {
 
   $('#body, #overlay, #popup').on("submit", 'form.new:not(.overlay)', function() {
     
-
     var form = $(this);
+    var has_mentioned_users = false; 
     
     if($.global.uploader.is_uploading == true) {                  
       $('.uploading-warning', form).show();         
       return false;
     } 
+    
+    if ($('textarea.mention', form).length != 0) {
+      $('textarea.mention', form).mentionsInput('val', function(text) {
+        $('form.new textarea.marked-up').val(text); 
+        if (text.length > 0 && text.indexOf('](user:') >=0) 
+          has_mentioned_users = true;
+      });
+    }  
 
-    if ($('input[name="viewers"]', form).val() == '') {
+    if (has_mentioned_users != true && $('input[name="viewers"]', form).val() == '') {
       if ($('tr#send-to').is(':visible') == true) {
         $('.token-input-input-token input', form).focus();
       } else {
@@ -863,14 +871,8 @@ $(document).ready(function(e) {
 
     show_loading();
         
-    $('span.empty').remove();
-
-    if ($('textarea.mention', form).length != 0) {
-      $('textarea.mention', form).mentionsInput('val', function(text) {
-        $('form.new textarea.marked-up').val(text);
-      });
-    }
-
+    $('span.empty').remove();    
+    
     // clear autosave form
     if (window.location.href.indexOf('#!') != -1) {
       url = window.location.hash;
