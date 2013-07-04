@@ -2438,9 +2438,9 @@ function refresh(element) {
     $.global.uploader.bind('UploadProgress', function(up, file) {
       $.global.uploader.is_uploading = true;
       if (file.percent != 100) {
-        $('#body > form.new .upload-status').html("Uploading " + file.percent + "%");      
+        $('form.new .upload-status').html("Uploading " + file.percent + "%");      
       } else {
-        $('#body > form.new .upload-status').html("Verifying...");        
+        $('form.new .upload-status').html("Verifying...");        
       }
     });
 
@@ -2454,9 +2454,9 @@ function refresh(element) {
       
       $.global.uploader.is_uploading = false;
 
-      $('#body > form.new .uploading-warning').hide();
+      $('form.new .uploading-warning').hide();
 
-      $('#body > form.new .upload-status').html("");
+      $('form.new .upload-status').html("");
       
       $('#' + file.id).hide();
       response = $.parseJSON(response.response)

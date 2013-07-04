@@ -1661,6 +1661,12 @@ $(document).ready(function(e) {
   // =========== End search box ===========
 
   $('#overlay').on("submit", 'form.overlay', function() {
+    
+    if($.global.uploader.is_uploading == true) {                  
+      $('form.new div.uploading-warning').show();        
+      return false;           
+    }
+    
     var submit_button = $('input[type="submit"]', this);
     var submit_button_text = submit_button.val();
     submit_button.val('...');
@@ -1691,46 +1697,6 @@ $(document).ready(function(e) {
         }
         
         
-        // Reload body
-        // if (resp.reload == true) {
-          // url = window.location.href;
-          // $.ajax({
-            // type: "POST",
-            // url: url,
-            // dataType: "json",
-            // success: function(resp) {
-              // console.log('reloaded');
-              // $.global.body = resp.body;
-              // $("#body").html(resp.body);
-              // $.global.scroll = $("body").scrollTop();
-              // refresh('div#body');
-            // }
-          // });
-        // }
-// 
-        // if (!$.global.body) {
-          // $.global.body = $("#body").html();
-          // $.global.scroll = $("body").scrollTop();
-          // console.log($.global.scroll);
-          // // console.log($.global.body);
-        // }
-// 
-        // // $("#left-sidebar").hide();
-        // $("#body").hide();
-        // if (resp.body) {
-          // $('div#overlay').html(resp.body);
-        // } else {
-          // $('div#overlay').html(resp);
-        // }
-        // ;
-        // $('div#overlay').show();
-        // $.global.scroll = $("body").scrollTop();
-// 
-        // $('body').animate({
-          // scrollTop: 0
-        // }, 'fast');
-// 
-        // refresh('div#overlay');
 
       }
     });

@@ -6036,8 +6036,14 @@ form.note iframe blockquote {
 }
 
 form.new.note.overlay {
-  width: 542px;
+  width: 544px;
   margin: 0 10px 50px;
+}
+
+form.new.note.overlay .uploading-warning {
+  width: 526px;
+  margin-top: -30px;
+  padding: 6px 9px;
 }
 
 #body ul#stream.notes > li > a {
@@ -6189,13 +6195,14 @@ ul#stream.files section footer.forward {
   display: block !important;
 }
 
-form#new-file a#pickfiles {
+form#new-file a#pick-file {
   padding: 6px 10px 5px;
 }
 
 form#new-file div.upload-status {
-  padding: 3px;
   color: rgba(137, 145, 156, .9);
+  font-size: 11px;
+  background: white;
 }
 
 form#new-file div#attachments {

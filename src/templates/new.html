@@ -279,17 +279,20 @@ Leave a message...
       <tbody>
         <tr id='files'>
           <td>
-            <a id='pickfiles' class='lfloat' onclick="preload_autocomplete(); $('form#new-file footer, form#new-file #send-to').removeClass('hidden')"><i class="upload-icon"></i> Upload new file</a>
+            <a id='pick-file' class='lfloat' onclick="preload_autocomplete(); $('form#new-file footer, form#new-file #send-to').removeClass('hidden')"><i class="upload-icon"></i> Upload new file</a>
+           
             <div id="container">
               <div id="filelist"></div>
             </div>  
             <div id="attachments"></div>
+            
+            <div class='uploading-warning'>Uploading attachments...</div>
           </td>
         </tr>
         
         <tr id='send-to' class='toggle hidden'>
           <td>
-            <div class="upload-status rfloat"></div>
+            <div class="upload-status"></div>
             <input type='text' 
                    name='viewers' 
                    class='autocomplete'

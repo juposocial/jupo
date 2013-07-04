@@ -33,6 +33,7 @@
               <div class='hidden' id='init'>
                 {{ note.raw_content | sanitize | safe }}
               </div>
+              <div class='uploading-warning'>Uploading attachments...</div>
             </td>
           </tr>
           
@@ -47,7 +48,7 @@
           
           <tr id='attach' class='toggle hidden'>
             <td>
-              <a id='pickfiles' class='lfloat'>Browse...</a>
+              <div class="upload-status"></div>
               <div id="container">
                 <div id="filelist"></div>
               </div>  
@@ -67,7 +68,7 @@
         
         <a id='send-to' title='Add more people' class='send-to-icon lfloat'></a>
         
-        <a id='attach' title='Attach Files' class='attachment-icon lfloat'></a>
+        <a id='pick-file' title='Add Files' class='attachment-icon lfloat'></a>
             
         <input type='submit' value="Publish" class='button small-button' tabindex="0">
       </footer>
