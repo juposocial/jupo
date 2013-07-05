@@ -2474,7 +2474,7 @@ def new_feed(session_id, message, viewers,
     else:
       user_ids.add(i)
   for user_id in user_ids:
-    cache.clear(id)
+    cache.clear(user_id)
   
   return info['_id']
 
@@ -3829,7 +3829,7 @@ def new_note(session_id, title, content, attachments=None, viewers=None):
     else:
       user_ids.add(i)
   for user_id in user_ids:
-    cache.clear(id)
+    cache.clear(user_id)
   
   return info['_id']
 
