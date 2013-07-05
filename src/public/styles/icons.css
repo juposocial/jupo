@@ -380,6 +380,13 @@ right: 16px !important;
   float: right;
 }
 
+.close_search_message{
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAA8CAYAAAC5OOBJAAAA7ElEQVR42tVTwQ2DQAxjjo5RZuDZDfpmDtboDDwZoNuwhnuRqA6ppq5iJGgkS5yJlTi5awCkcRLx9f64FPQsMfj4/03cv/ELzytUEKHwXAVMqMUfHQRvVzY9+9P29/yndzu8tAW3BNomPrLYVdyhBEtc+G5TjFVIvop5IjlrzyAhPatW7cqmZ3/a/p6Pu572qxoKngkMTXxksat4RAmWuPDjphirkHwV80Ry1p5BQnpWrdqVTc/+tP09H3c97Vc1FSCBKcTIYlfxDIAmLvy8KV6H4quYJ7Kz9kxCelat2pVdz/60/T0fdz2tV/UCJ/8ySs2xEBEAAAAASUVORK5CYII=);
+  height: 15px;
+  width: 15px;
+  
+}
+
 .close-icon:hover {
   background-position: left -30px;
 }
@@ -449,6 +456,7 @@ right: 16px !important;
   zoom: 0.9;
   margin-right: 3px;
 }
+
 
 .public-icon {
   height: 10px;

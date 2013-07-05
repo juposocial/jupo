@@ -2117,9 +2117,29 @@ $(document).ready(function(e) {
     var id = href.split('/')[3];
     var chat_id = type + '-' + id;
     
+    if (href.indexOf('/search_msg') == 0){
+      var url_parse = parseURL(href);
+      var user_id = url_parse.params.user_id;
+      var topic_id = url_parse.params.topic_id;
+      var query = url_parse.params.query
+      if (topic_id != '') {
+        type = 'topic';
+        id = topic_id;
+        
+      }else{
+        type = 'user';
+        id = user_id;
+      }
+      chat_id = type + '-' + user_id + '-' + topic_id + '-' + query
+    }
+    
     if (id != '') {
       start_chat(chat_id);
-    }
+    }  
+    
+    
+    chat_id = type + '-' + id;
+    
     
     $('a.chat.' + chat_id).removeClass('unread');
     
@@ -2159,6 +2179,7 @@ $(document).ready(function(e) {
     }
     
     close_popup();
+    
     
     return false;
 
@@ -2718,22 +2739,124 @@ $(document).ready(function(e) {
          })
         
         
-        
-        
-        
-        
-        
-              
-        
       }, 300)
     }
   })
   
   
+  $('#search-message').live("submit", function() {
+    var selected = $("a.selected");
+    var url_post = $("#search-message")[0].action;
+    var query = $("#search-message input")[0].value;
+    
+    if (selected.length != 0) {
+      var href_select = selected[0].href;
+      var id = href_select.match(/[0-9]+/g)[0]
+      if (href_select.indexOf("/user/") != -1) {
+        $.ajax({
+          type: "POST",
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          url: url_post + '?user_id=' + id + '&query=' + query,
+          success: function(resp) {
+            console.log(resp);
+          }
+        })
+      }
+      
+      if (href_select.indexOf("/topic/") != -1) {
+        $.ajax({
+          type:"POST",
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          url: url_post + '?topic_id=' + id + '&query=' + query,
+          success: function(resp) {
+            console.log(resp);
+          }
+        })
+      }
+    }
+    else{
+      $.ajax({
+          type: "POST",
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          url: url_post + '?query=' + query,
+          success: function(resp) {
+            console.log(resp);
+          }
+        })
+    }
+    
+    return false;
+    
+    
+    
+   });
+  
+  
+  
+  $('#search-message').live("submit", function() {
+    var selected = $("a.selected");
+    var url_post = $("#search-message")[0].action;
+    var query = $("#search-message input")[0].value;
+    
+    if (selected.length != 0) {
+      var href_select = selected[0].href;
+      var id = href_select.match(/[0-9]+/g)[0]
+      if (href_select.indexOf("/user/") != -1) {
+        $.ajax({
+          type: "POST",
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          // url: url_post + '?user_id=' + id + '&query=' + query,
+          url: url_post + '?query=' + query,
+          success: function(resp) {
+            $('div.messages').replaceWith(resp);
+          }
+        })
+      }
+      
+      if (href_select.indexOf("/topic/") != -1) {
+        $.ajax({
+          type:"POST",
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          // url: url_post + '?topic_id=' + id + '&query=' + query,
+          url: url_post + '?query=' + query,
+          success: function(resp) {
+            $('div.messages').replaceWith(resp);
+          }
+        })
+      }
+    }
+    else{
+      $.ajax({
+          type: "POST",
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          },
+          url: url_post + '?query=' + query,
+          success: function(resp) {
+            $('div.messages').replaceWith(resp);
+          }
+        })
+    }
+    
+    return false;
+    
+    
+    
+   });
+  
   
  
 });
-
 
 
 

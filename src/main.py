@@ -257,7 +257,58 @@ def autocomplete():
       
   return dumps(items)
 
-
+@app.route("/search_msg", methods=["OPTIONS", "POST"])
+@login_required
+@line_profile
+def search_msg():
+  t0 = api.utctime()
+  session_id = session.get("session_id")
+  query = request.form.get('query', request.args.get('query', '')).strip()
+  ref_user_id = request.form.get('user_id', request.args.get('user_id', '')).strip()
+  topic_id = request.form.get('topic_id', request.args.get('topic_id', '')).strip()
+  search_type = request.args.get('type')
+  page = int(request.args.get('page',1))
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+  
+  suggested_friends = []
+  coworkers = []
+  if request.method == 'POST':
+    topics, msg_chatbox = api.search_message(session_id, query, search_type, ref_user_id, topic_id)
+    if topics:
+      for message in topics:
+        message.unread_count = 0
+        
+    body = render_template('expanded_chatbox.html',
+                            suggested_friends=suggested_friends,
+                            coworkers=coworkers,
+                            topics=topics,
+                            user_id=ref_user_id,
+                            topic_id=topic_id,
+                            archived=False,
+                            owner=owner,
+                            type_search='search_message',
+                            query=query)
+    
+    return body
+  
+  if request.method == 'OPTIONS':
+    owner_id = api.get_user_id(session_id)
+    user = topic = seen_by = timestamp = None
+    topics, msg_chatbox = api.search_message(session_id, query, search_type, ref_user_id, topic_id)
+    if msg_chatbox:
+      if user_id:
+        user = api.get_user_info(user_id)
+      if topic_id:
+        topic = api.get_topic_info(long(topic_id))
+      msg_chatbox[0]._ts = 10
+      return render_template('chatbox.html', 
+                             owner={'id': owner_id},
+                             seen_by=seen_by,
+                             timestamp=timestamp,
+                             messages=msg_chatbox, user=user, topic=topic)
+    
+    
 @app.route("/search", methods=['GET', 'OPTIONS', 'POST'])
 @login_required
 @line_profile
@@ -1405,7 +1456,7 @@ def user(user_id=None, page=1, view=None):
     new_session_id = api.complete_profile(session_id, 
                                           name, password, gender, fid)
     
-    resp = redirect('/everyone?getting_started=1')  
+    resp = redirect('/everyone?getting_started=1')
     if new_session_id:
       session['session_id'] = new_session_id
     return resp
@@ -2164,7 +2215,7 @@ def messages(user_id=None, topic_id=None, action=None):
       message.unread_count = unread_messages[_id]
     else:
       message.unread_count = 0
-
+  
   if request.method == 'GET':
     return render_homepage(session_id, 'Messages',
                            suggested_friends=suggested_friends,
@@ -2191,7 +2242,6 @@ def messages(user_id=None, topic_id=None, action=None):
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
   session_id = request.args.get('session_id')
-  
   if hostname != settings.PRIMARY_DOMAIN:
     if not api.is_exists(db_name=hostname.replace('.', '_')):
       abort(404)
@@ -2205,7 +2255,6 @@ def home():
     
   session_id = session.get("session_id")
   user_id = api.get_user_id(session_id)
-  
   if not user_id:
     code = request.args.get('code')
     user_id = api.get_user_id(code)
@@ -3211,11 +3260,11 @@ def run_app(debug=False):
     'HIDE_FLASK_FROM_STACKTRACES': True
   }
   
-  toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+#   toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
   
 
   
-  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
   try:
     print 'Serving HTTP on 0.0.0.0 port 8888...'
     server.start()

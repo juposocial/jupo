@@ -79,12 +79,11 @@ import filters
 import settings
 
 requests.adapters.DEFAULT_RETRIES = 3
-months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
+months = dict((k,v) for k,v in enumerate(calendar.month_abbr))
 
 # switch from the default ASCII to UTF-8 encoding
 reload(sys)
 sys.setdefaultencoding("utf-8")
-
 
 DATABASE = MongoDB(settings.MONGOD_SERVERS, use_greenlets=True)
 DATABASE['global'].user.ensure_index('email', background=True)
@@ -220,10 +219,9 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       msg['Reply-To'] = Header(reply_to, "utf-8")
       
     MAIL = SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
-    
     if settings.SMTP_USE_TLS is True:
       MAIL.starttls()
-    
+      
     if settings.SMTP_PASSWORD:
       MAIL.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
     
@@ -898,7 +896,6 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
                      'ref': user_id,
                      'timestamp': utctime(),
                      'session_id': code})
-    
   if str(group_id).isdigit():
     db.owner.update({'_id': long(group_id), 'members': user_id}, 
                     {'$addToSet': {'members': _id}})
@@ -1010,7 +1007,6 @@ def sign_in_with_google(email, name, gender, avatar,
       notify_list = [i for i in google_contacts if i != email]
     
     db.owner.insert(info)
-    
     cache.delete('%s:all_users' % db_name)
     
     for user_id in get_network_admin_ids(db_name):
@@ -1100,9 +1096,8 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
       notify_list = facebook_friend_ids
       
     db.owner.insert(info)
-    
     cache.delete('%s:all_users' % db_name)
-  
+    
     for user_id in get_network_admin_ids(db_name):
       notification_queue.enqueue(new_notification, 
                                  session_id, user_id, 
@@ -1167,7 +1162,6 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
     info['_id'] = user['_id']
     
   cache.delete('%s:all_users' % db_name)
-  
   session_id = sign_in(email, raw_password, user_agent, remote_addr)
   
   for user_id in get_network_admin_ids(db_name):
@@ -1433,6 +1427,7 @@ def get_all_users(limit=1000):
         user.pop('google_contacts')
       user['password'] = True
     cache.set(key, users)
+  
   return [User(i, db_name=db_name) for i in users]
 
 def get_all_groups(limit=300):
@@ -1628,11 +1623,10 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
       info = db.owner.find_one({"_id": long(user_id)})
     else:
       info = None
-      
+    
     if info:
       if info.has_key('history'):
         info.pop('history')
-    
       cache.set(key, info)
 
   return User(info, db_name=db_name) if info else User({})
@@ -1769,7 +1763,6 @@ def new_notification(session_id, receiver, type,
   
   key = '%s:networks' % get_email_addresses(receiver)
   cache.delete(key)
-  
   cache.delete('notifications', receiver)
   cache.delete('unread_notifications', receiver)
   cache.delete('unread_notifications_count', receiver)
@@ -1841,12 +1834,10 @@ def get_notifications(session_id, limit=25):
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
-  
   key = 'notifications'
   out = cache.get(key, namespace=user_id)
   if out is not None:
     return out
-  
   
   notifications = db.notification.find({'receiver': user_id})\
                                  .sort('timestamp', -1)\
@@ -1886,6 +1877,7 @@ def get_notifications(session_id, limit=25):
         user_ids[id].append(i.sender.id)
         
   cache.set(key, results, namespace=user_id)
+  
   return results
 
   
@@ -1909,6 +1901,8 @@ def get_unread_notifications_count(session_id, db_name=None):
   cache.set(key, count, namespace=user_id)
   return count
   
+
+
     
 def get_record(_id, collection='stream', db_name=None):
   if not collection \
@@ -1945,8 +1939,8 @@ def mark_notification_as_read(session_id, notification_id=None,
   
   if not ts:
     ts = utctime()
-    
   user_id = get_user_id(session_id)
+  
   if notification_id:
     db.notification.update({'receiver': user_id, 
                             '_id': long(notification_id)},
@@ -1960,11 +1954,11 @@ def mark_notification_as_read(session_id, notification_id=None,
                             'type': type,
                             'timestamp': {'$lt': float(ts)}},
                            {'$unset': {'is_unread': 1}}, multi=True)
-    
+  
   cache.delete('notifications', user_id)
   cache.delete('unread_notifications', user_id)
   cache.delete('unread_notifications_count', user_id)
-  
+
   return True
 
 # Feed/Stream/Focus Actions ----------------------------------------------------
@@ -2146,7 +2140,6 @@ def reset_mail_fetcher():
   db.stream.remove({'message_id': {'$ne': None}})
   db.owner.remove({'password': None, 
                    'privacy': None})
-
   return True
 
 def get_email_addresses(session_id, db_name=None):
@@ -2229,7 +2222,7 @@ def update_user(email, name=None, owner=None, avatar=None):
       db.owner.update({'email': email}, {'$set': {'name': name}})
     else:
       db.owner.insert({'email': email, 'name': name, '_id': new_id()})
-  
+      
   cache.delete('%s:all_users' % db_name)
   return True
   
@@ -2349,7 +2342,7 @@ def new_post_from_email(message_id, receivers, sender,
       
       index_queue.enqueue(add_index, info['_id'], 
                           text, viewers, 'email', db_name)
-  
+      
       # send notification
       for id in viewers:
           cache.clear(id)
@@ -2366,9 +2359,9 @@ def new_post_from_email(message_id, receivers, sender,
 
 def new_feed(session_id, message, viewers, 
              attachments=[], facebook_access_token=None):
+  
   db_name = get_database_name()
   db = DATABASE[db_name]
-  
   if not message:
     return False
   
@@ -2518,7 +2511,6 @@ def reshare(session_id, feed_id, viewers):
   viewers.append(str(user_id))
   viewers = set(viewers)
   
-  print db_name
   
   _viewers = []
   for i in viewers:
@@ -2670,6 +2662,8 @@ def get_public_posts(session_id=None, user_id=None, page=1):
                      .sort('last_updated', -1)\
                      .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                      .limit(settings.ITEMS_PER_PAGE)
+
+    
   else:
     query = {'is_removed': None,
              'viewers': 'public'}
@@ -2859,7 +2853,7 @@ def get_user_notes(session_id, user_id, limit=3):
                           'version': {'$ne': None},
                           'is_removed': None})\
                    .sort('last_updated', -1)\
-                   .limit(limit)                    
+                   .limit(limit)               
                                         
   return [Note(i) for i in notes if i]
 
@@ -3733,7 +3727,7 @@ def get_notes(session_id, group_id=None, limit=5, page=1):
     else:
       group_id = 'public'
   
-    notes = db.stream.find({'is_removed': None,
+    notes = db.stream.find({'is_removed': None, 
                             'viewers': group_id,
                             'version': {'$ne': None}})\
                      .sort('last_updated', -1)\
@@ -4499,7 +4493,6 @@ def new_group(session_id, name, privacy="closed", about=None):
           '_id': new_id()}
   if about:
     info['about'] = about.strip()
-    
   db.owner.insert(info)
   group_id = info['_id']
   
@@ -5041,7 +5034,7 @@ def get_first_user_id(db_name=None):
     return user_id
   
   user = db.owner.find({'password': {'$ne': None},
-                        'timestamp': {'$ne': None}}, 
+                        'timestamp': {'$ne': None}},  
                        {'_id': True}).sort('timestamp', 1).limit(1)
   user = list(user)
   if user:
@@ -5308,6 +5301,87 @@ def people_search(query, group_id=None, db_name=None):
   return [User(i, db_name=db_name) for i in users if i.get('email')]
 
 
+
+  
+  
+def search_message(session_id, query, search_type=None, ref_user_id=None,topic_id=None):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  user_id = get_user_id(session_id)
+  if not user_id:
+    user_id = 'public'
+    
+  if search_type == 'topic':
+    if topic_id != None:
+      topic = get_topic_info(topic_id, db_name=db_name)
+      members = topic.member_ids
+      viewers = ['viewers:%s' % i for i in members]
+      viewers = ' AND '.join(viewers)
+      viewers += ' OR viewers:public'
+    else:
+      return None
+  else:
+    if search_type == 'user':
+      if ref_user_id != None:
+        viewers = '(viewers:%s) AND (viewers:%s)' % (user_id, ref_user_id)
+      else:
+        return None
+    else:
+      viewers = '(viewers:%s)' % user_id
+  query = '(%s) AND (content:*%s*)' % (viewers, query)
+  query += ' AND type:message'
+  query_dsl =  {}
+  query_dsl['query'] = {"query_string": {"query": query}}
+  query_dsl['from'] = 0
+  query_dsl['size'] = 30
+  query_dsl['sort'] = [{'ts': {'order': 'desc'}}, 
+                       {'id': {'order': 'desc'}}, 
+                       "_score"]
+  query_dsl["facets"] = {"counters": {"terms": {"field" : "type"}}}
+  
+  result = INDEX.search(query=query_dsl, index=db_name)
+  messages = []
+  list_group = []
+  list_user = []
+  list_msg_chatbox = []
+  
+  if result and result.has_key('hits'):
+    hits = result.get('hits').get('hits')
+    for hit in hits:
+      id = hit.get('_source').get('id')
+      msg = db.message.find_one({'_id': long(id)})
+      
+      if topic_id:
+        if msg.has_key('topic'):
+          if msg.get('topic') == long(topic_id):
+            list_msg_chatbox.append(msg)
+      if ref_user_id:
+        if msg.get('to') == long(ref_user_id):
+          list_msg_chatbox.append(msg)
+      
+      
+      if msg.has_key('topic'):
+        if msg.get('topic') not in list_group:
+          list_group.append(msg.get('topic'))
+          messages.append(msg)
+      else:
+        if msg.get('to') not in list_user:
+          list_user.append(msg.get('to'))
+          messages.append(msg)
+      
+      
+  if messages:
+    messages.sort(key=lambda k: k.get('ts'), reverse=1)
+    utcoffset = get_utcoffset(user_id, db_name=db_name)
+    messages = [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+  if list_msg_chatbox:
+    list_msg_chatbox.sort(key=lambda k: k.get('ts'), reverse=1)
+    utcoffset = get_utcoffset(user_id, db_name=db_name)
+    list_msg_chatbox = [Message(i, utcoffset=utcoffset, db_name=db_name) for i in list_msg_chatbox]
+  
+  return messages, list_msg_chatbox
+  
+  
 def search(session_id, query, type=None, ref_user_id=None, page=1):
   db_name = get_database_name()
   
@@ -5341,7 +5415,6 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
   if type:
     query += ' AND type:%s' % type 
   
-  print query
   query_dsl =  {}
 
   query_dsl['query'] = {"query_string": {"query": query}}
@@ -5357,7 +5430,6 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
   except ElasticHttpNotFoundError:
     return None
   
-
   if result and result.has_key('hits'): # pylint: disable-msg=E1103
     hits = result['hits'].get('hits')
     results = {}
@@ -5370,6 +5442,7 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
         results['hits'].append(Feed(info, db_name=db_name))
       
     results['hits'].sort(key=lambda k: k.last_updated, reverse=True)
+    
     return results
   return None
     
@@ -5606,7 +5679,6 @@ def like(session_id, item_id, post_id=None):
   
   key = '%s:liked_user_ids' % item_id
   cache.delete(key)  
-    
   record = get_record(post_id, db_name=db_name)
   if not record:
     return False
@@ -5657,7 +5729,6 @@ def unlike(session_id, item_id, post_id=None):
     return False
   
   db.like.remove({'user_id': user_id, 'item_id': item_id})
-  
   key = '%s:liked_user_ids' % item_id
   cache.delete(key)
   
@@ -5721,7 +5792,6 @@ def ensure_index(db_name=None):
   db.owner.ensure_index('name', background=True)
   db.owner.ensure_index('members', background=True)
   db.owner.ensure_index('password', background=True)
-  
   db.notification.ensure_index('receiver', background=True)
   db.notification.ensure_index('is_unread', background=True)
   db.notification.ensure_index('timestamp', background=True)
@@ -6012,7 +6082,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
-  
+  viewers = []
   owner_id = get_user_id(session_id, db_name=db_name)
   if not owner_id:
     return False
@@ -6035,7 +6105,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
     members = [user_id, owner_id]
     members.extend([int(i.get('id')) for i in mentions])
     topic_id = new_topic(owner_id, members, db_name=db_name)
-    
+    viewers = members
     msg = '@[%s](user:%s) created @[a group conversation](topic:%s)'\
         % (get_user_info(owner_id).name, owner_id, topic_id)
     new_message(session_id, msg, user_id=user_id, 
@@ -6064,6 +6134,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   
   elif topic_id:
     topic = get_topic_info(topic_id, db_name=db_name)
+    
     if owner_id not in topic.member_ids:
       return False
     
@@ -6098,8 +6169,11 @@ def new_message(session_id, message, user_id=None, topic_id=None,
             'from': owner_id,
             'msg': message,
             'ts': utctime()}
+    viewers = topic.member_ids
   
   else:
+    viewers.append(owner_id)
+    viewers.append(user_id)
     info = {'_id': new_id(),
             'from': owner_id,
             'to': user_id,
@@ -6113,6 +6187,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
     info['codeblock'] = True
   
   msg_id = db.message.insert(info)
+  index_queue.enqueue(add_index,info['_id'],message,viewers,'message',db_name)
   info['_id'] = msg_id
   
   
@@ -6150,6 +6225,9 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   else:
     return html
 
+
+
+
 @line_profile
 def get_messages(session_id, archived=False, db_name=None):
   if not db_name:
@@ -6167,7 +6245,6 @@ def get_messages(session_id, archived=False, db_name=None):
       return messages 
   
   messages = []
-  
   if archived is False:
     users = db.message.find({'owner': owner_id,
                              'user_id': {'$ne': None}})
@@ -6412,12 +6489,12 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
     
   if timestamp:
     query['ts'] = {'$lt': float(timestamp)}
-    
+  
   
   records = db.message.find(query)\
                       .sort('ts', -1)\
                       .limit(50)
-    
+  
   records = list(records)
   records.reverse()
   if records and len(records) < 50:
@@ -6434,7 +6511,7 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
       not record.get('auto_generated') and \
       record.get('from') == last_msg.get('from') and \
       (record.get('ts') - last_msg.get('ts')) < 120:
-    
+      
       if is_snowflake_id(msg):
         attachment = get_attachment_info(msg, db_name=db_name)
           
