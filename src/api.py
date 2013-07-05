@@ -5634,7 +5634,8 @@ def like(session_id, item_id, post_id=None):
                                      session_id, 
                                      comment['owner'], 
                                      'like', post_id, 
-                                     comment['_id'], db_name=db_name)
+                                     comment_id=comment['_id'], 
+                                     db_name=db_name)
         break
     
     likes = [get_user_info(i) for i in  get_liked_user_ids(item_id)]
