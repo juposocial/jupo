@@ -391,7 +391,9 @@
           
       {% else %}
         <div class='expandable'>
+            
             {% set content = feed.message | autolink | autoemoticon | sanitize %}
+                 
             {% set summary = content | lines_truncate | fix_unclosed_tags %}
             
             {% if "</iframe>" in feed.message %}

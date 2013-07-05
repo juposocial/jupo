@@ -244,6 +244,7 @@ div.fixed {
   text-overflow: ellipsis;
   line-height: 14px;
   border-top-left-radius: 5px;
+  max-width: 250px;
 }
 
 

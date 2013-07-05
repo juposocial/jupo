@@ -161,6 +161,7 @@ def _render(info, post_type, owner, viewport, mode=None, **kwargs):
                                   view=viewport, 
                                   mode=mode, **kwargs)
     else:
+      info.message = unicode(str(info.message).replace(u'\xa0',u' '))
       html = FEED_TEMPLATE.render(feed=info, 
                                   owner=owner, 
                                   view=viewport, 

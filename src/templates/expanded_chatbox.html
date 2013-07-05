@@ -9,8 +9,13 @@
           <div class="actions rfloat">
               <a href="/contacts" class="popup button">+ New Message</a>
           </div>
-          <div class='title'>Messages</div>
-    
+          <!-- <div class='title'>Messages</div> -->
+          <form id="search-message" action="/search_msg">
+              <input type="text" name="query" placeholder="Search message ... "/>
+              <a href="/messages">Cancel</a>
+          </form>
+         
+          
   </div> 
 
   
@@ -46,9 +51,27 @@
         {% set user = message.sender %}
       {% endif %}
       <li>
+        {% if type_search == "search_message" %}
+          {% if not topic_id and not user_id %}
           
-        <a href='/chat/{% if message.topic_id %}topic/{{ message.topic_id }}{% else %}user/{{ user.id }}{% endif %}' class='chat {% if message.is_unread() %}unread{% endif %} {% if message.topic_id %}topic-{{ message.topic_id }}{% else %}user-{{ user.id }}{% endif %}'>
+            {% if message.topic_id %}
+              <a href="/search_msg?topic_id={{ message.topic_id }}&query={{ query }}&user_id=" class='chat topic-{{ message.topic_id }}'>
+            {% else %}
+              <a href="/search_msg?user_id={{ user.id }}&query={{ query }}&topic_id=" class='chat user-{{ user.id }}'>
+            {% endif %}
+            
+          {% else %}
+            {% if topic %}
+                <a href="/search_msg?user_id=&topic_id={{ topic_id }}&query={{ query }}" class='chat topic-{{ topic_id }}'>
+            {% else %}
+                <a href="/search_msg?user_id={{ user_id }}&topic_id=&query={{ query }}" class='chat user-{{ user_id }}'>
+            {% endif %}
+          {% endif %}
           
+        {% else %}
+          <a href='/chat/{% if message.topic_id %}topic/{{ message.topic_id }}{% else %}user/{{ user.id }}{% endif %}' class='chat {% if message.is_unread() %}unread{% endif %} {% if message.topic_id %}topic-{{ message.topic_id }}{% else %}user-{{ user.id }}{% endif %}'>
+        {% endif %}
+        
           <div class="ts rfloat">
             {% set ts = message.timestamp | friendly_format(short=True) %}
             {% set parts = ts.split(' at ') %}

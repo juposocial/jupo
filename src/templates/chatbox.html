@@ -1,7 +1,9 @@
 <div class="inflow"> 
   <div class="positioner">
+    
+    
   <div class="fixed">
-
+    
     <div class="chatbox {% if messages and messages[-1].is_unread() %}unread{% endif %}" id='chat-{% if user %}user-{{ user.id }}{% else %}topic-{{ topic.id }}{% endif %}'>
       {% include "chat.html" %}
     </div>
