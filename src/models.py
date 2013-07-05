@@ -1401,7 +1401,6 @@ class Message(Model):
   def content(self):
     if self.info.has_key('text'):
       return self.info.get('text')
-    
     message = self.info.get('msg')
     if isinstance(message, int) or isinstance(message, long): # is file
       return api.get_attachment_info(message, db_name=self.db_name)
@@ -1433,8 +1432,15 @@ class Message(Model):
   def is_file(self):    
     if self.info.has_key('text'):
       return False
-    
     message = self.info.get('msg')
+    
+    if message.isdigit():
+      db_name = api.get_database_name()
+      db = api.DATABASE[db_name]
+      message_info = db.stream.find_one({'_id': long(message)})
+      if message_info is None:
+        return False
+      
     if api.is_snowflake_id(message):
       return True
     
