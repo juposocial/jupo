@@ -1549,11 +1549,15 @@ class Notification(Model):
   
   @property
   def item(self):
+    if not self.ref_id:
+      return Feed({})
+    
     record = api.get_record(self.ref_id, 
                             self.info.get('ref_collection', 'stream'), 
                             db_name=self.db_name)
     if not record or record.has_key('is_removed'):
       return Feed({})
+    
     if self.comment_id:
       info = Feed(record, db_name=self.db_name)
       for i in info.comments:
@@ -1561,8 +1565,22 @@ class Notification(Model):
           info.message = i.message
           info.owner = i.owner
           info.timestamp = i.timestamp
-          break
-    elif record.has_key('version'):
+          return info
+        
+    if isinstance(record.get('message'), dict):
+      info = Feed(record, db_name=self.db_name)
+      msg = record['message']
+      if msg['action'] == 'added':
+        info.message = '%s added %s to %s' % (info.owner.name, 
+                                              info.message['user'].name, 
+                                              info.message['group'].name)
+      elif msg['action'] == 'created':
+        info.message = '%s created the group %s' % (info.owner.name, 
+                                                    info.message['group'].name)
+        
+      return info
+      
+    if record.has_key('version'):
       info = Note(record, db_name=self.db_name)
       info.message = info.title
     elif record.has_key('when'):
