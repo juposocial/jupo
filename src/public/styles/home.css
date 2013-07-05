@@ -7679,6 +7679,7 @@ div.messages div.chatbox > div.status {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 14px;
+  max-width: 447px;
 }
 
 div.messages div.chatbox div.empty {
