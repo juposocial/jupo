@@ -1407,7 +1407,9 @@ function open_in_async_mode(href, rel, data, f) {
       })
     }
     
-    refresh('#body');
+    setTimeout(function() {
+      refresh('#body');
+    }, 200)
     
     if (scroll_to != null) {
       setTimeout(function() {
