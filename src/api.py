@@ -4252,12 +4252,12 @@ def rename_file(session_id, file_id, new_name):
   
   ts = utctime()
   db.stream.update({'_id': file_id, 'viewers': {'$in': viewers}},
-                         {'$set': {'filename': new_name,
-                                   'last_updated': ts},
-                          '$unset': {'archived_by': True},
-                          '$push': {'history': {'user_id': user_id,
-                                                'action': 'renamed',
-                                                'timestamp': ts}}})
+                   {'$set': {'filename': new_name,
+                             'last_updated': ts},
+                    '$unset': {'archived_by': True},
+                    '$push': {'history': {'user_id': user_id,
+                                          'action': 'renamed',
+                                          'timestamp': ts}}})
   clear_html_cache(file_id)
   return True
 

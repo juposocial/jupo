@@ -621,12 +621,12 @@ class Attachment(Model):
   
   @property
   def icon(self):
-    ext = self.name.rsplit('.', 1)[-1].lower()
-    icon_path = 'public/images/icons/%s.png' % ext
-    if path.isfile(icon_path):
-      return 'https://s3.amazonaws.com/5works/icons/%s.png' % ext
-    else:
-      return 'https://s3.amazonaws.com/5works/icons/generic.png'
+    if '.' in self.name:
+      ext = self.name.rsplit('.', 1)[-1].lower()
+      icon_path = 'public/images/icons/%s.png' % ext
+      if path.isfile(icon_path):
+        return 'https://s3.amazonaws.com/5works/icons/%s.png' % ext
+    return 'https://s3.amazonaws.com/5works/icons/generic.png'
 
 
   
@@ -654,8 +654,7 @@ class File(Model):
   def name(self):
     if self.info.has_key('filename'):
       return self.info['filename']
-    return api.get_attachment_info(self.attachment_id, 
-                                   db_name=self.db_name).name
+    return self.details.name
   
   @property
   def extension(self):
@@ -699,7 +698,15 @@ class File(Model):
     
   @property
   def icon(self):
-    ext = self.name.rsplit('.', 1)[-1].lower()
+    if '.' in self.name:
+      ext = self.name.rsplit('.', 1)[-1].lower()
+    else:
+      attachment_name = self.details.name
+      if '.' in attachment_name:
+        ext = self.details.name.rsplit('.', 1)[-1].lower()
+      else:
+        return '/public/images/icons/generic.png'
+        
     icon_path = 'public/images/icons/%s.png' % ext
     if path.isfile(icon_path):
       return '/public/images/icons/%s.png' % ext
