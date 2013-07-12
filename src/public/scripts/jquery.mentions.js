@@ -166,7 +166,7 @@
 
       _.each(mentionsCollection, function (mention) {
         var textSyntax = settings.templates.mentionItemSyntax(mention);
-        syntaxMessage = syntaxMessage.replace(mention.value, textSyntax);
+        syntaxMessage = syntaxMessage.replace(new RegExp(mention.value,"g"), textSyntax);
       });
 
       var mentionText = utils.htmlEncode(syntaxMessage);
@@ -176,7 +176,7 @@
         var textSyntax = settings.templates.mentionItemSyntax(formattedMention);
         var textHighlight = settings.templates.mentionItemHighlight(formattedMention);
 
-        mentionText = mentionText.replace(textSyntax, textHighlight);
+        mentionText = mentionText.replace(new RegExp(textSyntax,"g"), textHighlight);
         
         elmInputBox.trigger('change');
         
@@ -245,8 +245,11 @@
       var start = currentMessage.substr(0, startCaretPosition);
       var end = currentMessage.substr(currentCaretPosition, currentMessage.length);
       var startEndIndex = (start + mention.value).length + 1;
-
-      mentionsCollection.push(mention);
+      //Cho phép mention 1 user nhiều lần
+      if(!$.map(mentionsCollection,function(val,key){if(val.id === mention.id)return val}).length)
+      {
+        mentionsCollection.push(mention);
+      }
 
       // Cleaning before inserting the value, otherwise auto-complete would be triggered with "old" inputbuffer
       resetBuffer();
