@@ -389,9 +389,10 @@
 
       // Filter items that has already been mentioned
       var mentionValues = _.pluck(mentionsCollection, 'value');
-      results = _.reject(results, function (item) {
-        return _.include(mentionValues, item.name);
-      });
+      //Cho phep metion 1 user nhieu lan
+      //results = _.reject(results, function (item) {
+      //  return _.include(mentionValues, item.name);
+      //});
 
       if (!results.length) {
         hideAutoComplete();
