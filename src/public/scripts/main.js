@@ -2113,12 +2113,50 @@ $(document).ready(function(e) {
     
   })
 
+  $('#popup').on('click', 'input.checkbox-chat', function() {      
+      var _this = $(this);
+      var group_chat = $('#popup li.group-chat a');
+      
+      var href = group_chat.attr('href');
+      if (_this.is(':checked') == true) {
+        if (href.indexOf('?user_ids=') == -1) {
+          href = href + '?user_ids=' + _this.val();
+        } else {
+          href = href + ',' + _this.val();
+        }
+      } else {
+        if (href.indexOf(',') == -1) {
+          href = href.split('?')[0] 
+        } else {
+          var user_ids = href.split('?')[1].replace(',' + _this.val(), '').replace(_this.val() + ',', '');
+          href = href.split('?')[0] + '?' + user_ids;
+        }
+      }
+      
+      group_chat.attr('href', href);  
+      if (href.indexOf('?user_ids=') != -1) {
+        group_chat.show()
+      } else {
+        group_chat.hide();
+      }
+  });
 
   $('#global').on('click', 'a.chat', function() {
     
     var href = $(this).attr('href');
     var type = href.split('/')[2];
     var id = href.split('/')[3];
+    if (id == undefined && href.indexOf('user_ids') != -1) {
+      type = type.split('?')[0];
+      $.ajax({
+             url: href,
+             async: false,
+             success: function(resp) {
+               id = resp;
+             }     
+      })         
+      href = href.split('?')[0] + '/' + id;
+    }
     var chat_id = type + '-' + id;
     
     if (id != '') {
@@ -2714,6 +2752,14 @@ $(document).ready(function(e) {
             async: true,
             success: function(resp) {
               $('#popup ul.people').html(resp);
+              
+              var group_chat_url = $('#popup .group-chat a').attr('href');
+              $('#popup ul.people li input[type="checkbox"]').each(function(index, value) {
+                if (group_chat_url.indexOf($(this).val()) != -1) {
+                  $(this).attr('checked', 'checked')
+                }
+              });
+              
               if (resp.indexOf('@') == -1) {
                 $.global.people_search_not_found_last_keyword = query;
                 $.global.people_search_not_found_last_message = resp;

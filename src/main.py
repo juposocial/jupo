@@ -1993,6 +1993,7 @@ def group(group_id=None, view='group', page=1):
       return resp
 
 
+@app.route('/chat/topic', methods=['GET', 'OPTIONS'])
 @app.route('/chat/user/<int:user_id>', methods=['GET', 'OPTIONS'])
 @app.route('/chat/user/<int:user_id>/<action>', methods=['POST'])
 @app.route('/chat/topic/<int:topic_id>', methods=['GET', 'OPTIONS'])
@@ -2049,6 +2050,16 @@ def chat(topic_id=None, user_id=None, action=None):
                     mimetype='application/json')  
     
   else:
+    owner_id = api.get_user_id(session_id)
+    
+    user_ids = request.args.get('user_ids', '').split('/')[0]
+    user_ids = [int(i) \
+                for i in user_ids.split(',') \
+                if i.isdigit()]
+    if user_ids:
+      topic_id = api.new_topic(owner_id, user_ids)
+      return str(topic_id)
+    
     if request.method == 'GET':
       if user_id:
         return redirect('/messages/user/%s' % user_id)
@@ -2056,8 +2067,7 @@ def chat(topic_id=None, user_id=None, action=None):
         return redirect('/messages/topic/%s' % topic_id)
       else:
         abort(400)
-        
-    owner_id = api.get_user_id(session_id)
+    
     user = topic = seen_by = None
     if user_id:
       user = api.get_user_info(user_id)

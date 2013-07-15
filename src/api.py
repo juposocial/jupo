@@ -246,15 +246,10 @@ def new_id():
 def is_snowflake_id(_id):
   if not _id:
     return False
-  if isinstance(_id, UUID):
+  elif str(_id).isdigit() and len(str(_id)) == 18:
+    return True
+  else:
     return False
-  if isinstance(_id, long):
-    return True
-  elif isinstance(_id, int):
-    return True
-  elif _id.isdigit() and len(str(_id)) > 13:
-    return True
-  return False
 
   
 
@@ -5931,6 +5926,9 @@ def new_topic(owner_id, user_ids, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
+  if owner_id not in user_ids:
+    user_ids.append(owner_id)
+    
   info = {'_id': new_id(),
           'owner': owner_id,
           'members': user_ids,
@@ -6448,7 +6446,7 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
   else:
     topic_id = int(topic_id)
     
-    topic = get_topic_info(topic_id)
+    topic = get_topic_info(topic_id, db_name=db_name)
     if owner_id not in topic.member_ids:
       return False
     
