@@ -5393,7 +5393,6 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
         buffer_comments = []
         if info.has_key('comments'):
           for comment in info['comments']:
-            a = comment['message'].find(input_query)
             if comment['message'].find(input_query) != -1:
               buffer_comments.append(comment)
         info['comments'] = buffer_comments
