@@ -5307,10 +5307,31 @@ def people_search(query, group_id=None, db_name=None):
           user_ids.append(_user['_id'])
   return [User(i, db_name=db_name) for i in users if i.get('email')]
 
+def get_suggest_people_search(counters):
+  results = []
+  list_suggest_ids = []
+  terms = counters['terms'] 
+  for term in terms:
+    try:
+      id = long(term['term'])
+      if id not in list_suggest_ids:
+        list_suggest_ids.append(long(term['term']))
+    except:
+      pass
+    
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  info_peoples = db['owner'].find({'_id': {'$in': list_suggest_ids}})
+  for people in info_peoples:
+    results.append(User(people))
+        
+  return results
+
 
 def search(session_id, query, type=None, ref_user_id=None, page=1):
   db_name = get_database_name()
-  
+  input_query = query
   hashtag_id = None
   if query.startswith('#'):
     hashtag_id = query.lstrip('#').lower()
@@ -5339,18 +5360,18 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
     query = '(%s) AND (content:*%s* OR comments:*%s*)' % (viewers, query, query)
     
   if type:
-    query += ' AND type:%s' % type 
-  
+    query += ' AND type:%s' % type
   print query
   query_dsl =  {}
-
   query_dsl['query'] = {"query_string": {"query": query}}
   query_dsl['from'] = (page - 1) * 5
   query_dsl['size'] = 5
   query_dsl['sort'] = [{'ts': {'order': 'desc'}}, 
                        {'id': {'order': 'desc'}}, 
                        "_score"]
-  query_dsl["facets"] = {"counters": {"terms": {"field" : "type"}}}
+  query_dsl["facets"] = {"counters": {"terms": {"field" : "type","all_terms" : "true"}},
+                         "viewers_count": {"terms":{"field": "viewers", "all_terms" : "true"}}}
+            
       
   try:
     result = INDEX.search(query=query_dsl, index=db_name)
@@ -5367,9 +5388,17 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
       info = get_record(hit.get('_source').get('id'))
       if info and not info.has_key('is_removed'):
 #        results.append(ESResult(info, query))
+        buffer_comments = []
+        if info.has_key('comments'):
+          for comment in info['comments']:
+            if comment['message'].find(input_query) != -1:
+              buffer_comments.append(comment)
+        info['comments'] = buffer_comments
+        
         results['hits'].append(Feed(info, db_name=db_name))
-      
     results['hits'].sort(key=lambda k: k.last_updated, reverse=True)
+    results['suggest'] = get_suggest_people_search(result['facets']['viewers_count'])
+         
     return results
   return None
     
