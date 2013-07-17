@@ -89,8 +89,8 @@
 
 <script type='text/javascript' src='/public/scripts/jquery.highlight.js'></script>
 <script>
-$('document').ready(function(e) {
-    $('div#overlay article').highlight('{{ query }}');
-    $('div#overlay li.comment').highlight('{{ query }}');
+$(document).ready(function(e) {
+    $('article').highlight('{{ query }}');
+    $('li.comment').highlight('{{ query }}');
 })
 </script>
