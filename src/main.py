@@ -3,7 +3,7 @@
 #@PydevCodeAnalysisIgnore
 
 from raven.contrib.flask import Sentry
- 
+
 from flask import (Flask, request, 
                    render_template, render_template_string,
                    redirect, abort, 
@@ -256,6 +256,7 @@ def autocomplete():
                       'type': item.get('type')})
       
   return dumps(items)
+
 
 
 @app.route("/search", methods=['GET', 'OPTIONS', 'POST'])
@@ -1785,10 +1786,20 @@ def group(group_id=None, view='group', page=1):
     privacy = request.form.get('privacy', 'closed')
     post_permission = request.form.get('post_permission', 'members')
     
+    key_app_trello = request.form.get('key_app_trello', None)
+    token_trello = request.form.get('token_trello', None)
+    id_board_trello = request.form.get('id_board_trello', None)
+    
+    
     info = {'name': name,
             'privacy': privacy,
             'post_permission': post_permission,
             'about': about}
+    
+    if key_app_trello and token_trello and id_board_trello:
+      info['key_app_trello'] = key_app_trello
+      info['token_trello'] = token_trello
+      info['id_board_trello'] = id_board_trello 
     
     members = request.form.get('members')
     if members:
@@ -3215,7 +3226,8 @@ def run_app(debug=False):
   
 
   
-  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  #server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
   try:
     print 'Serving HTTP on 0.0.0.0 port 8888...'
     server.start()
@@ -3225,7 +3237,7 @@ def run_app(debug=False):
   
   
 if __name__ == "__main__":
-  run_app(debug=True)
+  run_app(debug=False)
 
 
 

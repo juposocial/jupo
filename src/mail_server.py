@@ -86,7 +86,7 @@ class JupoSMTPServer(smtpd.SMTPServer):
     else:
       return None
     
-
+    
 if __name__ == '__main__':
   server = JupoSMTPServer(('0.0.0.0', 25), None)
   asyncore.loop()

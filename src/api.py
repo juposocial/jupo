@@ -123,6 +123,7 @@ invite_queue = Queue('invite')
 send_mail_queue = Queue('send_mail')
 move_to_s3_queue = Queue('move_to_s3')
 notification_queue = Queue('notification')
+notification_trello_queue = Queue('get_notifications_trello')
 
 
 def send_mail(to_addresses, subject=None, body=None, mail_type=None, 
@@ -2478,6 +2479,48 @@ def new_feed(session_id, message, viewers,
   
   return info['_id']
 
+def post_message_trello(service_name, message, viewers):
+  try:
+    db_name = get_database_name()
+    db = DATABASE[db_name]
+    if service_name == 'trello':
+      email = 'trello@yahoo.com'
+      user = db.owner.find_one({'email':email},
+                               {'session_id':True})
+      if not user:
+        session_id = sign_up(email='trello@yahoo.com', 
+                             password='thieuchuthieuchu', name='Trello')
+        return None
+      else:
+        session_id = user['session_id']
+        return new_feed(session_id, str(message), viewers=viewers)
+#         return new_feed(session_id, str(message), viewers=['public'])
+  except:
+    return None
+
+
+def add_id_trello_to_stream(id_post, id_card_trello):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  db.stream.update({'_id': id_post},
+                   {'$set': {'id_card_trello': str(id_card_trello)}})
+
+def comment_message_trello(message, id_card_trello):
+  query = {'id_card_trello': str(id_card_trello)}
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  info_stream = db.stream.find_one(query)
+  if info_stream:
+    ref_id = info_stream['_id']
+    email = 'trello@yahoo.com'
+    user = db.owner.find_one({'email':email},
+                                 {'session_id':True})
+    if user:
+      session_id = user['session_id']
+      new_comment(session_id, message, ref_id)
+
+
+
 
 def set_viewers(session_id, feed_id, viewers):
   db_name = get_database_name()
@@ -3235,7 +3278,7 @@ def new_comment(session_id, message, ref_id,
                                 mail_type='mentions', 
                                 user_id=user_id, post=info, 
                                 db_name=db_name)
-    
+  
   
   receivers = [info.get('owner')]
   if info.get('comments'):
@@ -4525,10 +4568,10 @@ def update_group_info(session_id, group_id, info):
     return False
   if info.has_key('members'):
     info['members'] = [long(i) for i in info.get('members')]
-  
   db.owner.update({'leaders': user_id, 
                    '_id': long(group_id)}, {'$set': info})
   return True
+
 
 def join_group(session_id, group_id):
   db_name = get_database_name()
