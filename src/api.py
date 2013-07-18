@@ -2479,6 +2479,48 @@ def new_feed(session_id, message, viewers,
   
   return info['_id']
 
+def post_message_trello(service_name, message, viewers):
+  try:
+    db_name = get_database_name()
+    db = DATABASE[db_name]
+    if service_name == 'trello':
+      email = 'trello@yahoo.com'
+      user = db.owner.find_one({'email':email},
+                               {'session_id':True})
+      if not user:
+        session_id = sign_up(email='trello@yahoo.com', 
+                             password='thieuchuthieuchu', name='Trello')
+        return None
+      else:
+        session_id = user['session_id']
+        return new_feed(session_id, str(message), viewers=viewers)
+#         return new_feed(session_id, str(message), viewers=['public'])
+  except:
+    return None
+
+
+def add_id_trello_to_stream(id_post, id_card_trello):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  db.stream.update({'_id': id_post},
+                   {'$set': {'id_card_trello': str(id_card_trello)}})
+
+def comment_message_trello(message, id_card_trello):
+  query = {'id_card_trello': str(id_card_trello)}
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  info_stream = db.stream.find_one(query)
+  if info_stream:
+    ref_id = info_stream['_id']
+    email = 'trello@yahoo.com'
+    user = db.owner.find_one({'email':email},
+                                 {'session_id':True})
+    if user:
+      session_id = user['session_id']
+      new_comment(session_id, message, ref_id)
+
+
+
 
 def set_viewers(session_id, feed_id, viewers):
   db_name = get_database_name()

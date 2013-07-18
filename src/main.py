@@ -1786,9 +1786,9 @@ def group(group_id=None, view='group', page=1):
     privacy = request.form.get('privacy', 'closed')
     post_permission = request.form.get('post_permission', 'members')
     
-    key_app_trello = request.form.get('key_app_trello', None)
-    token_trello = request.form.get('token_trello', None)
-    id_board_trello = request.form.get('id_board_trello', None)
+    trello_app_key = request.form.get('trello_app_key', None)
+    trello_token = request.form.get('trello_token', None)
+    trello_board_id = request.form.get('trello_board_id', None)
     
     
     info = {'name': name,
@@ -1796,10 +1796,10 @@ def group(group_id=None, view='group', page=1):
             'post_permission': post_permission,
             'about': about}
     
-    if key_app_trello and token_trello and id_board_trello:
-      info['key_app_trello'] = key_app_trello
-      info['token_trello'] = token_trello
-      info['id_board_trello'] = id_board_trello 
+    if trello_app_key and trello_token and trello_board_id:
+      info['trello_app_key'] = trello_app_key
+      info['trello_token'] = trello_token
+      info['trello_board_id'] = trello_board_id 
     
     members = request.form.get('members')
     if members:
@@ -3226,7 +3226,8 @@ def run_app(debug=False):
   
 
   
-  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  #server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
   try:
     print 'Serving HTTP on 0.0.0.0 port 8888...'
     server.start()

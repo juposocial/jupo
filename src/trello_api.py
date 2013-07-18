@@ -7,40 +7,20 @@ import requests
 import sys
 import re
 import api
-<<<<<<< HEAD
-TRELLO_APP_KEY = '950ba9d46c41d2bf9de1e89b57df68ca'
-ID_BOARDS_JUPO = '51d6377f4b4cbf2f3f004068'
-TOKEN = '3dfd9ea21d521b3f019d9d1757cf4bc95f0044c12e9ac9af7ada1cafe6937a0d'
-URL_DATA = 'https://trello.com/1/boards/51d6377f4b4cbf2f3f004068?actions=all&actions_limit=10&key=%s&token%s' \
-                % (TRELLO_APP_KEY,TOKEN)
-=======
 from rq import Queue
 from compiler.syntax import check
 import time
 # TRELLO_APP_KEY = '950ba9d46c41d2bf9de1e89b57df68ca'
 # ID_BOARDS_JUPO = '51d6377f4b4cbf2f3f004068'
 # TOKEN = '3dfd9ea21d521b3f019d9d1757cf4bc95f0044c12e9ac9af7ada1cafe6937a0d'
+
 URL_DATA = 'https://trello.com/1/boards/%s?actions=all&actions_limit=20&key=%s&token%s'
->>>>>>> 0b37e92... Push trello notification
 
-# group jupo dev
-ID_VIEWERS = [438236081108811777]
-
-# group test_trello
-# ID_VIEWERS = [481392403568132097]
-# ID_VIEWERS = ['public']
-
-
-<<<<<<< HEAD
-LENG_LIST_ID_IN_FILE = 5
-URL_JUPO = 'http://play.jupo.dev/sign_in'
-=======
 db_name = api.get_database_name()
 db = api.DATABASE[db_name]
 
 LENG_LIST_ID_IN_FILE = 20
 
->>>>>>> 0b37e92... Push trello notification
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 EMAIL_JUPO = 'trello@yahoo.com'
 PASS_JUPO = 'thieuchuthieuchu'
@@ -170,8 +150,8 @@ def check_new_notification(id_notification):
   
   
 
-def get_notifications_trello(key_app_trello, token_trello, id_board_trello):
-  url_data = URL_DATA % (id_board_trello, key_app_trello, token_trello)
+def get_notifications_trello(trello_app_key, trello_token, trello_board_id, id_viewers):
+  url_data = URL_DATA % (trello_board_id, trello_app_key, trello_token)
   data = urllib.urlopen(url_data % ()).read()
   data = json.loads(data)
   list_message = []
@@ -209,7 +189,7 @@ def get_notifications_trello(key_app_trello, token_trello, id_board_trello):
     array_info.append(info)
   
   if array_info:
-    db.owner.update({'id_board_trello': id_board_trello}, 
+    db.owner.update({'trello_board_id': trello_board_id}, 
                     {'$pushAll': {'notification_trello': array_info}})
   
   
@@ -217,7 +197,7 @@ def get_notifications_trello(key_app_trello, token_trello, id_board_trello):
   # moi commend.type ma la kieu comment thi tim feed
   for info_card in reversed(list_message):
     if info_card['type'] != 'commentCard':
-      id_post_message = api.post_message_trello('trello', info_card['message'], ID_VIEWERS)
+      id_post_message = api.post_message_trello('trello', info_card['message'], id_viewers)
       if id_post_message:
         api.add_id_trello_to_stream(id_post_message, info_card['id'])
     else:
@@ -225,24 +205,25 @@ def get_notifications_trello(key_app_trello, token_trello, id_board_trello):
 
 
 def push_notification_trello():
-  query = {'key_app_trello': {'$exists': 'true'}}
+  query = {'trello_app_key': {'$ne': None}}
   groups = db.owner.find(query)
-  for group in groups:
-    if group.has_key('token_trello') and group.has_key('id_board_trello'):
-      key_app_trello = group['key_app_trello']
-      token_trello = group['token_trello']
-      id_board_trello = group['id_board_trello']
-      try:
-        api.notification_trello_queue.enqueue_call(func=get_notifications_trello, args=(key_app_trello,
-                                          token_trello, id_board_trello))
-      except Exception,e:
-        print e
-#       get_notifications_trello( key_app_trello,token_trello, id_board_trello)
-      
+  if groups:
+    for group in groups:
+      if group.has_key('trello_token') and group.has_key('trello_board_id'):
+        trello_app_key = group['trello_app_key']
+        trello_token = group['trello_token']
+        trello_board_id = group['trello_board_id']
+        id_viewers = []
+        if group['_id'] != 'public':
+          id_viewers.append(group['_id'])
+        if id_viewers:
+          api.notification_trello_queue.enqueue_call(func=get_notifications_trello, 
+                                                     args=(trello_app_key, trello_token,
+                                                            trello_board_id, id_viewers))
+          
+          
 if __name__ == '__main__':
   while(True):
     push_notification_trello()
     time.sleep(3*60)
-  
-  
   
