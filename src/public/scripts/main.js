@@ -842,7 +842,7 @@ $(document).ready(function(e) {
   $('#body, #overlay, #popup').on("submit", 'form.new:not(.overlay)', function() {
     
     var form = $(this);
-    var has_mentioned_users = false; 
+    var has_mentioned_users = false;
     
     if($.global.uploader.is_uploading == true) {                  
       $('.uploading-warning', form).show();         
@@ -912,7 +912,10 @@ $(document).ready(function(e) {
         $('input[name="attachments"]', form).val('');
         
         // reset send-to list
-        $('input.autocomplete').tokenInput('clear');
+        // check is not prefill -> clear token input
+        if ($('input.autocomplete').data('prefill') == undefined) {          
+          $('input.autocomplete').tokenInput('clear');
+        }
         $('.token-input-dropdown').hide();
         
         // re-focus textarea
