@@ -42,6 +42,11 @@
     setTimeout(function() {
       $('.token-input-input-token input').focus();
     }, 10)
+    
+    $('.token-input-input-token input').focus(function() {
+        $('div.token-input-dropdown').css('visibility','visible');
+        $('div.token-input-dropdown').css('display','none');
+    });    
  
 
 </script>

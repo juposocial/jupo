@@ -1555,7 +1555,8 @@ function open_in_popup_mode(href, data) {
     if ($.global.request != undefined) {
       $.global.request.abort();
     }
-    
+    //fix pop up invite friends show white line on left screen
+    $('div.token-input-dropdown').css('visibility','hidden'); 
     hide_searchbox_dropdown();
     show_loading();
 
