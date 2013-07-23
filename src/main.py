@@ -394,7 +394,9 @@ def search():
     
   due = api.utctime() - t0
 #   owner = api.get_owner_info(session_id)
-  coworkers = api.get_coworkers(session_id)
+#   coworkers = api.get_coworkers(session_id)
+  coworkers = results['suggest']
+  
   
   if request.method == 'GET':
     return render_homepage(session_id, 'Results for "%s"' % query,
@@ -3220,7 +3222,7 @@ def run_app(debug=False):
   
 
   
-  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
   try:
     print 'Serving HTTP on 0.0.0.0 port 8888...'
     server.start()
