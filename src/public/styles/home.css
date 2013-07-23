@@ -644,6 +644,7 @@ body {
   padding: 0;
   text-rendering: optimizeLegibility;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  
 }
 
 
@@ -5226,6 +5227,8 @@ section > article {
   overflow: hidden;
   line-height: 22px;
   color: #37404e;
+  word-wrap: break-word;
+  word-break: break-all;
 }
 
 section > article.note {
