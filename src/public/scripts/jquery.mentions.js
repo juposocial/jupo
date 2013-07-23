@@ -245,7 +245,8 @@
       var start = currentMessage.substr(0, startCaretPosition);
       var end = currentMessage.substr(currentCaretPosition, currentMessage.length);
       var startEndIndex = (start + mention.value).length + 1;
-      //Cho phép mention 1 user nhiều lần
+      
+      // Enable mentioning the same user multiple times
       if(!$.map(mentionsCollection,function(val,key){if(val.id === mention.id)return val}).length)
       {
         mentionsCollection.push(mention);
@@ -392,10 +393,6 @@
 
       // Filter items that has already been mentioned
       var mentionValues = _.pluck(mentionsCollection, 'value');
-      //Cho phep metion 1 user nhieu lan
-      //results = _.reject(results, function (item) {
-      //  return _.include(mentionValues, item.name);
-      //});
 
       if (!results.length) {
         hideAutoComplete();
