@@ -2988,14 +2988,19 @@ def file(file_id=None, action=None, size=None):
   
   else:
     file = api.get_file_info(session_id, file_id)
-    body = render_template('files.html',
-                           mode='view',
-                           view='files',
-                           owner=owner,
-                           file=file)
-      
-    return dumps({'body': body,
-                  'title': file.name})
+    
+    if request.method == 'GET':
+      return render_homepage(session_id, file.name,
+                             mode='view', view='files', file=file)
+    else:
+      body = render_template('files.html',
+                             mode='view',
+                             view='files',
+                             owner=owner,
+                             file=file)
+        
+      return dumps({'body': body,
+                    'title': file.name})
 
 
 

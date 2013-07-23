@@ -21,7 +21,7 @@
       <ul class='dropdown-menu hidden'>
         <div class="arrow-top-border"></div>
         <div class="arrow-top"></div>
-        <li><a href='#!/file/{{ file.id }}' class='overlay'>View Details...</a></li>
+        <li><a href='/file/{{ file.id }}' class='async'>View Details...</a></li>
           
         <li> <a id='replace-{{ fid }}'><i class='upload-icon'></i> New Version</a></li>
         <li>  <a href='/file/{{ file.id }}/rename' class='rename' data-name="{{ file.name }}" data-id="post-{{ file.id }}">Rename</a></li>
@@ -40,7 +40,7 @@
     </div>
          
 
-            <a href="/user/{{ file.last_action.owner.id }}" class='async'><strong>{{ file.last_action.owner.name }}</strong></a>
+            <a href="/user/{{ file.last_action.owner.id }}" class='async'>{{ file.last_action.owner.name }}</a>
             {% if viewers %}
               &#x21e2;
               {% for user in viewers %}
@@ -59,17 +59,17 @@
 
       
       {% if not viewers %}
-         <a href='/feed/{{ file.id }}/viewers' class='forward viewers' title="Shared with: No one">
+         <span href='/feed/{{ file.id }}/viewers' class='forward viewers' title="Shared with: No one">
            <i class="lock-icon"></i>
-         </a>
+         </span>
       {% elif 'public' in viewers %}
-         <a href='/feed/{{ file.id }}/viewers' class='forward viewers' title="Shared with: Public">
+         <span href='/feed/{{ file.id }}/viewers' class='forward viewers' title="Shared with: Public">
           <i class="public-icon"></i>
-         </a>
+         </span>
       {% else %}
-         <a href='/feed/{{ file.id }}/viewers' class='forward viewers' title="Shared with: {% for user in viewers %}{{ user.name }}{% if loop.index != viewers | length %}, {% endif %}{% endfor %}">
+         <span href='/feed/{{ file.id }}/viewers' class='forward viewers' title="Shared with: {% for user in viewers %}{{ user.name }}{% if loop.index != viewers | length %}, {% endif %}{% endfor %}">
           <i class="friends-icon"></i>
-         </a>
+         </span>
       {% endif %}
   </header>
   {% endif %}
@@ -77,13 +77,14 @@
     <article>
       <div class='file-attachment'>
         
+        {% if mode != 'view' %}
         <div class='rfloat options'>
           
           <a class='dropdown-menu-icon settings-icon'></a>
           <ul class='dropdown-menu hidden'>
             <div class="arrow-top-border"></div>
             <div class="arrow-top"></div>
-            <li><a href='#!/file/{{ file.id }}' class='overlay'>View Details...</a></li>
+            <li><a href='/file/{{ file.id }}' class='async'>View Details...</a></li>
               
                {% set fid = file.id | unique_by_timestamp %} 
               <li> <a id='replace-{{ fid }}'><i class='upload-icon'></i> New Version</a></li>
@@ -101,7 +102,7 @@
     
           </ul>
         </div>
-
+        {% endif %}
         
         
         <img src="{{ file.icon }}" class='lfloat file-icon' width="32">
