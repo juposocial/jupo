@@ -166,7 +166,7 @@
 
       _.each(mentionsCollection, function (mention) {
         var textSyntax = settings.templates.mentionItemSyntax(mention);
-        syntaxMessage = syntaxMessage.replace(mention.value, textSyntax);
+        syntaxMessage = syntaxMessage.replace(new RegExp(mention.value,"g"), textSyntax);
       });
 
       var mentionText = utils.htmlEncode(syntaxMessage);
@@ -176,7 +176,7 @@
         var textSyntax = settings.templates.mentionItemSyntax(formattedMention);
         var textHighlight = settings.templates.mentionItemHighlight(formattedMention);
 
-        mentionText = mentionText.replace(textSyntax, textHighlight);
+        mentionText = mentionText.replace(new RegExp(textSyntax,"g"), textHighlight);
         
         elmInputBox.trigger('change');
         
@@ -245,8 +245,12 @@
       var start = currentMessage.substr(0, startCaretPosition);
       var end = currentMessage.substr(currentCaretPosition, currentMessage.length);
       var startEndIndex = (start + mention.value).length + 1;
-
-      mentionsCollection.push(mention);
+      
+      // Enable mentioning the same user multiple times
+      if(!$.map(mentionsCollection,function(val,key){if(val.id === mention.id)return val}).length)
+      {
+        mentionsCollection.push(mention);
+      }
 
       // Cleaning before inserting the value, otherwise auto-complete would be triggered with "old" inputbuffer
       resetBuffer();
@@ -389,9 +393,6 @@
 
       // Filter items that has already been mentioned
       var mentionValues = _.pluck(mentionsCollection, 'value');
-      results = _.reject(results, function (item) {
-        return _.include(mentionValues, item.name);
-      });
 
       if (!results.length) {
         hideAutoComplete();
