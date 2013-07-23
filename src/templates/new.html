@@ -48,8 +48,6 @@ Leave a message...
                  class='autocomplete'
                  {% if group %}
                   data-prefill='[{name: "{{ group.name }}", id: "{{ group.id }}"},]'
-                 {% elif user %}
-                  data-prefill='[{name: "{{ user.name }}", id: "{{ user.id }}"},]'
                  {% endif %}
                  
                  placeholder='To:'>
