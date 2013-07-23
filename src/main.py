@@ -1143,10 +1143,12 @@ def note(note_id=None, action=None, version=None):
   content = info = None
   if request.path == '/note/new':
     if request.method == 'GET':
+      
       note = {}
       title = 'New Note'
       mode = 'edit'
       view = 'notes'
+      
       return render_homepage(session_id, title,
                              view=view,
                              note=note, mode=mode)
@@ -1173,8 +1175,8 @@ def note(note_id=None, action=None, version=None):
 
       note_id = api.new_note(session_id, title, content, attachments, viewers)
       
-      return dumps({'redirect': '/note/%s' % note_id})
-
+#       return dumps({'redirect': '/note/%s' % note_id})
+      return redirect('/note/%s' % note_id)
 
   elif action and action == 'last_changes':
     note = api.compare_with_previous_version(session_id, note_id, revision=0)
@@ -1182,7 +1184,7 @@ def note(note_id=None, action=None, version=None):
     action = 'compare'
     title = 'Notes - Track changes'
     
-
+    
   elif version is not None:
     app.logger.debug(version)
     note = api.get_note(session_id, note_id, version)
@@ -1215,7 +1217,8 @@ def note(note_id=None, action=None, version=None):
     else:
       note_id = api.new_note(session_id, title, content, attachments, viewers)
       
-    return dumps({'redirect': '/note/%s' % note_id})
+#     return dumps({'redirect': '/note/%s' % note_id})
+    return redirect('/note/%s' % note_id)
     
   elif action == 'remove':
     session_id = session.get("session_id")
@@ -3220,7 +3223,7 @@ def run_app(debug=False):
   
 
   
-  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
   try:
     print 'Serving HTTP on 0.0.0.0 port 8888...'
     server.start()
@@ -3230,7 +3233,7 @@ def run_app(debug=False):
   
   
 if __name__ == "__main__":
-  run_app(debug=True)
+  run_app(debug=False)
 
 
 
