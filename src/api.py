@@ -2947,10 +2947,10 @@ def get_feeds(session_id, group_id=None, page=1,
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
-  key = '%s:%s:%s:%s' % (group_id, page, limit, include_archived_posts)
-  out = cache.get(key, user_id)
-  if out:
-    return out
+#   key = '%s:%s:%s:%s' % (group_id, page, limit, include_archived_posts)
+#   out = cache.get(key, user_id)
+#   if out:
+#     return out
   
   if not user_id:
     if group_id:
@@ -2962,7 +2962,7 @@ def get_feeds(session_id, group_id=None, page=1,
                          .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                          .limit(limit)
         feeds = [Feed(i, db_name=db_name) for i in feeds if i]
-        cache.set(key, feeds, 3600, user_id)
+#         cache.set(key, feeds, 3600, user_id)
         return feeds
     return []
 
@@ -2996,7 +2996,7 @@ def get_feeds(session_id, group_id=None, page=1,
                      .limit(limit)
                                     
   feeds = [Feed(i, db_name=db_name) for i in feeds if i]
-  cache.set(key, feeds, 3600, user_id)
+#   cache.set(key, feeds, 3600, user_id)
   return feeds
 
 @line_profile
@@ -5361,7 +5361,8 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
   if result and result.has_key('hits'): # pylint: disable-msg=E1103
     hits = result['hits'].get('hits')
     results = {}
-    results['counters'] = result['facets']['counters']['terms']
+    results['counters'] = [i for i in result['facets']['counters']['terms']\
+                           if int(i['count']) > 0]
     results['hits'] = []
     for hit in hits:
       info = get_record(hit.get('_source').get('id'))
@@ -5386,7 +5387,8 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
     terms = counters['terms']
     for term in terms:
       id = term['term']
-      if id not in list_suggest_ids and id != 'public':
+      count = term['count']
+      if id not in list_suggest_ids and id != 'public' and int(count) > 0:
         list_suggest_ids.append(long(id))
       
     db_name = get_database_name()
