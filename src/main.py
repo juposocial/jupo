@@ -1140,7 +1140,12 @@ def notes(page=1):
 def note(note_id=None, action=None, version=None):  
   session_id = session.get("session_id")
   owner = api.get_owner_info(session_id)
-  content = info = None
+  content = info = group = None
+
+  group_id = request.args.get('group_id')
+  if group_id:
+    group = api.get_group_info(session_id, group_id)
+    
   if request.path == '/note/new':
     if request.method == 'GET':
       
@@ -1151,6 +1156,7 @@ def note(note_id=None, action=None, version=None):
       
       return render_homepage(session_id, title,
                              view=view,
+                             group=group,
                              note=note, mode=mode)
     elif request.method == 'OPTIONS':
       title = 'New Note'
@@ -1268,12 +1274,6 @@ def note(note_id=None, action=None, version=None):
   view = 'notes'
   if version is None and info:
     version = len(note.to_dict()['version'])
-
-  group_id = request.args.get('group_id')
-  if group_id:
-    group = api.get_group_info(session_id, group_id)
-  else:
-    group = None  
   
   if request.method in ["POST", "OPTIONS"]:
     body = render_template('notes.html', 

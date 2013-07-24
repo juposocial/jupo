@@ -318,7 +318,7 @@
       if (top.location.href != self.location.href)
          top.location.href = self.location.href;
          
-      {% if request.args %}
+      {% if request.args and not request.path.endswith('/new') %}
         $(document).ready(function() {
             hopscotch.startTour({{ request.args.keys()[0] }});
         })
