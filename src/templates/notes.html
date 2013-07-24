@@ -39,10 +39,14 @@
           
           <tr id='send-to' class='toggle hidden'>
             <td>
-              <input type='text'
-                     name='viewers' 
-                     class='autocomplete'
-                     placeholder='Add more people...'>
+	          <input type='text' 
+					 name='viewers' 
+	                 class='autocomplete'
+	                 {% if group.id %}
+	                  data-prefill='[{name: "{{ group.name }}", id: "{{ group.id }}"},]'
+	                 {% endif %}
+	                 
+	                 placeholder='Add more people:'>
             </td>
           </tr>
           
