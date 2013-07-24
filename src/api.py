@@ -2947,10 +2947,10 @@ def get_feeds(session_id, group_id=None, page=1,
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
-  key = '%s:%s:%s:%s' % (group_id, page, limit, include_archived_posts)
-  out = cache.get(key, user_id)
-  if out:
-    return out
+#   key = '%s:%s:%s:%s' % (group_id, page, limit, include_archived_posts)
+#   out = cache.get(key, user_id)
+#   if out:
+#     return out
   
   if not user_id:
     if group_id:
@@ -2962,7 +2962,7 @@ def get_feeds(session_id, group_id=None, page=1,
                          .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                          .limit(limit)
         feeds = [Feed(i, db_name=db_name) for i in feeds if i]
-        cache.set(key, feeds, 3600, user_id)
+#         cache.set(key, feeds, 3600, user_id)
         return feeds
     return []
 
@@ -2996,7 +2996,7 @@ def get_feeds(session_id, group_id=None, page=1,
                      .limit(limit)
                                     
   feeds = [Feed(i, db_name=db_name) for i in feeds if i]
-  cache.set(key, feeds, 3600, user_id)
+#   cache.set(key, feeds, 3600, user_id)
   return feeds
 
 @line_profile
@@ -5310,7 +5310,7 @@ def people_search(query, group_id=None, db_name=None):
 
 def search(session_id, query, type=None, ref_user_id=None, page=1):
   db_name = get_database_name()
-  
+  input_query = query
   hashtag_id = None
   if query.startswith('#'):
     hashtag_id = query.lstrip('#').lower()
@@ -5339,18 +5339,18 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
     query = '(%s) AND (content:*%s* OR comments:*%s*)' % (viewers, query, query)
     
   if type:
-    query += ' AND type:%s' % type 
-  
+    query += ' AND type:%s' % type
   print query
   query_dsl =  {}
-
   query_dsl['query'] = {"query_string": {"query": query}}
   query_dsl['from'] = (page - 1) * 5
   query_dsl['size'] = 5
   query_dsl['sort'] = [{'ts': {'order': 'desc'}}, 
                        {'id': {'order': 'desc'}}, 
                        "_score"]
-  query_dsl["facets"] = {"counters": {"terms": {"field" : "type"}}}
+  query_dsl["facets"] = {"counters": {"terms": {"field": "type", "all_terms": "true"}},
+                         "viewers_count": {"terms":{"field": "viewers", "all_terms": "true"}}}
+            
       
   try:
     result = INDEX.search(query=query_dsl, index=db_name)
@@ -5361,15 +5361,46 @@ def search(session_id, query, type=None, ref_user_id=None, page=1):
   if result and result.has_key('hits'): # pylint: disable-msg=E1103
     hits = result['hits'].get('hits')
     results = {}
-    results['counters'] = result['facets']['counters']['terms']
+    results['counters'] = [i for i in result['facets']['counters']['terms']\
+                           if int(i['count']) > 0]
     results['hits'] = []
     for hit in hits:
       info = get_record(hit.get('_source').get('id'))
       if info and not info.has_key('is_removed'):
 #        results.append(ESResult(info, query))
+        buffer_comments = []
+        if info.has_key('comments'):
+          for comment in info['comments']:
+            if input_query in comment['message']:
+              buffer_comments.append(comment)
+        info['comments'] = buffer_comments
+        
         results['hits'].append(Feed(info, db_name=db_name))
-      
     results['hits'].sort(key=lambda k: k.last_updated, reverse=True)
+    
+    
+#     get info suggest people     
+    
+    results_suggest = []
+    list_suggest_ids = []
+    counters = result['facets']['viewers_count']
+    terms = counters['terms']
+    for term in terms:
+      id = term['term']
+      count = term['count']
+      if id not in list_suggest_ids and id != 'public' and int(count) > 0:
+        list_suggest_ids.append(long(id))
+      
+    db_name = get_database_name()
+    db = DATABASE[db_name]
+    
+    info_peoples = db['owner'].find({'_id': {'$in': list_suggest_ids}})
+    for people in info_peoples:
+      results_suggest.append(User(people))
+    
+    results['suggest'] = results_suggest
+    
+         
     return results
   return None
     

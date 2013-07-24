@@ -394,7 +394,9 @@ def search():
     
   due = api.utctime() - t0
 #   owner = api.get_owner_info(session_id)
-  coworkers = api.get_coworkers(session_id)
+#   coworkers = api.get_coworkers(session_id)
+  coworkers = results['suggest']
+  
   
   if request.method == 'GET':
     return render_homepage(session_id, 'Results for "%s"' % query,
