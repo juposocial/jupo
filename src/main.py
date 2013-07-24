@@ -1069,7 +1069,7 @@ def reminders(reminder_id=None):
                              view='reminders',
                              reminders=reminders_list)
       
-      json = dumps({"body": body, 
+      json = dumps({"body": body,   
                     "title": 'Reminders'})
       return Response(json, mimetype='application/json') 
   
@@ -1140,15 +1140,23 @@ def notes(page=1):
 def note(note_id=None, action=None, version=None):  
   session_id = session.get("session_id")
   owner = api.get_owner_info(session_id)
-  content = info = None
+  content = info = group = None
+
+  group_id = request.args.get('group_id')
+  if group_id:
+    group = api.get_group_info(session_id, group_id)
+    
   if request.path == '/note/new':
     if request.method == 'GET':
+      
       note = {}
       title = 'New Note'
       mode = 'edit'
       view = 'notes'
+      
       return render_homepage(session_id, title,
                              view=view,
+                             group=group,
                              note=note, mode=mode)
     elif request.method == 'OPTIONS':
       title = 'New Note'
@@ -1175,14 +1183,13 @@ def note(note_id=None, action=None, version=None):
       
       return dumps({'redirect': '/note/%s' % note_id})
 
-
   elif action and action == 'last_changes':
     note = api.compare_with_previous_version(session_id, note_id, revision=0)
     mode = 'view'
     action = 'compare'
     title = 'Notes - Track changes'
     
-
+    
   elif version is not None:
     app.logger.debug(version)
     note = api.get_note(session_id, note_id, version)
@@ -1267,12 +1274,6 @@ def note(note_id=None, action=None, version=None):
   view = 'notes'
   if version is None and info:
     version = len(note.to_dict()['version'])
-
-  group_id = request.args.get('group_id')
-  if group_id:
-    group = api.get_group_info(session_id, group_id)
-  else:
-    group = None  
   
   if request.method in ["POST", "OPTIONS"]:
     body = render_template('notes.html', 
@@ -3220,7 +3221,7 @@ def run_app(debug=False):
   
 
   
-  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8888), app)
+  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
   try:
     print 'Serving HTTP on 0.0.0.0 port 8888...'
     server.start()
@@ -3230,7 +3231,7 @@ def run_app(debug=False):
   
   
 if __name__ == "__main__":
-  run_app(debug=True)
+  run_app(debug=False)
 
 
 
