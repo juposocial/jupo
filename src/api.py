@@ -15,6 +15,7 @@ import logging
 import calendar
 import requests
 import mimetypes
+import base64
 
 from os import urandom
 from urllib import quote
@@ -61,7 +62,7 @@ from boto.s3.connection import S3Connection
 from rq import Queue, use_connection
 from validate_email import validate_email
 
-from flask import request
+from flask import (request, render_template)
 
 try:
   from collections import OrderedDict as odict
@@ -1128,9 +1129,11 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
+  
   email = email.strip().lower()
   name = name.strip()
   raw_password = password
+  
   
   # Validation
   if validate_email(email) is False:
@@ -1188,21 +1191,23 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
                                None, None, 
                                db_name=db_name)
     
+    
+  # Sua cho nay
   
-  
-#  subject = 'E-mail verification for the 5works Public Beta'
-#  body = render_template('email/verification.html', 
-#                         name=name, domain='jupo.comm', token=token)
-#  send_mail(email, subject, body)
-  
-  # init some data
-#   new_reminder(session_id, 'Find some contacts')
-#   new_reminder(session_id, 'Upload a profile picture (hover your name at the top right corner, click "Change Profile Picture" in drop down menu)')
-#   new_reminder(session_id, 'Hover over me and click anywhere on this line to check me off as done')
-
-  # add user to "Welcome to 5works" group
-#  db.owner.update({'_id': 340916998231818241}, 
-#                        {'$addToSet':{'members': info['_id']}})
+  user_id = get_user_id(session_id)
+  if not user_id:
+    return False
+  random_string = 'u5o7z8o9o5r6trm1l80n'
+  key = base64.b64encode(str(user_id) + random_string)
+  try:
+    subject = 'E-mail verification for the JUPO'
+  #   body = render_template('email/verification.html', 
+  #                          name=name, domain='jupo.comm', token=token)
+    body = render_template('email/welcome_verify.html', 
+                           key=key, name=name, domain=settings.PRIMARY_DOMAIN)
+    send_mail(email, subject, body)
+  except:
+    pass
 
   return session_id
 
@@ -1256,9 +1261,17 @@ def reset_password(user_id, new_password):
   return True
     
 
-def verify(token):
-  pass
-
+def verify(key):
+  string_buffer = base64.b64decode(key)
+  user_id = string_buffer.replace('u5o7z8o9o5r6trm1l80n','')
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  db.owner.update({'_id': long(user_id)}, 
+                  {'$set': {'verified': True}})
+  
+  cache.delete('%s:info' % user_id)
+  return True
+  
 def new_verify_token(email):
   pass
 
