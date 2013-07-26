@@ -31,6 +31,8 @@ from werkzeug.contrib.cache import MemcachedCache
 from lib import cache
 from lib.img_utils import zoom
 from lib.json_util import default as BSON
+from validate_email import validate_email
+
 
 from helpers import extensions
 from helpers.decorators import *
@@ -632,7 +634,6 @@ def jobs():
 @app.route("/<any(sign_in, sign_up, sign_out, forgot_password, reset_password):action>", methods=["GET", "OPTIONS", "POST"])
 def authentication(action=None):
   hostname = request.headers.get('Host')
-  
   db_name = hostname.replace('.', '_')
   
   primary_domain = '.'.join(settings.PRIMARY_DOMAIN.rsplit('.', 2)[-2:])
@@ -742,8 +743,10 @@ def authentication(action=None):
       alerts['email'] = '"%s" is already in use.' % email
     if len(password) < 6:
       alerts['password'] = 'Your password must be at least 6 characters long.'
-    
-    
+      
+    if validate_email(email) is False:
+      alerts['email'] = 'Type email "%s" is not exact' % email
+      
     if alerts.keys():
       resp = Response(render_template('sign_up.html', 
                                       alerts=alerts,
@@ -776,6 +779,7 @@ def authentication(action=None):
         else:
           return redirect('/everyone?getting_started=1')  
       else:
+        
         return redirect('/')
       
   elif request.path.endswith('sign_out'):
@@ -1040,8 +1044,27 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   def get_facebook_token():
     return session.get('facebook_access_token') 
   
+@app.route('/verify/<key>', methods=['GET'])
+def verify(key=None):
+  if key and request.path.startswith('/verify'):
+    api.verify(key)
   
+@app.route('/send_mail_verify/<id>', methods=['GET'])
+@login_required  
+@line_profile
 
+def send_mail_verify(id=None):
+  if id:
+    owner = api.get_owner_info_from_uuid(id)
+    if owner:
+      subject = 'E-mail verification for the JUPO'
+      name = owner.name
+      key = base64.b64encode(str(id) + 'u5o7z8o9o5r6trm1l80n')
+      body = render_template('email/welcome_verify.html', 
+                             key=key, name=name, domain=settings.PRIMARY_DOMAIN)
+      api.send_mail(email, subject, body)
+    
+    
 @app.route('/reminders', methods=['GET', 'OPTIONS', 'POST'])
 @app.route('/reminder/new', methods=["POST"])
 @app.route('/reminder/<int:reminder_id>/check', methods=["POST"])
@@ -2313,9 +2336,7 @@ def news_feed(page=1):
                           include_archived_posts=False)
     category = None
     
-    
   owner = api.get_user_info(user_id)
-  
   if request.method == "OPTIONS":
     if page > 1:
       posts = []
