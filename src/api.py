@@ -2947,10 +2947,10 @@ def get_feeds(session_id, group_id=None, page=1,
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
-#   key = '%s:%s:%s:%s' % (group_id, page, limit, include_archived_posts)
-#   out = cache.get(key, user_id)
-#   if out:
-#     return out
+  key = '%s:%s:%s:%s' % (group_id, page, limit, include_archived_posts)
+  out = cache.get(key, user_id)
+  if out:
+    return out
   
   if not user_id:
     if group_id:
@@ -2962,7 +2962,7 @@ def get_feeds(session_id, group_id=None, page=1,
                          .skip((page - 1) * settings.ITEMS_PER_PAGE)\
                          .limit(limit)
         feeds = [Feed(i, db_name=db_name) for i in feeds if i]
-#         cache.set(key, feeds, 3600, user_id)
+        cache.set(key, feeds, 3600, user_id)
         return feeds
     return []
 
@@ -2996,7 +2996,7 @@ def get_feeds(session_id, group_id=None, page=1,
                      .limit(limit)
                                     
   feeds = [Feed(i, db_name=db_name) for i in feeds if i]
-#   cache.set(key, feeds, 3600, user_id)
+  cache.set(key, feeds, 3600, user_id)
   return feeds
 
 @line_profile
