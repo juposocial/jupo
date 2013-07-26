@@ -2467,12 +2467,19 @@ function refresh(element) {
       if ($('div#attachments div#attachment-' + response.attachment_id).length == 0) {
         $('div#attachments').append(response.html);
 
-        // monitor upload status
-        // if success, show "share button"
+        // show "share button" once upload succeed.
 
         if($('form#new-file footer').length >0){
           $('form#new-file footer, form#new-file #send-to').removeClass('hidden');
         }
+
+        // hide "share button" once user removes all uploaded attachments
+        $('.remove-attachment').mouseup(function(){
+          if(!$('#attachments').is(':empty')){
+            $('form#new-file footer, form#new-file #send-to').addClass('hidden');
+          }
+          
+        });
 
         files = $('input[name="attachments"]').val() + response.attachment_id + ','
         $('input[name="attachments"]').val(files);
