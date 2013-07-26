@@ -2467,24 +2467,23 @@ function refresh(element) {
       if ($('div#attachments div#attachment-' + response.attachment_id).length == 0) {
         $('div#attachments').append(response.html);
 
-        // show "share button" once upload succeed.
-
-        if($('form#new-file footer').length >0){
-          $('form#new-file footer, form#new-file #send-to').removeClass('hidden');
-        }
-
-        // hide "share button" once user removes all uploaded attachments
-        $('.remove-attachment').mouseup(function(){
-          if(!$('#attachments').is(':empty')){
-            $('form#new-file footer, form#new-file #send-to').addClass('hidden');
-          }
-          
-        });
-
         files = $('input[name="attachments"]').val() + response.attachment_id + ','
         $('input[name="attachments"]').val(files);
 
         refresh('div#attachments');
+
+        // show "share button" once upload succeed.
+
+        if($('#files .remove-attachment').length){
+          $('form#new-file footer, form#new-file #send-to').removeClass('hidden');
+        }
+        // hide "share button" once user removes all uploaded attachments
+        $('#files .remove-attachment').mouseup(function(){
+          if($('#attachments').children().length == 1){
+            $('form#new-file footer, form#new-file #send-to').addClass('hidden');
+          }
+        });
+
       }
 
     });
