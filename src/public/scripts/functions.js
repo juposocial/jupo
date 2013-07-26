@@ -2467,6 +2467,13 @@ function refresh(element) {
       if ($('div#attachments div#attachment-' + response.attachment_id).length == 0) {
         $('div#attachments').append(response.html);
 
+        // monitor upload status
+        // if success, show "share button"
+
+        if($('form#new-file footer').length >0){
+          $('form#new-file footer, form#new-file #send-to').removeClass('hidden');
+        }
+
         files = $('input[name="attachments"]').val() + response.attachment_id + ','
         $('input[name="attachments"]').val(files);
 
