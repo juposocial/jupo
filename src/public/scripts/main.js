@@ -842,7 +842,7 @@ $(document).ready(function(e) {
   $('#body, #overlay, #popup').on("submit", 'form.new:not(.overlay)', function() {
     
     var form = $(this);
-    var has_mentioned_users = false; 
+    var has_mentioned_users = false;
     
     if($.global.uploader.is_uploading == true) {                  
       $('.uploading-warning', form).show();         
@@ -857,7 +857,7 @@ $(document).ready(function(e) {
       });
     }  
 
-    if (has_mentioned_users != true && $('input[name="viewers"]', form).val() == '') {
+    if (has_mentioned_users != true && $('input[name="viewers"]', form).val() == '' && this.id != 'new-file') {
       if ($('tr#send-to').is(':visible') == true) {
         $('.token-input-input-token input', form).focus();
       } else {
