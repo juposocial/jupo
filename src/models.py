@@ -280,6 +280,11 @@ class User(Model):
       return email_addr
   
   @property
+  def verified(self):
+    return self.info.get('verified','')
+  
+  
+  @property
   def email_name(self):
     if '@' in self.email:
       return self.email.split('@', 1)[0]

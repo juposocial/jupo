@@ -61,7 +61,7 @@ from boto.s3.connection import S3Connection
 from rq import Queue, use_connection
 from validate_email import validate_email
 
-from flask import request
+from flask import (request, render_template)
 
 try:
   from collections import OrderedDict as odict
@@ -219,7 +219,8 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       reply_to = 'post%s@%s' % (mail_id, settings.EMAIL_REPLY_TO_DOMAIN)
       msg['Reply-To'] = Header(reply_to, "utf-8")
       
-    MAIL = SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
+#     MAIL = SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
+    MAIL = SMTP('54.249.244.48', settings.SMTP_PORT)
     
     if settings.SMTP_USE_TLS is True:
       MAIL.starttls()
@@ -1124,13 +1125,15 @@ def sign_in_with_twitter():
   pass
   
 
-def sign_up(email, password, name, user_agent=None, remote_addr=None):
+def sign_up(email, password, name, hostname=None, user_agent=None, remote_addr=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
+  
   
   email = email.strip().lower()
   name = name.strip()
   raw_password = password
+  
   
   # Validation
   if validate_email(email) is False:
@@ -1188,21 +1191,22 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
                                None, None, 
                                db_name=db_name)
     
-  
-  
-#  subject = 'E-mail verification for the 5works Public Beta'
-#  body = render_template('email/verification.html', 
-#                         name=name, domain='jupo.comm', token=token)
-#  send_mail(email, subject, body)
-  
-  # init some data
-#   new_reminder(session_id, 'Find some contacts')
-#   new_reminder(session_id, 'Upload a profile picture (hover your name at the top right corner, click "Change Profile Picture" in drop down menu)')
-#   new_reminder(session_id, 'Hover over me and click anywhere on this line to check me off as done')
-
-  # add user to "Welcome to 5works" group
-#  db.owner.update({'_id': 340916998231818241}, 
-#                        {'$addToSet':{'members': info['_id']}})
+    
+  # Sua cho nay
+  user_id = get_user_id(session_id)
+  if not user_id:
+    return False
+  random_string = 'u5o7z8o9o5r6trm1l80n'
+  key = hashlib.md5(str(user_id) + random_string).hexdigest()
+  try:
+    subject = 'E-mail verification for the JUPO'
+  #   body = render_template('email/verification.html', 
+  #                          name=name, domain='jupo.comm', token=token)
+    body = render_template('email/verification.html', 
+                           key=key, name=name, domain=hostname, user_id=user_id)
+    send_mail(email, subject, body)
+  except:
+    pass
 
   return session_id
 
@@ -1256,9 +1260,17 @@ def reset_password(user_id, new_password):
   return True
     
 
-def verify(token):
-  pass
-
+def verify(key, user_id):
+  string_buffer = 'u5o7z8o9o5r6trm1l80n'
+  key_local = hashlib.md5(str(user_id) + string_buffer).hexdigest()
+  if key == key_local:
+    db_name = get_database_name()
+    db = DATABASE[db_name]
+    db.owner.update({'_id': long(user_id)}, 
+                    {'$set': {'verified': True}})
+    cache.delete('%s:info' % user_id)
+    return True
+  
 def new_verify_token(email):
   pass
 
