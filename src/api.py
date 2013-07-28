@@ -4229,6 +4229,19 @@ def new_file(session_id, attachment_id, viewers=None):
   
   index_queue.enqueue(add_index, file_id, name, viewers, 'file', db_name)
   
+  
+  # clear news feed cache
+  user_ids = set()
+  for i in viewers:
+    if is_group(i):
+      member_ids = get_group_member_ids(i)
+      for id in member_ids:
+        user_ids.add(id)
+    else:
+      user_ids.add(i)
+  for user_id in user_ids:
+    cache.clear(user_id)
+  
   return file_id
 
 def add_viewers(viewers, ref_id):
