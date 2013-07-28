@@ -857,7 +857,7 @@ $(document).ready(function(e) {
       });
     }  
 
-    if (has_mentioned_users != true && $('input[name="viewers"]', form).val() == '') {
+    if (has_mentioned_users != true && $('input[name="viewers"]', form).val() == '' && this.id != 'new-file') {
       if ($('tr#send-to').is(':visible') == true) {
         $('.token-input-input-token input', form).focus();
       } else {
