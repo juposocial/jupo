@@ -2471,6 +2471,19 @@ function refresh(element) {
         $('input[name="attachments"]').val(files);
 
         refresh('div#attachments');
+
+        // show "share button" once upload succeed.
+        if ($('#files .remove-attachment').length) {
+          $('form#new-file footer, form#new-file #send-to').removeClass('hidden');
+        }
+        
+        // hide "share button" once user removes all uploaded attachments
+        $('#files .remove-attachment').mouseup(function() {
+          if ($('#attachments').children().length == 1) {
+            $('form#new-file footer, form#new-file #send-to').addClass('hidden');
+          }
+        });
+
       }
 
     });
