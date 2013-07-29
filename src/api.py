@@ -6044,7 +6044,6 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
-  
   owner_id = get_user_id(session_id, db_name=db_name)
   if not owner_id:
     return False
@@ -6165,6 +6164,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   
   template = app.CURRENT_APP.jinja_env.get_template('message.html')
   html = template.render(message=msg).replace('\n', '')
+    
   if topic_id:
     topic = get_topic_info(topic_id, db_name=db_name)
     user_ids = topic.member_ids
@@ -6176,7 +6176,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
                        info=html, db_name=db_name)
     push_queue.enqueue(publish, owner_id, 'new-message', 
                        info=html, db_name=db_name)
-    
+  
   if return_empty_html:
     return ''
   else:
