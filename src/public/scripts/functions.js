@@ -2267,39 +2267,42 @@ function enable_emoticons_autocomplete(element) {
      'img': 'http://jupo.s3.amazonaws.com/emoticons/thumbs-up.png'},
   ]
   
+  try {
   
-  $(element + ' form.new textarea.mention, form.new-comment textarea.mention').atwho('run').atwho({
-      at: ":",
-      search_key: "name",
-      tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
-      'data': emoticons_1,
-      display_flag: false,
-  }).atwho({
-      at: ";",
-      search_key: "name",
-      tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
-      'data': emoticons_2,
-      display_flag: false
-  }).atwho({
-      at: "=",
-      search_key: "name",
-      tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
-      'data': emoticons_3,
-      display_flag: false
-  }).atwho({
-      at: "(",
-      search_key: "name",
-      tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
-      'data': emoticons_4,
-      display_flag: false
-  }).on('inserted.atwho', function(e) {
-    console.log('emo inserted')
-    $.global.emoticon_inserted = true;
-    
-    setTimeout(function () {
-      $.global.emoticon_inserted = false;
-    }, 100)
-  })
+    $(element + ' form.new textarea.mention, form.new-comment textarea.mention').atwho('run').atwho({
+        at: ":",
+        search_key: "name",
+        tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
+        'data': emoticons_1,
+        display_flag: false,
+    }).atwho({
+        at: ";",
+        search_key: "name",
+        tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
+        'data': emoticons_2,
+        display_flag: false
+    }).atwho({
+        at: "=",
+        search_key: "name",
+        tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
+        'data': emoticons_3,
+        display_flag: false
+    }).atwho({
+        at: "(",
+        search_key: "name",
+        tpl:"<li data-value='${key}'><img class='emoticon' src='${img}'> ${name}</li>",
+        'data': emoticons_4,
+        display_flag: false
+    }).on('inserted.atwho', function(e) {
+      console.log('emo inserted')
+      $.global.emoticon_inserted = true;
+      
+      setTimeout(function () {
+        $.global.emoticon_inserted = false;
+      }, 100)
+    })
+  
+  } catch (err) {}
 }
 
 function refresh(element) {
