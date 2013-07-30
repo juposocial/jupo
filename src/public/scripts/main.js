@@ -129,13 +129,23 @@ $(document).ready(function(e) {
     if (content.is(':visible') == false) {
       $('footer div.actions a.see-changes', post).trigger('click');
     }
+
+
+    // this code fixes bug long link truncated but not recover when edit
+    var pid = $(e.target).attr('data-href').replace(/[A-Za-z$-/]/g, "");
+    var thelink = $('li[id="post-'+pid+'"]').find('article.message a');
+    thelink.html(thelink.attr('href'));
+    // end of code fix
+
     
     $.global.last_content = content.html();
     content.attr('contenteditable', 'true').focus().selectText();
     content.data('href', href);
     return false;
+
+   
     
-  })
+  });
   
   $("#body, #overlay").on('keydown', "article div[contenteditable]", function(e) {
     console.log(e.keyCode)
@@ -157,7 +167,7 @@ $(document).ready(function(e) {
     } else if (e.keyCode == 27) { // ESC
       _this.html($.global.last_content).removeAttr('contenteditable').blur()
     }
-  })
+  });
 
   // Archive posts
   $("#body, #overlay").on('click', "a.archive", function(e) {
