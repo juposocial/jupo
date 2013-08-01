@@ -133,8 +133,8 @@ $(document).ready(function(e) {
 
     // this code fixes bug long link truncated but not recover when edit
     var pid = $(e.target).attr('data-href').replace(/[A-Za-z$-/]/g, "");
-    var thelink = $('li[id="post-'+pid+'"]').find('article.message a');
-    thelink.html(thelink.attr('href'));
+    var the_link = $('li[id="post-' + pid + '"]').find('article.message a');
+    the_link.html(the_link.attr('href'));
     // end of code fix
 
     
