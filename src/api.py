@@ -2578,6 +2578,19 @@ def remove_feed(session_id, feed_id, group_id=None):
     if is_admin(user_id, group_id):
       db.stream.update({'_id': long(feed_id)}, 
                        {'$pull': {'viewers': group_id}})
+      
+      # clear cache
+      user_ids = set()
+      for i in post.viewer_ids:
+        if is_group(i):
+          member_ids = get_group_member_ids(i)
+          for id in member_ids:
+            user_ids.add(id)
+        else:
+          user_ids.add(i)
+      for user_id in user_ids:
+        cache.clear(user_id)
+      
       return True
   
   elif not post.read_receipt_ids and user_id == post.owner.id:
@@ -2587,6 +2600,18 @@ def remove_feed(session_id, feed_id, group_id=None):
     for user_id in post.viewer_ids:
       push_queue.enqueue(publish, user_id, 'remove', 
                          {'post_id': str(feed_id)}, db_name=db_name)
+      
+    # clear cache
+    user_ids = set()
+    for i in post.viewer_ids:
+      if is_group(i):
+        member_ids = get_group_member_ids(i)
+        for id in member_ids:
+          user_ids.add(id)
+      else:
+        user_ids.add(i)
+    for user_id in user_ids:
+      cache.clear(user_id)
       
     return True
   
