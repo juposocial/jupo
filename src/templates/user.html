@@ -1,8 +1,12 @@
 {% if mode == 'search' %}
       <li title='{{ user.email }}' class='{% if user.name == user.email %}email{% endif %}'>
+        {% if owner.contact_ids | length > 1 %}
+          <input type='checkbox' value='{{ user.id }}' class='checkbox-chat lfloat' />
+        {% endif %}                   
         {% if user.is_registered() %}
           {% if group_id and owner.id in group.administrator_ids %}
             {% if user.id in group.member_ids %}
+
             <a class='button toggle sign' href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}' title='Remove user from group' data-href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' data-title='Add user to group' data-name='+'>×</a>
             {% else %}
             <a class='button toggle sign' href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' title='Add user to group' data-href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}' data-title='Remove user from group' data-name='×'>+</a>
@@ -22,7 +26,7 @@
             <a class='button async' href='/user/{{ user.id }}'>View Profile</a>
             
           {% else %}
-            {% if user.id in owner.contact_ids %}
+            {% if user.id in owner.contact_ids %}            
             <a class='button unfollow' href='/user/{{ user.id }}/unfollow'>Remove from Contacts</a>
             {% else %}
             <a class='button follow' href='/user/{{ user.id }}/follow'>Add to Contacts</a>

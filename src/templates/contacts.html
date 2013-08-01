@@ -9,10 +9,15 @@
 <ul class='people'>
   {% set contacts = owner.contacts %}
   {% if contacts %}
+ 
     {% for user in contacts %}
       {% if user.email %}
     
         <li>
+          {% if owner.contact_ids | length > 1 %}
+          <input type='checkbox' value='{{ user.id }}' class='checkbox-chat lfloat' />
+          {% endif %}         
+
           <a class='button chat' href='/chat/user/{{ user.id }}'>Start Chat</a>
       
           <img class='small-avatar lfloat' src='{{ user.avatar }}'>
@@ -36,4 +41,5 @@
     </li>
   {% endif %}
 </ul>
+<ul><li class="group-chat"><a style="display:none" class="button chat" href="javascript:void(0);">Start Group Chat</a></li></ul>
 

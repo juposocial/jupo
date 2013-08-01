@@ -7000,11 +7000,24 @@ top: 8px;
   float: left;
 }
 
+li input.checkbox-chat{
+  margin-top: 10px;
+  margin-right: 10px;  
+}
+
 #popup .people .button {
   float: right;
   margin-left: 7px;
   text-align: center;
   opacity: 0;
+}
+
+#popup li.group-chat .button {  
+  float: left;
+  margin-left: 20px;
+  text-align: center;
+  opacity: 1;
+  margin-bottom: 10px;
 }
 
 #popup .button.sign {

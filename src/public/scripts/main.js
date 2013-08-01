@@ -2113,6 +2113,19 @@ $(document).ready(function(e) {
     
   })
 
+  $('#global').on('click', 'input.checkbox-chat', function() {      
+      var href = '/chat/topic?user_ids=';
+      var ids = $('input.checkbox-chat:checked','#global').map(function () {return this.value;}).get().join(",");
+      var group_chat = $('li.group-chat a','#global');
+      if (ids.length > 0) {
+        href += ids;
+        group_chat.show();
+      } else {
+        href = 'javascript:void(0);';
+        group_chat.hide();
+      }
+      group_chat.attr('href',href);      
+  });
 
   $('#global').on('click', 'a.chat', function() {
     
@@ -2714,6 +2727,11 @@ $(document).ready(function(e) {
             async: true,
             success: function(resp) {
               $('#popup ul.people').html(resp);
+              
+              //hide group chat on search
+              var group_chat = $('li.group-chat a','#global');
+              group_chat.hide();
+
               if (resp.indexOf('@') == -1) {
                 $.global.people_search_not_found_last_keyword = query;
                 $.global.people_search_not_found_last_message = resp;
