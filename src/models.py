@@ -1441,7 +1441,7 @@ class Message(Model):
       return False
     message = self.info.get('msg')
     
-    if message.isdigit() and len(message) == 18:
+    if (isinstance(message,(int,long)) and len(str(message)) == 18)  or (message.isdigit() and len(message) == 18):
       db_name = api.get_database_name()
       db = api.DATABASE[db_name]
       message_info = db.stream.find_one({'_id': long(message)})
