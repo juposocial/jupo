@@ -1139,7 +1139,8 @@ $(document).ready(function(e) {
       url: $(this).attr('action'),
       data: $(this).serializeArray(),
       error: function(jqXHR, textStatus, errorThrown) {
-        show_error();
+        if(jqXHR.responseText!=="" || textStatus !=="error" || errorThrown !== "")
+            show_error();
         
         submit_button.val(submit_button_text);
         submit_button.attr('disabled', false);
