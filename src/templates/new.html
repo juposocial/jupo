@@ -43,6 +43,9 @@ Leave a message...
       
       <tr id='send-to' class='toggle hidden'>
         <td colspan="2">
+        	
+             
+        	
           <input type='text' 
                  name='viewers' 
                  class='autocomplete'
@@ -279,7 +282,12 @@ Leave a message...
       <tbody>
         <tr id='files'>
           <td>
-            <a id='pick-file' class='lfloat' onclick="preload_autocomplete();"><i class="upload-icon"></i> Upload new file</a>
+            <a id='pick-file' class='lfloat' onclick="preload_autocomplete()"><i class="upload-icon"></i> Upload new file</a>
+              <script>
+                {% if group and group.id %}
+                  $('form#new-file footer, form#new-file #send-to').removeClass('hidden');
+                {% endif %}
+              </script>
            
             <div id="container">
               <div id="filelist"></div>
@@ -293,10 +301,15 @@ Leave a message...
         <tr id='send-to' class='toggle hidden'>
           <td>
             <div class="upload-status"></div>
+            
             <input type='text' 
                    name='viewers' 
                    class='autocomplete'
+                   {% if group and group.id %}
+                    data-prefill='[{name: "{{ group.name }}", id: "{{ group.id }}"},]'
+                   {% endif %}
                    placeholder='Add people or group...'>
+            
           </td>
         </tr>
         
@@ -306,7 +319,7 @@ Leave a message...
     <footer class="hidden">
       <input type='hidden' name='attachments'>
       <a id="send-to" title="Share with (people or group)..." class="send-to-icon lfloat active"></a>
-
+	
       <input type='submit' value="Publish" class='button small-button'>
     </footer>
 

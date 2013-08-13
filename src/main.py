@@ -2812,13 +2812,17 @@ def files():
   owner = api.get_owner_info(session_id)
   title = "Files"
   files = api.get_files(session_id) 
-  attachments = api.get_attachments(session_id) 
+  attachments = api.get_attachments(session_id)
+  group_id = request.args.get('group_id')
+  group = api.get_group_info(session_id, group_id)
+  
   if request.method == 'OPTIONS':
     body = render_template('files.html', 
                            view='files', 
                            owner=owner,
                            files=files,
-                           attachments=attachments)
+                           attachments=attachments,
+                           group=group)
     return dumps({'body': body, 
                   'title': 'Files'})
   else:
