@@ -4,6 +4,8 @@
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '<replace with a secret key>'
 
+EMAIL_CERTIFICATE_KEY = 'u5o7z8o9o5r6trm1l80n'
+
 DEBUG = False
 
 
@@ -66,4 +68,7 @@ FACEBOOK_APP_ID = None
 FACEBOOK_APP_SECRET = None
 
 
-SENTRY_DSN = 'http://021f15179a8c48dc9a93183b9ce84f5f:7c882e6967574b69a71ecd8021f374ff@sentry.jupo.com/3'
+# SENTRY_DSN = 'http://021f15179a8c48dc9a93183b9ce84f5f:7c882e6967574b69a71ecd8021f374ff@sentry.jupo.com/3'
+SENTRY_DSN = 'http://9faa594b71b9432984c98a225fef555e:1fc7ec4d02d94a7ebad61d0dd22e6b42@sentry.jupo.com/4'
+
+

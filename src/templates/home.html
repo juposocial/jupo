@@ -161,6 +161,16 @@
       </div>
     </div>
       
+   	{% if owner.verified != True %}
+	    <div id='error'>
+	    	<span>
+    			<span class='fontsize-12px'>JUPO send a email to your inbox. Please verify your accout then F5</span><br>
+				<a href="http://{{ domain }}/send_mail_verify/{{ owner.id }}">Click here to send mail certificate again !</a>
+        	</span>
+      	</div>
+    {% endif %}   
+      
+      
     <div id='overlay'></div>
     <div id="body">        
       {% if view == 'new-group' %}
