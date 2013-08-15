@@ -235,6 +235,83 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
   else:
     return False
 
+def search_message(session_id, query, search_type=None, ref_user_id=None,topic_id=None):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  user_id = get_user_id(session_id)
+  if not user_id:
+    user_id = 'public'
+    
+  if search_type == 'topic':
+    if topic_id != None:
+      topic = get_topic_info(topic_id, db_name=db_name)
+      members = topic.member_ids
+      viewers = ['viewers:%s' % i for i in members]
+      viewers = ' AND '.join(viewers)
+      viewers += ' OR viewers:public'
+    else:
+      return None
+  else:
+    if search_type == 'user':
+      if ref_user_id != None:
+        viewers = '(viewers:%s) AND (viewers:%s)' % (user_id, ref_user_id)
+      else:
+        return None
+    else:
+      viewers = '(viewers:%s)' % user_id
+  query = '(%s) AND (content:*%s*)' % (viewers, query)
+  query += ' AND type:message'
+  query_dsl =  {}
+  query_dsl['query'] = {"query_string": {"query": query}}
+  query_dsl['from'] = 0
+  query_dsl['size'] = 30
+  query_dsl['sort'] = [{'ts': {'order': 'desc'}}, 
+                       {'id': {'order': 'desc'}}, 
+                       "_score"]
+  query_dsl["facets"] = {"counters": {"terms": {"field" : "type"}}}
+  
+  result = INDEX.search(query=query_dsl, index=db_name)
+  messages = []
+  list_group = []
+  list_user = []
+  list_msg_chatbox = []
+  
+  if result and result.has_key('hits'):
+    hits = result.get('hits').get('hits')
+    for hit in hits:
+      id = hit.get('_source').get('id')
+      msg = db.message.find_one({'_id': long(id)})
+      
+      if topic_id:
+        if msg.has_key('topic'):
+          if msg.get('topic') == long(topic_id):
+            list_msg_chatbox.append(msg)
+      if ref_user_id:
+        if msg.get('to') == long(ref_user_id):
+          list_msg_chatbox.append(msg)
+      
+      
+      if msg.has_key('topic'):
+        if msg.get('topic') not in list_group:
+          list_group.append(msg.get('topic'))
+          messages.append(msg)
+      else:
+        if msg.get('to') not in list_user:
+          list_user.append(msg.get('to'))
+          messages.append(msg)
+      
+      
+  if messages:
+    messages.sort(key=lambda k: k.get('ts'), reverse=1)
+    utcoffset = get_utcoffset(user_id, db_name=db_name)
+    messages = [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
+  if list_msg_chatbox:
+    list_msg_chatbox.sort(key=lambda k: k.get('ts'), reverse=1)
+    utcoffset = get_utcoffset(user_id, db_name=db_name)
+    list_msg_chatbox = [Message(i, utcoffset=utcoffset, db_name=db_name) for i in list_msg_chatbox]
+  
+  return messages, list_msg_chatbox
+
 #===============================================================================
 # Snowflake IDs
 #===============================================================================
@@ -6080,6 +6157,8 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
+  viewers = []
+  
   owner_id = get_user_id(session_id, db_name=db_name)
   if not owner_id:
     return False
@@ -6102,7 +6181,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
     members = [user_id, owner_id]
     members.extend([int(i.get('id')) for i in mentions])
     topic_id = new_topic(owner_id, members, db_name=db_name)
-    
+    viewers = members
     msg = '@[%s](user:%s) created @[a group conversation](topic:%s)'\
         % (get_user_info(owner_id).name, owner_id, topic_id)
     new_message(session_id, msg, user_id=user_id, 
@@ -6165,8 +6244,10 @@ def new_message(session_id, message, user_id=None, topic_id=None,
             'from': owner_id,
             'msg': message,
             'ts': utctime()}
-  
+    viewers = topic.member_ids
   else:
+    viewers.append(owner_id)
+    viewers.append(user_id)
     info = {'_id': new_id(),
             'from': owner_id,
             'to': user_id,
@@ -6180,6 +6261,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
     info['codeblock'] = True
   
   msg_id = db.message.insert(info)
+  index_queue.enqueue(add_index, info['_id'], message, viewers, 'message', db_name)
   info['_id'] = msg_id
   
   

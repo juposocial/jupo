@@ -7778,3 +7778,44 @@ div.chatbox div.header .arrow-top-border {
   left: 125px;
 }
 
+
+form#search-message input {
+  margin: 2px 0 30px 0;
+  text-align: left;
+  width: 200px;
+  height: 15px;
+  padding: 6px 13px 5px 28px;
+  font-size: 12px;
+  line-height: 16px;
+  border: 0;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(0, 0, 0, .3);
+  color: #fff;
+  -webkit-input-placeholder: white;
+  text-shadow: none;
+  border-radius: 2px;
+  background-color: #2b96f1;
+  border: solid 1px #2473b0;
+  border-bottom: 1px solid #20608f;
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #2a99ef), color-stop(1, #237bbd));
+  background: -webkit-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: -moz-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: -o-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: -ms-linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  background: linear-gradient(top, #2a99ef 0%, #237bbd 100%);
+  box-shadow: 0 1px 0 white;
+  font-family: Helvetica, arial, freesans, clean, sans-serif;
+  font-weight: bold;
+  font-size: 11px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+form#search-message a {
+  margin: 10px 326px 0 0;
+  color: red;
+  margin-top: 10px;
+  float: right;
+  margin-right: 326px;
+  
+}
+
