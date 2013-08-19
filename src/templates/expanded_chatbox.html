@@ -93,7 +93,7 @@
               {% set attachment = message.content %}
               {{ attachment.name }} ({{ attachment.size }})
             {% else %}
-              {{ message.content | clean | autoemoticon | safe }}
+              {{ message.content | replace('<', '&lt;') | replace('>', '&gt;') | clean | autoemoticon | sanitize | safe }}
             {% endif %}
           </div>
           

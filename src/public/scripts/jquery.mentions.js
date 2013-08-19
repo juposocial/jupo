@@ -36,8 +36,8 @@
 
   var utils = {
     htmlEncode       : function (str) {
-      return str;
-      // return _.escape(str);
+      // return str;
+      return _.escape(str);
     },
     highlightTerm    : function (value, term) {
       if (!term && !term.length) {

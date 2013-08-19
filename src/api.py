@@ -432,6 +432,7 @@ def get_database_name():
     # Ensure indexes
     DATABASE[db_name].owner.ensure_index('session_id', background=True)
     DATABASE[db_name].owner.ensure_index('email', background=True)
+    DATABASE[db_name].owner.ensure_index('facebook_id', background=True)
     DATABASE[db_name].owner.ensure_index('name', background=True)
     DATABASE[db_name].owner.ensure_index('password', background=True)
     DATABASE[db_name].owner.ensure_index('members', background=True)
@@ -5893,10 +5894,10 @@ def get_network_info(db_name):
 
 @line_profile
 def get_networks(user_id, user_email=None):
-#   key = '%s:networks' % user_id
-#   out = cache.get(key)
-#   if out is not None:
-#     return out
+  key = 'networks'
+  out = cache.get(key, namespace=user_id)
+  if out is not None:
+    return out
   
   
   def sortkeypicker(keynames):
@@ -5935,7 +5936,7 @@ def get_networks(user_id, user_email=None):
   out = sorted(networks_list, 
                key=sortkeypicker(['-unread_notifications', 
                                   'name', '-timestamp']))
-#   cache.set(key, out)
+  cache.set(key, out, namespace=user_id)
   return out
 
 PRIMARY_IP = socket.gethostbyname(settings.PRIMARY_DOMAIN)

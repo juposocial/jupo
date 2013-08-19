@@ -1002,11 +1002,11 @@ function stream() {
                   
                   if (last_comment.length == 0) {
                     if ($('#' + feed_id).length != 0) {
-                      offset_top = $('#' + feed_id).offset().top
+                      offset_top = $('#' + feed_id).offset().top;
                     }
                     
                   } else {
-                    offset_top = last_comment.offset().top
+                    offset_top = last_comment.offset().top;
                   }
                   
                   if (offset_top != null) {
@@ -1091,7 +1091,7 @@ function stream() {
         $.each(viewers, function (index, group_id) {
           console.log('#group-' + group_id + ' span.count');
           decr('#group-' + group_id + ' span.count');
-        })
+        });
       }
       
   
@@ -1138,7 +1138,7 @@ function stream() {
       $('#comment-' + event.info.comment_id + ' .likes .counter').html(event.info.likes_count);
       
       if (event.info.likes_count == 0) {
-        $('#comment-' + event.info.comment_id + ' .likes').addClass('hidden')
+        $('#comment-' + event.info.comment_id + ' .likes').addClass('hidden');
       } else {
         $('#comment-' + event.info.comment_id + ' .likes').removeClass('hidden');
       }
@@ -1204,7 +1204,7 @@ function stream() {
         $('#chat-' + chat_id).addClass('unread');  
         
         if ($('#chat-' + chat_id + ' textarea.mentions').is(':focus') == true) {
-          $('#chat-' + chat_id).mouseover()
+          $('#chat-' + chat_id).mouseover();
         }
         
         
@@ -1223,7 +1223,7 @@ function stream() {
         // show desktop notification
         show_notification(avatar, username, message_content, 5000, function() {
           window.focus();
-        })
+        });
         
       }
       
@@ -1247,7 +1247,7 @@ function stream() {
         if (last_msg.length == 1 && $('> a > img.small-avatar', last_msg).length != 0 && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
           if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
             if (last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
-              var content = $('.content', msg).html();
+              var content = _.escape($('.content', msg).text());
               $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
               $(last_msg).data('ts', msg_ts);
               $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
@@ -1258,7 +1258,7 @@ function stream() {
           
           setTimeout(function() {
             $('.messages', boxchat).scrollTop(99999);
-          }, 10)  
+          }, 10);
           
           var new_group_chat_link = $('a.chat[href^="/chat/topic/"]', msg);
           if (new_group_chat_link.length == 1) {
@@ -1283,7 +1283,7 @@ function stream() {
       } 
       
       if (window.location.pathname.indexOf('/messages') != -1) {
-        var message = $('.content', msg).text();
+        var message = _.escape($('.content', msg).text());
         
         if (sender_id == owner_id) {
           message = '<i class="msg-reply-icon"></i>' + message;

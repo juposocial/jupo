@@ -915,7 +915,8 @@ $(document).ready(function(e) {
       url: $(this).attr('action'),
       data: $(this).serializeArray(),
       error: function(jqXHR, textStatus, errorThrown) {
-        show_error();
+        if(jqXHR.responseText !== "" || textStatus !== "error" || errorThrown !== "")
+          show_error();
       },
       success: function(resp) {
 
@@ -1139,7 +1140,8 @@ $(document).ready(function(e) {
       url: $(this).attr('action'),
       data: $(this).serializeArray(),
       error: function(jqXHR, textStatus, errorThrown) {
-        show_error();
+        if(jqXHR.responseText !== "" || textStatus !== "error" || errorThrown !== "")
+          show_error();
         
         submit_button.val(submit_button_text);
         submit_button.attr('disabled', false);
@@ -1642,7 +1644,8 @@ $(document).ready(function(e) {
           'X-CSRFToken': get_cookie('_csrf_token')
         },
         error: function(jqXHR, textStatus, errorThrown) {
-          show_error();
+          if(jqXHR.responseText !== "" || textStatus !== "error" || errorThrown !== "")
+            show_error();
           hide_loading();
         },
         success: function(resp) {    
@@ -2451,7 +2454,7 @@ $(document).ready(function(e) {
       var chat_id = type + '-' + id;
       
       try {
-        clearTimeout($.global.chat_typing_timeout)
+        clearTimeout($.global.chat_typing_timeout);
       } catch (err) {}
       
       update_status(chat_id + '|is typing...');
@@ -2516,8 +2519,8 @@ $(document).ready(function(e) {
           
           if (last_msg.length == 0 || last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
             if (last_msg.length != 0 && $('> a > img.small-avatar', last_msg).length != 0 && msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id) {
-              var content = $('.content', msg).html();
-              $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+              var content = $('.content', msg).text();
+              $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + _.escape(content));
               $(last_msg).data('ts', msg_ts);
               $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
               
@@ -2536,7 +2539,7 @@ $(document).ready(function(e) {
           }
           
           var chat_id = _boxchat.attr('id').replace('chat-', '');
-          var message = $('.content', msg).text();
+          var message = _.escape($('.content', msg).text());
           message = '<i class="msg-reply-icon"></i>' + message;
           
           $('ul.topics a.chat.' + chat_id + ' div.message').html(message);
