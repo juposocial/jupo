@@ -1,18 +1,10 @@
 <li id="post-{{ feed.id }}" class='feed {% if feed.is_system_message() %}hide-article{% endif %} {% if not owner.id %}public{% endif %} {% if hidden %}hidden{% endif %} {% if owner.id and owner.id != feed.last_action.owner.id and owner.id not in feed.read_receipt_ids and view != "discover" %}unread{% endif %} {% if owner.id in feed.pinned_by %}pinned{% endif %}'>
 
-{% if mode == 'view' or view == 'discover' %}
-  {% set viewers = feed.viewers | exclude(feed.owner.id) %}  
-  
-  <a href='/user/{{ feed.owner.id }}' class='async' data-user-id='{{ feed.owner.id }}'>
-    <img src='{{ feed.owner.avatar }}' class="medium-avatar">
-  </a>
-{% else %}
-  {% set viewers = feed.viewers | exclude(feed.last_action.owner.id) %}
-  
-  <a href='/user/{{ feed.last_action.owner.id }}' class='async' data-user-id='{{ feed.last_action.owner.id }}'>
-    <img src='{{ feed.last_action.owner.avatar }}' class="medium-avatar">
-  </a>
-{% endif %}
+{% set viewers = feed.viewers | exclude(feed.owner.id) %}  
+
+<a href='/user/{{ feed.owner.id }}' class='async' data-user-id='{{ feed.owner.id }}'>
+  <img src='{{ feed.owner.avatar }}' class="medium-avatar">
+</a>
 
 <section>
   <header>
@@ -36,7 +28,7 @@
           <a href='/group/{{ feed.message.group.id }}' class='async'>{{ feed.message.group.name }}</a> group.
         {% endif %}
       {% endif %} 
-    
+{#    
     {% elif view != 'discover' and feed.last_comments and feed.last_updated <= feed.last_comments[-1].timestamp and mode != 'view' %}
           <a href="/user/{{ feed.last_comments[-1].owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.last_comments[-1].owner.email }}'{% endif %}>{{ feed.last_comments[-1].owner.name }}</a> 
           {% if feed.is_email() %}
@@ -64,13 +56,10 @@
           {% else %}
             <a href='/feed/{{ feed.id }}' class='async'>post</a>
           {% endif %} 
-          
+#}          
     {% else %}
-          {% if mode == "view" or view == 'discover' %}
-            <a href="/user/{{ feed.owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.owner.email }}'{% endif %}>{{ feed.owner.name }}</a>
-          {% else %}
-            <a href="/user/{{ feed.last_action.owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.last_action.owner.email }}'{% endif %}>{{ feed.last_action.owner.name }}</a>
-          {% endif %}
+          <a href="/user/{{ feed.owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.owner.email }}'{% endif %}>{{ feed.owner.name }}</a>
+          
           
           
           {% if feed.is_note() %}
