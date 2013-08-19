@@ -150,18 +150,31 @@ function start_chat(chat_id) {
   
   
   var href = '/chat/' + chat_id.replace('-', '/');
-
+  if (chat_id.split('-').length == 4){
+      var a = chat_id.split('-');
+      var user_id = a[1];
+      var topic_id = a[2];
+      var query = a[3];
+      if (topic_id != '') {
+        chat_id = a[0] + '-' + topic_id;
+      }
+      else{
+        chat_id = a[0] + '-' + user_id;
+      }
+      href = '/search_msg?user_id=' + user_id + '&topic_id=' + topic_id + '&query=' + query;  
+    }
+  
   show_loading();
   $.ajax({
     url: href,
     type: 'OPTIONS',
     success: function(html){ 
       hide_loading();
-      
-      if ($('#chat-' + chat_id).length > 0) {
-          return false;
+      if (href.indexOf('/chat') == 0){
+        if ($('#chat-' + chat_id).length > 0) {
+            return false;
+        }
       }
-  
       var chat_ids = localStorage.getItem('chats');
       if (chat_ids != undefined && chat_ids.indexOf(chat_id) == -1) {
         localStorage['chats'] = chat_ids + ',' + chat_id;
@@ -329,7 +342,9 @@ function start_chat(chat_id) {
       });
   
   
-      
+      if (href.indexOf('/search_msg') == 0){
+        $('form.chat').remove();
+      }
       
       
       
@@ -2825,4 +2840,34 @@ function init_avatar_uploader() {
       })
 
     });
+}
+
+
+
+function parse_url(url) {
+  var a =  document.createElement('a');
+  a.href = url;
+  return {
+    source: url,
+    protocol: a.protocol.replace(':',''),
+    host: a.hostname,
+    port: a.port,
+    query: a.search,
+    params: (function(){
+        var ret = {},
+            seg = a.search.replace(/^\?/,'').split('&'),
+            len = seg.length, i = 0, s;
+        for (;i<len;i++) {
+            if (!seg[i]) { continue; }
+            s = seg[i].split('=');
+            ret[s[0]] = s[1];
+        }
+        return ret;
+    })(),
+    file: (a.pathname.match(/\/([^\/?#]+)$/i) || [,''])[1],
+    hash: a.hash.replace('#',''),
+    path: a.pathname.replace(/^([^\/])/,'/$1'),
+    relative: (a.href.match(/tps?:\/\/[^\/]+(.+)/) || [,''])[1],
+    segments: a.pathname.replace(/^\//,'').split('/')
+  };
 }

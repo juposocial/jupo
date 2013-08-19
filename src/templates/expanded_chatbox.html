@@ -9,7 +9,12 @@
           <div class="actions rfloat">
               <a href="/contacts" class="popup button">+ New Message</a>
           </div>
-          <div class='title'>Messages</div>
+          <!-- <div class='title'>Messages</div> -->
+          <form id="search-message" action="/search_msg">
+              <input type="text" name="query" placeholder="Search message ... "/>
+              <a href="/messages">Cancel</a>
+          </form>
+          
     
   </div> 
 
@@ -46,8 +51,11 @@
         {% set user = message.sender %}
       {% endif %}
       <li>
-          
-        <a href='/chat/{% if message.topic_id %}topic/{{ message.topic_id }}{% else %}user/{{ user.id }}{% endif %}' class='chat {% if message.is_unread() %}unread{% endif %} {% if message.topic_id %}topic-{{ message.topic_id }}{% else %}user-{{ user.id }}{% endif %}'>
+        {% if type_search == "search_message" %}
+          <a href="/search_msg?query={{ query }}{% if message.topic_id %}&topic_id={{ message.topic_id }}&user_id={% else %}&user_id={{user.id}}&topic_id={% endif %}" class="chat {% if message.topic_id %}topic-{{ message.topic_id }}{% else %}user-{{ user.id }}{% endif %}">
+        {% else %}
+          <a href='/chat/{% if message.topic_id %}topic/{{ message.topic_id }}{% else %}user/{{ user.id }}{% endif %}' class='chat {% if message.is_unread() %}unread{% endif %} {% if message.topic_id %}topic-{{ message.topic_id }}{% else %}user-{{ user.id }}{% endif %}'>
+        {% endif %}
           
           <div class="ts rfloat">
             {% set ts = message.timestamp | friendly_format(short=True) %}

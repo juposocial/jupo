@@ -1326,6 +1326,7 @@ def share_to_anyone_with_the_link(note_id=None, key=None):
   
 
 
+
 #===============================================================================
 # Files
 #===============================================================================
@@ -1348,6 +1349,58 @@ def public_files(filename):
   response.headers['Expires'] = '31 December 2037 23:59:59 GMT'
   return response
 
+
+@app.route("/search_msg", methods=["OPTIONS", "POST"])
+@login_required
+@line_profile
+def search_msg():
+  t0 = api.utctime()
+  session_id = session.get("session_id")
+  query = request.form.get('query', request.args.get('query', '')).strip()
+  ref_user_id = request.form.get('user_id', request.args.get('user_id', '')).strip()
+  topic_id = request.form.get('topic_id', request.args.get('topic_id', '')).strip()
+  search_type = request.args.get('type')
+  page = int(request.args.get('page',1))
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+  
+  suggested_friends = []
+  coworkers = []
+  if request.method == 'POST':
+    topics, msg_chatbox = api.search_message(session_id, query, search_type, ref_user_id, topic_id)
+    if topics:
+      for message in topics:
+        message.unread_count = 0
+        
+    body = render_template('expanded_chatbox.html',
+                            suggested_friends=suggested_friends,
+                            coworkers=coworkers,
+                            topics=topics,
+                            user_id=ref_user_id,
+                            topic_id=topic_id,
+                            archived=False,
+                            owner=owner,
+                            type_search='search_message',
+                            query=query)
+    
+    return body
+  
+  if request.method == 'OPTIONS':
+    owner_id = api.get_user_id(session_id)
+    user = topic = seen_by = timestamp = None
+    topics, msg_chatbox = api.search_message(session_id, query, search_type, ref_user_id, topic_id)
+    for msg in msg_chatbox:
+      msg._ts = msg.timestamp
+    if msg_chatbox:
+      if user_id:
+        user = api.get_user_info(user_id)
+      if topic_id:
+        topic = api.get_topic_info(long(topic_id))
+      return render_template('chatbox.html', 
+                             owner={'id': owner_id},
+                             seen_by=seen_by,
+                             timestamp=timestamp,
+                             messages=msg_chatbox, user=user, topic=topic)
 
 @app.route("/favicon.ico")
 def favicon():
