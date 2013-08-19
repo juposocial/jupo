@@ -3233,7 +3233,7 @@ def run_app(debug=False):
     'HIDE_FLASK_FROM_STACKTRACES': True
   }
   
-  toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+  #toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
   
 
   
@@ -3247,7 +3247,7 @@ def run_app(debug=False):
   
   
 if __name__ == "__main__":
-  run_app(debug=False)
+  run_app(debug=True)
 
 
 
