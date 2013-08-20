@@ -2767,11 +2767,15 @@ $(document).ready(function(e) {
               $('#popup ul.people').html(resp);
               
               var group_chat_url = $('#popup .group-chat a').attr('href');
-              $('#popup ul.people li input[type="checkbox"]').each(function(index, value) {
-                if (group_chat_url.indexOf($(this).val()) != -1) {
-                  $(this).attr('checked', 'checked')
-                }
-              });
+              if (group_chat_url != undefined)
+              {
+                $('input.checkbox-chat','#popup').show();              
+                $('#popup ul.people li input[type="checkbox"]').each(function(index, value) {
+                  if (group_chat_url.indexOf($(this).val()) != -1) {
+                    $(this).attr('checked', 'checked')
+                  }
+                });
+              }              
               
               if (resp.indexOf('@') == -1) {
                 $.global.people_search_not_found_last_keyword = query;
