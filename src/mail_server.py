@@ -57,7 +57,7 @@ class JupoSMTPServer(smtpd.SMTPServer):
     elif item_id.startswith('user'):
       user_id = item_id[4:]
     elif item_id.startswith('group'):
-      group_id = item_id[5:]
+      group_slug = item_id[5:]
     else:
       return None
     
@@ -83,6 +83,24 @@ class JupoSMTPServer(smtpd.SMTPServer):
       
       api.new_comment(session_id, message, post_id, db_name=db_name)
       return None
+    elif group_slug:
+      #get user id based on email
+      user_id = api.get_user_id_from_email_address(user_email, db_name='play_jupo_come')
+      if not user_id:
+        return None
+      session_id = api.get_session_id(user_id, db_name=db_name)
+      if not session_id:
+        return None
+
+      #get group id based on group slug
+      group_id = api.get_group_id_from_group_slug(group_slug, db_name='play_jupo_come')
+      if not group_id:
+        return None
+
+      #post to group, no attachment for now
+      api.new_feed(session_id, message, group_id, attachments=None, facebook_access_token=None)
+
+
     else:
       return None
     

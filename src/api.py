@@ -44,6 +44,7 @@ from lib import encode_url
 from lib.url import extract_urls
 from lib.hot_ranking import get_score
 from lib.pbkdf2 import pbkdf2_bin # From https://github.com/mitsuhiko/python-pbkdf2
+from lib.string_tools import slugify_vn
 
 from gridfs import GridFS, NoFile
 from bson.binary import Binary
@@ -2164,6 +2165,24 @@ def get_email_addresses(session_id, db_name=None):
   records = db.email.find({'$or': query})
   return [i['email'].strip() for i in records]
 
+def get_group_id_from_group_slug(slug, db_name=None):
+  if not slug:
+    return False
+
+  db = DATABASE[db_name]
+
+  print "About to find group that got slug = " + slug
+  record = db.owner.find_one({'slug': slug}) #for testing, fix to 1 group
+  print "Result = " , record
+
+  if record:
+    group_id = record['_id']
+    return group_id
+  else:
+    return None
+
+
+
 def get_user_id_from_email_address(email, db_name=None):
   if not email:
     return False
@@ -2434,7 +2453,6 @@ def new_feed(session_id, message, viewers,
   db.stream.insert(info)
   
   index_queue.enqueue(add_index, info['_id'], message, viewers, 'post', db_name)
-  
   
   # send notification
   for id in viewers:
@@ -4528,7 +4546,8 @@ def new_group(session_id, name, privacy="closed", about=None):
           'last_updated': utctime(),
           'members': [user_id],
           'leaders': [user_id],
-          'name': name, 
+          'name': name,
+          'slug': slugify_vn(name),
           'privacy': privacy,
           '_id': new_id()}
   if about:
@@ -4560,6 +4579,11 @@ def update_group_info(session_id, group_id, info):
   if info.has_key('members'):
     info['members'] = [long(i) for i in info.get('members')]
   
+  #set slug based on name
+  print "Update group - name = " + info['name']
+  #print "Update group - slug = " + info['slug']
+  info['slug'] = slugify_vn(info['name'])
+
   db.owner.update({'leaders': user_id, 
                    '_id': long(group_id)}, {'$set': info})
   return True
