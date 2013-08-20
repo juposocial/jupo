@@ -434,6 +434,31 @@ $(document).ready(function(e) {
     }
     
   });  
+
+  /* Dropbox file*/
+  // add an event listener to a Chooser button
+
+  document.getElementById("db-chooser")?document.getElementById("db-chooser").addEventListener("DbxChooserSuccess", function(e) {
+      
+      $.global.drop_box_files = e.files;
+
+      var textarea = $('textarea.mention', 'form.new:not(.overlay)');
+      var text = textarea.val();
+      var link = '';
+      //var icon = '';
+      for(var i in e.files) {
+        
+          //link = '<a href="' + e.files[i].link + '" target="blank_">' + e.files[i].name + '</a>';
+          //icon = '<img src="' + e.files[i].icon + '" />';
+          //text += '<br>' + icon + link + '<br>';     
+          link = e.files[i].link;
+          text += link;     
+      }
+      textarea.val(text);
+
+  }, false):false;
+
+
   /* Drop down menu */
 
   $('header nav a.user"').click(function() {

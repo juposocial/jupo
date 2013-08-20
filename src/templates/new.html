@@ -119,6 +119,8 @@ Leave a message...
     {% endif %}
 #}    
     <a id='pick-file' title='Add Files' class='attachment-icon lfloat'></a>
+
+    <input type="dropbox-chooser" data-multiselect='false' data-link-type='direct' class='dropbox-chooser' name="selected-file" id="db-chooser"/>
     
     {% if view in ["docs", "bookmarks"] %}
       <input type='submit' value="Publish" class='button small-button'>
