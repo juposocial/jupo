@@ -1076,6 +1076,19 @@ def reminders(reminder_id=None):
       return Response(json, mimetype='application/json') 
   
 
+
+
+@app.route("/unremind_login/<id_user>",methods=['GET'])
+@login_required
+@line_profile
+def unremind_login(id_user=None):
+  if id_user and request.path.startswith('/unremind_login'):
+    db_name = api.get_database_name()
+    db = api.DATABASE[db_name]
+    db.owner.update({'_id': long(id_user)},
+                    {'$set':{'is_unremind':'true'}})
+    return redirect("/news_feed")
+  
   
 @app.route("/notes", methods=['GET', 'OPTIONS'])
 @app.route("/notes/page<int:page>", methods=['OPTIONS'])
@@ -1347,6 +1360,9 @@ def public_files(filename):
   response.headers['Cache-Control'] = 'public'
   response.headers['Expires'] = '31 December 2037 23:59:59 GMT'
   return response
+
+
+
 
 
 @app.route("/favicon.ico")
