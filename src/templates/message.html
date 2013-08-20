@@ -7,7 +7,8 @@
     {% else %}
     data-receiver-id="{{ message.receiver.id }}"
     {% endif %} 
-    data-msg-ids="{{ message.message_ids }}">
+    data-msg-ids="{{ message.message_ids }}"
+    data-tmp-id="{{ tmpid }}">
   <div class="ts">
     {{ message.time }}
   </div>

@@ -6077,7 +6077,7 @@ def strip_mentions(text):
   
 
 def new_message(session_id, message, user_id=None, topic_id=None, 
-                is_codeblock=False, is_auto_generated=False, db_name=None):
+                is_codeblock=False, tmpid=None, is_auto_generated=False, db_name=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -6200,7 +6200,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   msg = Message(info, utcoffset=utcoffset, db_name=db_name)
   
   template = app.CURRENT_APP.jinja_env.get_template('message.html')
-  html = template.render(message=msg).replace('\n', '')
+  html = template.render({'message':msg, 'tmpid':tmpid}).replace('\n', '')
     
   if topic_id:
     topic = get_topic_info(topic_id, db_name=db_name)

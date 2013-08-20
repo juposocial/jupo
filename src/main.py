@@ -2003,7 +2003,8 @@ def chat(topic_id=None, user_id=None, action=None):
   session_id = session.get("session_id")
   timestamp = request.args.get('ts')
   
-  if action == 'new_message':    
+  if action == 'new_message':  
+    tmpid = request.form.get('_tmpid')
     msg = request.form.get('message')
     codeblock = request.form.get('codeblock')
     if '\n' in msg.strip() and codeblock:
@@ -2013,7 +2014,8 @@ def chat(topic_id=None, user_id=None, action=None):
     html = api.new_message(session_id, msg, 
                            user_id=user_id, 
                            topic_id=topic_id,
-                           is_codeblock=codeblock)
+                           is_codeblock=codeblock,
+                           tmpid=tmpid)
     return html
   
   elif action == 'new_file':
@@ -3247,7 +3249,7 @@ def run_app(debug=False):
   
   
 if __name__ == "__main__":
-  run_app(debug=False)
+  run_app(debug=True)
 
 
 
