@@ -17,7 +17,7 @@ import smtpd
 import base64
 import asyncore
 from lib.email_parser import get_reply_text
-  
+from lib.email_parser import get_subject  
 
 
 class JupoSMTPServer(smtpd.SMTPServer):
@@ -47,6 +47,9 @@ class JupoSMTPServer(smtpd.SMTPServer):
     
     # Extract reply text from message
     message = get_reply_text(data)
+    subject = get_subject(data)
+    header_raw = email.header.decode_header(subject)
+    
     if not message:
       return None # Can't parse reply text
     
@@ -57,7 +60,7 @@ class JupoSMTPServer(smtpd.SMTPServer):
     elif item_id.startswith('user'):
       user_id = item_id[4:]
     elif item_id.startswith('group'):
-      group_id = item_id[5:]
+      group_slug = item_id[5:]
     else:
       return None
     
@@ -83,6 +86,41 @@ class JupoSMTPServer(smtpd.SMTPServer):
       
       api.new_comment(session_id, message, post_id, db_name=db_name)
       return None
+    elif group_slug:
+      #get user id based on email
+      user_id = api.get_user_id_from_email_address(user_email, db_name='play_jupo_com')
+      if not user_id:
+        return None
+      session_id = api.get_session_id(user_id, db_name='play_jupo_com')
+      if not session_id:
+        return None
+
+      #get group id based on group slug
+      group_id = api.get_group_id_from_group_slug(group_slug, db_name='play_jupo_com')
+      if not group_id:
+        return None
+
+      #ensure the string is in Unicode
+      if isinstance(message, str):
+        try:
+          message.decode('utf-8')
+        except UnicodeDecodeError:
+          message = message.decode('iso-8859-1', 'ignore').encode('utf-8')
+
+      subject = header_raw[0][0]
+      
+      if isinstance(subject, str):
+        try:
+          print "DEBUG - subject = " + subject.encode('utf-8')
+          subject.decode('utf-8')
+        except UnicodeDecodeError:
+          subject = subject.decode('iso-8859-1', 'ignore').encode('utf-8')
+
+      #insert subject into message
+      message = "<b>"> + subject + "</b>" + "\n" + message
+      #post to group, no attachment for now
+      api.new_feed(session_id, message, [group_id], attachments=None, facebook_access_token=None)
+
     else:
       return None
     

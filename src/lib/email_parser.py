@@ -6,6 +6,10 @@ import re
 import email
 
 
+def get_subject(data):
+  msg = email.message_from_string(data)
+  return msg['Subject']
+
 def get_reply_text(data):
   """
   Strip signatures and replies from emails

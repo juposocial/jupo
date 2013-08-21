@@ -44,6 +44,7 @@ from lib import encode_url
 from lib.url import extract_urls
 from lib.hot_ranking import get_score
 from lib.pbkdf2 import pbkdf2_bin # From https://github.com/mitsuhiko/python-pbkdf2
+from lib.string_tools import slugify_vn
 
 from gridfs import GridFS, NoFile
 from bson.binary import Binary
@@ -432,7 +433,6 @@ def get_database_name():
     # Ensure indexes
     DATABASE[db_name].owner.ensure_index('session_id', background=True)
     DATABASE[db_name].owner.ensure_index('email', background=True)
-    DATABASE[db_name].owner.ensure_index('facebook_id', background=True)
     DATABASE[db_name].owner.ensure_index('name', background=True)
     DATABASE[db_name].owner.ensure_index('password', background=True)
     DATABASE[db_name].owner.ensure_index('members', background=True)
@@ -2164,6 +2164,22 @@ def get_email_addresses(session_id, db_name=None):
   records = db.email.find({'$or': query})
   return [i['email'].strip() for i in records]
 
+def get_group_id_from_group_slug(slug, db_name=None):
+  if not slug:
+    return False
+
+  db = DATABASE[db_name]
+
+  #find group by slug
+  record = db.owner.find_one({'slug': slug})  
+
+  if record:
+    group_id = record['_id']
+    return group_id
+  else:
+    return None
+
+
 def get_user_id_from_email_address(email, db_name=None):
   if not email:
     return False
@@ -2434,7 +2450,6 @@ def new_feed(session_id, message, viewers,
   db.stream.insert(info)
   
   index_queue.enqueue(add_index, info['_id'], message, viewers, 'post', db_name)
-  
   
   # send notification
   for id in viewers:
@@ -4528,7 +4543,8 @@ def new_group(session_id, name, privacy="closed", about=None):
           'last_updated': utctime(),
           'members': [user_id],
           'leaders': [user_id],
-          'name': name, 
+          'name': name,
+          'slug': slugify_vn(name),
           'privacy': privacy,
           '_id': new_id()}
   if about:
@@ -4560,6 +4576,11 @@ def update_group_info(session_id, group_id, info):
   if info.has_key('members'):
     info['members'] = [long(i) for i in info.get('members')]
   
+  #set slug based on name
+  print "Update group - name = " + info['name']
+  #print "Update group - slug = " + info['slug']
+  info['slug'] = slugify_vn(info['name'])
+
   db.owner.update({'leaders': user_id, 
                    '_id': long(group_id)}, {'$set': info})
   return True
@@ -5894,10 +5915,10 @@ def get_network_info(db_name):
 
 @line_profile
 def get_networks(user_id, user_email=None):
-  key = 'networks'
-  out = cache.get(key, namespace=user_id)
-  if out is not None:
-    return out
+#   key = '%s:networks' % user_id
+#   out = cache.get(key)
+#   if out is not None:
+#     return out
   
   
   def sortkeypicker(keynames):
@@ -5936,7 +5957,7 @@ def get_networks(user_id, user_email=None):
   out = sorted(networks_list, 
                key=sortkeypicker(['-unread_notifications', 
                                   'name', '-timestamp']))
-  cache.set(key, out, namespace=user_id)
+#   cache.set(key, out)
   return out
 
 PRIMARY_IP = socket.gethostbyname(settings.PRIMARY_DOMAIN)
