@@ -44,7 +44,7 @@ from lib import encode_url
 from lib.url import extract_urls
 from lib.hot_ranking import get_score
 from lib.pbkdf2 import pbkdf2_bin # From https://github.com/mitsuhiko/python-pbkdf2
-from lib.string_tools import slugify_vn
+from lib.string_tools import slugify_ext
 
 from gridfs import GridFS, NoFile
 from bson.binary import Binary
@@ -4544,7 +4544,7 @@ def new_group(session_id, name, privacy="closed", about=None):
           'members': [user_id],
           'leaders': [user_id],
           'name': name,
-          'slug': slugify_vn(name),
+          'slug': slugify_ext(name),
           'privacy': privacy,
           '_id': new_id()}
   if about:
@@ -4579,7 +4579,7 @@ def update_group_info(session_id, group_id, info):
   #set slug based on name
   print "Update group - name = " + info['name']
   #print "Update group - slug = " + info['slug']
-  info['slug'] = slugify_vn(info['name'])
+  info['slug'] = slugify_ext(info['name'])
 
   db.owner.update({'leaders': user_id, 
                    '_id': long(group_id)}, {'$set': info})

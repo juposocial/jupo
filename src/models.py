@@ -13,7 +13,7 @@ import api
 import filters
 import settings
 
-from lib.string_tools import slugify_vn
+from lib.string_tools import slugify_ext
 
 class Model:
   def __init__(self, info, db_name=None):
@@ -725,7 +725,7 @@ class Group(Model):
 
   @property
   def slug(self):
-    return slugify_vn(self.info.get('name'))
+    return slugify_ext(self.info.get('name'))
 
   @property
   def posting_email(self):
