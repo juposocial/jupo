@@ -840,7 +840,7 @@ $(document).ready(function(e) {
         $('textarea[name="msg"]', _this).val('');
         $('input.friends', _this).tokenInput('clear');
         
-        $('span.status', _this).html(' ✔ Invitation sent!')
+        $('span.status', _this).html(' ✔ Invitation sent!');
         return false;
       }
     });

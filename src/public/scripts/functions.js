@@ -15,14 +15,39 @@ jQuery.fn.selectText = function(){
    }
 };
 
+var cache = function() {
+  var TIMEOUT_DEFAULT = 60;
+   
+  var self = {
+    set: function(key, val, timeout) {
+      var timeout = parseInt(timeout, 10) || TIMEOUT_DEFAULT;
+      var now = Math.round(new Date().getTime() / 1000);
+      localStorage.setItem(key, val);
+      localStorage.setItem(key + '.timeout', now + timeout);
+    },
+    get: function(key) {
+      var timeout = localStorage.getItem(key + '.timeout');
+      var now = Math.round(new Date().getTime() / 1000);
+      if (timeout && timeout < now) {
+        localStorage.removeItem(key);
+        localStorage.removeItem(key + '.timeout');
+        return null;
+      }
+      return localStorage.getItem(key);
+    }
+  };
+   
+  return self;
+};
+
 function toggle_chatbox(chatbox_id) {
   
   var chatbox = $('#' + chatbox_id);
   
   if (chatbox.hasClass('minimize')) {
-    localStorage.removeItem('state-' + chatbox_id)
+    localStorage.removeItem('state-' + chatbox_id);
   } else {
-    localStorage['state-' + chatbox_id] = 'minimize'
+    localStorage['state-' + chatbox_id] = 'minimize';
   }
   
   chatbox.toggleClass('minimize');
@@ -49,7 +74,7 @@ function close_chat(chat_id) {
       }
     }
     
-    localStorage['chats'] = out.join(',')
+    localStorage['chats'] = out.join(',');
   }
   
  
@@ -71,7 +96,7 @@ function add_to_sidebar(chat_id) {
       success: function(html){ 
         chatbox = $(html);
       }
-    })
+    });
   }
   
   if ($('.user-info', chatbox).length != 0) {
@@ -87,7 +112,7 @@ function add_to_sidebar(chat_id) {
       var message = $('div.content', last_msg).text();
     }
     
-    code = '<a href="/chat/' + chat_id.replace('-', '/') + '" class="selected chat ' + chat_id + '">'
+    code = '<a href="/chat/' + chat_id.replace('-', '/') + '" class="selected chat ' + chat_id + '">';
     code += '<div class="ts rfloat">' + ts + '</div>';
     code += '<div class="unread-messages hidden">0</div>';
     code += '<img class="small-avatar lfloat" src="' + avatar + '">';
@@ -107,7 +132,7 @@ function add_to_sidebar(chat_id) {
       var message = $('div.content', last_msg).text();
     }
     
-    code = '<a href="/chat/' + chat_id.replace('-', '/') + '" class="selected chat ' + chat_id + '">'
+    code = '<a href="/chat/' + chat_id.replace('-', '/') + '" class="selected chat ' + chat_id + '">';
     code += '<div class="ts rfloat">' + ts + '</div>';
     code += '<div class="unread-messages hidden">0</div>';
     code += '<i class="group-icon"></i>';
@@ -178,7 +203,7 @@ function start_chat(chat_id) {
         textbox.elastic();
         
         textbox.resize(function() { // resize messages panel 
-          console.log('resized')
+          console.log('resized');
           
           var delta = ($('#chat-' + chat_id + ' form textarea.mentions').height() - last_textbox_height);
           var new_height = $('#chat-' + chat_id + ' .messages').height() - delta;
@@ -191,14 +216,14 @@ function start_chat(chat_id) {
           
           $('#chat-' + chat_id + ' .messages').scrollTop(99999);
         
-        })
+        });
         
         
         $('#chat-' + chat_id + ' textarea.mentions').mentionsInput({
           minChars: 1,
           fullNameTrigger: false,
           onDataRequest: function(mode, query, callback) {
-            search_mentions(query, callback)
+            search_mentions(query, callback);
           }
         });
         
@@ -217,7 +242,7 @@ function start_chat(chat_id) {
           fullNameTrigger: false,
           elastic: false,
           onDataRequest: function(mode, query, callback) {
-            search_mentions(query, callback)
+            search_mentions(query, callback);
           }
         });
       }
@@ -227,7 +252,7 @@ function start_chat(chat_id) {
       }
       
       // highlight code snippets
-      prettyPrint()
+      prettyPrint();
       
       $('#chat-' + chat_id + " div[contenteditable] span").tipsy({
         gravity: 's'
@@ -242,7 +267,7 @@ function start_chat(chat_id) {
         fullNameTrigger: false,
         elastic: false,
         onDataRequest: function(mode, query, callback) {
-          search_mentions(query, callback)
+          search_mentions(query, callback);
         }
       });
       
@@ -251,14 +276,14 @@ function start_chat(chat_id) {
       
       setTimeout(function() {
         $('#chat-' + chat_id + ' textarea.mentions').focus();
-      }, 50)
+      }, 50);
       
       // Right sidebar link
       if ($('ul.topics a.' + chat_id).length == 0) {
         add_to_sidebar(chat_id);
       }
       
-      enable_emoticons_autocomplete('#chat-' + chat_id)
+      enable_emoticons_autocomplete('#chat-' + chat_id);
       
       // Send File
       var uploader_id = chat_id.replace('-', '_');
@@ -362,7 +387,7 @@ function search_mentions(query, callback) {
           owners.push(data[i]);
           
           if (owners.length >= 3) {
-            break
+            break;
           }
         }
       }
@@ -381,7 +406,7 @@ function search_mentions(query, callback) {
             owners.push(data[i]);
             
             if (owners.length >= 3) {
-              break
+              break;
             }
           }
         }
@@ -404,7 +429,7 @@ function search_mentions(query, callback) {
             owners.push(data[i]);
             
             if (owners.length >= 3) {
-              break
+              break;
             }
           }
         }
@@ -420,19 +445,25 @@ function show_notification(img, title, description, timeout, callback) {
   var havePermission = window.webkitNotifications.checkPermission();
   if (havePermission == 0) {
     // 0 is PERMISSION_ALLOWED
+    var last_msg = cache().get('last_notification_message');
+    var msg = title + '\n' + description;
+    if (msg != last_msg) {
+      
+      cache().set('last_notification_message', msg, 10);
     
-    var message = description.replace(/(^\s+|\s+$)/g, '');
-    var notification = window.webkitNotifications.createNotification(img, title, message);
-
-    notification.onclick = function () {
-                notification.cancel();
-                callback();
+      var message = description.replace(/(^\s+|\s+$)/g, '');
+      var notification = window.webkitNotifications.createNotification(img, title, message);
+  
+      notification.onclick = function () {
+                  notification.cancel();
+                  callback();
+      };
+      notification.show();
+      
+      setTimeout(function() {
+                notification.close();
+      }, timeout);
     }
-    notification.show();
-    
-    setTimeout(function() {
-              notification.close()
-    }, timeout)
   } else {
       window.webkitNotifications.requestPermission();
   }
@@ -624,7 +655,7 @@ function mark_as_read(item_id) {
 
       console.log('mark as read: Done');
     }
-  })
+  });
 }
 
 function incr(id, value) {
