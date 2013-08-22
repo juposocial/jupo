@@ -2238,11 +2238,10 @@ def update_record(collection, query, info):
 def archive_post(session_id, post_id):
   db_name = get_database_name()
   db = DATABASE[db_name]
-  
   user_id = get_user_id(session_id)
   db.stream.update({'_id': long(post_id)}, 
                    {'$push': {'archived_by': user_id}})
-  clear_html_cache(post_id)  
+  clear_html_cache(user_id)
   return True
 
 def unarchive_post(session_id, post_id):
@@ -2252,7 +2251,7 @@ def unarchive_post(session_id, post_id):
   user_id = get_user_id(session_id)
   db.stream.update({'_id': long(post_id)}, 
                    {'$pull': {'archived_by': user_id}})
-  clear_html_cache(post_id)  
+  clear_html_cache(user_id)  
   return True
 
 def archive_posts(session_id, ts):
