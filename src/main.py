@@ -2407,7 +2407,6 @@ def news_feed(page=1):
 def feed_actions(feed_id=None, action=None, 
                  message_id=None, domain=None, comment_id=None):
   session_id = session.get("session_id")
-  
 #  if message_id:
 #    message_id = '%s@%s' % (message_id, domain)
 #    
@@ -3204,8 +3203,8 @@ if 'jupo.com' in settings.PRIMARY_DOMAIN:
       if request.environ.get('QUERY_STRING'):
         url += '?' + request.environ.get('QUERY_STRING')
       return redirect(url, code=301)
-  
-  
+
+@werkzeug.serving.run_with_reloader
 def run_app(debug=False):
     
   from cherrypy import wsgiserver
@@ -3247,7 +3246,7 @@ def run_app(debug=False):
   
   
 if __name__ == "__main__":
-  run_app(debug=False)
+  run_app(debug=True)
 
 
 
