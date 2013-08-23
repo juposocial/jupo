@@ -795,6 +795,16 @@ def get_user_id_from_username(username):
     user_id = user.get("_id")
     return user_id
   return None
+
+def get_user_id_from_nickname(nickname): #nickname = the part before @ in email
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user = db.owner.find_one({"email": re.compile('^' + nickname + '@', re.IGNORECASE)}, {'_id': True})
+  if user:
+    user_id = user.get("_id")
+    return user_id
+  return None
   
 
 def notify_me(email):
@@ -2171,13 +2181,16 @@ def get_group_id_from_group_slug(slug, db_name=None):
   db = DATABASE[db_name]
 
   #find group by slug
-  record = db.owner.find_one({'slug': slug})  
+  if slug != 'public':
+    record = db.owner.find_one({'slug': slug})  
 
-  if record:
-    group_id = record['_id']
-    return group_id
+    if record:
+      group_id = record['_id']
+      return group_id
+    else:
+      return None
   else:
-    return None
+    return 'public'
 
 
 def get_user_id_from_email_address(email, db_name=None):

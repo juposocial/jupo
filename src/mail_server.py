@@ -12,11 +12,13 @@ Mail addresses:
 """
 
 import api
+import re
 import smaz
 import smtpd
 import base64
 import asyncore
 from lib.email_parser import get_reply_text
+from lib.email_parser import get_reply_and_original_text
 from lib.email_parser import get_subject  
 
 
@@ -87,6 +89,8 @@ class JupoSMTPServer(smtpd.SMTPServer):
       api.new_comment(session_id, message, post_id, db_name=db_name)
       return None
     elif group_slug:
+      message = get_reply_and_original_text(data)
+
       #get user id based on email
       user_id = api.get_user_id_from_email_address(user_email, db_name='play_jupo_com')
       if not user_id:
@@ -118,8 +122,26 @@ class JupoSMTPServer(smtpd.SMTPServer):
 
       #insert subject into message
       message = "<b>"> + subject + "</b>" + "\n" + message
+
+      #check for mention in message/subject
+      #SO: http://stackoverflow.com/questions/2304632/regex-for-twitter-username
+      target = []
+      mentioned_found = re.findall('(?<=^|(?<=[^a-zA-Z0-9-_\.]))@([A-Za-z]+[A-Za-z0-9]+)', message)
+      #print "DEBUG - mail_server.py - qty mentioned_found = " + len(mentioned_found.group)
+
+      if len(mentioned_found) > 0:
+        for record in mentioned_found:
+          nickname = str(record)
+          print "DEBUG - mail_server.py - mentioned_found = " + nickname
+          print "DEBUG - mail_server.py - user_id = " + str(api.get_user_id_from_nickname(nickname[1:]))
+
+          if api.get_user_id_from_nickname(nickname[1:]) is not None:
+            target.append(api.get_user_id_from_nickname(nickname[1:]))
+
+      target.append(group_id)
+
       #post to group, no attachment for now
-      api.new_feed(session_id, message, [group_id], attachments=None, facebook_access_token=None)
+      api.new_feed(session_id, message, target, attachments=None, facebook_access_token=None)
 
     else:
       return None
