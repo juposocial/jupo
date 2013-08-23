@@ -127,6 +127,7 @@ def render_homepage(session_id, title, **kwargs):
                                   logo_text=logo_text,
                                   domain=hostname,
                                   request=request,
+                                  settings=settings,
                                   **kwargs))
   if owner:
     resp.set_cookie('channel_id', api.get_channel_id(session_id))
@@ -2462,6 +2463,7 @@ def feed_actions(feed_id=None, action=None,
     if attachments:
       attachments = attachments.rstrip(',').split(',')
       attachments = list(set(attachments))
+      app.logger.debug(attachments)
     else:
       attachments = []
 
@@ -3204,14 +3206,12 @@ if 'jupo.com' in settings.PRIMARY_DOMAIN:
         url += '?' + request.environ.get('QUERY_STRING')
       return redirect(url, code=301)
 
-@werkzeug.serving.run_with_reloader
+# @werkzeug.serving.run_with_reloader
 def run_app(debug=False):
     
   from cherrypy import wsgiserver
     
-  settings.DEBUG = debug
-  
-  app.debug = settings.DEBUG
+  app.debug = debug
   
   app.config['DEBUG_TB_PROFILER_ENABLED'] = True
   app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
@@ -3232,13 +3232,13 @@ def run_app(debug=False):
     'HIDE_FLASK_FROM_STACKTRACES': True
   }
   
-  toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+#   toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
   
 
   
   server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
   try:
-    print 'Serving HTTP on 0.0.0.0 port 8888...'
+    print 'Serving HTTP on 0.0.0.0 port 9000...'
     server.start()
   except KeyboardInterrupt:
     print '\nGoodbye.'

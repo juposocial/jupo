@@ -15,6 +15,17 @@ jQuery.fn.selectText = function(){
    }
 };
 
+String.prototype.hashCode = function(){
+    var hash = 0, i, char;
+    if (this.length == 0) return hash;
+    for (i = 0, l = this.length; i < l; i++) {
+        char  = this.charCodeAt(i);
+        hash  = ((hash<<5)-hash)+char;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+};
+
 var cache = function() {
   var TIMEOUT_DEFAULT = 60;
    
@@ -2438,6 +2449,7 @@ function refresh(element) {
   // });
 
   /* Upload */
+ 
 
   try {
     $.global.uploader.destroy();
@@ -2496,12 +2508,13 @@ function refresh(element) {
       $('form.new .upload-status').html("");
       
       $('#' + file.id).hide();
-      response = $.parseJSON(response.response)
+      response = $.parseJSON(response.response);
 
       if ($('div#attachments div#attachment-' + response.attachment_id).length == 0) {
         $('div#attachments').append(response.html);
+        $('div#attachments').removeClass('hidden');
 
-        files = $('input[name="attachments"]').val() + response.attachment_id + ','
+        files = $('input[name="attachments"]').val() + response.attachment_id + ',';
         $('input[name="attachments"]').val(files);
 
         refresh('div#attachments');
@@ -2598,7 +2611,7 @@ function refresh(element) {
         });
 
       }
-    })
+    });
   }
 
   // End of localstorage

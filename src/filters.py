@@ -176,8 +176,10 @@ def autolink(text):
   s = str(s) # convert unicode to string
   s = s.replace('\r\n', '\n')
 
-  
-  urls = api.extract_urls(s)
+  try:
+    urls = api.extract_urls(s)
+  except Exception:
+    urls = []
   urls = list(set(urls))
   urls.sort(key=len, reverse=True)
   

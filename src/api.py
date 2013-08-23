@@ -31,7 +31,7 @@ from itertools import izip
 from uuid import uuid4, UUID
 from string import capwords
 from urllib2 import urlopen
-from simplejson import dumps
+from simplejson import dumps, loads
 from time import mktime
 from datetime import datetime, timedelta
 from httplib import CannotSendRequest
@@ -2398,13 +2398,17 @@ def new_feed(session_id, message, viewers,
   viewers = set(_viewers)
   viewers.add(user_id)
   
-  files = set()
+  files = []
   if attachments:
     if isinstance(attachments, list):
       for i in attachments:
-        files.add(long(i))
+        if i.isdigit():
+          files.append(long(i))
+        else: # dropbox files
+          files.append(loads(base64.b64decode(i)))
+          
     else:
-      files.add(long(attachments))
+      files.append(long(attachments))
   
   if not isinstance(message, dict): # system message
     hashtags = get_hashtags(message)
@@ -2421,7 +2425,7 @@ def new_feed(session_id, message, viewers,
           'timestamp': ts,
           'last_updated': ts}
   if files:
-    info['attachments'] = list(files)
+    info['attachments'] = files
   
   if not isinstance(message, dict): # system message
     urls = extract_urls(message)
@@ -4475,11 +4479,18 @@ def get_attachments(session_id, group_id=None, limit=10):
   for post in posts:
     if post.has_key('attachments'):
       for i in post.get('attachments', []):
-        if i not in ids:
-          ids.add(i)
-          info = get_attachment_info(i)
-          info.rel = str(post.get('_id'))
-          attachments.append(info)
+        if isinstance(i, dict):
+          id = i['link']
+        else:
+          id = i
+        
+        if i in ids:
+          continue
+        
+        ids.add(id)
+        info = get_attachment_info(i)
+        info.rel = str(post.get('_id'))
+        attachments.append(info)
           
     elif group_id and post.has_key('history') and post['history'][0].has_key('attachment_id'):
       for i in post['history'][::-1]:

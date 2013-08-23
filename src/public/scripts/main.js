@@ -388,7 +388,7 @@ $(document).ready(function(e) {
   $('#body').on('mouseleave', 'li.unread > section', function() {
     id = $(this).parent().attr('id');
     if (mark_as_read_timer) {
-      clearTimeout(mark_as_read_timer)
+      clearTimeout(mark_as_read_timer);
     }
   });
 
@@ -407,16 +407,13 @@ $(document).ready(function(e) {
     $(this).toggleClass('active');
     $(this).next('ul').toggle();
     return false;
-  })
+  });
   
   $('#body, #overlay, #popup').on('click', 'form.new footer a', function() {
     var id = $(this).attr('id');
     var form = $(this).parents('form');
     var row_id = id;
 
-    //check table row attach file is showing --> return, else active it
-    if (id == 'pick-file')
-      row_id = 'attach';    
 
     if(($.global.uploader.is_uploading == true || id == 'pick-file') && $('tr#' + row_id, form).is(':visible') == true) {
        return false; 
@@ -436,27 +433,42 @@ $(document).ready(function(e) {
   });  
 
   /* Dropbox file*/
-  // add an event listener to a Chooser button
-
-  document.getElementById("db-chooser")?document.getElementById("db-chooser").addEventListener("DbxChooserSuccess", function(e) {
-      
-      $.global.drop_box_files = e.files;
-
-      var textarea = $('textarea.mention', 'form.new:not(.overlay)');
-      var text = textarea.val();
-      var link = '';
-      //var icon = '';
-      for(var i in e.files) {
+ 
+  $('#body').on('click', 'div.file-chooser a.dropbox-chooser', function() {
+    Dropbox.choose({
+      linkType: "direct",
+      multiselect: true,
+      success: function(files) {
+        for(var i in files) {
         
-          //link = '<a href="' + e.files[i].link + '" target="blank_">' + e.files[i].name + '</a>';
-          //icon = '<img src="' + e.files[i].icon + '" />';
-          //text += '<br>' + icon + link + '<br>';     
-          link = e.files[i].link;
-          text += link;     
-      }
-      textarea.val(text);
+          var file = files[i];
+          
+          if ($('div#attachments div#attachment-' + file.link.hashCode()).length == 0) {
+          
+            var html = "<div class='attachment' id='attachment-" + file.link.hashCode() + "' data-file='" + btoa(JSON.stringify(file)) + "'>"
+                     + "<a href='" + file.link + "' target='_blank'>" + file.name + "</a>" 
+                     + "<a class='remove-attachment' href='#'>×</a>"
+                     + "</div>";
+            
+            $('div#attachments').append(html);
+            $('div#attachments').removeClass('hidden');
+        
+            files = $('input[name="attachments"]').val() + btoa(JSON.stringify(file)) + ',';
+            $('input[name="attachments"]').val(files);
+        
+            refresh('div#attachments');
+            
+            
+            $('form a#pick-file').trigger('click');
+          }
+               
+        }
+      },
+      cancel:  function() {}
+    });
+  });
+ 
 
-  }, false):false;
 
 
   /* Drop down menu */
@@ -546,7 +558,7 @@ $(document).ready(function(e) {
     }
     return false;
     
-  })
+  });
   /* End dropdown menu */
 
   // $('#scroll-to-top').scroll_to_top({
@@ -1368,7 +1380,7 @@ $(document).ready(function(e) {
       $.ajax({
         type: "GET",
         url: $(this).attr('href')
-      })
+      });
       
       $('#unread-notification-counter').html('0');
       $('#unread-notification-counter').addClass('grey');
@@ -1409,26 +1421,48 @@ $(document).ready(function(e) {
           document.title = title.replace(counter, '(' + count + ') ');
         }
       }
-    })
+    });
     return false;
   });
 
   $("#body, #overlay").on("click", 'a.remove-attachment', function() {
     console.log('remove-attachment clicked');
-    form = $(this).parents('form');
-    $.ajax({
-      type: "POST",
-      headers: {
-        'X-CSRFToken': get_cookie('_csrf_token')
-      },
-      url: $(this).attr("data-href"),
-      success: function(id) {
-        $('#attachment-' + id).remove();
-        var files = $('input[name="attachments"]', form).val();
-        files = files.replace(id + ',', '');
-        $('input[name="attachments"]', form).val(files);
-      }
-    });
+    var _this = $(this);
+    var form = _this.parents('form');
+    var attachment = _this.closest('div.attachment');
+    
+    
+    if (_this.data('href') != undefined) {
+      $.ajax({
+        type: "POST",
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        url: $(this).attr("data-href"),
+        success: function(id) {
+          $('#attachment-' + id).remove();
+          var files = $('input[name="attachments"]', form).val();
+          files = files.replace(id + ',', '');
+          $('input[name="attachments"]', form).val(files);
+          
+          if ($('div#attachments > div').length == 0) {
+            $('div#attachments').addClass('hidden');
+          }
+          
+        }
+      });
+    } else {
+      
+          var files = $('input[name="attachments"]', form).val();
+          files = files.replace(attachment.data('file') + ',', '');
+          $('input[name="attachments"]', form).val(files);
+          
+          attachment.remove();
+          
+          if ($('div#attachments div.attachment').length == 0) {
+            $('div#attachments').addClass('hidden');
+          }
+    }
     return false;
   });
 
