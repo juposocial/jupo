@@ -406,6 +406,11 @@ a#pickfiles {
   display: block;
 }
 
+/*=========== Dropbox =============*/
+.dropbox-chooser{
+  margin-left: 62px;
+}
+
 /*======================== Textarea Auto complete =========================*/
 ul.auto-list {
   display: none;
