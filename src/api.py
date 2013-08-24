@@ -4499,7 +4499,7 @@ def get_attachments(session_id, group_id=None, limit=10):
           break
       
       if attachment_id not in ids:
-        ids.add(attachment_id)
+        ids.append(attachment_id)
         info = get_attachment_info(attachment_id)
         info.rel = str(post.get('_id'))
         attachments.append(info)
@@ -4511,7 +4511,7 @@ def get_attachments(session_id, group_id=None, limit=10):
       if comment.has_key('attachments'):
         for i in comment.get('attachments', []):
           if i not in ids:
-            ids.add(i)
+            ids.append(i)
             info = get_attachment_info(i)
             info.rel = str(post.get('_id'))
             attachments.append(info)

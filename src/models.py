@@ -1430,7 +1430,7 @@ class Message(Model):
     if self.info.has_key('text'):
       return self.info.get('text')
     message = self.info.get('msg')
-    if isinstance(message, int) or isinstance(message, long): # is file
+    if str(message).isdigit() and len(str(message)) == 18: # is file
       return api.get_attachment_info(message, db_name=self.db_name)
     return message
   
@@ -1460,17 +1460,12 @@ class Message(Model):
   def is_file(self):    
     if self.info.has_key('text'):
       return False
-    message = self.info.get('msg')
     
-    if str(message).isdigit() and len(str(message)) == 18:
-      db_name = api.get_database_name()
-      db = api.DATABASE[db_name]
-      message_info = db.stream.find_one({'_id': long(message)})
-      if message_info is None:
-        return False
-      
-    if api.is_snowflake_id(message):
+    message = self.info.get('msg')
+    if str(message).isdigit() and len(str(message)) == 18: # is file
       return True
+    else:
+      return False
     
   def is_unread(self):
     return self.info.get('is_unread')
