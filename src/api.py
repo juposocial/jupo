@@ -4475,7 +4475,7 @@ def get_attachments(session_id, group_id=None, limit=10):
                      .limit(limit)
     
   attachments = []
-  ids = set() 
+  ids = [] 
   for post in posts:
     if post.has_key('attachments'):
       for i in post.get('attachments', []):
@@ -4487,7 +4487,7 @@ def get_attachments(session_id, group_id=None, limit=10):
         if i in ids:
           continue
         
-        ids.add(id)
+        ids.append(id)
         info = get_attachment_info(i)
         info.rel = str(post.get('_id'))
         attachments.append(info)

@@ -618,14 +618,14 @@ class Attachment(Model):
   @property
   def download_url(self):
     if self.info.has_key('link'):
-      return self.info.get('link')
+      return self.info.get('link').replace('www.dropbox.com', 'dl.dropboxusercontent.com', 1)
     return api.s3_url(self.md5, content_type=self.mimetype, 
                       disposition_filename=self.name)
   
   @property
   def serving_url(self):
     if self.info.has_key('link'):
-      return self.info.get('link')
+      return self.info.get('link').replace('www.dropbox.com', 'dl.dropboxusercontent.com', 1)
     return api.s3_url(self.md5, content_type=self.mimetype)
   
   

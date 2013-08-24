@@ -436,7 +436,7 @@ $(document).ready(function(e) {
  
   $('#body').on('click', 'div.file-chooser a.dropbox-chooser', function() {
     Dropbox.choose({
-      linkType: "direct",
+      linkType: "preview",
       multiselect: true,
       success: function(files) {
         for(var i in files) {
