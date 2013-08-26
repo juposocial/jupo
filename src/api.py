@@ -1595,6 +1595,7 @@ def get_utcoffset(user_id, db_name=None):
 def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
+    print "DEBUG - get_user_info - get from DB " + str(db_name)
   db = DATABASE[db_name]
   
   if user_id and not is_snowflake_id(user_id):
@@ -5842,6 +5843,7 @@ def get_db_names(email):
 
 
 def new_network(db_name, organization_name, description=None):
+  print "DEBUG - in new_network - check if db exists " + str(db_name) + " - result = " + str(is_exists(db_name=db_name))
   if is_exists(db_name=db_name):
     return False
   

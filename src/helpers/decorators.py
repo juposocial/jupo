@@ -14,8 +14,13 @@ def login_required(f):
   """
   @wraps(f)
   def wrapper(*args, **kwargs):
+    if request.args.get('session_id') is not None:
+      session['session_id'] = request.args.get('session_id')
+
     session_id = session.get('session_id')
+    print "DEBUG - in login_required - session_id = " + str(session_id)
     user_id = api.get_user_id(session_id)
+    print "DEBUG - in login_required - user_id = " + str(user_id)
     if user_id:
       utcoffset = request.cookies.get('utcoffset')
       if utcoffset:

@@ -16,6 +16,8 @@ $(document).ready(function(e) {
     $.global.clear_autosave = {};
     $.global.preload = {};
   }
+
+  
   
   // restore chat windows
   if (localStorage.getItem('chats') != undefined) {
@@ -116,6 +118,8 @@ $(document).ready(function(e) {
       }
     }
   });
+
+
   
   
   $("#body, #overlay").on('click', "a.edit-post", function(e) {
@@ -2797,7 +2801,7 @@ $(document).ready(function(e) {
   })
   
   
-  
+
  
 });
 

@@ -24,7 +24,7 @@
             </a>
 
             <a href='/sign_in' class='button'>Sign in</a>
-            <a href='/sign_up' class='button sign-up'>Create an Account</a>
+            <!--<a href='/sign_up' class='button sign-up'>Create an Account</a>-->
 
             {#
             <a href='#'>Explore</a>
@@ -38,12 +38,30 @@
         <img src="/public/images/home.png" class="rfloat screenshot">
 
         <div class='heading'>
-          <img src='/public/images/intro.png' class="intro">
+          <img src='/public/images/intro.png' class="intro"/>
 
-          <h2>Unlimited usage, no obligations.</h2>
-          <a href="/network/new">
-            <span class="text1">It's just <strong>one</strong> simple step to create your own network.</span>
-            <span class="text2"> Start here</span> </a>
+          
+          <span class="text1">It's just <strong>one</strong> simple step to create your own network.</span>
+          <!--<a href="/network/new"><span class="text2"> Start here</span></a>-->
+
+          <form id='authenticate-with-google' action='/oauth/google' method="POST">
+            <input id ='email' type='email' name='email' placeholder="Enter your Google Apps email"></input>
+            <!--<a id="submit" href='/oauth/google?domain=jupo.localhost.com:4000' class='button'>Sign up</a>-->
+            <button type="submit" class="button">Sign up</button>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                {% for message in messages %}
+                  <div class='flash-message'>
+                    {{ message | safe }}
+                  </div>
+                {% endfor %}    
+              {% endif %}
+            {% endwith %}
+            
+            <input type="hidden" name="domain" value="jupo.localhost.com:4000">
+            <input type="hidden" name="call_from" value="landing">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          </form>
         </div>
         <div class="jumbotron-shadow"></div>
       </div>
