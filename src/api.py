@@ -2408,7 +2408,7 @@ def new_feed(session_id, message, viewers,
           files.append(loads(base64.b64decode(i)))
           
     else:
-      files.append(long(attachments))
+      files.append(long(attachments) if str(attachments).isdigit() else attachments)
   
   if not isinstance(message, dict): # system message
     hashtags = get_hashtags(message)
@@ -3198,9 +3198,12 @@ def new_comment(session_id, message, ref_id,
   if attachments:
     if isinstance(attachments, list):
       for i in attachments:
-        files.append(long(i))
+        if str(i).isdigit():
+          files.append(long(i))
+        else: # dropbox files
+          files.append(loads(base64.b64decode(i)))
     else:
-      files.append(long(attachments))
+      files.append(long(attachments) if str(attachments).isdigit() else attachments)
   if files:
     comment['attachments'] = files
     

@@ -552,8 +552,16 @@ class Comment(Model):
   
   @property
   def attachments(self):
-    return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
-            for attachment_id in self.info.get('attachments', [])]
+    if self.info.has_key('attachments'):
+      files = []
+      for i in self.info.get('attachments'):
+        if isinstance(i, dict):
+          files.append(Attachment(i))
+        else:
+          files.append(api.get_attachment_info(i, db_name=self.db_name))
+      return files
+    else:
+      return []
   
   @property
   def attachment_ids(self):

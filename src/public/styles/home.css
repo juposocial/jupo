@@ -4628,7 +4628,7 @@ div.attachment div.info {
   margin-left: 0 !important;
 }
 
-section div.attachment:before {
+/*section div.attachment:before {
   content: '\201C';
   height: 0;
   margin-left: -15px;
@@ -4637,7 +4637,7 @@ section div.attachment:before {
   margin-top: 7px;
   color: #37404e;
   font-family: arial;
-}
+}*/
 
 /* div.attachment:after { */
 /*   content: '\201D'; */
