@@ -434,18 +434,19 @@ $(document).ready(function(e) {
 
   /* Dropbox file*/
  
-  $('#body').on('click', 'div.file-chooser a.dropbox-chooser', function() {
+  $('#body').on('click', 'form.new div.file-chooser a.dropbox-chooser', function() {
     Dropbox.choose({
       linkType: "preview",
       multiselect: true,
       success: function(files) {
+        $.global.dropbox_files = files;
         for(var i in files) {
-        
+          
           var file = files[i];
           
-          if ($('div#attachments div#attachment-' + file.link.hashCode()).length == 0) {
+          if ($('div#attachments div#attachment-' + btoa(file.link)).length == 0) {
           
-            var html = "<div class='attachment' id='attachment-" + file.link.hashCode() + "' data-file='" + btoa(JSON.stringify(file)) + "'>"
+            var html = "<div class='attachment' id='attachment-" + btoa(file.link) + "' data-file='" + btoa(JSON.stringify(file)) + "'>"
                      + "<a href='" + file.link + "' target='_blank'>" + file.name + "</a>" 
                      + "<a class='remove-attachment' href='#'>×</a>"
                      + "</div>";
@@ -453,8 +454,8 @@ $(document).ready(function(e) {
             $('div#attachments').append(html);
             $('div#attachments').removeClass('hidden');
         
-            files = $('input[name="attachments"]').val() + btoa(JSON.stringify(file)) + ',';
-            $('input[name="attachments"]').val(files);
+            attachments = $('input[name="attachments"]').val() + btoa(JSON.stringify(file)) + ',';
+            $('input[name="attachments"]').val(attachments);
         
             refresh('div#attachments');
             
@@ -2400,25 +2401,25 @@ $(document).ready(function(e) {
     $('html').trigger('click');
     $('form.chat textarea.mentions', chatbox).attr('placeholder', "Type a person's name, starts with @").focus();
     return false;
-  })
+  });
   
   $('#chat').on('click', 'div.header a.close', function() {
     var chat_id = $(this).attr('data-chat-id');
     close_chat(chat_id);
     return false;
 
-  })
+  });
   
   
   $('#chat').on('click', '.chatbox .header', function(e) {
     var chatbox_id = $(this).parent().attr('id');
     toggle_chatbox(chatbox_id);
-  })
+  });
   
   $('#chat, #body').on('click', '.chatbox .message a.image-expander', function(e) {
     $(this).next().toggleClass('hidden');
     return false;
-  })
+  });
   
   
   $('#chat, #body').on('click', '.chatbox li.more a', function(e) {
@@ -2464,7 +2465,7 @@ $(document).ready(function(e) {
     }
     
     return false;
-  })
+  });
   
   
   $('#chat, #body').on('paste', 'form.chat textarea', function () {
@@ -2524,10 +2525,10 @@ $(document).ready(function(e) {
         } else {
           update_status(chat_id + '|');
         }
-      }, 2000)
+      }, 2000);
       
     }
-  })
+  });
   
   
   
@@ -2537,8 +2538,8 @@ $(document).ready(function(e) {
     var _boxchat = _this.parents('.chatbox');
     
     
-    $('textarea.mentions', _this).attr('readonly', 'readonly')
-    $('form', _boxchat).addClass('gray-bg')
+    $('textarea.mentions', _this).attr('readonly', 'readonly');
+    $('form', _boxchat).addClass('gray-bg');
     
     
     $('textarea.mentions', _this).mentionsInput('val', function(text) {
@@ -2594,7 +2595,7 @@ $(document).ready(function(e) {
             
             setTimeout(function() {
               $('.messages', _boxchat).scrollTop(99999);
-            }, 10)
+            }, 10);
           }
           
           var chat_id = _boxchat.attr('id').replace('chat-', '');
@@ -2605,7 +2606,7 @@ $(document).ready(function(e) {
           $('ul.topics a.chat.' + chat_id + ' div.ts').html($('div.ts', msg).text());
           
           // highlight code snippets
-          prettyPrint()
+          prettyPrint();
               
         }
         
@@ -2615,7 +2616,7 @@ $(document).ready(function(e) {
     return false;
     
     
-  })
+  });
   
 
   $('#body').on('keydown', 'div.messages div.header div[contenteditable=true]', function(e) {
@@ -2635,10 +2636,10 @@ $(document).ready(function(e) {
               _this.blur();
               $('ul.topics li a.topic-' + topic_id + ' div.title').html(name);
             }
-       })
+       });
       return false;
     }
-  })
+  });
 
   $('#friends-online').on('submit', 'form', function(e) {
     e.preventDefault();

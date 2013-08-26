@@ -15,17 +15,6 @@ jQuery.fn.selectText = function(){
    }
 };
 
-String.prototype.hashCode = function(){
-    var hash = 0, i, char;
-    if (this.length == 0) return hash;
-    for (i = 0, l = this.length; i < l; i++) {
-        char  = this.charCodeAt(i);
-        hash  = ((hash<<5)-hash)+char;
-        hash |= 0; // Convert to 32bit integer
-    }
-    return hash;
-};
-
 var cache = function() {
   var TIMEOUT_DEFAULT = 60;
    
@@ -296,6 +285,10 @@ function start_chat(chat_id) {
       
       enable_emoticons_autocomplete('#chat-' + chat_id);
       
+      
+      
+      
+      
       // Send File
       var uploader_id = chat_id.replace('-', '_');
             
@@ -360,7 +353,7 @@ function start_chat(chat_id) {
           
           setTimeout(function() {
             $('#chat-' + chat_id + ' .messages').scrollTop(99999);
-          }, 10)
+          }, 10);
         
       });
   
