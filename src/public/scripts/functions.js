@@ -286,6 +286,65 @@ function start_chat(chat_id) {
       enable_emoticons_autocomplete('#chat-' + chat_id);
       
       
+      // Dropbox files
+      
+      $('#chat-' + chat_id).on('click', 'div.header a.dropbox-chooser', function() {
+        Dropbox.choose({
+          linkType: "preview",
+          multiselect: true,
+          success: function(files) {
+            $.global.dropbox_files = files;
+            for(var i in files) {
+              
+              var file = files[i];
+              
+              var url = '/chat/' + chat_id.replace('-', '/') + '/new_file?' + $.param(file);
+              
+              
+              update_status(chat_id + '|is uploading file...');
+              $('#chat-' + chat_id + ' div.status').html("Uploading...").show();
+              
+              $.ajax({
+                url: url, 
+                type: 'POST',
+                headers: {
+                  'X-CSRFToken': get_cookie('_csrf_token')
+                },
+                success: function(resp) {
+                
+                  $('#chat-' + chat_id + ' div.status').html('').fadeOut('fast');
+            
+            
+                  var last_msg = $('#chat-' + chat_id + ' li.message:last');
+                  var msg = $(resp);
+          
+                  var msg_id = msg.attr('id').split('-')[1];
+                  var msg_ts = msg.data('ts');
+                  var sender_id = msg.attr('data-sender-id');
+                  
+                  if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+                    var content = $('.content', msg).html();
+                    $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+                    $(last_msg).data('ts', msg_ts);
+                    $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+                    
+                  } else {
+                    $('#chat-' + chat_id + ' .messages').append(resp);
+                  }
+                  
+                  
+                  setTimeout(function() {
+                    $('#chat-' + chat_id + ' .messages').scrollTop(99999);
+                  }, 10);
+                }
+                  
+              });
+                   
+            }
+          },
+          cancel:  function() {}
+        });
+      });
       
       
       

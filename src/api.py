@@ -2106,7 +2106,7 @@ def get_mentions(raw_text):
       tag['type'], tag['id'] = tag['id'].split(':', 1)
       if tag['id'].isdigit():
         tag['id'] = long(tag['id'])
-      user_list.append(tag)
+        user_list.append(tag)
   return user_list
 
 def unfollow_post(session_id, feed_id):
@@ -6111,7 +6111,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   return_empty_html = False
   if user_id and mentions and topic_id is None:
     members = [user_id, owner_id]
-    members.extend([int(i.get('id')) for i in mentions])
+    members.extend([int(i.get('id')) for i in mentions if i.has_key('id')])
     topic_id = new_topic(owner_id, members, db_name=db_name)
     
     msg = '@[%s](user:%s) created @[a group conversation](topic:%s)'\
@@ -6121,7 +6121,9 @@ def new_message(session_id, message, user_id=None, topic_id=None,
     
     msg = '@[%s](user:%s) added %s to this conversation' \
         % (get_user_info(owner_id).name, owner_id, 
-           ', '.join(['@[%s](user:%s)' % (i['name'], i['id']) for i in mentions]))
+           ', '.join(['@[%s](user:%s)' % (i['name'], i['id']) \
+                      for i in mentions \
+                      if i.has_key('id')]))
     
     if ''.join(e for e in strip_mentions(message) if e.isalnum()):
       new_message(session_id, msg, user_id, topic_id, 

@@ -2018,6 +2018,19 @@ def chat(topic_id=None, user_id=None, action=None):
     return html
   
   elif action == 'new_file':
+    if request.args.get('link'): # dropbox files
+      link = request.args.get('link')
+      name = request.args.get('name')
+      bytes = request.args.get('bytes')
+      
+      message = '@[%s (%s)](dropbox-file:%s)' % (name, 
+                                                 api.sizeof(int(bytes)),
+                                                 link)
+      html = api.new_message(session_id, message, user_id=user_id)
+      return html
+    
+    
+    
     file = request.files.get('file')
     filename = file.filename
     attachment_id = api.new_attachment(session_id, 
