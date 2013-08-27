@@ -421,6 +421,10 @@ def get_database_name():
   db_name = None
   if request:
     hostname = request.headers.get('Host')
+    
+    if 'localhost' in hostname:
+      hostname = 'play.jupo.dev'
+      
     if hostname:
       network = request.cookies.get('network')
       if network and not hostname.startswith(network):
@@ -2456,7 +2460,9 @@ def new_feed(session_id, message, viewers,
           files.append(loads(base64.b64decode(i)))
           
     else:
-      files.append(long(attachments) if str(attachments).isdigit() else attachments)
+      files.append(long(attachments) \
+                   if str(attachments).isdigit() 
+                   else loads(base64.b64decode(attachments)))
   
   if not isinstance(message, dict): # system message
     hashtags = get_hashtags(message)
@@ -3248,10 +3254,15 @@ def new_comment(session_id, message, ref_id,
       for i in attachments:
         if str(i).isdigit():
           files.append(long(i))
-        else: # dropbox files
-          files.append(loads(base64.b64decode(i)))
+        else: # dropbox/google drive files
+          file = loads(base64.b64decode(i))
+#           file.pop('exportLinks')
+#           file.pop('result')
+          files.append(file)
     else:
-      files.append(long(attachments) if str(attachments).isdigit() else attachments)
+      files.append(long(attachments) \
+                   if str(attachments).isdigit() 
+                   else loads(base64.b64decode(attachments)))
   if files:
     comment['attachments'] = files
     
@@ -4532,7 +4543,7 @@ def get_attachments(session_id, group_id=None, limit=10):
     if post.has_key('attachments'):
       for i in post.get('attachments', []):
         if isinstance(i, dict):
-          id = i['link']
+          id = i.get('id', i.get('link'))
         else:
           id = i
         

@@ -56,6 +56,7 @@ S3_BUCKET_NAME = None
 GOOGLE_CLIENT_ID = None
 GOOGLE_CLIENT_SECRET = None
 GOOGLE_REDIRECT_URI = 'https://www.jupo.com/oauth/google/authorized'
+GOOGLE_API_KEY = None
 
 
 # [Login with Facebook]

@@ -450,7 +450,7 @@ $(document).ready(function(e) {
           
           if ($('div#attachments div#attachment-' + btoa(file.link)).length == 0) {
           
-            var html = "<div class='attachment' id='attachment-" + btoa(file.link) + "' data-file='" + btoa(JSON.stringify(file)) + "'>"
+            var html = "<div class='attachment' id='attachment-" + btoa(file.link) + "' data-file='" + btoa(JSON_stringify(file)) + "'>"
                      + "<a href='" + file.link + "' target='_blank'>" + file.name + "</a>" 
                      + "<a class='remove-attachment' href='#'>×</a>"
                      + "</div>";
@@ -458,7 +458,7 @@ $(document).ready(function(e) {
             $('div#attachments').append(html);
             $('div#attachments').removeClass('hidden');
         
-            attachments = $('input[name="attachments"]').val() + btoa(JSON.stringify(file)) + ',';
+            attachments = $('input[name="attachments"]').val() + btoa(JSON_stringify(file)) + ',';
             $('input[name="attachments"]').val(attachments);
         
             refresh('div#attachments');
@@ -472,6 +472,8 @@ $(document).ready(function(e) {
       cancel:  function() {}
     });
   });
+  
+  
  
 
 
@@ -1729,7 +1731,7 @@ $(document).ready(function(e) {
             console.log('Remove ' + key + ' from Session Storage');
           }
 
-          sessionStorage[href] = JSON.stringify(resp);
+          sessionStorage[href] = JSON_stringify(resp);
           // save to session storage (for Back button)
           $.global.history.unshift(href);
 

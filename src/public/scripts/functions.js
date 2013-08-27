@@ -1,3 +1,16 @@
+// http://stackoverflow.com/questions/4901133/json-and-escaping-characters
+function JSON_stringify(s, emit_unicode)
+{
+   var json = JSON.stringify(s);
+   return emit_unicode ? json : json.replace(/[\u007f-\uffff]/g,
+      function(c) { 
+        return '\\u'+('0000'+c.charCodeAt(0).toString(16)).slice(-4);
+      }
+   );
+}
+
+
+
 jQuery.fn.selectText = function(){
    var doc = document;
    var element = this[0];
@@ -1546,7 +1559,7 @@ function open_in_async_mode(href, rel, data, f) {
           console.log('Remove ' + key + ' from Session Storage');
         }
 
-        sessionStorage[href] = JSON.stringify(resp);
+        sessionStorage[href] = JSON_stringify(resp);
         // save to session storage (for Back button)
         $.global.history.unshift(href);
 
@@ -1780,7 +1793,7 @@ function open_in_overlay_mode(href, data) { // has #! in url
           console.log('Remove ' + key + ' from Session Storage');
         }
 
-        sessionStorage[href] = JSON.stringify(resp);
+        sessionStorage[href] = JSON_stringify(resp);
         // save to session storage (for Back button)
         $.global.history.unshift(href);
 
@@ -2707,7 +2720,7 @@ $.fn.fixBroken = function() {
   });
 };
 
-JSON.stringify = JSON.stringify ||
+JSON_stringify = JSON_stringify ||
 function(obj) {
   var t = typeof (obj);
   if (t != "object" || obj === null) {
@@ -2724,7 +2737,7 @@ function(obj) {
       if (t == "string")
         v = '"' + v + '"';
       else if (t == "object" && v !== null)
-        v = JSON.stringify(v);
+        v = JSON_stringify(v);
       json.push(( arr ? "" : '"' + n + '":') + String(v));
     }
     return ( arr ? "[" : "{") + String(json) + ( arr ? "]" : "}");

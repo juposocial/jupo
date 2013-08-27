@@ -387,9 +387,10 @@
               {{ feed.message | sanitize | fix_unclosed_tags | safe }}
             {% elif feed.last_comments and feed.timestamp < feed.last_comments[-1].timestamp %}
               {% if mode != 'view' %}
-                <div class='attachment'>
-                    {{ summary | nl2br | safe }}
+                <div>
+                  {{ summary | nl2br | safe }}
                 </div>
+                
                 {% if content | length > (summary | length) %}  {# '...' = 3 characters #}
                 <a class='see-more'>See more</a>
                 <div class='attachment hidden'>
@@ -397,9 +398,11 @@
                 </div>
                 {% endif %}
               {% else %}
-                <div class='attachment'>
+                
+                <div>
                   {{ content | nl2br | safe }}
                 </div>
+                
               {% endif %}
             {% else %}
               {% if mode != 'view' %}
@@ -435,13 +438,13 @@
         
       {% if feed.attachments %}
         {% for file in feed.attachments %}
-          {% if file.id or file.is_dropbox_file() %}
+          {% if file.id %}
           <div class="file-attachment {% if 'image' in file.mimetype %}image{% endif %}">
             {% if 'image' in file.mimetype %}
               {% if feed.attachments | length == 1 %}
-              <a href='{% if file.is_dropbox_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}.png?rel={{ feed.id }}{% endif %}' target='_blank' rel='gallery' class="lfloat"><img src='{% if file.is_dropbox_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}.png?rel={{ feed.id }}{% endif %}' alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
+              <a href='{% if file.is_dropbox_file() or file.is_google_drive_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}.png?rel={{ feed.id }}{% endif %}' target='_blank' rel='gallery' class="lfloat"><img src='{% if file.is_dropbox_file() or file.is_google_drive_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}.png?rel={{ feed.id }}{% endif %}' alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
               {% else %}
-              <a href='{% if file.is_dropbox_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}.png?rel={{ feed.id }}{% endif %}' target='_blank' rel='gallery' class="lfloat"><img src='{% if file.is_dropbox_file() %}{{ file.serving_url }}{% else %}/img/{% if loop.index == 1 %}325_171{% else %}160_82{% endif %}/{{ file.id }}.png{% endif %}' {% if loop.index == 1 %}width="325" height="171"{% else %}width="160" height="82"{% endif %} alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
+              <a href='{% if file.is_dropbox_file() or file.is_google_drive_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}.png?rel={{ feed.id }}{% endif %}' target='_blank' rel='gallery' class="lfloat"><img src='{% if file.is_dropbox_file() or file.is_google_drive_file() %}{{ file.serving_url }}{% else %}/img/{% if loop.index == 1 %}325_171{% else %}160_82{% endif %}/{{ file.id }}.png{% endif %}' {% if loop.index == 1 %}width="325" height="171"{% else %}width="160" height="82"{% endif %} alt='{{ file.name }} ({{ file.size }})'  title='{{ file.name }} ({{ file.size }})'/></a>
               
               {% endif %}
             {% else %}
@@ -450,8 +453,8 @@
             {% endif %}
             
             {% if 'image' not in file.mimetype %}
-              <a href='{% if file.is_dropbox_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}?rel={{ feed.id }}{% endif %}' target='_blank' download='{{ file.name }}'>{{ file.name | truncate(40, True) }}</a>
-              <span class='gray'>({{ file.size }})</span>
+              <a href='{% if file.is_dropbox_file() or file.is_google_drive_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}?rel={{ feed.id }}{% endif %}' target='_blank'>{{ file.name | truncate(40, True) }}</a>
+              {% if not file.is_google_drive_file() %}<span class='gray'>({{ file.size }})</span>{% endif %}
             {% endif %}
           </div>
           {% endif %}

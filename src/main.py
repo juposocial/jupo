@@ -1635,6 +1635,7 @@ def user(user_id=None, page=1, view=None):
                                user=user,
                                owner=owner,
                                title=title, 
+                               settings=settings,
                                coworkers=coworkers,
                                feeds=feeds)
         
@@ -2056,6 +2057,7 @@ def group(group_id=None, view='group', page=1):
                                         feeds=feeds, 
                                         group=group,
                                         owner=owner,
+                                        settings=settings,
 #                                        upcoming_events=upcoming_events,
                                         view=view)}
         
@@ -2302,6 +2304,10 @@ def messages(user_id=None, topic_id=None, action=None):
 @line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
+  if hostname == 'localhost':
+    hostname = 'play.jupo.dev'
+  
+  
   session_id = request.args.get('session_id')
   
   
@@ -2470,6 +2476,7 @@ def news_feed(page=1):
                              coworkers=coworkers,
                              suggested_friends=suggested_friends,
                              pinned_posts=pinned_posts,
+                             settings=settings,
                              feeds=feeds)
       
       json = dumps({"body": body, 

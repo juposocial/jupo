@@ -110,7 +110,7 @@
                         
                         if ($('#new-comment-{{ item.id }} div.attachments div#attachment-' + btoa(file.link)).length == 0) {
                         
-                          var html = "<div class='attachment' id='attachment-" + btoa(file.link) + "' data-file='" + btoa(JSON.stringify(file)) + "'>"
+                          var html = "<div class='attachment' id='attachment-" + btoa(file.link) + "' data-file='" + btoa(JSON_stringify(file)) + "'>"
                                    + "<a href='" + file.link + "' target='_blank'>" + file.name + "</a>" 
                                    + "<a class='remove-attachment' href='#'>×</a>"
                                    + "</div>";
@@ -118,7 +118,7 @@
                           $('#new-comment-{{ item.id }} div.attachments').append(html);
                           $('#new-comment-{{ item.id }} div.attachments').removeClass('hidden');
                       
-                          attachments = $('#new-comment-{{ item.id }} input[name="attachments"]').val() + btoa(JSON.stringify(file)) + ',';
+                          attachments = $('#new-comment-{{ item.id }} input[name="attachments"]').val() + btoa(JSON_stringify(file)) + ',';
                           $('#new-comment-{{ item.id }} input[name="attachments"]').val(attachments);
                       
                           refresh('#new-comment-{{ item.id }} div.attachments');

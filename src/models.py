@@ -591,9 +591,12 @@ class Attachment(Model):
     
   @property
   def id(self):
-    if self.info.has_key('link'): # dropbox files
+    if self.is_dropbox_file():
       return True
-    return self.info.get('_id')
+    elif self.is_google_drive_file(): # dropbox files
+      return self.info.get('id')
+    else:
+      return self.info.get('_id')
   
   @property
   def fid(self):
@@ -601,7 +604,7 @@ class Attachment(Model):
   
   @property
   def name(self):
-    return self.info.get('name', '')
+    return self.info.get('name', self.info.get('title', ''))
   
   @property
   def size(self):
@@ -625,16 +628,28 @@ class Attachment(Model):
   
   @property
   def download_url(self):
-    if self.info.has_key('link'):
+    if self.is_dropbox_file():
       return self.info.get('link').replace('www.dropbox.com', 'dl.dropboxusercontent.com', 1)
-    return api.s3_url(self.md5, content_type=self.mimetype, 
-                      disposition_filename=self.name)
+    elif self.is_google_drive_file():
+      return self.info.get('alternateLink', 
+                           self.info.get('webContentLink',
+                             self.info.get('embedLink',
+                               self.info.get('downloadUrl'))))
+    else:
+      return api.s3_url(self.md5, content_type=self.mimetype, 
+                        disposition_filename=self.name)
   
   @property
   def serving_url(self):
-    if self.info.has_key('link'):
+    if self.is_dropbox_file():
       return self.info.get('link').replace('www.dropbox.com', 'dl.dropboxusercontent.com', 1)
-    return api.s3_url(self.md5, content_type=self.mimetype)
+    elif self.is_google_drive_file():
+      return self.info.get('alternateLink', 
+                           self.info.get('webContentLink',
+                             self.info.get('embedLink',
+                               self.info.get('downloadUrl'))))
+    else:
+      return api.s3_url(self.md5, content_type=self.mimetype)
   
   
   @property
@@ -653,6 +668,9 @@ class Attachment(Model):
   def is_dropbox_file(self):
     return True if self.info.has_key('link') and self.info.has_key('bytes') else False
 
+  def is_google_drive_file(self):
+    return True if "drive#file" in self.info.get('kind', '') else False
+    
   
 class File(Model):
   def __init__(self, info, db_name=None):
