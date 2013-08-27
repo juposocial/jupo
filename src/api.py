@@ -4528,6 +4528,10 @@ def update_group_info(session_id, group_id, info):
   
   db.owner.update({'leaders': user_id, 
                    '_id': long(group_id)}, {'$set': info})
+  key = '%s:groups' % user_id
+  cache.delete(key)
+  key = '%s:info'%group_id
+  cache.delete(key)                 
   return True
 
 def join_group(session_id, group_id):
