@@ -47,7 +47,7 @@ from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 import api
 import filters
 import settings
-from lib.verify_email_google import validate_email
+from lib.verify_email_google import check_google_email
 from app import CURRENT_APP, render
 
 
@@ -879,7 +879,7 @@ def google_login():
     call_from = request.form['call_from']
     email = request.form['email']
     print "DEBUG - in /oauth/google - get email from the form = " + str(email)
-    print "DEBUG - in /oauth/google - validate Google App email = " + str(validate_email(email, verify=True))
+    print "DEBUG - in /oauth/google - validate Google App email = " + str(check_google_email(email))
     
     #if call from landing page then clear session (to avoid auto authenticate)
     if call_from == 'landing':
@@ -887,7 +887,7 @@ def google_login():
       #session.clear()
 
     #validate email
-    if (email is None) or (not validate_email(email, verify=True)):
+    if (email is None) or (not check_google_email(email)):
       #resp = Response(render_template('landing_page.html', 
       #                                    msg='Email is blank or not provided by Google App. Please check again'))
       flash('Email is blank or not provided by Google App. Please check again')
@@ -932,7 +932,7 @@ def google_authorized():
   user_email = user.get('email')
   user_domain = (user_email.split('@')[1]).split('.')[0]
 
-  url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=100'
+  url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
                                     % (data.get('token_type'),
                                        data.get('access_token'))})
