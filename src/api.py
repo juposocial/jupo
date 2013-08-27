@@ -1611,7 +1611,7 @@ def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
   
   key = '%s:info' % (user_id if user_id else facebook_id if facebook_id else email)
   info = cache.get(key)
-  if not info:  
+  if not info:
     if facebook_id:
       info = db.owner.find_one({'facebook_id': facebook_id, 
                                 'password': {'$ne': None}})
@@ -1674,7 +1674,7 @@ def get_owner_info_from_uuid(uuid, db_name=None):
     return User({})
   key = '%s:info' % uuid
   info = cache.get(key)
-  if not info: 
+  if not info:
     if uuid == 'public': 
       info = {'_id': 'public',
               'name': 'Public',
@@ -2975,7 +2975,7 @@ def get_feeds(session_id, group_id=None, page=1,
   out = cache.get(key, user_id)
   if out:
     return out
-  
+
   if not user_id:
     if group_id:
       group = get_record(group_id, 'owner')
@@ -4575,6 +4575,10 @@ def update_group_info(session_id, group_id, info):
   
   db.owner.update({'leaders': user_id, 
                    '_id': long(group_id)}, {'$set': info})
+  for _id in get_group_member_ids(group_id):
+    key = '%s:groups' % _id
+    cache.delete(key)
+  clear_html_cache(user_id)
   return True
 
 def join_group(session_id, group_id):
