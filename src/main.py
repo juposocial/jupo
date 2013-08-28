@@ -47,7 +47,7 @@ from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 import api
 import filters
 import settings
-from lib.verify_email_google import check_google_email
+from lib.verify_email_google import is_google_apps_email
 from app import CURRENT_APP, render
 
 
@@ -110,7 +110,7 @@ def render_homepage(session_id, title, **kwargs):
   hostname = request.headers.get('Host')
 
   #logo text based on subdomain (user-specific network)
-  logo_text = hostname.split('.')[0].upper()
+  logo_text = hostname.split('.')[0]
 
   if hostname != settings.PRIMARY_DOMAIN:
     network_info = api.get_network_info(hostname.replace('.', '_'))
@@ -567,14 +567,11 @@ def invite():
     
     #filter contact that *NOT* in network yet
     member_addrs = api.get_member_email_addresses()
-    print "DEBUG - in invite - member_addrs = " + str(member_addrs)
 
     email_addrs = []
     if owner.google_contacts is not None:
       email_addrs = [i for i in owner.google_contacts if i not in member_addrs] 
-    print "DEBUG - in invite - email_addrs = " + str(email_addrs)
 
-    
     #for user in owner.contacts:
     #  if user.email not in email_addrs:
     #    email_addrs.append(user.email)
@@ -880,16 +877,14 @@ def google_login():
   if request.method == 'POST': #this is called from landing page
     call_from = request.form['call_from']
     email = request.form['email']
-    print "DEBUG - in /oauth/google - get email from the form = " + str(email)
-    print "DEBUG - in /oauth/google - validate Google App email = " + str(check_google_email(email))
     
     #if call from landing page then clear session (to avoid auto authenticate)
     if call_from == 'landing':
-      print "DEBUG - in /oauth/google - about to clear session"
+      pass
       #session.clear()
 
     #validate email
-    if (email is None) or (not check_google_email(email)):
+    if (email is None) or (not is_google_apps_email(email)):
       #resp = Response(render_template('landing_page.html', 
       #                                    msg='Email is blank or not provided by Google App. Please check again'))
       flash('Email is blank or not provided by Google App. Please check again')
@@ -899,12 +894,6 @@ def google_login():
 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
   
-  print "DEBUG - in /oauth/google - GOOGLE_REDIRECT_URI" + settings.GOOGLE_REDIRECT_URI
-  print "DEBUG - in /oauth/google - domain" + domain
-  print "DEBUG - in /oauth/google - GOOGLE_CLIENT_ID" + settings.GOOGLE_CLIENT_ID
-  print "DEBUG - in /oauth/google - email", email
-
-  #return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt=auto&state=%s&client_id=%s&hl=en&from_login=1&as=-773fbbe34097e4fd&pli=1&authuser=0&login_hint=%s' \
   return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt_1=auto&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
                   % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
 
@@ -928,7 +917,6 @@ def google_authorized():
                                     % (data.get('token_type'),
                                        data.get('access_token'))})
   user = loads(resp.text)
-  print "DEBUG - in google_authorized - returned user = " + str(user)
   
   #generate user domain based on user email
   user_email = user.get('email')
@@ -939,12 +927,7 @@ def google_authorized():
                                     % (data.get('token_type'),
                                        data.get('access_token'))})
   
-  #print "DEBUG - in google_authorized - response text " + str(resp.text)
   contacts = api.re.findall("address='([^']*?@jupo.com)'", resp.text)
-  #print "DEBUG - in google_authorized - unfiltered contacts = " + str(contacts)
-
-  #filter email that is in the same network (same domain)
-  #contacts = [x for x in contacts if user_email.split('@')[1] in x]
 
   if contacts:
     contacts = list(set(contacts))  
@@ -953,14 +936,10 @@ def google_authorized():
 
   user_db_name = user_domain.replace('.', '_').lower().strip() + '_' + jupo_db
   user_org_name = user_domain.split('.')[0].upper()
-
-  print "DEBUG - in google_authorized - user_db_name = " + str(user_db_name)
-  print "DEBUG - in google_authorized - user_org_name = " + str(user_org_name)
   
   api.new_network(user_db_name, user_org_name)
   
   user_info = api.get_user_info(email=user_email, db_name=user_db_name)
-  print "DEBUG - in google_authorized - after new_network, get user_info = " + str(user_info)
   session_id = api.sign_in_with_google(email=user.get('email'), 
                                        name=user.get('name'), 
                                        gender=user.get('gender'), 
@@ -979,8 +958,6 @@ def google_authorized():
   else: # new user
     user_url = 'http://%s.%s/everyone?getting_started=1&first_login=1&session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, session_id)
     
-  #resp = redirect(url)
-  print "DEBUG - in google_authorized - user_url = " + str(user_url)
   return redirect(user_url)  
     
 if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
@@ -1741,9 +1718,7 @@ def group(group_id=None, view='group', page=1):
   
   session_id = session.get("session_id")    
   user_id = api.get_user_id(session_id)
-  print "DEBUG - co vo day hemmmmmmmm ????"
   if not user_id:
-    print "DEBUG - co vo day hem ????"
     return redirect('/?continue=%s' % request.path)
   
   owner = api.get_user_info(user_id)
@@ -1755,7 +1730,6 @@ def group(group_id=None, view='group', page=1):
     
   if request.path.startswith('/everyone'):
     group_id = 'public'
-    print "DEBUG - process /everyone, invite_contact = " + str(request.args.get('invite_contact'))
   if request.path == '/people':
     group_id = 'public'
     view = 'members'
@@ -2032,7 +2006,6 @@ def group(group_id=None, view='group', page=1):
       groups = api.get_groups(session_id)
 #      upcoming_events = api.get_upcoming_events(session_id, group_id)
       
-      print "DEBUG - first_login = " + str(first_login)
       resp = render_homepage(session_id, 
                              group.name,
                              feeds=feeds, 
@@ -2257,16 +2230,12 @@ def home():
   hostname = request.headers.get('Host', '').split(':')[0]
   session_id = request.args.get('session_id')
   
-  print "DEBUG - process / - hostname = " + str(hostname)
   if hostname != settings.PRIMARY_DOMAIN:
-    print "DEBUG - process / - check if the following db exists = " + str(hostname.replace('.', '_'))
     if not api.is_exists(db_name=hostname.replace('.', '_')):
-      abort(404)
-    print "DEBUG - process / - check if the following db exists = " + str(hostname.replace('.', '_')) + " - result = True"
+      abort(404)    
     if session_id:
       session.permanent = True
       session['session_id'] = request.args.get('session_id')
-      print "DEBUG - in main.py - routing / - client subsite"
       return redirect('/news_feed')
   
   
@@ -2277,7 +2246,6 @@ def home():
   if not user_id:
     code = request.args.get('code')
     user_id = api.get_user_id(code)
-    print "DEBUG - in home() - process invitation code - user_id = " + str(user_id)
     
     if code and user_id is None:
       flash('Invitation is invalid. Please check again')

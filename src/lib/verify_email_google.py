@@ -2,12 +2,12 @@ import DNS
 from validate_email import validate_email
 
 
-def check_google_email(email):
+def is_google_apps_email(email):
   hostname = email[email.find('@')+1:]
   
   try:
     mx_hosts = DNS.mxlookup(hostname)
-  except:
+  except DNS.ServerError as e:
     return False
   
   for mx in mx_hosts:
@@ -16,5 +16,3 @@ def check_google_email(email):
       return True
     
   return False
-
-print check_google_email('hungdv@joomsolutions.com')

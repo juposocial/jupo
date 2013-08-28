@@ -931,13 +931,10 @@ def complete_profile(code, name, password, gender, avatar):
   info['session_id'] = hashlib.md5(code + str(utctime())).hexdigest()
   db.owner.update({'session_id': code}, {'$set': info})
   user_id = get_user_id(code)
+  
   #clear old session
-  print "DEBUG - in complete_profile - clear session - result = " + str ( cache.delete('%s:%s:uid' % (db_name, code) ) )
-
   cache.delete(code)
   cache.delete('%s:info' % user_id)
-
-
   
   # Send notification to friends
   user = get_user_info(user_id)
@@ -1600,7 +1597,6 @@ def get_utcoffset(user_id, db_name=None):
 def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
-    print "DEBUG - get_user_info - get from DB " + str(db_name)
   db = DATABASE[db_name]
   
   if user_id and not is_snowflake_id(user_id):
@@ -2156,7 +2152,9 @@ def get_member_email_addresses(db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
 
-  member_email_addresses = [i['email'] for i in db.owner.find()]
+  #find all email addresses in network, watchout for group (same table owner, got no email field)
+  member_email_addresses = [i['email'] for i in db.owner.find({'email': {'$ne': None}}, {'email': True})]
+
   return member_email_addresses
 
 def get_email_addresses(session_id, db_name=None):
@@ -5856,7 +5854,6 @@ def get_db_names(email):
 
 
 def new_network(db_name, organization_name, description=None):
-  print "DEBUG - in new_network - check if db exists " + str(db_name) + " - result = " + str(is_exists(db_name=db_name))
   if is_exists(db_name=db_name):
     return False
   
