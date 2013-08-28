@@ -8,7 +8,7 @@ def check_google_email(email):
   check_google_mail = False
   for mx in mx_hosts:
     _, host_server = mx
-    if 'google' in str(host_server).lower():
+    if 'google' in str(host_server).lower() and 'aspmx' in str(host_server).lower():
       check_google_mail = True
   
   if check_google_mail:
