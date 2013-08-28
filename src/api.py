@@ -924,15 +924,20 @@ def complete_profile(code, name, password, gender, avatar):
   
   info = {}
   info["name"] = name
-  info["password"] = make_hash(password)
+  #info["password"] = make_hash(password)
   info["verified"] = 1
   info["gender"] = gender
   info['avatar'] = avatar
   info['session_id'] = hashlib.md5(code + str(utctime())).hexdigest()
   db.owner.update({'session_id': code}, {'$set': info})
   user_id = get_user_id(code)
+  #clear old session
+  print "DEBUG - in complete_profile - clear session - result = " + str ( cache.delete('%s:%s:uid' % (db_name, code) ) )
+
   cache.delete(code)
   cache.delete('%s:info' % user_id)
+
+
   
   # Send notification to friends
   user = get_user_info(user_id)
@@ -2145,6 +2150,14 @@ def reset_mail_fetcher():
                    'privacy': None})
 
   return True
+
+def get_member_email_addresses(db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  member_email_addresses = [i['email'] for i in db.owner.find()]
+  return member_email_addresses
 
 def get_email_addresses(session_id, db_name=None):
   if not db_name:

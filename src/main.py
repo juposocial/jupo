@@ -559,19 +559,21 @@ def discover(name='discover', page=1):
 @app.route('/invite', methods=['OPTIONS', 'POST'])
 def invite():
   session_id = session.get("session_id")
-  print "DEBUG - in invite - session_id = " + str(session_id)
   group_id = request.form.get('group_id', request.args.get('group_id'))
-  #import pdb
-  #pdb.set_trace()
+  
   if request.method == 'OPTIONS':
     user_id = api.get_user_id(session_id)
-    print "DEBUG - in invite - user_id = " + str(user_id)
     owner = api.get_user_info(user_id)
-    print "DEBUG - in invite - owner = " + owner.name
     
-    #email_addrs = [i.email for i in owner.google_contacts]
-    email_addrs = [i for i in owner.google_contacts]
+    #filter contact that *NOT* in network yet
+    member_addrs = api.get_member_email_addresses()
+    print "DEBUG - in invite - member_addrs = " + str(member_addrs)
+
+    email_addrs = []
+    if owner.google_contacts is not None:
+      email_addrs = [i for i in owner.google_contacts if i not in member_addrs] 
     print "DEBUG - in invite - email_addrs = " + str(email_addrs)
+
     
     #for user in owner.contacts:
     #  if user.email not in email_addrs:
@@ -938,11 +940,11 @@ def google_authorized():
                                        data.get('access_token'))})
   
   #print "DEBUG - in google_authorized - response text " + str(resp.text)
-  contacts = api.re.findall("address='(.*?)'", resp.text)
+  contacts = api.re.findall("address='([^']*?@jupo.com)'", resp.text)
+  #print "DEBUG - in google_authorized - unfiltered contacts = " + str(contacts)
 
   #filter email that is in the same network (same domain)
-  contacts = [x for x in contacts if user_email.split('@')[1] in x]
-  print "DEBUG - in google_authorized - filtered contacts = " + str(contacts)
+  #contacts = [x for x in contacts if user_email.split('@')[1] in x]
 
   if contacts:
     contacts = list(set(contacts))  
@@ -973,9 +975,9 @@ def google_authorized():
   
   user_url = None
   if user_info.id:
-    user_url = 'http://%s.%s:%s/?session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, settings.PRIMARY_PORT, session_id)
+    user_url = 'http://%s.%s/?session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, session_id)
   else: # new user
-    user_url = 'http://%s.%s:%s/everyone?getting_started=1&first_login=1&session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, settings.PRIMARY_PORT, session_id)
+    user_url = 'http://%s.%s/everyone?getting_started=1&first_login=1&session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, session_id)
     
   #resp = redirect(url)
   print "DEBUG - in google_authorized - user_url = " + str(user_url)
@@ -1443,14 +1445,15 @@ def user(user_id=None, page=1, view=None):
     name = request.form.get('name')
     gender = request.form.get('gender')
     
-    password = request.form.get('password')
+    #password = request.form.get('password') disabled due to switch to Google App authentication
+    password = ''
     avatar = request.files.get('file')
     
     fid = api.new_attachment(session_id, avatar.filename, avatar.stream.read())
     new_session_id = api.complete_profile(session_id, 
                                           name, password, gender, fid)
     
-    resp = redirect('/everyone?getting_started=1')  
+    resp = redirect('/everyone?getting_started=1&first_login=1')  
     if new_session_id:
       session['session_id'] = new_session_id
     return resp
@@ -2274,11 +2277,17 @@ def home():
   if not user_id:
     code = request.args.get('code')
     user_id = api.get_user_id(code)
+    print "DEBUG - in home() - process invitation code - user_id = " + str(user_id)
+    
+    if code and user_id is None:
+      flash('Invitation is invalid. Please check again')
+      return redirect('http://' + settings.PRIMARY_DOMAIN)
+
     if user_id and not session_id:
       session['session_id'] = code
       owner = api.get_user_info(user_id)
       return render_template('profile_setup.html',
-                             owner=owner,
+                             owner=owner, jupo_home=settings.PRIMARY_DOMAIN,
                              code=code, user_id=user_id)
     
   if not session_id or not user_id:

@@ -63,7 +63,6 @@
     });
 
     //populate with all Google App emails
-
     {% for email in email_addrs %}
       $('input.friends').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});
     {% endfor %}
