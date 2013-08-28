@@ -63,7 +63,7 @@
             </div>
             <button class="btn btn-success" type="submit">Get Started!</button>
 
-            <input type="hidden" name="domain" value="jupo.localhost.com:4000">
+            <input type="hidden" name="domain" value="{{ domain }}">
             <input type="hidden" name="call_from" value="landing">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
           </form>

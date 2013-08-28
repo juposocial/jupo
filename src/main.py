@@ -549,7 +549,7 @@ def discover(name='discover', page=1):
     if not user_id:
   #    return render_homepage(session_id, 'Get work done. Faster. | Jupo', 
   #                           view='intro')
-      return render_template('landing_page.html')
+      return render_template('landing_page.html', domain=settings.PRIMARY_DOMAIN)
     else:
       return render_homepage(session_id, 'Discover', 
                              view='discover',
@@ -878,14 +878,14 @@ def google_login():
     call_from = request.form['call_from']
     email = request.form['email']
     
-    #if call from landing page then clear session (to avoid auto authenticate)
+    # if call from landing page then clear session (to avoid auto authenticate)
     if call_from == 'landing':
       pass
-      #session.clear()
+      # session.clear()
 
-    #validate email
+    # validate email
     if (email is None) or (not is_google_apps_email(email)):
-      #resp = Response(render_template('landing_page.html', 
+      # resp = Response(render_template('landing_page.html', 
       #                                    msg='Email is blank or not provided by Google App. Please check again'))
       flash('Email is blank or not provided by Google App. Please check again')
       return redirect('/')
@@ -894,7 +894,9 @@ def google_login():
 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
   
-  return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt_1=auto&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
+  # return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt_1=auto&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
+  #                % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
+  return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
                   % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
 
 @app.route('/oauth/google/authorized')
@@ -2247,7 +2249,7 @@ def home():
     code = request.args.get('code')
     user_id = api.get_user_id(code)
     
-    if code and user_id is None:
+    if code and not user_id:
       flash('Invitation is invalid. Please check again')
       return redirect('http://' + settings.PRIMARY_DOMAIN)
 
@@ -2271,6 +2273,7 @@ def home():
     message = request.args.get('message')
     resp = Response(render_template('landing_page.html',
                                     email=email,
+                                    domain=settings.PRIMARY_DOMAIN,
                                     message=message))
     
     back_to = request.args.get('back_to')
