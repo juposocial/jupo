@@ -10,12 +10,12 @@
   <link href="/public/assets/css/style.css" rel="stylesheet">
   <link href="/public/assets/css/font-awesome.css" rel="stylesheet">
   <!--[if (lt IE 9) & (!IEMobile)]>
-  <link href="assets/css/ie8.css" rel="stylesheet">
+  <link href="/public/assets/css/ie8.css" rel="stylesheet">
   <![endif]-->
   <script src="/public/assets/js/modernizr.js"></script>
-  <link rel="shortcut icon" href="assets/img/favicon.ico">
+  <link rel="shortcut icon" href="/public/assets/img/favicon.ico">
 </head>
-<body data-spy="scroll" data-target=".navbar-collapse">
+<body class="home">
 
   <header id="masthead" class="site-header navbar navbar-inverse navbar-fixed-top" role="banner">
     <div class="container">
@@ -33,19 +33,11 @@
         <div class="menu nav navbar-nav">
           <ul>
             <li class="current_page_item active">
-              <a href="#content" title="Home">Home</a>
+              <a href="index.html" title="Home">Home</a>
             </li>
             <li class="page_item page-item-2">
-              <a href="#features">Features</a>
-            </li>
-            <li class="page_item page-item-3">
               <a href="http://blog.jupo.com">Blog</a>
             </li>
-            <!--
-            <li class="page_item page-item-3">
-              <a href="#contact">Contact</a>
-            </li>
-            -->
             <li class="page_item page-item-4">
               <a href="/sign_in" class="btn btn-sign-in">Sign-in</a>
             </li>
@@ -55,7 +47,7 @@
     </div>
   </header>
 
-  <div id="content" class="site-content">
+  <div class="site-content">
 
     <div class="jumbotron">
       <div class="container">
@@ -85,33 +77,30 @@
         <div class="screenshot"></div>
       </div>
     </div>
-    
     <a class="jumbo-anchor"></a>
 
     <main id="main" class="site-main" role="main">
 
       <div class="container">
 
-        <a id="features"></a>
-
         <section class="section section-animation" id="load_section0">
           <a name="section0" class="section-anchor"></a>
 
           <div class="row col-group">
             <div class="col-md-4">
-              <i class="icon-rocket"></i>
-              <h3>NON-OBLIGATION</h3>
-              <p>You can cooperate with your un-registered co-workers. But it’s fun to work together on Jupo.</p>
-            </div>
-            <div class="col-md-4">
               <i class="icon-cogs"></i>
-              <h3>FREE</h3>
-              <p>We are free to sign-up!</p>
+              <h3>FAMILIAR</h3>
+              <p>Like the famous social network. Easy to use.</p>
             </div>
             <div class="col-md-4">
               <i class="icon-dashboard"></i>
-              <h3>SECURE</h3>
-              <p>Full encryption in your browser and our data center. Your data is under strict data protection processes.</p>
+              <h3>FOCUS</h3>
+              <p>Just your teammates. Non distraction.</p>
+            </div>
+            <div class="col-md-4">
+              <i class="icon-rocket"></i>
+              <h3>FAST</h3>
+              <p>Blazingly fast, and secure.</p>
             </div>
           </div>
         </section>
@@ -124,8 +113,9 @@
               <img src="/public/assets/img/img-0.png" class="img-responsive" />
             </div>
             <div class="col-md-5" data-pos="right">
-              <h2>The easiest way to connect <span class="text-muted">your team</span></h2>
-              <p class="lead">Bring your team’s communication in a familiar designed workspace. Your team needs no training to start collaborating.</p>
+              <h2>Easy to connect your team</h2>
+              <p class="lead">Bring your team’s communication to a familiar workspace. 
+              <br>Start collaborating right away.</p>
             </div>
           </div>
         </section>
@@ -135,7 +125,7 @@
 
           <div class="row">
             <div class="col-md-5" data-pos="left">
-              <h2>Work from anywhere with <span class="text-muted">Google Apps.</span></h2>
+              <h2>Optimized for Google Apps.</h2>
               <p class="lead">Web based tool for your team to get things done, and rejoice. Make full use of your Google Apps.</p>
             </div>
             <div class="col-md-7" data-pos="right">
@@ -152,25 +142,30 @@
               <img src="/public/assets/img/img-2.png" class="img-responsive" />
             </div>
             <div class="col-md-5" data-pos="right">
-              <h2>Communication. <span class="text-muted">Centralized.</span></h2>
+              <h2>Centralized communication.</h2>
               <p class="lead">Start discussion and comment on any topics, and get your team move forward. This is your team’s private social network.</p>
             </div>
           </div>
         </section>
 
+        <!--
         <section class="section section-animation" id="load_section4">
           <a name="section4" class="section-anchor"></a>
           
           <div class="row">
             <div class="col-md-5" data-pos="left">
-              <h2>All your resources. <span class="text-muted">One place.</span></h2>
-              <p class="lead">Access to all your team’s updates, files, tasks and more.</p>
+              <h2>Integrated third parties.</h2>
+              <p class="lead">You can use your own team’s apps. Jupo works with Google Apps, Drive, Dropbox and <a href="#">many more</a> to come</p>
             </div>
             <div class="col-md-7" data-pos="right">
-              <img src="/public/assets/img/img-3.png" class="img-responsive" />
+              <img src="/public/assets/img/img-3-0.png" class="img-responsive" />
+              <div class="content-animation zoom left-2">
+                <img src="/public/assets/img/img-3-1.png" class="img-responsive">
+              </div>
             </div>
           </div>
         </section>
+        -->
 
         <section class="section section-animation" id="load_section5">
           <a name="section5" class="section-anchor"></a>
@@ -180,7 +175,7 @@
               <img src="/public/assets/img/img-4.png" class="img-responsive" />
             </div>
             <div class="col-md-5" data-pos="right">
-              <h2>Third party. <span class="text-muted">Supported.</span></h2>
+              <h2>Third party. Supported.</h2>
               <p class="lead">You can use your own team’s apps. Jupo works with Google Apps, Drive, Dropbox and many more to come</p>
             </div>
           </div>
@@ -219,8 +214,11 @@
 
     <footer id="colophon" class="site-footer" role="contentinfo">
       <div class="site-info container">
-        <!--<p class="pull-right">Theme: DW Neon by <a href="http://www.designwall.com/" rel="designer">DesignWall</a>.</p>-->
-        Copyright 2013 @ JUPO
+        <!--
+        <p class="pull-left"><a href="http://wordpress.org/" title="A Semantic Personal Publishing Platform" rel="generator">Proudly powered by WordPress</a></p>
+        <p class="pull-right">Theme: DW Neon by <a href="http://www.designwall.com/" rel="designer">DesignWall</a>.</p>
+        -->
+        <p class="pull-right">Copyright 2013 @ JUPO</p>
       </div>
     </footer>
 

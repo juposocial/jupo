@@ -2,7 +2,8 @@ jQuery(function($){
     var isIE = /*@cc_on!@*/false;
 
     $(window).load(function() {
-
+        $('body').removeClass('loading');
+        $('body').addClass('loaded');
     });
 
     // add bg header color
@@ -39,6 +40,14 @@ jQuery(function($){
                 }  
             }
         });
+    });
+
+    // round img
+    $(".round-img").load(function() {
+        $(this).wrap(function(){
+          return '<span class="' + $(this).attr('class') + '" style="background:url(' + $(this).attr('src') + ') no-repeat center center;" />';
+        });
+        $(this).css("opacity","0");
     });
 
     // scroll to top

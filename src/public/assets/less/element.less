@@ -2,6 +2,10 @@
 // Scaffolding
 // --------------------------------------------------
 
+body {
+  text-rendering: optimizeLegibility;
+}
+
 // Links
 
 a{
@@ -17,10 +21,23 @@ a{
   }
 }
 
+// lists
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 // Images
 
 img {
   max-width: 100%;
+  height: auto;
+}
+
+// Responsive images (ensure images don't scale beyond their parents)
+.img-responsive {
+  width: 100%;
   height: auto;
 }
 
@@ -124,6 +141,7 @@ img {
 }
 
 .navbar-collapse {
+  border: none;
   overflow-x: hidden;
   @media (max-width: @screen-tablet-u) {
     background: @gray-darker;
@@ -256,100 +274,5 @@ img {
   // See https://github.com/h5bp/html5-boilerplate/issues/984#issuecomment-3985989
   > li > a > img {
     max-width: none;
-  }
-}
-
-
-//
-// Type
-// --------------------------------------------------
-
-// Blockquotes
-blockquote{
-  background: @gray-lighter;
-  padding: 30px;
-  border-radius: 5px;
-  position: relative;
-
-  @media (min-width: @screen-desktop) {
-    min-height: 220px;
-  }
-
-  &:after,
-  &:before {
-    top: 100%;
-    border: solid transparent;
-    content: " ";
-    height: 0;
-    width: 0;
-    position: absolute;
-    pointer-events: none;
-  }
-
-  &:after {
-    border-top-color: @gray-lighter;
-    border-width: 10px;
-    left: 65%;
-    margin-left: -10px;
-  }
-
-  &:before {
-    border-top-color: rgba(0,0,0,0.01);
-    border-width: 11px;
-    left: 65%;
-    margin-left: -11px;
-  }
-
-  p {
-    font-family: @font-family-alegreya;
-    font-size: 20px;
-    color: @gray-light;
-    font-weight: 400;
-    line-height: 40px;
-    font-style: italic;
-    text-indent: 100px;
-    position: relative;
-
-    &:before{
-      content: '\201C';
-      color: @gray-light;
-      font-family: serif;
-      font-style: normal;
-      font-weight: 700;
-      position: absolute;
-      font-size: 175px;
-      top: 0px;
-      left: -105px;
-      text-shadow: 7px 14px 10px rgba(0, 0, 0, 0.1);
-    }
-  }
-}
-.quote-attribution {
-  text-align: right;
-  padding: 20px 100px 20px 20px;
-  position: relative;
-
-  .quote-thumb img {
-    display: block;
-    width: 70px;
-    height: 70px;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    position: absolute;
-    right: 10px;
-    bottom: 5px;
-    box-shadow: inset 1px 1px 4px rgba(0,0,0,0.5), 0 2px 3px rgba(0,0,0,0.6);
-  }
-
-  .quote-author a {
-    font-family: @font-family-alegreya;
-    font-size: 18px;
-  }
-
-  cite {
-    font-family: @font-family-alegreya;
-    font-style: italic;
-    color: #b9b9b9;
-    text-shadow: 0 1px 1px rgba(255,255,255,0.3);
   }
 }
