@@ -218,10 +218,11 @@
 
 <div class="box">
   <div class="body notice">
-      <a href='/invite' class='popup fontsize-13px'>Invite friends to Jupo</a>
+      <a id="invite_url" href='/invite' class='popup fontsize-13px'>Invite friends to Jupo</a>
   </div>
 </div>
 
+<!--
 <div class="box">
   <div class="header">
     <div class="title">Create Your Own Network</div>
@@ -234,9 +235,7 @@
       <a href="/network/new" target='_blank'>Start here</a> 
   </div>
 </div>
-
-
-
+-->
 
 {% autoescape on %}  
   {% cache "suggested_friends:%s:%s" % (owner.id, owner.contact_ids | length), 86400 %}

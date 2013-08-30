@@ -15,14 +15,14 @@
     
     {% if not msg %}
     <div class='social-login'>
-      <a href='http://{{ PRIMARY_DOMAIN }}/oauth/facebook?domain={{ domain }}' class='facebook-button'> <i class='fb-icon'></i> <span> Login with Facebook </span> </a>
-      <a href='http://{{ PRIMARY_DOMAIN }}/oauth/google?domain={{ domain }}' class='google-button'> <i class='google-plus-icon'></i> <span>Login with Google</span> </a>
+      <!--<a href='http://{{ PRIMARY_DOMAIN }}/oauth/facebook?domain={{ domain }}' class='facebook-button'> <i class='fb-icon'></i> <span> Login with Facebook </span> </a>-->
+      <a href='/oauth/google?domain={{ domain }}' class='google-button'> <i class='google-plus-icon'></i> <span>Login with Google</span> </a>
 
     </div>
 
     
     
-    
+    <!--
     <div class='or'>
       <span>or using email and password</span>
       <hr>
@@ -64,9 +64,10 @@
     {% endif %}
 
     <button type="submit"></button>
+    -->
 
     <p>
-      <strong>Don’t have an account?</strong> <a href='/sign_up'><strong>Sign Up</strong></a>
+      <strong>Don’t have an account?</strong> <a href='http://{{ PRIMARY_DOMAIN }}'><strong>Sign Up</strong></a>
     </p>
 
   </form>

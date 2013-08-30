@@ -458,10 +458,9 @@ class User(Model):
   
   @property
   def google_contacts(self):
-    return [User({'_id': api.get_user_id_from_email_address(email, 
-                                                            db_name=self.db_name),
-                  'email': email}) \
-            for email in self.info.get('google_contacts', [])]
+    print "DEBUG - in models.py - self.db_name = " + str(self.db_name)
+    #return [User({'_id': api.get_user_id_from_email_address(email, db_name=self.db_name), 'email': email}) for email in self.info.get('google_contacts', [])]
+    return self.info.get('google_contacts')
   
 
   

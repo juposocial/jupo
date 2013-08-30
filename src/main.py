@@ -47,6 +47,7 @@ from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 import api
 import filters
 import settings
+from lib.verify_email_google import is_google_apps_email
 from app import CURRENT_APP, render
 
 
@@ -57,7 +58,8 @@ app = CURRENT_APP
 assets = WebAssets(app)
 
 if settings.SENTRY_DSN:
-  sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
+  pass
+  #sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
 csrf = SeaSurf(app)
 oauth = OAuth()
 
@@ -106,7 +108,10 @@ def render_homepage(session_id, title, **kwargs):
     
   
   hostname = request.headers.get('Host')
-  logo_text = 'Jupo'
+
+  #logo text based on subdomain (user-specific network)
+  logo_text = hostname.split('.')[0]
+
   if hostname != settings.PRIMARY_DOMAIN:
     network_info = api.get_network_info(hostname.replace('.', '_'))
     if network_info and network_info.has_key('name'):
@@ -545,7 +550,7 @@ def discover(name='discover', page=1):
     if not user_id:
   #    return render_homepage(session_id, 'Get work done. Faster. | Jupo', 
   #                           view='intro')
-      return render_template('landing_page.html')
+      return render_template('landing_page.html', domain=settings.PRIMARY_DOMAIN)
     else:
       return render_homepage(session_id, 'Discover', 
                              view='discover',
@@ -561,10 +566,16 @@ def invite():
     user_id = api.get_user_id(session_id)
     owner = api.get_user_info(user_id)
     
-    email_addrs = [i.email for i in owner.google_contacts]
-    for user in owner.contacts:
-      if user.email not in email_addrs:
-        email_addrs.append(user.email)
+    #filter contact that *NOT* in network yet
+    member_addrs = api.get_member_email_addresses()
+
+    email_addrs = []
+    if owner.google_contacts is not None:
+      email_addrs = [i for i in owner.google_contacts if i not in member_addrs] 
+
+    #for user in owner.contacts:
+    #  if user.email not in email_addrs:
+    #    email_addrs.append(user.email)
         
     
     if group_id:
@@ -780,6 +791,8 @@ def authentication(action=None):
         return redirect('/')
       
   elif request.path.endswith('sign_out'):
+    token = session.get('oauth_google_token')
+    #token = 'ya29.AHES6ZQdZbhFaUO9Xgv8sIjmKipH7kQ56UxyavSSLyIg02Cq'
     session_id = session.get('session_id')
     if session_id:
       user_id = api.get_user_id(session_id)
@@ -801,6 +814,8 @@ def authentication(action=None):
           if db != db_name:
             api.sign_out(session_id, db_name=db)
       
+    print "DEBUG - in sign_out - token = " + str(token)
+    # return redirect('https://accounts.google.com/o/oauth2/revoke?token=' + str(token) + '&continue=http://jupo.localhost.com')
     return redirect('/')
   
   elif request.path.endswith('forgot_password'):
@@ -861,12 +876,33 @@ def authentication(action=None):
   
 
 
-@app.route('/oauth/google')
+@app.route('/oauth/google', methods=['POST', 'GET', 'OPTIONS'])
 def google_login():
+  email = None
+  if request.method == 'POST': #this is called from landing page
+    call_from = request.form['call_from']
+    email = request.form['email']
+    
+    # if call from landing page then clear session (to avoid auto authenticate)
+    if call_from == 'landing':
+      pass
+      # session.clear()
+
+    # validate email
+    if (email is None) or (not is_google_apps_email(email)):
+      # resp = Response(render_template('landing_page.html', 
+      #                                    msg='Email is blank or not provided by Google App. Please check again'))
+      flash('Email is blank or not provided by Google App. Please check again')
+      return redirect('/')
+  else:
+    email = request.args.get('email')
+
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
   
-  return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt=auto&state=%s&client_id=%s&hl=en&from_login=1&as=-773fbbe34097e4fd&pli=1&authuser=0' \
-                  % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID))
+  # return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt_1=auto&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
+  #                % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
+  return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
+                  % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
 
 @app.route('/oauth/google/authorized')
 def google_authorized():
@@ -881,8 +917,11 @@ def google_authorized():
                                   'redirect_uri': settings.GOOGLE_REDIRECT_URI,
                                   'grant_type': 'authorization_code'})
   data = loads(resp.text)
-  
-#  app.logger.debug(data)
+
+  # save token for later use
+  token = data.get('access_token')
+  session['oauth_google_token'] = token
+  print "DEBUG - in google_authorized - token = " + str(token)
   
   # fetch user info
   url = 'https://www.googleapis.com/oauth2/v1/userinfo'
@@ -891,18 +930,33 @@ def google_authorized():
                                        data.get('access_token'))})
   user = loads(resp.text)
   
-  
-  url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=5000'
+  # generate user domain based on user email
+  user_email = user.get('email')
+  # user_domain = (user_email.split('@')[1]).split('.')[0]
+  user_domain = user_email.split('@')[1]
+
+  url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
                                     % (data.get('token_type'),
                                        data.get('access_token'))})
-  contacts = api.re.findall("address='(.*?)'", resp.text)
+  
+  # get contact from Google Contacts, filter those that on the same domain (most likely your colleagues)
+  contacts = api.re.findall("address='([^']*?@" + user_domain + ")'", resp.text)
+
   if contacts:
-    contacts = list(set(contacts))
+    contacts = list(set(contacts))  
+
+  jupo_db = api.get_database_name()
+
+  # generate new DB name for this network. DB name based on email domain + "_" + base Jupo suffix
+  user_db_name = user_domain.replace('.', '_').lower().strip() + '_' + jupo_db
+  user_org_name = user_domain.split('.')[0]
   
-  db_name = domain.lower().strip().replace('.', '_')
-  
-  user_info = api.get_user_info(email=user.get('email'), db_name=db_name)
+  # create new network
+  api.new_network(user_db_name, user_org_name)
+
+  # sign in to this new network
+  user_info = api.get_user_info(email=user_email, db_name=user_db_name)
   session_id = api.sign_in_with_google(email=user.get('email'), 
                                        name=user.get('name'), 
                                        gender=user.get('gender'), 
@@ -911,34 +965,23 @@ def google_authorized():
                                        locale=user.get('locale'), 
                                        verified=user.get('verified_email'),
                                        google_contacts=contacts,
-                                       db_name=db_name)
+                                       db_name=user_db_name)
   
-  if db_name:
-    email = user.get('email')
-    if email:
-      db_names = api.get_db_names(email)
-      if db_name not in db_names:
-        api.add_db_name(email, db_name)
-      
-      for db in db_names:
-        if db != db_name:
-          api.update_session_id(email, session_id, db)
+  api.update_session_id(user_email, session_id, user_db_name)
+
+  # create standard groups (e.g. for Customer Support, Sales) for this new network
+  print "DEBUG - in google_authorized - about to create new group"
+  print  str(api.new_group (session_id, "Sales", "Open", "Group for Sales teams"))
   
-  if domain == settings.PRIMARY_DOMAIN:
-    session['session_id'] = session_id
-    if user_info.id:
-      return redirect('/')
-    else: # new user
-      return redirect('/everyone?getting_started=1')
-  else:
-    url = 'http://%s/?session_id=%s' % (domain, session_id)
-    resp = redirect(url)
-    return resp
-  
-  
-  
-  
-  
+  user_url = None
+  if user_info.id:
+    user_url = 'http://%s.%s/?session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, session_id)
+    # user_url = 'http://%s/%s/?session_id=%s' % (settings.PRIMARY_DOMAIN, user_domain, session_id)
+  else: # new user
+    user_url = 'http://%s.%s/everyone?getting_started=1&first_login=1&session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, session_id)
+    # user_url = 'http://%s/%s/everyone?getting_started=1&first_login=1&session_id=%s' % (settings.PRIMARY_DOMAIN, user_domain, session_id)
+    
+  return redirect(user_url)  
     
 if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   facebook = oauth.remote_app('facebook',
@@ -1352,7 +1395,7 @@ def public_files(filename):
 
 @app.route("/favicon.ico")
 def favicon():
-  path = 'public/favicon.ico'
+  path = os.path.join(os.path.dirname(__file__), 'public', 'favicon.ico')
   filedata = open(path).read()
   response = make_response(filedata)
   response.headers['Content-Length'] = len(filedata)
@@ -1402,14 +1445,15 @@ def user(user_id=None, page=1, view=None):
     name = request.form.get('name')
     gender = request.form.get('gender')
     
-    password = request.form.get('password')
+    #password = request.form.get('password') disabled due to switch to Google App authentication
+    password = ''
     avatar = request.files.get('file')
     
     fid = api.new_attachment(session_id, avatar.filename, avatar.stream.read())
     new_session_id = api.complete_profile(session_id, 
                                           name, password, gender, fid)
     
-    resp = redirect('/everyone?getting_started=1')  
+    resp = redirect('/everyone?getting_started=1&first_login=1')  
     if new_session_id:
       session['session_id'] = new_session_id
     return resp
@@ -1704,14 +1748,16 @@ def group(group_id=None, view='group', page=1):
   
   hashtag = request.args.get('hashtag')
 
+  first_login = request.args.get('first_login')
+
     
   if request.path.startswith('/everyone'):
     group_id = 'public'
-
   if request.path == '/people':
     group_id = 'public'
     view = 'members'
-    
+  
+
   
   if request.path.endswith('/new'):
     if request.method == 'GET':
@@ -1988,6 +2034,7 @@ def group(group_id=None, view='group', page=1):
                              feeds=feeds, 
                              view=view, 
                              group=group,
+                             first_login=first_login,
 #                             upcoming_events=upcoming_events,
                             )    
 #      resp.set_cookie('last_g%s' % group_id, api.utctime())
@@ -2220,12 +2267,13 @@ def home():
   session_id = request.args.get('session_id')
   
   if hostname != settings.PRIMARY_DOMAIN:
+    print "DEBUG - in / - db_name = " + str(hostname.replace('.', '_'))
     if not api.is_exists(db_name=hostname.replace('.', '_')):
-      abort(404)
-    
+      abort(404)    
     if session_id:
       session.permanent = True
       session['session_id'] = request.args.get('session_id')
+      # print "DEBUG - in / - url_root = " + str(Request.url_root)
       return redirect('/news_feed')
   
   
@@ -2236,11 +2284,16 @@ def home():
   if not user_id:
     code = request.args.get('code')
     user_id = api.get_user_id(code)
+    
+    if code and not user_id:
+      flash('Invitation is invalid. Please check again')
+      return redirect('http://' + settings.PRIMARY_DOMAIN)
+
     if user_id and not session_id:
       session['session_id'] = code
       owner = api.get_user_info(user_id)
       return render_template('profile_setup.html',
-                             owner=owner,
+                             owner=owner, jupo_home=settings.PRIMARY_DOMAIN,
                              code=code, user_id=user_id)
     
   if not session_id or not user_id:
@@ -2256,6 +2309,7 @@ def home():
     message = request.args.get('message')
     resp = Response(render_template('landing_page.html',
                                     email=email,
+                                    domain=settings.PRIMARY_DOMAIN,
                                     message=message))
     
     back_to = request.args.get('back_to')
@@ -2264,6 +2318,7 @@ def home():
     
     return resp
   else:
+    # print "DEBUG - in / - url_root = " + str(Request.url_root)
     return redirect('/news_feed')
   
   
@@ -3209,15 +3264,6 @@ def _update():
 # Run App
 #===============================================================================
 
-if 'jupo.com' in settings.PRIMARY_DOMAIN:
-  @app.before_request
-  def redirect_if_not_play_jupo():
-    """Redirect www.jupo.com or jupo.com to play.jupo.com"""
-    if request.headers.get('Host') in ['www.jupo.com', 'jupo.com']:
-      url = 'http://play.jupo.com%s' % request.path
-      if request.environ.get('QUERY_STRING'):
-        url += '?' + request.environ.get('QUERY_STRING')
-      return redirect(url, code=301)
 
 # @werkzeug.serving.run_with_reloader
 def run_app(debug=False):

@@ -10,6 +10,7 @@ div.heading {
 
 button {
   position: relative;
+  margin-top: 5px;
   font-weight: bold;
   background-color: #E5E5E5;
   background-image: -moz-linear-gradient(whiteSmoke, #E5E5E5);
@@ -28,13 +29,13 @@ button {
   -ms-user-select: none;
   user-select: none;
   display: block;
-  width: 307px;
+  width: 100px;
   padding: 9px;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
   font-size: 16px;
-  line-height: 1.4;
+  line-height: 1;
   border-radius: 5px;
   color: white;
   text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
@@ -326,4 +327,71 @@ img.screenshot {
   width: 450px;
   margin-right: -25px;
   float: right;
+}
+
+input#email {
+  width: 250px;
+  margin-top: 5px;
+  font-size: 15px;
+  padding: 7px 8px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 1px solid #dedede;
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+  border-radius: 3px;
+  -moz-box-sizing: border-box;
+  -ms-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  color: #333;
+  resize: none;
+  font: 13px "Helvetica Neue", Arial, Helvetica, sans-serif;
+  font-weight: bold;
+}
+
+a#submit {
+  position: relative;
+  margin-top: 5px;
+  font-weight: bold;
+  background-color: #E5E5E5;
+  background-image: -moz-linear-gradient(whiteSmoke, #E5E5E5);
+  background-image: -webkit-linear-gradient(whiteSmoke, #E5E5E5);
+  background-image: linear-gradient(whiteSmoke, #E5E5E5);
+  background-repeat: repeat-x;
+  border-radius: 3px;
+  border: 1px solid #DDD;
+  border-bottom-color: #BBB;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  display: block;
+  width: 80px;
+  padding: 9px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 5px;
+  color: white;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
+  border-color: #74BB5A;
+  border-bottom-color: #509338;
+  background-color: #60B044;
+  background-image: -moz-linear-gradient(#8ADD6D, #60B044);
+  background-image: -webkit-linear-gradient(#8ADD6D, #60B044);
+  background-image: linear-gradient(#8ADD6D, #60B044);
+  background-repeat: repeat-x;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.flash-message {
+  
 }
