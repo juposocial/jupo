@@ -790,6 +790,8 @@ def authentication(action=None):
         return redirect('/')
       
   elif request.path.endswith('sign_out'):
+    token = session.get('oauth_google_token')
+    #token = 'ya29.AHES6ZQdZbhFaUO9Xgv8sIjmKipH7kQ56UxyavSSLyIg02Cq'
     session_id = session.get('session_id')
     if session_id:
       user_id = api.get_user_id(session_id)
@@ -811,6 +813,8 @@ def authentication(action=None):
           if db != db_name:
             api.sign_out(session_id, db_name=db)
       
+    print "DEBUG - in sign_out - token = " + str(token)
+    # return redirect('https://accounts.google.com/o/oauth2/revoke?token=' + str(token) + '&continue=http://jupo.localhost.com')
     return redirect('/')
   
   elif request.path.endswith('forgot_password'):
@@ -912,6 +916,11 @@ def google_authorized():
                                   'redirect_uri': settings.GOOGLE_REDIRECT_URI,
                                   'grant_type': 'authorization_code'})
   data = loads(resp.text)
+
+  # save token for later use
+  token = data.get('access_token')
+  session['oauth_google_token'] = token
+  print "DEBUG - in google_authorized - token = " + str(token)
   
   # fetch user info
   url = 'https://www.googleapis.com/oauth2/v1/userinfo'
@@ -920,27 +929,32 @@ def google_authorized():
                                        data.get('access_token'))})
   user = loads(resp.text)
   
-  #generate user domain based on user email
+  # generate user domain based on user email
   user_email = user.get('email')
-  user_domain = (user_email.split('@')[1]).split('.')[0]
+  # user_domain = (user_email.split('@')[1]).split('.')[0]
+  user_domain = user_email.split('@')[1]
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
                                     % (data.get('token_type'),
                                        data.get('access_token'))})
   
-  contacts = api.re.findall("address='([^']*?@jupo.com)'", resp.text)
+  # get contact from Google Contacts, filter those that on the same domain (most likely your colleagues)
+  contacts = api.re.findall("address='([^']*?@" + user_domain + ")'", resp.text)
 
   if contacts:
     contacts = list(set(contacts))  
 
   jupo_db = api.get_database_name()
 
+  # generate new DB name for this network. DB name based on email domain + "_" + base Jupo suffix
   user_db_name = user_domain.replace('.', '_').lower().strip() + '_' + jupo_db
-  user_org_name = user_domain.split('.')[0].upper()
+  user_org_name = user_domain.split('.')[0]
   
+  # create new network
   api.new_network(user_db_name, user_org_name)
-  
+
+  # sign in to this new network
   user_info = api.get_user_info(email=user_email, db_name=user_db_name)
   session_id = api.sign_in_with_google(email=user.get('email'), 
                                        name=user.get('name'), 
@@ -953,12 +967,18 @@ def google_authorized():
                                        db_name=user_db_name)
   
   api.update_session_id(user_email, session_id, user_db_name)
+
+  # create standard groups (e.g. for Customer Support, Sales) for this new network
+  print "DEBUG - in google_authorized - about to create new group"
+  print  str(api.new_group (session_id, "Sales", "Open", "Group for Sales teams"))
   
   user_url = None
   if user_info.id:
     user_url = 'http://%s.%s/?session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, session_id)
+    # user_url = 'http://%s/%s/?session_id=%s' % (settings.PRIMARY_DOMAIN, user_domain, session_id)
   else: # new user
     user_url = 'http://%s.%s/everyone?getting_started=1&first_login=1&session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, session_id)
+    # user_url = 'http://%s/%s/everyone?getting_started=1&first_login=1&session_id=%s' % (settings.PRIMARY_DOMAIN, user_domain, session_id)
     
   return redirect(user_url)  
     
@@ -2233,11 +2253,13 @@ def home():
   session_id = request.args.get('session_id')
   
   if hostname != settings.PRIMARY_DOMAIN:
+    print "DEBUG - in / - db_name = " + str(hostname.replace('.', '_'))
     if not api.is_exists(db_name=hostname.replace('.', '_')):
       abort(404)    
     if session_id:
       session.permanent = True
       session['session_id'] = request.args.get('session_id')
+      # print "DEBUG - in / - url_root = " + str(Request.url_root)
       return redirect('/news_feed')
   
   
@@ -2282,6 +2304,7 @@ def home():
     
     return resp
   else:
+    # print "DEBUG - in / - url_root = " + str(Request.url_root)
     return redirect('/news_feed')
   
   
