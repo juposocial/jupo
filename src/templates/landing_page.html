@@ -1,89 +1,234 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
+<!--[if (IE 8)&!(IEMobile)]><html class="no-js lt-ie9" lang="en"><![endif]-->
+<!--[if (IE 9)]><html class="no-js ie9" lang="en"><![endif]-->
+<!--[if gt IE 8]><!--> <html lang="en-US"> <!--<![endif]-->
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"> 
+  <title>Jupo</title>
+  <link href="/public/assets/css/style.css" rel="stylesheet">
+  <link href="/public/assets/css/font-awesome.css" rel="stylesheet">
+  <!--[if (lt IE 9) & (!IEMobile)]>
+  <link href="/public/assets/css/ie8.css" rel="stylesheet">
+  <![endif]-->
+  <script src="/public/assets/js/modernizr.js"></script>
+  <link rel="shortcut icon" href="/public/assets/img/favicon.ico">
+</head>
+<body class="home">
 
-    <title>Jupo</title>
-    <meta name="description" content="Powerful collaboration tools for private development projects" />
-    <meta name="author" content="anhpt" />
-
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <link href="/public/styles/normalize.css" rel="stylesheet">
-    <link href="/public/styles/landing_page.css" rel="stylesheet">
-
-  </head>
-
-  <body>
-    <div class='jumbotron'>
-      <div class='container'>
-        <header>
-          <nav>
-            <a href='#' class='logo'> 
-              
-                    <img src='/public/images/logo/jupo-full.png' width="80">
-            </a>
-
-            <a href='/sign_in' class='button'>Sign in</a>
-            <a href='/sign_up' class='button sign-up'>Create an Account</a>
-
-            {#
-            <a href='#'>Explore</a>
-            <a href='#'>Search</a>
-            <a href='#'>Features</a>
-            <a href='#'>Blog</a>
-            #}
-          </nav>
-        </header>
-
-        <img src="/public/images/home.png" class="rfloat screenshot">
-
-        <div class='heading'>
-          <img src='/public/images/intro.png' class="intro">
-
-          <h2>Unlimited usage, no obligations.</h2>
-          <a href="/network/new">
-            <span class="text1">It's just <strong>one</strong> simple step to create your own network.</span>
-            <span class="text2"> Start here</span> </a>
+  <header id="masthead" class="site-header navbar navbar-inverse navbar-fixed-top" role="banner">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#" title="DW Neon" rel="home">
+          <img src="/public/assets/img/logo.png" alt="">
+        </a>
+      </div>
+      <nav id="site-navigation" class="main-navigation navbar-collapse collapse" role="navigation">
+        <div class="menu nav navbar-nav">
+          <ul>
+            <li class="current_page_item active">
+              <a href="index.html" title="Home">Home</a>
+            </li>
+            <li class="page_item page-item-2">
+              <a href="http://blog.jupo.com">Blog</a>
+            </li>
+            <li class="page_item page-item-4">
+              <a href="/sign_in" class="btn btn-sign-in">Sign-in</a>
+            </li>
+          </ul>
         </div>
-        <div class="jumbotron-shadow"></div>
-      </div>
+      </nav>
     </div>
-    <div class='container teasers'>
-      <div class='teaser'>
-        <h2>The easiest way to connect your team.</h2>
-        <p>
-          Bring together your team’s conversations, notes and files in a uniquely designed workspace.
-        </p>
-      </div>
-      <div class='teaser'>
-        <h2>All your work. In one place.</h2>
-        <p>
-          Create, discuss, and share content with coworkers.
-          Store files, post documents to team workspaces,
-          and collaboratively edit notes in real time.
-        </p>
-      </div>
-      {#
-      <div>
-        <h2>Intergrations</h2>
-        <p>
-          Gitlab/github commit messages
-        </p>
-      </div>
-      #}
-      <div class='teaser'>
-        <h2>Safe & secure.</h2>
-        <p>
-          Jupo includes critical security features specifically designed to
-          keep your data safe, secure and in your control.
-        </p>
-      </div>
-    </div>
+  </header>
 
-    <footer>
-      © 2013 Jupo.com. All rights reserved.
+  <div class="site-content">
+
+    <div class="jumbotron">
+      <div class="container">
+        <div class="intro">
+          <h1>Get All Your Team Work In One Place!</h1>
+          <p>Google Apps get social with Jupo, just one-click away!</p>
+          <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST">
+            <div class="form-group">
+              <input id="email" type="email" name="email" class="form-control" placeholder="Enter you Google Apps mail here!" />
+            </div>
+            <button class="btn btn-success" type="submit">Get Started!</button>
+
+            <input type="hidden" name="domain" value="{{ domain }}">
+            <input type="hidden" name="call_from" value="landing">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          </form>
+        </div>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class='flash-message'>
+                {{ message | safe }}
+              </div>
+            {% endfor %}    
+          {% endif %}
+        {% endwith %}
+        <div class="screenshot"></div>
+      </div>
+    </div>
+    <a class="jumbo-anchor"></a>
+
+    <main id="main" class="site-main" role="main">
+
+      <div class="container">
+
+        <section class="section section-animation" id="load_section0">
+          <a name="section0" class="section-anchor"></a>
+
+          <div class="row col-group">
+            <div class="col-md-4">
+              <i class="icon-cogs"></i>
+              <h3>FAMILIAR</h3>
+              <p>Like the famous social network. Easy to use.</p>
+            </div>
+            <div class="col-md-4">
+              <i class="icon-dashboard"></i>
+              <h3>FOCUS</h3>
+              <p>Just your teammates. Non distraction.</p>
+            </div>
+            <div class="col-md-4">
+              <i class="icon-rocket"></i>
+              <h3>FAST</h3>
+              <p>Blazingly fast, and secure.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-animation" id="load_section1">
+          <a name="section1" class="section-anchor"></a>
+
+          <div class="row">
+            <div class="col-md-7" data-pos="left">
+              <img src="/public/assets/img/img-0.png" class="img-responsive" />
+            </div>
+            <div class="col-md-5" data-pos="right">
+              <h2>Easy to connect your team</h2>
+              <p class="lead">Bring your team’s communication to a familiar workspace. 
+              <br>Start collaborating right away.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-animation" id="load_section2">
+          <a name="section2" class="section-anchor"></a>
+
+          <div class="row">
+            <div class="col-md-5" data-pos="left">
+              <h2>Optimized for Google Apps.</h2>
+              <p class="lead">Web based tool for your team to get things done, and rejoice. Make full use of your Google Apps.</p>
+            </div>
+            <div class="col-md-7" data-pos="right">
+              <img src="/public/assets/img/img-1.png" class="img-responsive" />
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-animation" id="load_section3">
+          <a name="section3" class="section-anchor"></a>
+
+          <div class="row">
+            <div class="col-md-7" data-pos="left">
+              <img src="/public/assets/img/img-2.png" class="img-responsive" />
+            </div>
+            <div class="col-md-5" data-pos="right">
+              <h2>Centralized communication.</h2>
+              <p class="lead">Start discussion and comment on any topics, and get your team move forward. This is your team’s private social network.</p>
+            </div>
+          </div>
+        </section>
+
+        <!--
+        <section class="section section-animation" id="load_section4">
+          <a name="section4" class="section-anchor"></a>
+          
+          <div class="row">
+            <div class="col-md-5" data-pos="left">
+              <h2>Integrated third parties.</h2>
+              <p class="lead">You can use your own team’s apps. Jupo works with Google Apps, Drive, Dropbox and <a href="#">many more</a> to come</p>
+            </div>
+            <div class="col-md-7" data-pos="right">
+              <img src="/public/assets/img/img-3-0.png" class="img-responsive" />
+              <div class="content-animation zoom left-2">
+                <img src="/public/assets/img/img-3-1.png" class="img-responsive">
+              </div>
+            </div>
+          </div>
+        </section>
+        -->
+
+        <section class="section section-animation" id="load_section5">
+          <a name="section5" class="section-anchor"></a>
+          
+          <div class="row">
+            <div class="col-md-7" data-pos="left">
+              <img src="/public/assets/img/img-4.png" class="img-responsive" />
+            </div>
+            <div class="col-md-5" data-pos="right">
+              <h2>Third party. Supported.</h2>
+              <p class="lead">You can use your own team’s apps. Jupo works with Google Apps, Drive, Dropbox and many more to come</p>
+            </div>
+          </div>
+        </section>
+
+        <!--
+        <section class="section section-animation" id="load_section6">
+          <a name="section6" class="section-anchor"></a>
+
+          <div class="row col-group">
+            <div class="col-md-4">
+              <img src="https://lh5.googleusercontent.com/-8GzPcyIs0YA/AAAAAAAAAAI/AAAAAAAAGuA/-dXQqSpYQWI/photo.jpg" width="120" class="img-circle" />
+              <h3>James Smith</h3>
+              <p>With Jupo, it's amazingly simple to discuss company news. Much better than email.</p>
+              <img src="http://www4.dev.joomlart.com/templates/ja-v3/images/logos/designwall.png" alt="">
+            </div>
+            <div class="col-md-4">
+              <img src="http://demo.designwall.com/dw-simplex/wp-content/uploads/staff-3.jpg" width="120" class="img-circle" />
+              <h3>Ari Tulla</h3>
+              <p>Jupo is exactly the tool we have been waiting for! Now we finally have a place for the cool stuff!</p>
+              <img src="http://www4.dev.joomlart.com/templates/ja-v3/images/logos/themebrain.png" alt="">
+            </div>
+            <div class="col-md-4">
+              <img src="http://demo.designwall.com/dw-simplex/wp-content/uploads/staff-4.jpg" width="120" class="img-circle" />
+              <h3>Jennifer Toda</h3>
+              <p>We used to share links in different ways. Now we just use Jupo to share and keep the things to us.</p>
+              <img src="http://www4.dev.joomlart.com/templates/ja-v3/images/logos/joomlancers.png" alt="">
+            </div>
+          </div>
+        </section>
+        -->
+
+      </div>
+
+    </main>
+
+    <footer id="colophon" class="site-footer" role="contentinfo">
+      <div class="site-info container">
+        <!--
+        <p class="pull-left"><a href="http://wordpress.org/" title="A Semantic Personal Publishing Platform" rel="generator">Proudly powered by WordPress</a></p>
+        <p class="pull-right">Theme: DW Neon by <a href="http://www.designwall.com/" rel="designer">DesignWall</a>.</p>
+        -->
+        <p class="pull-right">Copyright 2013 @ JUPO</p>
+      </div>
     </footer>
 
+  </div>
 
-  </body>
+  <a id="back-to-top" class="scrollup icon-circle-arrow-up" href="#"></a>
+
+  <script src="/public/assets/js/jquery.js"></script>
+  <script src="/public/assets/js/bootstrap.js"></script>
+  <script src="/public/assets/js/respond.js"></script>
+  <script src="/public/assets/js/main.js"></script>
+</body>
 </html>

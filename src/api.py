@@ -924,13 +924,15 @@ def complete_profile(code, name, password, gender, avatar):
   
   info = {}
   info["name"] = name
-  info["password"] = make_hash(password)
+  #info["password"] = make_hash(password)
   info["verified"] = 1
   info["gender"] = gender
   info['avatar'] = avatar
   info['session_id'] = hashlib.md5(code + str(utctime())).hexdigest()
   db.owner.update({'session_id': code}, {'$set': info})
   user_id = get_user_id(code)
+  
+  #clear old session
   cache.delete(code)
   cache.delete('%s:info' % user_id)
   
@@ -2144,6 +2146,16 @@ def reset_mail_fetcher():
                    'privacy': None})
 
   return True
+
+def get_member_email_addresses(db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  #find all email addresses in network, watchout for group (same table owner, got no email field)
+  member_email_addresses = [i['email'] for i in db.owner.find({'email': {'$ne': None}}, {'email': True})]
+
+  return member_email_addresses
 
 def get_email_addresses(session_id, db_name=None):
   if not db_name:
@@ -4530,10 +4542,12 @@ def new_group(session_id, name, privacy="closed", about=None):
   Privacy: Open|Closed|Secret
   """
   db_name = get_database_name()
+  # print "DEBUG - in new_group - db_name = " + str(db_name)
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
   if not user_id:
+    # print "DEBUG - in new_group - about to exit"
     return False
     
 
