@@ -4542,12 +4542,10 @@ def new_group(session_id, name, privacy="closed", about=None):
   Privacy: Open|Closed|Secret
   """
   db_name = get_database_name()
-  # print "DEBUG - in new_group - db_name = " + str(db_name)
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
   if not user_id:
-    # print "DEBUG - in new_group - about to exit"
     return False
     
 

@@ -793,7 +793,13 @@ def authentication(action=None):
   elif request.path.endswith('sign_out'):
     token = session.get('oauth_google_token')
     #token = 'ya29.AHES6ZQdZbhFaUO9Xgv8sIjmKipH7kQ56UxyavSSLyIg02Cq'
+    
     session_id = session.get('session_id')
+
+    key = '%s:%s:uid' % ('jupo_com_jupo_localhost_com', session_id)
+    cache.delete(key)
+    # print "DEBUG - in sign_out - clear session_id in memcache - result = " + str(cache.delete(key))
+
     if session_id:
       user_id = api.get_user_id(session_id)
       email = api.get_user_info(user_id).email
@@ -814,7 +820,7 @@ def authentication(action=None):
           if db != db_name:
             api.sign_out(session_id, db_name=db)
       
-    print "DEBUG - in sign_out - token = " + str(token)
+    # print "DEBUG - in sign_out - token = " + str(token)
     # return redirect('https://accounts.google.com/o/oauth2/revoke?token=' + str(token) + '&continue=http://jupo.localhost.com')
     return redirect('/')
   
@@ -968,10 +974,10 @@ def google_authorized():
                                        db_name=user_db_name)
   
   api.update_session_id(user_email, session_id, user_db_name)
+  session['session_id'] = session_id
 
   # create standard groups (e.g. for Customer Support, Sales) for this new network
-  print "DEBUG - in google_authorized - about to create new group"
-  print  str(api.new_group (session_id, "Sales", "Open", "Group for Sales teams"))
+  # print  str(api.new_group (session_id, "Sales", "Open", "Group for Sales teams"))
   
   user_url = None
   if user_info.id:
@@ -2267,19 +2273,42 @@ def home():
   session_id = request.args.get('session_id')
   
   if hostname != settings.PRIMARY_DOMAIN:
-    print "DEBUG - in / - db_name = " + str(hostname.replace('.', '_'))
     if not api.is_exists(db_name=hostname.replace('.', '_')):
       abort(404)    
     if session_id:
       session.permanent = True
       session['session_id'] = request.args.get('session_id')
-      # print "DEBUG - in / - url_root = " + str(Request.url_root)
+
       return redirect('/news_feed')
   
-  
-    
+  # access session to determine if there is any previously logged-in user, note that this session object *IS DIFFERENT THAN* that at subdomain
   session_id = session.get("session_id")
-  user_id = api.get_user_id(session_id)
+  user_id = None
+  user_db = None
+  user_network = None
+
+  # get all network
+  db_names = api.get_database_names()
+
+  # loop through network name, check for corresponding user_id, based on session_id, use this for auto-login
+  for db_name in db_names:
+    logged_in_user_id = api.get_user_id(session_id=session_id, db_name=db_name)
+
+    if logged_in_user_id:
+      user_id = logged_in_user_id
+      user_db = db_name
+
+  print "DEBUG - in / - session_id = " + str(session_id)
+  print "DEBUG - in / - user_id from cache = " + str(user_id)
+  print "DEBUG - in / - user_db from cache = " + str(user_db)
+
+  # determine user network domain based on user db name
+  # for example if user db name = jupo_com_jupo_localhost_com and PRIMARY_DOMAIN = jupo.localhost.com then user network = jupo.com
+  if user_db:
+    user_network = user_db.replace('_', '.')[:( (user_db.replace('_', '.')).index(settings.PRIMARY_DOMAIN) - 1)]
+  # print "DEBUG - in / - user_network = " + str(user_network)
+  
+  # user_id = api.get_user_id(session_id)
   
   if not user_id:
     code = request.args.get('code')
@@ -2318,8 +2347,8 @@ def home():
     
     return resp
   else:
-    # print "DEBUG - in / - url_root = " + str(Request.url_root)
-    return redirect('/news_feed')
+    # session.pop("session_id") #clear session_id here since sub-domain can't clear session_id when logout
+    return redirect('http://' + user_network + '.' + settings.PRIMARY_DOMAIN + '/news_feed?session_id=' + session_id)
   
   
 @app.route("/news_feed", methods=["GET", "OPTIONS"])
@@ -3265,12 +3294,14 @@ def _update():
 #===============================================================================
 
 
-# @werkzeug.serving.run_with_reloader
-def run_app(debug=False):
+@werkzeug.serving.run_with_reloader
+def run_app(debug=True):
     
   from cherrypy import wsgiserver
     
   app.debug = debug
+
+  # app.config['SERVER_NAME'] = settings.PRIMARY_DOMAIN
   
   app.config['DEBUG_TB_PROFILER_ENABLED'] = True
   app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
