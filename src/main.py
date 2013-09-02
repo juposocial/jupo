@@ -791,12 +791,16 @@ def authentication(action=None):
         return redirect('/')
       
   elif request.path.endswith('sign_out'):
-    token = session.get('oauth_google_token')
-    #token = 'ya29.AHES6ZQdZbhFaUO9Xgv8sIjmKipH7kQ56UxyavSSLyIg02Cq'
+    # token = session.get('oauth_google_token')
+    # token = 'ya29.AHES6ZQdZbhFaUO9Xgv8sIjmKipH7kQ56UxyavSSLyIg02Cq'
     
     session_id = session.get('session_id')
 
-    key = '%s:%s:uid' % ('jupo_com_jupo_localhost_com', session_id)
+    hostname = request.headers.get('Host', '').split(':')[0]
+    user_network = hostname.replace('.', '_')
+    # print "DEBUG - in sign_out - user_network = " + str(user_network)
+    
+    key = '%s:%s:uid' % (user_network, session_id)
     cache.delete(key)
     # print "DEBUG - in sign_out - clear session_id in memcache - result = " + str(cache.delete(key))
 
