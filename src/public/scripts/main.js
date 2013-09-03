@@ -884,6 +884,13 @@ $(document).ready(function(e) {
         
         $('span.status', _this).html(' ✔ Invitation sent!');
         return false;
+      },
+      error: function() {
+        $('textarea[name="msg"]', _this).val('');
+        $('input.friends', _this).tokenInput('clear');
+        
+        $('span.status', _this).html(' Error occurred. Please make sure you specified at least 1 email address!');
+        return false;
       }
     });
     return false;

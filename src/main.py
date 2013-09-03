@@ -566,17 +566,19 @@ def invite():
     user_id = api.get_user_id(session_id)
     owner = api.get_user_info(user_id)
     
-    #filter contact that *NOT* in network yet
+    # filter contact that *NOT* signed up in network yet
     member_addrs = api.get_member_email_addresses()
 
     email_addrs = []
     if owner.google_contacts is not None:
       email_addrs = [i for i in owner.google_contacts if i not in member_addrs] 
 
-    #for user in owner.contacts:
-    #  if user.email not in email_addrs:
-    #    email_addrs.append(user.email)
-        
+    # for user in owner.contacts:
+    #   if user.email not in email_addrs:
+    #     email_addrs.append(user.email)
+
+    # also get address that we already sent an invitation
+    invited_addrs = api.get_invited_addresses(user_id=user_id)
     
     if group_id:
       group = api.get_group_info(session_id, group_id)
@@ -589,6 +591,7 @@ def invite():
                   'body': render_template('invite.html', 
                                           title=title,
                                           email_addrs=email_addrs,
+                                          invited_addrs=invited_addrs,
                                           group=group)})
   else:
     email = request.form.get('email', request.args.get('email'))
@@ -597,9 +600,19 @@ def invite():
       return ' ✔ Done '
     else:
       addrs = request.form.get('to')
+      invited_addrs = request.form.get('to_invited')
       msg = request.form.get('msg')
-      if addrs:
-        addrs = addrs.split(',')
+      if addrs or invited_addrs:
+        addrs = []
+        
+        if addrs:
+          addrs = addrs.split(',')
+
+        # include invited email address (if any) as well
+        if invited_addrs:
+          invited_addrs = invited_addrs.split(',')
+          addrs = addrs + invited_addrs
+
         for addr in addrs:
           if addr.isdigit():
             email = api.get_user_info(addr).email
