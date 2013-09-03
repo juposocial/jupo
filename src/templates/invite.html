@@ -21,7 +21,10 @@
     -->
 
     <label>Type names or email addresses:</label>
-    <input class="friends" placeholder="Enter an email address..." name='to' required><br>
+    <input class="friends" placeholder="Enter an email address..." name='to'></input><br>
+
+    <label>Already invited users, include them here if you want to resend invitation:</label>
+    <input class="friends_invited" placeholder="Enter an email address..." name='to_invited'></input><br>
     
     <label>Message (optional)</label>
     <textarea name='msg'></textarea>
@@ -37,8 +40,29 @@
        {'type': 'email', 'avatar': '/public/images/send-mail.png', 'name': '{{ email }}', 'id': '{{ email }}'}, 
      {% endfor %}
    ]
+
+   users_invited = [
+     {% for email in invited_addrs %}
+       {'type': 'email', 'avatar': '/public/images/send-mail.png', 'name': '{{ email }}', 'id': '{{ email }}'}, 
+     {% endfor %}
+   ]
   
    $('input.friends').tokenInput(users, {
+      searchDelay: 300,
+      preventDuplicates: true,
+      queryParam: 'query',
+      hintText: 'Enter an email address...',
+      animateDropdown: false,
+      resultsFormatter: function(item) {
+        return "<li><img class='" + item.type + "' src='" + item.avatar + "'>" + item.name + "</li>"
+      },
+      allowEmail: true,
+      showDropdownOnFocus: false,
+      noResultsText: null,
+      searchingText: null,
+    });
+
+    $('input.friends_invited').tokenInput(users_invited, {
       searchDelay: 300,
       preventDuplicates: true,
       queryParam: 'query',
@@ -65,6 +89,10 @@
     //populate with all Google App emails
     {% for email in email_addrs %}
       $('input.friends').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});
+    {% endfor %}
+
+    {% for email in invited_addrs %}
+      $('input.friends_invited').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});
     {% endfor %}
  
 

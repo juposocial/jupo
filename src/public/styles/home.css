@@ -7336,7 +7336,7 @@ form.invite ul.token-input-list {
   width: 478px;
   padding: 2px 2px 1px;
   max-height: 105px;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 form.invite ul.token-input-list::-webkit-scrollbar-track {
