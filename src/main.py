@@ -2309,8 +2309,8 @@ def home():
   # determine user network domain based on user db name
   # for example if user db name = jupo_com_jupo_localhost_com and PRIMARY_DOMAIN = jupo.localhost.com then user network = jupo.com
   if user_db:
-    user_network = user_db.replace('_', '.')[:( (user_db.replace('_', '.')).index(settings.PRIMARY_DOMAIN) - 1)]
-  # print "DEBUG - in / - user_network = " + str(user_network)
+    user_network = user_db.replace('_', '.')[:-len(settings.PRIMARY_DOMAIN)-1]
+    # print "DEBUG - in / - user_network = " + str(user_network)
   
   # user_id = api.get_user_id(session_id)
   
