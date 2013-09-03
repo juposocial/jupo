@@ -587,7 +587,6 @@ def get_friend_suggestions(user_info):
   
   return users
 
-
 def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -608,7 +607,7 @@ def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
                               "password": {"$ne": None}}, {'_id': True})
   elif facebook_id:
     user = db.owner.find_one({"facebook_id": facebook_id}, {'_id': True})
-  else:  
+  else:
     user = db.owner.find_one({"session_id": session_id}, {'_id': True})
     
   if user:

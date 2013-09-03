@@ -796,14 +796,6 @@ def authentication(action=None):
     
     session_id = session.get('session_id')
 
-    hostname = request.headers.get('Host', '').split(':')[0]
-    user_network = hostname.replace('.', '_')
-    # print "DEBUG - in sign_out - user_network = " + str(user_network)
-    
-    key = '%s:%s:uid' % (user_network, session_id)
-    cache.delete(key)
-    # print "DEBUG - in sign_out - clear session_id in memcache - result = " + str(cache.delete(key))
-
     if session_id:
       user_id = api.get_user_id(session_id)
       email = api.get_user_info(user_id).email
@@ -826,6 +818,14 @@ def authentication(action=None):
       
     # print "DEBUG - in sign_out - token = " + str(token)
     # return redirect('https://accounts.google.com/o/oauth2/revoke?token=' + str(token) + '&continue=http://jupo.localhost.com')
+
+    # clear user info in memcache
+    hostname = request.headers.get('Host', '').split(':')[0]
+    user_network = hostname.replace('.', '_')
+    key = '%s:%s:uid' % (user_network, session_id)
+
+    cache.delete(key)
+
     return redirect('/')
   
   elif request.path.endswith('forgot_password'):
@@ -2302,9 +2302,9 @@ def home():
       user_id = logged_in_user_id
       user_db = db_name
 
-  print "DEBUG - in / - session_id = " + str(session_id)
-  print "DEBUG - in / - user_id from cache = " + str(user_id)
-  print "DEBUG - in / - user_db from cache = " + str(user_db)
+  # print "DEBUG - in / - session_id = " + str(session_id)
+  # print "DEBUG - in / - user_id from cache = " + str(user_id)
+  # print "DEBUG - in / - user_db from cache = " + str(user_db)
 
   # determine user network domain based on user db name
   # for example if user db name = jupo_com_jupo_localhost_com and PRIMARY_DOMAIN = jupo.localhost.com then user network = jupo.com
