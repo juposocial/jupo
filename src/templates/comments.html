@@ -81,9 +81,10 @@
             
             <footer>
               {% set id = item.id | unique_by_timestamp %}
-              <a id='pickfile-{{ id }}' class='lfloat attach-button' title='Attach files'>
-                <i class='attach-icon'></i>Attach files
-              </a>
+              <div class='lfloat'>
+                <a id='pickfile-{{ id }}' class='attach-button' title='Attach files'><i class='attach-icon'></i>From Computer</a> | 
+                <a class='dropbox-file-chooser'>Dropbox</a>
+              </div>
               <input type='hidden' name='attachments'>
   {#
               <input type="submit" value="Post" class='button small-button rfloat'>
@@ -94,6 +95,44 @@
             
               
               <script type="text/javascript">
+            
+            
+ 
+                $('#body').on('click', 'form.new-comment a.dropbox-file-chooser', function() {
+                  Dropbox.choose({
+                    linkType: "preview",
+                    multiselect: true,
+                    success: function(files) {
+                      $.global.dropbox_files = files;
+                      for(var i in files) {
+                        
+                        var file = files[i];
+                        
+                        if ($('#new-comment-{{ item.id }} div.attachments div#attachment-' + btoa(file.link)).length == 0) {
+                        
+                          var html = "<div class='attachment' id='attachment-" + btoa(file.link) + "' data-file='" + btoa(JSON.stringify(file)) + "'>"
+                                   + "<a href='" + file.link + "' target='_blank'>" + file.name + "</a>" 
+                                   + "<a class='remove-attachment' href='#'>×</a>"
+                                   + "</div>";
+                          
+                          $('#new-comment-{{ item.id }} div.attachments').append(html);
+                          $('#new-comment-{{ item.id }} div.attachments').removeClass('hidden');
+                      
+                          attachments = $('#new-comment-{{ item.id }} input[name="attachments"]').val() + btoa(JSON.stringify(file)) + ',';
+                          $('#new-comment-{{ item.id }} input[name="attachments"]').val(attachments);
+                      
+                          refresh('#new-comment-{{ item.id }} div.attachments');
+                          
+                          
+                        }
+                             
+                      }
+                    },
+                    cancel:  function() {}
+                  });
+                });
+            
+            
                   $.global.uploader_{{ id }} = new plupload.Uploader({
                     runtimes : 'html5',
                     browse_button : 'pickfile-{{ id }}',

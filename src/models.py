@@ -457,10 +457,9 @@ class User(Model):
   
   @property
   def google_contacts(self):
-    return [User({'_id': api.get_user_id_from_email_address(email, 
-                                                            db_name=self.db_name),
-                  'email': email}) \
-            for email in self.info.get('google_contacts', [])]
+    print "DEBUG - in models.py - self.db_name = " + str(self.db_name)
+    #return [User({'_id': api.get_user_id_from_email_address(email, db_name=self.db_name), 'email': email}) for email in self.info.get('google_contacts', [])]
+    return self.info.get('google_contacts')
   
 
   
@@ -551,8 +550,16 @@ class Comment(Model):
   
   @property
   def attachments(self):
-    return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
-            for attachment_id in self.info.get('attachments', [])]
+    if self.info.has_key('attachments'):
+      files = []
+      for i in self.info.get('attachments'):
+        if isinstance(i, dict):
+          files.append(Attachment(i))
+        else:
+          files.append(api.get_attachment_info(i, db_name=self.db_name))
+      return files
+    else:
+      return []
   
   @property
   def attachment_ids(self):
@@ -579,6 +586,12 @@ class Attachment(Model):
   def __init__(self, info, db_name=None):
     self.info = info if info else dict()
     self.db_name = db_name
+    
+  @property
+  def id(self):
+    if self.info.has_key('link'): # dropbox files
+      return True
+    return self.info.get('_id')
   
   @property
   def fid(self):
@@ -590,7 +603,7 @@ class Attachment(Model):
   
   @property
   def size(self):
-    return api.sizeof(self.info.get('size', 0))
+    return api.sizeof(self.info.get('size', self.info.get('bytes', 0)))
   
   @property
   def raw_size(self):
@@ -610,16 +623,23 @@ class Attachment(Model):
   
   @property
   def download_url(self):
+    if self.info.has_key('link'):
+      return self.info.get('link').replace('www.dropbox.com', 'dl.dropboxusercontent.com', 1)
     return api.s3_url(self.md5, content_type=self.mimetype, 
                       disposition_filename=self.name)
   
   @property
   def serving_url(self):
+    if self.info.has_key('link'):
+      return self.info.get('link').replace('www.dropbox.com', 'dl.dropboxusercontent.com', 1)
     return api.s3_url(self.md5, content_type=self.mimetype)
   
   
   @property
   def icon(self):
+    if self.info.has_key('icon'):
+      return self.info.get('icon')
+    
     if '.' in self.name:
       ext = self.name.rsplit('.', 1)[-1].lower()
       icon_path = 'public/images/icons/%s.png' % ext
@@ -627,6 +647,9 @@ class Attachment(Model):
         return 'https://s3.amazonaws.com/5works/icons/%s.png' % ext
     return 'https://s3.amazonaws.com/5works/icons/generic.png'
 
+  
+  def is_dropbox_file(self):
+    return True if self.info.has_key('link') and self.info.has_key('bytes') else False
 
   
 class File(Model):
@@ -1039,8 +1062,13 @@ class Feed(Model):
   @property
   def attachments(self):
     if self.info.has_key('attachments'):
-      return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
-              for attachment_id in self.info.get('attachments')]
+      files = []
+      for i in self.info.get('attachments'):
+        if isinstance(i, dict):
+          files.append(Attachment(i))
+        else:
+          files.append(api.get_attachment_info(i, db_name=self.db_name))
+      return files
   
   def is_edited(self):
     return True if self.info.has_key('new_message') else False
@@ -1420,7 +1448,7 @@ class Message(Model):
     if self.info.has_key('text'):
       return self.info.get('text')
     message = self.info.get('msg')
-    if isinstance(message, int) or isinstance(message, long): # is file
+    if str(message).isdigit() and len(str(message)) == 18: # is file
       return api.get_attachment_info(message, db_name=self.db_name)
     return message
   
@@ -1450,17 +1478,12 @@ class Message(Model):
   def is_file(self):    
     if self.info.has_key('text'):
       return False
-    message = self.info.get('msg')
     
-    if str(message).isdigit() and len(str(message)) == 18:
-      db_name = api.get_database_name()
-      db = api.DATABASE[db_name]
-      message_info = db.stream.find_one({'_id': long(message)})
-      if message_info is None:
-        return False
-      
-    if api.is_snowflake_id(message):
+    message = self.info.get('msg')
+    if str(message).isdigit() and len(str(message)) == 18: # is file
       return True
+    else:
+      return False
     
   def is_unread(self):
     return self.info.get('is_unread')

@@ -6,6 +6,20 @@
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="group_id" value="{{ group.id }}">
     
+    <!--
+    <ul class='people'>
+      {% if email_addrs %}
+        {% for email in email_addrs %}
+          {{ email }}
+        {% endfor %}
+      {% else %}
+        <li>
+          Your Google contact list is empty
+        </li>
+      {% endif %}
+    </ul>
+    -->
+
     <label>Type names or email addresses:</label>
     <input class="friends" placeholder="Enter an email address..." name='to' required><br>
     
@@ -46,7 +60,12 @@
     $('.token-input-input-token input').focus(function() {
         $('div.token-input-dropdown').css('visibility','visible');
         $('div.token-input-dropdown').css('display','none');
-    });    
+    });
+
+    //populate with all Google App emails
+    {% for email in email_addrs %}
+      $('input.friends').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});
+    {% endfor %}
  
     {% for email in email_addrs %}
       $('input.friends').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});

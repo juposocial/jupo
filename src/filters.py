@@ -176,8 +176,10 @@ def autolink(text):
   s = str(s) # convert unicode to string
   s = s.replace('\r\n', '\n')
 
-  
-  urls = api.extract_urls(s)
+  try:
+    urls = api.extract_urls(s)
+  except Exception:
+    urls = []
   urls = list(set(urls))
   urls.sort(key=len, reverse=True)
   
@@ -231,6 +233,14 @@ def autolink(text):
         group_name = parts[0][2:]
         s = s.replace(mention, 
              '<a href="/group/%s" class="async"><span class="tag">%s</span></a>' % (group_id, group_name))
+      elif '](dropbox-file:' in mention:
+        
+        parts = mention.split("](dropbox-file:")
+        link = parts[1][:-1].replace('www.dropbox.com', 'dl.dropboxusercontent.com', 1)
+        name = parts[0][2:]
+        s = s.replace(mention,
+                      '<a href="%s" target="_blank">%s</a>' % (link, name))
+        
       else:
         continue
         
@@ -656,6 +666,9 @@ def clean(text):
         name = parts[0][2:]
       elif '](user:' in mention:
         parts = mention.split("](user:")
+        name = parts[0][2:]
+      elif '](dropbox-file:' in mention:
+        parts = mention.split("](dropbox-file:")
         name = parts[0][2:]
       else:
         parts = mention.split("](group:")

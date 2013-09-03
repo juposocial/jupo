@@ -31,7 +31,7 @@ from itertools import izip
 from uuid import uuid4, UUID
 from string import capwords
 from urllib2 import urlopen
-from simplejson import dumps
+from simplejson import dumps, loads
 from time import mktime
 from datetime import datetime, timedelta
 from httplib import CannotSendRequest
@@ -587,7 +587,6 @@ def get_friend_suggestions(user_info):
   
   return users
 
-
 def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -608,7 +607,7 @@ def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
                               "password": {"$ne": None}}, {'_id': True})
   elif facebook_id:
     user = db.owner.find_one({"facebook_id": facebook_id}, {'_id': True})
-  else:  
+  else:
     user = db.owner.find_one({"session_id": session_id}, {'_id': True})
     
   if user:
@@ -934,13 +933,15 @@ def complete_profile(code, name, password, gender, avatar):
   
   info = {}
   info["name"] = name
-  info["password"] = make_hash(password)
+  #info["password"] = make_hash(password)
   info["verified"] = 1
   info["gender"] = gender
   info['avatar'] = avatar
   info['session_id'] = hashlib.md5(code + str(utctime())).hexdigest()
   db.owner.update({'session_id': code}, {'$set': info})
   user_id = get_user_id(code)
+  
+  #clear old session
   cache.delete(code)
   cache.delete('%s:info' % user_id)
   
@@ -2116,7 +2117,7 @@ def get_mentions(raw_text):
       tag['type'], tag['id'] = tag['id'].split(':', 1)
       if tag['id'].isdigit():
         tag['id'] = long(tag['id'])
-      user_list.append(tag)
+        user_list.append(tag)
   return user_list
 
 def unfollow_post(session_id, feed_id):
@@ -2154,6 +2155,16 @@ def reset_mail_fetcher():
                    'privacy': None})
 
   return True
+
+def get_member_email_addresses(db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  #find all email addresses in network, watchout for group (same table owner, got no email field)
+  member_email_addresses = [i['email'] for i in db.owner.find({'email': {'$ne': None}}, {'email': True})]
+
+  return member_email_addresses
 
 def get_email_addresses(session_id, db_name=None):
   if not db_name:
@@ -2268,11 +2279,10 @@ def update_record(collection, query, info):
 def archive_post(session_id, post_id):
   db_name = get_database_name()
   db = DATABASE[db_name]
-  
   user_id = get_user_id(session_id)
   db.stream.update({'_id': long(post_id)}, 
                    {'$push': {'archived_by': user_id}})
-  clear_html_cache(post_id)  
+  clear_html_cache(user_id)
   return True
 
 def unarchive_post(session_id, post_id):
@@ -2282,7 +2292,7 @@ def unarchive_post(session_id, post_id):
   user_id = get_user_id(session_id)
   db.stream.update({'_id': long(post_id)}, 
                    {'$pull': {'archived_by': user_id}})
-  clear_html_cache(post_id)  
+  clear_html_cache(user_id)  
   return True
 
 def archive_posts(session_id, ts):
@@ -2391,13 +2401,16 @@ def new_post_from_email(message_id, receivers, sender,
 
 def new_feed(session_id, message, viewers, 
              attachments=[], facebook_access_token=None, **kwargs):
-  db_name = get_database_name()
+  if kwargs.get('db_name'):
+    db_name = kwargs.get('db_name')
+  else:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not message:
     return False
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
     
@@ -2418,7 +2431,7 @@ def new_feed(session_id, message, viewers,
       if str(i).isdigit():
         _viewers.add(long(i))
       elif validate_email(i):
-        _viewers.add(get_user_id_from_email_address(i))
+        _viewers.add(get_user_id_from_email_address(i, db_name=db_name))
         # TODO: send mail thông báo cho post owner nếu địa chỉ mail không tồn tại
       else:
         continue
@@ -2428,13 +2441,17 @@ def new_feed(session_id, message, viewers,
   viewers = set(_viewers)
   viewers.add(user_id)
   
-  files = set()
+  files = []
   if attachments:
     if isinstance(attachments, list):
       for i in attachments:
-        files.add(long(i))
+        if i.isdigit():
+          files.append(long(i))
+        else: # dropbox files
+          files.append(loads(base64.b64decode(i)))
+          
     else:
-      files.add(long(attachments))
+      files.append(long(attachments) if str(attachments).isdigit() else attachments)
   
   if not isinstance(message, dict): # system message
     hashtags = get_hashtags(message)
@@ -2462,7 +2479,7 @@ def new_feed(session_id, message, viewers,
             'timestamp': ts,
             'last_updated': ts}
   if files:
-    info['attachments'] = list(files)
+    info['attachments'] = files
   
   if not isinstance(message, dict): # system message
     urls = extract_urls(message)
@@ -2503,7 +2520,7 @@ def new_feed(session_id, message, viewers,
   user_ids = set()
   for i in viewers:
     if is_group(i):
-      member_ids = get_group_member_ids(i)
+      member_ids = get_group_member_ids(i, db_name=db_name)
       for id in member_ids:
         user_ids.add(id)
     else:
@@ -3234,9 +3251,12 @@ def new_comment(session_id, message, ref_id,
   if attachments:
     if isinstance(attachments, list):
       for i in attachments:
-        files.append(long(i))
+        if str(i).isdigit():
+          files.append(long(i))
+        else: # dropbox files
+          files.append(loads(base64.b64decode(i)))
     else:
-      files.append(long(attachments))
+      files.append(long(attachments) if str(attachments).isdigit() else attachments)
   if files:
     comment['attachments'] = files
     
@@ -4511,15 +4531,22 @@ def get_attachments(session_id, group_id=None, limit=10):
                      .limit(limit)
     
   attachments = []
-  ids = set() 
+  ids = [] 
   for post in posts:
     if post.has_key('attachments'):
       for i in post.get('attachments', []):
-        if i not in ids:
-          ids.add(i)
-          info = get_attachment_info(i)
-          info.rel = str(post.get('_id'))
-          attachments.append(info)
+        if isinstance(i, dict):
+          id = i['link']
+        else:
+          id = i
+        
+        if i in ids:
+          continue
+        
+        ids.append(id)
+        info = get_attachment_info(i)
+        info.rel = str(post.get('_id'))
+        attachments.append(info)
           
     elif group_id and post.has_key('history') and post['history'][0].has_key('attachment_id'):
       for i in post['history'][::-1]:
@@ -4528,7 +4555,7 @@ def get_attachments(session_id, group_id=None, limit=10):
           break
       
       if attachment_id not in ids:
-        ids.add(attachment_id)
+        ids.append(attachment_id)
         info = get_attachment_info(attachment_id)
         info.rel = str(post.get('_id'))
         attachments.append(info)
@@ -4540,7 +4567,7 @@ def get_attachments(session_id, group_id=None, limit=10):
       if comment.has_key('attachments'):
         for i in comment.get('attachments', []):
           if i not in ids:
-            ids.add(i)
+            ids.append(i)
             info = get_attachment_info(i)
             info.rel = str(post.get('_id'))
             attachments.append(info)
@@ -6146,7 +6173,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   return_empty_html = False
   if user_id and mentions and topic_id is None:
     members = [user_id, owner_id]
-    members.extend([int(i.get('id')) for i in mentions])
+    members.extend([int(i.get('id')) for i in mentions if i.has_key('id')])
     topic_id = new_topic(owner_id, members, db_name=db_name)
     
     msg = '@[%s](user:%s) created @[a group conversation](topic:%s)'\
@@ -6156,7 +6183,9 @@ def new_message(session_id, message, user_id=None, topic_id=None,
     
     msg = '@[%s](user:%s) added %s to this conversation' \
         % (get_user_info(owner_id).name, owner_id, 
-           ', '.join(['@[%s](user:%s)' % (i['name'], i['id']) for i in mentions]))
+           ', '.join(['@[%s](user:%s)' % (i['name'], i['id']) \
+                      for i in mentions \
+                      if i.has_key('id')]))
     
     if ''.join(e for e in strip_mentions(message) if e.isalnum()):
       new_message(session_id, msg, user_id, topic_id, 

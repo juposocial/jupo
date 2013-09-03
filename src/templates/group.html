@@ -590,7 +590,7 @@
             
             {% if group.id == 'public' %}
                <br>
-               <a href='/invite' class='popup'>Invite friends to Jupo</a>
+               <a id="invite_url" href='/invite' class='popup'>Invite friends to Jupo</a>
             {% elif owner.id in group.member_ids or group.privacy == 'open' %}
                <br>
                <a href='/search?query=&type=people&ref=group-{{ group.id }}' class='popup'>Add people</a>

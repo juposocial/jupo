@@ -16,6 +16,8 @@ $(document).ready(function(e) {
     $.global.clear_autosave = {};
     $.global.preload = {};
   }
+
+  
   
   // restore chat windows
   if (localStorage.getItem('chats') != undefined) {
@@ -116,6 +118,8 @@ $(document).ready(function(e) {
       }
     }
   });
+
+
   
   
   $("#body, #overlay").on('click', "a.edit-post", function(e) {
@@ -388,7 +392,7 @@ $(document).ready(function(e) {
   $('#body').on('mouseleave', 'li.unread > section', function() {
     id = $(this).parent().attr('id');
     if (mark_as_read_timer) {
-      clearTimeout(mark_as_read_timer)
+      clearTimeout(mark_as_read_timer);
     }
   });
 
@@ -407,16 +411,13 @@ $(document).ready(function(e) {
     $(this).toggleClass('active');
     $(this).next('ul').toggle();
     return false;
-  })
+  });
   
   $('#body, #overlay, #popup').on('click', 'form.new footer a', function() {
     var id = $(this).attr('id');
     var form = $(this).parents('form');
     var row_id = id;
 
-    //check table row attach file is showing --> return, else active it
-    if (id == 'pick-file')
-      row_id = 'attach';    
 
     if(($.global.uploader.is_uploading == true || id == 'pick-file') && $('tr#' + row_id, form).is(':visible') == true) {
        return false; 
@@ -434,6 +435,47 @@ $(document).ready(function(e) {
     }
     
   });  
+
+  /* Dropbox file*/
+ 
+  $('#body').on('click', 'form.new div.file-chooser a.dropbox-chooser', function() {
+    Dropbox.choose({
+      linkType: "preview",
+      multiselect: true,
+      success: function(files) {
+        $.global.dropbox_files = files;
+        for(var i in files) {
+          
+          var file = files[i];
+          
+          if ($('div#attachments div#attachment-' + btoa(file.link)).length == 0) {
+          
+            var html = "<div class='attachment' id='attachment-" + btoa(file.link) + "' data-file='" + btoa(JSON.stringify(file)) + "'>"
+                     + "<a href='" + file.link + "' target='_blank'>" + file.name + "</a>" 
+                     + "<a class='remove-attachment' href='#'>×</a>"
+                     + "</div>";
+            
+            $('div#attachments').append(html);
+            $('div#attachments').removeClass('hidden');
+        
+            attachments = $('input[name="attachments"]').val() + btoa(JSON.stringify(file)) + ',';
+            $('input[name="attachments"]').val(attachments);
+        
+            refresh('div#attachments');
+            
+            
+            $('form a#pick-file').trigger('click');
+          }
+               
+        }
+      },
+      cancel:  function() {}
+    });
+  });
+ 
+
+
+
   /* Drop down menu */
 
   $('header nav a.user"').click(function() {
@@ -521,7 +563,7 @@ $(document).ready(function(e) {
     }
     return false;
     
-  })
+  });
   /* End dropdown menu */
 
   // $('#scroll-to-top').scroll_to_top({
@@ -840,7 +882,7 @@ $(document).ready(function(e) {
         $('textarea[name="msg"]', _this).val('');
         $('input.friends', _this).tokenInput('clear');
         
-        $('span.status', _this).html(' ✔ Invitation sent!')
+        $('span.status', _this).html(' ✔ Invitation sent!');
         return false;
       }
     });
@@ -1343,7 +1385,7 @@ $(document).ready(function(e) {
       $.ajax({
         type: "GET",
         url: $(this).attr('href')
-      })
+      });
       
       $('#unread-notification-counter').html('0');
       $('#unread-notification-counter').addClass('grey');
@@ -1384,26 +1426,48 @@ $(document).ready(function(e) {
           document.title = title.replace(counter, '(' + count + ') ');
         }
       }
-    })
+    });
     return false;
   });
 
   $("#body, #overlay").on("click", 'a.remove-attachment', function() {
     console.log('remove-attachment clicked');
-    form = $(this).parents('form');
-    $.ajax({
-      type: "POST",
-      headers: {
-        'X-CSRFToken': get_cookie('_csrf_token')
-      },
-      url: $(this).attr("data-href"),
-      success: function(id) {
-        $('#attachment-' + id).remove();
-        var files = $('input[name="attachments"]', form).val();
-        files = files.replace(id + ',', '');
-        $('input[name="attachments"]', form).val(files);
-      }
-    });
+    var _this = $(this);
+    var form = _this.parents('form');
+    var attachment = _this.closest('div.attachment');
+    
+    
+    if (_this.data('href') != undefined) {
+      $.ajax({
+        type: "POST",
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        url: $(this).attr("data-href"),
+        success: function(id) {
+          $('#attachment-' + id).remove();
+          var files = $('input[name="attachments"]', form).val();
+          files = files.replace(id + ',', '');
+          $('input[name="attachments"]', form).val(files);
+          
+          if ($('div#attachments > div').length == 0) {
+            $('div#attachments').addClass('hidden');
+          }
+          
+        }
+      });
+    } else {
+      
+          var files = $('input[name="attachments"]', form).val();
+          files = files.replace(attachment.data('file') + ',', '');
+          $('input[name="attachments"]', form).val(files);
+          
+          attachment.remove();
+          
+          if ($('div#attachments div.attachment').length == 0) {
+            $('div#attachments').addClass('hidden');
+          }
+    }
     return false;
   });
 
@@ -2341,25 +2405,25 @@ $(document).ready(function(e) {
     $('html').trigger('click');
     $('form.chat textarea.mentions', chatbox).attr('placeholder', "Type a person's name, starts with @").focus();
     return false;
-  })
+  });
   
   $('#chat').on('click', 'div.header a.close', function() {
     var chat_id = $(this).attr('data-chat-id');
     close_chat(chat_id);
     return false;
 
-  })
+  });
   
   
   $('#chat').on('click', '.chatbox .header', function(e) {
     var chatbox_id = $(this).parent().attr('id');
     toggle_chatbox(chatbox_id);
-  })
+  });
   
   $('#chat, #body').on('click', '.chatbox .message a.image-expander', function(e) {
     $(this).next().toggleClass('hidden');
     return false;
-  })
+  });
   
   
   $('#chat, #body').on('click', '.chatbox li.more a', function(e) {
@@ -2405,7 +2469,7 @@ $(document).ready(function(e) {
     }
     
     return false;
-  })
+  });
   
   
   $('#chat, #body').on('paste', 'form.chat textarea', function () {
@@ -2465,10 +2529,10 @@ $(document).ready(function(e) {
         } else {
           update_status(chat_id + '|');
         }
-      }, 2000)
+      }, 2000);
       
     }
-  })
+  });
   
   
   
@@ -2478,8 +2542,8 @@ $(document).ready(function(e) {
     var _boxchat = _this.parents('.chatbox');
     
     
-    $('textarea.mentions', _this).attr('readonly', 'readonly')
-    $('form', _boxchat).addClass('gray-bg')
+    $('textarea.mentions', _this).attr('readonly', 'readonly');
+    $('form', _boxchat).addClass('gray-bg');
     
     
     $('textarea.mentions', _this).mentionsInput('val', function(text) {
@@ -2535,7 +2599,7 @@ $(document).ready(function(e) {
             
             setTimeout(function() {
               $('.messages', _boxchat).scrollTop(99999);
-            }, 10)
+            }, 10);
           }
           
           var chat_id = _boxchat.attr('id').replace('chat-', '');
@@ -2546,7 +2610,7 @@ $(document).ready(function(e) {
           $('ul.topics a.chat.' + chat_id + ' div.ts').html($('div.ts', msg).text());
           
           // highlight code snippets
-          prettyPrint()
+          prettyPrint();
               
         }
         
@@ -2556,7 +2620,7 @@ $(document).ready(function(e) {
     return false;
     
     
-  })
+  });
   
 
   $('#body').on('keydown', 'div.messages div.header div[contenteditable=true]', function(e) {
@@ -2576,10 +2640,10 @@ $(document).ready(function(e) {
               _this.blur();
               $('ul.topics li a.topic-' + topic_id + ' div.title').html(name);
             }
-       })
+       });
       return false;
     }
-  })
+  });
 
   $('#friends-online').on('submit', 'form', function(e) {
     e.preventDefault();
@@ -2767,11 +2831,15 @@ $(document).ready(function(e) {
               $('#popup ul.people').html(resp);
               
               var group_chat_url = $('#popup .group-chat a').attr('href');
-              $('#popup ul.people li input[type="checkbox"]').each(function(index, value) {
-                if (group_chat_url.indexOf($(this).val()) != -1) {
-                  $(this).attr('checked', 'checked')
-                }
-              });
+              if (group_chat_url != undefined)
+              {
+                $('input.checkbox-chat','#popup').show();              
+                $('#popup ul.people li input[type="checkbox"]').each(function(index, value) {
+                  if (group_chat_url.indexOf($(this).val()) != -1) {
+                    $(this).attr('checked', 'checked')
+                  }
+                });
+              }              
               
               if (resp.indexOf('@') == -1) {
                 $.global.people_search_not_found_last_keyword = query;
@@ -2801,6 +2869,7 @@ $(document).ready(function(e) {
     // $('#body').bPopup('asdfasdf');
     // return false; 
   })
+
  
 });
 

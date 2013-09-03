@@ -46,6 +46,7 @@ class JupoSMTPServer(smtpd.SMTPServer):
 
     """
     print peer, mailfrom, rcpttos, len(data)
+    
     user_email = mailfrom.lower().strip()
     # Extract reply text from message
     message, type_message = get_reply_text(data)
@@ -90,18 +91,20 @@ class JupoSMTPServer(smtpd.SMTPServer):
       api.new_comment(session_id, message, post_id, db_name=db_name)
       return None
     elif group_slug:
+      hostname = mailfrom.split('@')[1]
+      db_name = hostname.replace('.', '_') + '_jupo_com'
       message, type_message = get_reply_and_original_text(data)
       
       #get user id based on email
-      user_id = api.get_user_id_from_email_address(user_email, db_name='dev_jupo_com')
+      user_id = api.get_user_id_from_email_address(user_email, db_name=db_name)
       if not user_id:
         return None
-      session_id = api.get_session_id(user_id, db_name='dev_jupo_com')
+      session_id = api.get_session_id(user_id, db_name=db_name)
       if not session_id:
         return None
 
       #get group id based on group slug
-      group_id = api.get_group_id_from_group_slug(group_slug, db_name='dev_jupo_com')
+      group_id = api.get_group_id_from_group_slug(group_slug, db_name=db_name)
       if not group_id:
         return None
 
@@ -144,13 +147,18 @@ class JupoSMTPServer(smtpd.SMTPServer):
 
       #post to group, no attachment for now
       if type_message is None:
-        api.new_feed(session_id, message, target, attachments=None, facebook_access_token=None)
+        api.new_feed(session_id, message, target, 
+                     attachments=None, facebook_access_token=None, 
+                     db_name=db_name)
+        
       else:
-        api.new_feed(session_id, subject, target, attachments=None, facebook_access_token=None, plain_html=message)
+        api.new_feed(session_id, subject, target, 
+                     attachments=None, facebook_access_token=None, 
+                     plain_html=message, db_name=db_name)
     else:
       return None
     
-
+    
 if __name__ == '__main__':
   server = JupoSMTPServer(('0.0.0.0', 25), None)
   asyncore.loop()

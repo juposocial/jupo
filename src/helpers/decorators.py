@@ -14,6 +14,10 @@ def login_required(f):
   """
   @wraps(f)
   def wrapper(*args, **kwargs):
+    if request.args.get('session_id') is not None:
+      # print "DEBUG - in login_required - session_id in request GET = " + str(request.args.get('session_id'))
+      session['session_id'] = request.args.get('session_id')
+
     session_id = session.get('session_id')
     user_id = api.get_user_id(session_id)
     if user_id:

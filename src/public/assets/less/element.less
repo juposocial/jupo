@@ -1,0 +1,278 @@
+//
+// Scaffolding
+// --------------------------------------------------
+
+body {
+  text-rendering: optimizeLegibility;
+}
+
+// Links
+
+a{
+  color: @link-color;
+  text-decoration: none;
+  .no-touch & {
+    .transition(all 0.3s linear 0s); 
+  }
+  &:hover, &:active, &:focus {
+    outline: 0;
+    color: @link-hover-color;
+    text-decoration: none;
+  }
+}
+
+// lists
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+// Images
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+// Responsive images (ensure images don't scale beyond their parents)
+.img-responsive {
+  width: 100%;
+  height: auto;
+}
+
+//
+// Forms
+// --------------------------------------------------
+
+
+.form-inline .form-group {
+  vertical-align: top !important;
+}
+
+
+
+//
+// Buttons
+// --------------------------------------------------
+
+.btn-sign-in {
+  .button-variant(@btn-signin-color; @btn-signin-bg; @btn-signin-border);
+  border-radius: 0;
+  border: none !important;
+  color: #fff !important;
+  height: 40px;
+  line-height: 40px !important;
+  margin: 10px 0 10px 10px !important;
+
+  &:hover,
+  &:focus {
+    background-color: @red-dark !important;
+    border-radius: 0 !important;
+    text-shadow: 0 0 15px white;
+  }
+}
+
+
+
+//
+// Navbar
+// --------------------------------------------------
+
+// Navbar nav links
+//
+// Builds on top of the `.nav` components with it's own modifier class to make
+// the nav the full height of the horizontal nav (above 768px).
+
+.navbar-nav ul {
+  margin: (@navbar-padding-vertical / 2) -@navbar-padding-horizontal;
+
+  > li > a {
+    padding-top:    10px;
+    padding-bottom: 10px;
+    line-height: @line-height-computed;
+  }
+
+  @media (max-width: @screen-xs-max) {
+    // Dropdowns get custom display when collapsed
+    .open .dropdown-menu {
+      position: static;
+      float: none;
+      width: auto;
+      margin-top: 0;
+      background-color: transparent;
+      border: 0;
+      box-shadow: none;
+      > li > a,
+      .dropdown-header {
+        padding: 5px 15px 5px 25px;
+      }
+      > li > a {
+        line-height: @line-height-computed;
+        &:hover,
+        &:focus {
+          background-image: none;
+        }
+      }
+    }
+  }
+
+  // Uncollapse the nav
+  @media (min-width: @grid-float-breakpoint) {
+    float: left;
+    margin: 0;
+
+    > li {
+      float: left;
+      > a {
+        padding-top: ((@navbar-height - @line-height-computed) / 2);
+        padding-bottom: ((@navbar-height - @line-height-computed) / 2);
+      }
+    }
+  }
+
+}
+
+@media (max-width: @screen-tablet-u) {
+
+  .navbar-header {
+    padding: 0 20px;
+  }
+}
+
+.navbar-collapse {
+  border: none;
+  overflow-x: hidden;
+  @media (max-width: @screen-tablet-u) {
+    background: @gray-darker;
+    margin: 0 !important;
+    width: 100%;
+
+    .navbar-nav {
+      margin: 10px 0;
+      text-align: center;
+      width: 100%;
+
+      li {
+        margin: 5px 0 0 0 !important;
+      }
+    }
+  }
+}
+
+// Inverse navbar
+
+.navbar-inverse {
+
+  background-color: transparent;
+  border-color: transparent;
+
+  .navbar-nav ul {
+
+    li {
+      margin-left: 10px;
+      display: block;
+      .transition(all .2s linear);
+    }
+    li:hover {
+      text-shadow: 0 -1px 1px black;
+    }
+
+    > li > a {
+      color: @navbar-inverse-link-color;
+
+      &:hover,
+      &:focus {
+        color: #fff;
+        background-color: transparent;
+        border-radius: 4px;
+      }
+    }
+    > .active > a {
+      &,
+      &:hover,
+      &:focus {
+        color: #fff;
+        background-color: transparent;
+        border-radius: 4px;
+      }
+    }
+    > .disabled > a {
+      &,
+      &:hover,
+      &:focus {
+        color: #fff;
+        background-color: transparent;
+        border-radius: 4px;
+      }
+    }
+  }
+
+  // Darken the responsive nav toggle
+  .navbar-toggle {
+    outline: 0;
+  }
+
+}
+
+
+//
+// Navs
+// --------------------------------------------------
+
+.nav ul {
+  margin-bottom: 0;
+  padding-left: 0; // Override default ul/ol
+  list-style: none;
+  .clearfix();
+
+  > li {
+    position: relative;
+    display: block;
+
+    > a {
+      position: relative;
+      display: block;
+      padding: @nav-link-padding;
+      &:hover,
+      &:focus {
+        text-decoration: none;
+        background-color: @nav-link-hover-bg;
+      }
+    }
+
+    // Disabled state sets text to gray and nukes hover/tab effects
+    &.disabled > a {
+      color: @nav-disabled-link-color;
+
+      &:hover,
+      &:focus {
+        color: @nav-disabled-link-hover-color;
+        text-decoration: none;
+        background-color: transparent;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  // Open dropdowns
+  .open > a {
+    &,
+    &:hover,
+    &:focus {
+      background-color: @nav-link-hover-bg;
+      border-color: @link-color;
+    }
+  }
+
+  // Dividers (basically an hr) within the dropdown
+  .nav-divider {
+    .nav-divider();
+  }
+
+  // Prevent IE8 from misplacing imgs
+  // See https://github.com/h5bp/html5-boilerplate/issues/984#issuecomment-3985989
+  > li > a > img {
+    max-width: none;
+  }
+}
