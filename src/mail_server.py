@@ -16,6 +16,7 @@ import re
 import smaz
 import smtpd
 import base64
+import email
 import asyncore
 from lib.email_parser import get_reply_text
 from lib.email_parser import get_reply_and_original_text
@@ -46,11 +47,11 @@ class JupoSMTPServer(smtpd.SMTPServer):
     """
     print peer, mailfrom, rcpttos, len(data)
     user_email = mailfrom.lower().strip()
-    
     # Extract reply text from message
-    message = get_reply_text(data)
+    message, type_message = get_reply_text(data)
     subject = get_subject(data)
     header_raw = email.header.decode_header(subject)
+    
     
     if not message:
       return None # Can't parse reply text
@@ -62,7 +63,7 @@ class JupoSMTPServer(smtpd.SMTPServer):
     elif item_id.startswith('user'):
       user_id = item_id[4:]
     elif item_id.startswith('group'):
-      group_slug = item_id[5:]
+      group_slug = item_id[6:]
     else:
       return None
     
@@ -89,18 +90,18 @@ class JupoSMTPServer(smtpd.SMTPServer):
       api.new_comment(session_id, message, post_id, db_name=db_name)
       return None
     elif group_slug:
-      message = get_reply_and_original_text(data)
-
+      message, type_message = get_reply_and_original_text(data)
+      
       #get user id based on email
-      user_id = api.get_user_id_from_email_address(user_email, db_name='play_jupo_com')
+      user_id = api.get_user_id_from_email_address(user_email, db_name='dev_jupo_com')
       if not user_id:
         return None
-      session_id = api.get_session_id(user_id, db_name='play_jupo_com')
+      session_id = api.get_session_id(user_id, db_name='dev_jupo_com')
       if not session_id:
         return None
 
       #get group id based on group slug
-      group_id = api.get_group_id_from_group_slug(group_slug, db_name='play_jupo_com')
+      group_id = api.get_group_id_from_group_slug(group_slug, db_name='dev_jupo_com')
       if not group_id:
         return None
 
@@ -121,8 +122,9 @@ class JupoSMTPServer(smtpd.SMTPServer):
           subject = subject.decode('iso-8859-1', 'ignore').encode('utf-8')
 
       #insert subject into message
-      message = "<b>"> + subject + "</b>" + "\n" + message
-
+      if type_message is None:
+        message = "<b>" + subject + "</b>" + "\n" + message
+        
       #check for mention in message/subject
       #SO: http://stackoverflow.com/questions/2304632/regex-for-twitter-username
       target = []
@@ -141,8 +143,10 @@ class JupoSMTPServer(smtpd.SMTPServer):
       target.append(group_id)
 
       #post to group, no attachment for now
-      api.new_feed(session_id, message, target, attachments=None, facebook_access_token=None)
-
+      if type_message is None:
+        api.new_feed(session_id, message, target, attachments=None, facebook_access_token=None)
+      else:
+        api.new_feed(session_id, subject, target, attachments=None, facebook_access_token=None, plain_html=message)
     else:
       return None
     

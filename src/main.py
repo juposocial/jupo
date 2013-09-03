@@ -572,7 +572,11 @@ def invite():
     else:
       group = {}
       title = None
-      
+    
+    email_addrs = []
+    for i in range(1,20):
+      email_addrs.append('hoang%s@jupo.com' % str(i))
+    
     return dumps({'title': title,
                   'body': render_template('invite.html', 
                                           title=title,
@@ -2403,6 +2407,7 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
+@app.route("/feed/<int:feed_id>/view_plain_html", methods=["OPTIONS", "POST"])
 @line_profile
 def feed_actions(feed_id=None, action=None, 
                  message_id=None, domain=None, comment_id=None):
@@ -2490,6 +2495,12 @@ def feed_actions(feed_id=None, action=None,
       return render_template('feed.html', 
                              owner=owner,
                              feed=feed)
+  
+  elif request.path.endswith('/view_plain_html'):
+    feed = api.get_feed(session_id, feed_id)
+    body = feed.plain_html.replace('\n',' ')
+    json = dumps({'body':body, 'title':'test'})
+    return Response(json, content_type='application/json')
     
   elif request.path.endswith('/reshare'):
     if request.method == 'GET':
@@ -3205,7 +3216,7 @@ if 'jupo.com' in settings.PRIMARY_DOMAIN:
         url += '?' + request.environ.get('QUERY_STRING')
       return redirect(url, code=301)
   
-  
+
 def run_app(debug=False):
     
   from cherrypy import wsgiserver
@@ -3247,7 +3258,7 @@ def run_app(debug=False):
   
   
 if __name__ == "__main__":
-  run_app(debug=False)
+  run_app(debug=True)
 
 
 

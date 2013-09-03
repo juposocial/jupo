@@ -26,6 +26,7 @@ def get_reply_and_original_text(data):
   Lines that begin with 'Sent from my BlackBerry'
   """
   msg = email.message_from_string(data)
+  msg_type = None
   if msg.get_content_maintype() == 'text':
     message = msg.get_payload(decode=True)
   elif msg.get_content_maintype() == 'multipart': #If message is multi part we only want the text version of the body, this walks the message and gets the body.
@@ -33,10 +34,14 @@ def get_reply_and_original_text(data):
       if part.get_content_type() == "text/plain":
         message = part.get_payload(decode=True)
         break
+      elif part.get_content_type() == "text/html":
+        message = part.get_payload(decode=True)
+        msg_type = 'text/html'
+        break
       else:
         continue
   else:
-    return False
+    return False, msg_type
   
   msg = message.split('-- \n', 1)[0]
   msg = msg.split('--\n', 1)[0]
@@ -62,7 +67,7 @@ def get_reply_and_original_text(data):
   msg = '\n'.join(message_lines)
 
   msg = reply_parser_1.parse_reply(msg)
-  return msg.strip()
+  return msg.strip(), msg_type
 
 def get_reply_text(data):
   """
@@ -81,6 +86,7 @@ def get_reply_text(data):
   Lines that begin with 'Sent from my BlackBerry'
   """
   msg = email.message_from_string(data)
+  msg_type = None
   if msg.get_content_maintype() == 'text':
     message = msg.get_payload(decode=True)
   elif msg.get_content_maintype() == 'multipart': #If message is multi part we only want the text version of the body, this walks the message and gets the body.
@@ -88,10 +94,15 @@ def get_reply_text(data):
       if part.get_content_type() == "text/plain":
         message = part.get_payload(decode=True)
         break
+      elif part.get_content_type() == 'text/html':
+        message = part.get_payload(decode=True)
+        msg_type = 'text/html'
+        break
+      
       else:
         continue
   else:
-    return False
+    return False, msg_type
   
   msg = message.split('-- \n', 1)[0]
   msg = msg.split('--\n', 1)[0]
@@ -119,7 +130,7 @@ def get_reply_text(data):
   msg = '\n'.join(message_lines)
 
   msg = reply_parser_1.parse_reply(msg)
-  return msg.strip()
+  return msg.strip(), msg_type
 
 
 
@@ -192,4 +203,3 @@ e:solid;border-width:1px;margin-left:0px;padding-left:10px;=22>
 --514e7fff_12e685fb_b7--
 
 '''
-  print get_reply_text(data)  

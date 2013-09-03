@@ -948,8 +948,12 @@ class Feed(Model):
     
   @property
   def raw_message(self):
-    return self.info.get('message')    
+    return self.info.get('message')
       
+  @property
+  def plain_html(self):
+    return self.info.get('plain_html')
+  
   @property
   def message(self):
     if self.is_system_message():

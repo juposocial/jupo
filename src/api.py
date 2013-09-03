@@ -2390,7 +2390,7 @@ def new_post_from_email(message_id, receivers, sender,
   return True
 
 def new_feed(session_id, message, viewers, 
-             attachments=[], facebook_access_token=None):
+             attachments=[], facebook_access_token=None, **kwargs):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
@@ -2443,13 +2443,24 @@ def new_feed(session_id, message, viewers,
     hashtags = []
   
   ts = utctime()
-  info = {'message': message,
+  plain_html = kwargs.get('plain_html')
+  if plain_html: 
+    info = {'message': message,
           '_id': new_id(),
           'owner': user_id,
           'viewers': list(viewers),
           'hashtags': hashtags,
           'timestamp': ts,
-          'last_updated': ts}
+          'last_updated': ts,
+          'plain_html':plain_html}
+  else:
+    info = {'message': message,
+            '_id': new_id(),
+            'owner': user_id,
+            'viewers': list(viewers),
+            'hashtags': hashtags,
+            'timestamp': ts,
+            'last_updated': ts}
   if files:
     info['attachments'] = list(files)
   
