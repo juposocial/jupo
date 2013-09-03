@@ -3297,50 +3297,50 @@ def _update():
 # Run App
 #===============================================================================
 
-
-@werkzeug.serving.run_with_reloader
-def run_app(debug=True):
-    
-  from cherrypy import wsgiserver
-    
-  app.debug = debug
-
-  # app.config['SERVER_NAME'] = settings.PRIMARY_DOMAIN
-  
-  app.config['DEBUG_TB_PROFILER_ENABLED'] = True
-  app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
-  app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
-  app.config['DEBUG_TB_PANELS'] = [
-      'flask_debugtoolbar.panels.versions.VersionDebugPanel',
-      'flask_debugtoolbar.panels.timer.TimerDebugPanel',
-      'flask_debugtoolbar.panels.headers.HeaderDebugPanel',
-      'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel',
-      'flask_debugtoolbar.panels.template.TemplateDebugPanel',
-      'flask_debugtoolbar.panels.logger.LoggingPanel',
-      'flask_debugtoolbar_mongo.panel.MongoDebugPanel',
-      'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel',
-      'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel'
-  ]
-  app.config['DEBUG_TB_MONGO'] = {
-    'SHOW_STACKTRACES': True,
-    'HIDE_FLASK_FROM_STACKTRACES': True
-  }
-  
-#   toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
-  
-
-  
-  server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
-  try:
-    print 'Serving HTTP on 0.0.0.0 port 9000...'
-    server.start()
-  except KeyboardInterrupt:
-    print '\nGoodbye.'
-    server.stop()
-  
-  
 if __name__ == "__main__":
-  run_app(debug=True)
+  
+  @werkzeug.serving.run_with_reloader
+  def run_app(debug=True):
+      
+    from cherrypy import wsgiserver
+      
+    app.debug = debug
+  
+    # app.config['SERVER_NAME'] = settings.PRIMARY_DOMAIN
+    
+    app.config['DEBUG_TB_PROFILER_ENABLED'] = True
+    app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
+    app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+    app.config['DEBUG_TB_PANELS'] = [
+        'flask_debugtoolbar.panels.versions.VersionDebugPanel',
+        'flask_debugtoolbar.panels.timer.TimerDebugPanel',
+        'flask_debugtoolbar.panels.headers.HeaderDebugPanel',
+        'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel',
+        'flask_debugtoolbar.panels.template.TemplateDebugPanel',
+        'flask_debugtoolbar.panels.logger.LoggingPanel',
+        'flask_debugtoolbar_mongo.panel.MongoDebugPanel',
+        'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel',
+        'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel'
+    ]
+    app.config['DEBUG_TB_MONGO'] = {
+      'SHOW_STACKTRACES': True,
+      'HIDE_FLASK_FROM_STACKTRACES': True
+    }
+    
+  #   toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+    
+  
+    
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
+    try:
+      print 'Serving HTTP on 0.0.0.0 port 9000...'
+      server.start()
+    except KeyboardInterrupt:
+      print '\nGoodbye.'
+      server.stop()
+  
+  
+  run_app(debug=False)
 
 
 
