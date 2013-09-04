@@ -7057,7 +7057,7 @@ top: 8px;
 }
 
 #popup .people li {
-  padding: 15px 20px 13px 0;
+  padding: 15px 20px 13px;
   display: block;
   border-bottom: 1px solid #f2f2f2;
   overflow: hidden;
@@ -7066,12 +7066,14 @@ top: 8px;
   line-height: 16px;
 }
 
+
 #popup .people li:nth-child(even) {
     background: #f6f7f8;
 }
 
 #popup .people li label {
   padding: 10px 10px 10px 20px;
+  margin-left: -20px;
 }
 
 #popup .people li.email label {
