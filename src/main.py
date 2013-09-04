@@ -1450,12 +1450,15 @@ def user(user_id=None, page=1, view=None):
     abort(404)
       
   if view in ['edit', 'update_profile']:
-    resp = {'title': 'Update Profile',
-            'body': render_template('user.html',
-                                    mode='edit', 
-                                    view='update_profile',
-                                    owner=owner)}
-    return Response(dumps(resp), mimetype='application/json')
+    if request.method == "OPTIONS":
+      resp = {'title': 'Update Profile',
+              'body': render_template('user.html',
+                                      mode='edit',
+                                      view='update_profile',
+                                      owner=owner)}
+      return Response(dumps(resp), mimetype='application/json')
+    else:
+      abort(400)
 
   elif view == 'change_password':
     resp = {'title': 'Change Password',
