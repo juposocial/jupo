@@ -566,19 +566,18 @@ def invite():
     user_id = api.get_user_id(session_id)
     owner = api.get_user_info(user_id)
     
-    # filter contact that *NOT* signed up in network yet
+    # filter contact that *NOT* registered yet and also *NOT* received invitation
+    
+    # registered users
     member_addrs = api.get_member_email_addresses()
+
+    # not registered but got invitation
+    invited_addrs = api.get_invited_addresses(user_id=user_id)
 
     email_addrs = []
     if owner.google_contacts is not None:
-      email_addrs = [i for i in owner.google_contacts if i not in member_addrs] 
-
-    # for user in owner.contacts:
-    #   if user.email not in email_addrs:
-    #     email_addrs.append(user.email)
-
-    # also get address that we already sent an invitation
-    invited_addrs = api.get_invited_addresses(user_id=user_id)
+      email_addrs = [i for i in owner.google_contacts if (i not in member_addrs) and (i not in invited_addrs)] 
+    
     
     if group_id:
       group = api.get_group_info(session_id, group_id)
@@ -603,8 +602,6 @@ def invite():
       invited_addrs = request.form.get('to_invited')
       msg = request.form.get('msg')
       if addrs or invited_addrs:
-        addrs = []
-        
         if addrs:
           addrs = addrs.split(',')
 
@@ -1471,8 +1468,7 @@ def user(user_id=None, page=1, view=None):
     name = request.form.get('name')
     gender = request.form.get('gender')
     
-    #password = request.form.get('password') disabled due to switch to Google App authentication
-    password = ''
+    password = request.form.get('password')
     avatar = request.files.get('file')
     
     fid = api.new_attachment(session_id, avatar.filename, avatar.stream.read())

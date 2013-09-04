@@ -23,8 +23,10 @@
     <label>Type names or email addresses:</label>
     <input class="friends" placeholder="Enter an email address..." name='to'></input><br>
 
-    <label>People has been invited but not joined yet, give them a reminder as well?</label>
-    <input class="friends_invited" placeholder="Enter an email address..." name='to_invited'></input><br>
+    {% if invited_addrs|length > 0 %}
+      <label>People has been invited but not joined yet, give them a reminder as well?</label>
+      <input class="friends_invited" placeholder="Enter an email address..." name='to_invited'></input><br>
+    {% endif %}
     
     <label>Message (optional)</label>
     <textarea name='msg'></textarea>

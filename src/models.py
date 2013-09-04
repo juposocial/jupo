@@ -439,7 +439,8 @@ class User(Model):
     return False
   
   def is_registered(self):
-    return True if self.info.get('password') else False
+    # user is considered "registered" if their name is not None
+    return True if self.info.get('name') is not None else False
   
   def is_admin(self):
     return True if self.info.get('admin') else False

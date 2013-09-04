@@ -923,7 +923,7 @@ def complete_profile(code, name, password, gender, avatar):
   
   info = {}
   info["name"] = name
-  #info["password"] = make_hash(password)
+  info["password"] = make_hash(password)
   info["verified"] = 1
   info["gender"] = gender
   info['avatar'] = avatar
@@ -1415,9 +1415,11 @@ def get_all_users(limit=1000):
   db = DATABASE[db_name]
   
   key = '%s:all_users' % db_name
+
   users = cache.get(key)
   if users is None:  
-    users = db.owner.find({'password': {'$ne': None}})\
+    # registered user is owner that got email IS NOT NONE (exclude group) and name IS NOT NONE (exclude unregistered users)
+    users = db.owner.find({'email': {'$ne': None}, 'name' : {'$ne': None} })\
                     .sort('timestamp', -1)\
                     .limit(limit)
     users = list(users)
@@ -2154,8 +2156,10 @@ def get_member_email_addresses(db_name=None):
   # find all email addresses in network, watchout for group 
   # (same table owner, got no email field)
   member_email_addresses = [i['email'] \
-                            for i in db.owner.find({'email': {'$ne': None}}, 
+                            for i in db.owner.find({'email': {'$ne': None}, 'name' : {'$ne': None}}, 
                                                    {'email': True})]
+
+  print "DEBUG - in get_member_email_addresses - member_email_addresses = " + str(member_email_addresses)
 
   return member_email_addresses
 

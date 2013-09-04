@@ -181,32 +181,19 @@
           </div>
         </section>
 
-        <!--
-        <section class="section section-animation" id="load_section6">
-          <a name="section6" class="section-anchor"></a>
+        <section class="section signup">
+          <h1>Sign-up Now!</h1>
+          <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST">
+            <div class="form-group">
+              <input id="email" type="email" name="email" class="form-control" placeholder="Enter you Google Apps mail here!" />
+            </div>
+            <button class="btn btn-success" type="submit">Get Started!</button>
 
-          <div class="row col-group">
-            <div class="col-md-4">
-              <img src="https://lh5.googleusercontent.com/-8GzPcyIs0YA/AAAAAAAAAAI/AAAAAAAAGuA/-dXQqSpYQWI/photo.jpg" width="120" class="img-circle" />
-              <h3>James Smith</h3>
-              <p>With Jupo, it's amazingly simple to discuss company news. Much better than email.</p>
-              <img src="http://www4.dev.joomlart.com/templates/ja-v3/images/logos/designwall.png" alt="">
-            </div>
-            <div class="col-md-4">
-              <img src="http://demo.designwall.com/dw-simplex/wp-content/uploads/staff-3.jpg" width="120" class="img-circle" />
-              <h3>Ari Tulla</h3>
-              <p>Jupo is exactly the tool we have been waiting for! Now we finally have a place for the cool stuff!</p>
-              <img src="http://www4.dev.joomlart.com/templates/ja-v3/images/logos/themebrain.png" alt="">
-            </div>
-            <div class="col-md-4">
-              <img src="http://demo.designwall.com/dw-simplex/wp-content/uploads/staff-4.jpg" width="120" class="img-circle" />
-              <h3>Jennifer Toda</h3>
-              <p>We used to share links in different ways. Now we just use Jupo to share and keep the things to us.</p>
-              <img src="http://www4.dev.joomlart.com/templates/ja-v3/images/logos/joomlancers.png" alt="">
-            </div>
-          </div>
+            <input type="hidden" name="domain" value="{{ domain }}">
+            <input type="hidden" name="call_from" value="landing">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          </form>
         </section>
-        -->
 
       </div>
 
