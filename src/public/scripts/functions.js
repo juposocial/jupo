@@ -1867,6 +1867,10 @@ function close_popup() {
   $('#popup').addClass('hidden');
   $('#popup .content').html('');
         // $('html').removeClass('no-scroll');
+  if ($.global.is_new_group == true) {
+    $.global.is_new_group = false;
+    window.location.reload();
+  }     
 }
 
 function close_overlay() {

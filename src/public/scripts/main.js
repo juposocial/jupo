@@ -861,6 +861,7 @@ $(document).ready(function(e) {
       data: $(this).serializeArray(),
       success: function(group_id) {
         open_in_async_mode('/group/' + group_id, null, null, function() {
+          $.global.is_new_group = true;
           open_in_popup_mode('/search?query=&type=people&ref=group-' + group_id);
         });
         
