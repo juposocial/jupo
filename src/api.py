@@ -4608,7 +4608,8 @@ def update_group_info(session_id, group_id, info):
                    '_id': long(group_id)}, {'$set': info})
   key = '%s:groups' % user_id
   cache.delete(key)
-  key = '%s:info'%group_id
+  
+  key = '%s:info' % group_id
   cache.delete(key)                 
   return True
 
