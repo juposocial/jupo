@@ -18,6 +18,8 @@ from lib.wordunmunger import unmungeHtml
 from BeautifulSoup import BeautifulSoup, Tag, NavigableString, Comment
 from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 
+
+
 months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
 
 
@@ -34,7 +36,9 @@ def lines_truncate(text, lines_count=5):
 #   out = cache.get(key, namespace="filters")
 #   if out:
 #     return out
-  
+#   from app import CURRENT_APP
+#   app = CURRENT_APP
+#   app.logger.debug(text)
   raw = text
   text = _normalize_newlines(text)
   is_html = True if ('<br>' in raw or '</' in raw) else False
@@ -49,7 +53,8 @@ def lines_truncate(text, lines_count=5):
     links = re.compile('<a.*?</a>', re.IGNORECASE).findall(text)
     for i in links:
       text = text.replace(i, md5(i).hexdigest())
-      
+
+    text = text.strip().replace('\n', '<br>')
     text = text.replace('<br/>', '<br>')
     
     lines = [line for line in text.split('<br>') if line.strip()]
@@ -57,11 +62,18 @@ def lines_truncate(text, lines_count=5):
   else:
     lines = [line for line in text.split('\n') if line.strip()]
     text = text.strip().replace('\n', '<br>')
-  
+
+  # app.logger.debug(text)
   words_per_line = 15
   longest_line = max(lines[:lines_count], key=len) if len(lines) != 0 else None
   if longest_line and len(longest_line.split()) > words_per_line: 
-    lines = textwrap.wrap(text)
+    #lines = textwrap.wrap(text)
+    # #lines = [line for line in text.split('<br>') if line.strip()]
+    tmp_lines = []
+    for line in lines:
+      # app.logger.debug(line)
+      tmp_lines.extend([line] if len(line.split()) <= words_per_line else textwrap.wrap(line))
+    lines = tmp_lines[:]
   else:
     lines = [line for line in text.split('<br>') if line.strip()]
     
@@ -94,7 +106,7 @@ def lines_truncate(text, lines_count=5):
       out = out.replace(md5(i).hexdigest(), i)
     
     if is_truncated and not out.rstrip().endswith('...</a>'):
-      out = out + '...'
+      out += '...'
     
 #   cache.set(key, out, namespace="filters")
   return out  
