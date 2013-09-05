@@ -459,11 +459,12 @@ class User(Model):
   
   @property
   def google_contacts(self):
-    print "DEBUG - in models.py - self.db_name = " + str(self.db_name)
-    #return [User({'_id': api.get_user_id_from_email_address(email, db_name=self.db_name), 'email': email}) for email in self.info.get('google_contacts', [])]
+    # return [User({'_id': api.get_user_id_from_email_address(email, db_name=self.db_name), 'email': email}) for email in self.info.get('google_contacts', [])]
     return self.info.get('google_contacts')
-  
 
+  @property
+  def google_contacts_as_obj(self):
+    return [User({'_id': email, 'email': email}) for email in self.info.get('google_contacts', [])]
   
   @property
   def networks(self):
@@ -474,6 +475,10 @@ class User(Model):
   @property
   def disabled_notifications(self):
     return self.info.get('disabled_notifications', [])
+
+  @property
+  def ref(self):
+    return self.info.get('ref')
   
 
 class Comment(Model):

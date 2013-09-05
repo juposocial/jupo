@@ -954,6 +954,10 @@ def complete_profile(code, name, password, gender, avatar):
   
   # Send notification to friends
   user = get_user_info(user_id)
+
+  # add this user to list of contact of referal
+  referer_id = user.ref
+  add_to_contacts(get_session_id(referer_id), user_id)
   
   session_id = info['session_id']
   friends = db.owner.find({'google_contacts': user.email})

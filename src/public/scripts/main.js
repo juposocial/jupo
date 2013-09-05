@@ -725,8 +725,57 @@ $(document).ready(function(e) {
     // element.replaceWith('<a href="' + href + '" class="button remove-member">Remove from Group</a>');
     // return false;
   // });
+  $('#popup').on('click', 'input.checkbox-posting', function() {      
+      var _this = $(this);
+      var group_chat = $('#popup li.group-chat a');
+      
+      // save selected record to href (for later use)
+      var href = group_chat.attr('href');
+      if (_this.is(':checked') == true) {
+        // alert(_this.val());
+        if (href.indexOf('?user_ids=') == -1) {
+          href = href + '?user_ids=' + _this.val();
+        } else {
+          href = href + ',' + _this.val();
+        }
+      } else {
+        if (href.indexOf(',') == -1) {
+          href = href.split('?')[0] 
+        } else {
+          var user_ids = href.split('?')[1].replace(',' + _this.val(), '').replace(_this.val() + ',', '');
+          href = href.split('?')[0] + '?' + user_ids;
+        }
+      }
+      
+      group_chat.attr('href', href);  
+      if (href.indexOf('?user_ids=') != -1) {
+        group_chat.show()
+      } else {
+        group_chat.hide();
+      }
+  });
   
-  
+  $('#popup').on('click', 'a#submit-contacts-to-post', function() {
+    var element = $(this);
+    var href = $(this).attr('href');
+    
+    // get the ids of viewers from href and call tokenInput to fill in the posting form
+    if (href.indexOf('user_ids') != -1) {
+      ids = href.split('user_ids=')[1].split(',');
+
+      for (var i = 0; i < ids.length; i++) {
+        // note that field id = id|name
+        contact_id = ids[i].split('|')[0];
+        contact_name = ids[i].split('|')[1];
+        $('input[name=viewers]').tokenInput("add", {id: contact_id, name: contact_name});    
+      }
+    }
+
+    close_popup();
+    
+    return false;
+  });
+
   $('#popup').on('click', 'a.invite', function() {
     var element = $(this);
     var href = $(this).attr('href');
@@ -2842,7 +2891,7 @@ $(document).ready(function(e) {
               var group_chat_url = $('#popup .group-chat a').attr('href');
               if (group_chat_url != undefined)
               {
-                $('input.checkbox-chat','#popup').show();              
+                $('input.checkbox-chat','#popup').show();
                 $('#popup ul.people li input[type="checkbox"]').each(function(index, value) {
                   if (group_chat_url.indexOf($(this).val()) != -1) {
                     $(this).attr('checked', 'checked')
