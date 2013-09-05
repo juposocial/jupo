@@ -931,9 +931,12 @@ def complete_profile(code, name, password, gender, avatar):
   db.owner.update({'session_id': code}, {'$set': info})
   user_id = get_user_id(code)
   
-  #clear old session
+  # clear old session
   cache.delete(code)
   cache.delete('%s:info' % user_id)
+
+  # clear memcache - otherwise get_all_members won't see this new user
+  cache.delete('%s:all_users' % db_name)
   
   # Send notification to friends
   user = get_user_info(user_id)
