@@ -15,7 +15,6 @@ def login_required(f):
   @wraps(f)
   def wrapper(*args, **kwargs):
     if request.args.get('session_id') is not None:
-      # print "DEBUG - in login_required - session_id in request GET = " + str(request.args.get('session_id'))
       session['session_id'] = request.args.get('session_id')
 
     session_id = session.get('session_id')
@@ -26,7 +25,11 @@ def login_required(f):
         api.update_utcoffset(user_id, utcoffset)
         
       return f(*args, **kwargs)
+    
     resp = redirect('/')
+    resp.delete_cookie('channel_id')
+    resp.delete_cookie('network')
+    resp.delete_cookie('new_user')
     back_to = request.args.get('back_to')
     if back_to:
       resp.set_cookie('redirect_to', back_to)

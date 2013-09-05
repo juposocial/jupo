@@ -422,6 +422,10 @@ def get_database_name():
   if request:
     hostname = request.headers.get('Host')
     if hostname:
+      network = request.cookies.get('network')
+      if network and not hostname.startswith(network):
+        hostname = network + '.' + settings.PRIMARY_DOMAIN
+        
       db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
   
   if not db_name:
@@ -546,6 +550,9 @@ def get_url_description(url, bypass_cache=False, db_name=None):
   
 
 def get_friend_suggestions(user_info):
+  if not user_info.has_key('_id'):
+    return []
+  
   user_id = user_info['_id']
   
   key = '%s:friends_suggestion' % user_id
@@ -690,15 +697,18 @@ def move_to_s3(fid, db_name=None):
   t0 = utctime()
   if (isinstance(fid, str) or isinstance(fid, unicode)) and '|' in fid:
     filename, content_type, filedata = fid.split('|', 2)
-    s3write(filename, filedata, True, content_type)
+    is_ok = s3write(filename, filedata, True, content_type)
   else:
     if not isinstance(fid, ObjectId):
       fid = ObjectId(fid)
     f = datastore.get(fid)
     filename = f.filename
-    s3write(filename, f.read(), overwrite=True, content_type=f.content_type)
-    datastore.delete(fid)
-  db['s3'].update({'name': filename}, {'$set': {'exists': True}})
+    is_ok = s3write(filename, f.read(), overwrite=True, content_type=f.content_type)
+    if is_ok:
+      datastore.delete(fid)
+      
+  if is_ok:
+    db['s3'].update({'name': filename}, {'$set': {'exists': True}})
   return True
 
 
@@ -4247,6 +4257,7 @@ def new_attachment(session_id_or_user_id, filename, filedata):
     fid = datastore.put(filedata, 
                         content_type=content_type,
                         filename=md5_hash)
+
     move_to_s3_queue.enqueue(move_to_s3, fid, db_name)
   
   info = {'_id': new_id(),

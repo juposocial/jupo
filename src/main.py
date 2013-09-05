@@ -6,7 +6,8 @@ from raven.contrib.flask import Sentry
  
 from flask import (Flask, request, 
                    render_template, render_template_string,
-                   redirect, abort, 
+                   redirect as redirect_to, 
+                   abort, 
                    url_for, session, g, flash,
                    make_response, Response)
 from flask_sslify import SSLify
@@ -58,10 +59,15 @@ app = CURRENT_APP
 assets = WebAssets(app)
 
 if settings.SENTRY_DSN:
-  pass
-  #sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
+  sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
+  
 csrf = SeaSurf(app)
 oauth = OAuth()
+    
+def redirect(url, code=302):
+  if not url.startswith('http') and request.cookies.get('network'):
+    url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
+  return redirect_to(url, code=code)
 
 @line_profile
 def render_homepage(session_id, title, **kwargs):  
@@ -150,7 +156,7 @@ def event_stream(channel):
   pubsub.subscribe(channel)
   for message in pubsub.listen():
     yield 'retry: 1000\ndata: %s\n\n' % message['data']
-    
+
 #===============================================================================
 # URL routing and handlers
 #===============================================================================
@@ -836,7 +842,11 @@ def authentication(action=None):
 
     cache.delete(key)
 
-    return redirect('/')
+    resp = redirect('/')
+    resp.delete_cookie('network')
+    resp.delete_cookie('channel_id')
+    resp.delete_cookie('new_user')
+    return resp
   
   elif request.path.endswith('forgot_password'):
     if request.method == 'GET':
@@ -952,6 +962,9 @@ def google_authorized():
   
   # generate user domain based on user email
   user_email = user.get('email')
+  if not user_email or '@' not in user_email:
+    return redirect('/')
+  
   # user_domain = (user_email.split('@')[1]).split('.')[0]
   user_domain = user_email.split('@')[1]
 
@@ -966,17 +979,16 @@ def google_authorized():
   if contacts:
     contacts = list(set(contacts))  
 
-  jupo_db = api.get_database_name()
+  db_name = '%s_%s' % (user_domain.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
 
-  # generate new DB name for this network. DB name based on email domain + "_" + base Jupo suffix
-  user_db_name = user_domain.replace('.', '_').lower().strip() + '_' + jupo_db
-  user_org_name = user_domain.split('.')[0]
   
   # create new network
-  api.new_network(user_db_name, user_org_name)
+  api.new_network(db_name, db_name.split('_', 1)[0])
 
   # sign in to this new network
-  user_info = api.get_user_info(email=user_email, db_name=user_db_name)
+  user_info = api.get_user_info(email=user_email, db_name=db_name)
+  
   session_id = api.sign_in_with_google(email=user.get('email'), 
                                        name=user.get('name'), 
                                        gender=user.get('gender'), 
@@ -985,23 +997,28 @@ def google_authorized():
                                        locale=user.get('locale'), 
                                        verified=user.get('verified_email'),
                                        google_contacts=contacts,
-                                       db_name=user_db_name)
+                                       db_name=db_name)
   
-  api.update_session_id(user_email, session_id, user_db_name)
+  app.logger.debug(db_name)
+  app.logger.debug(user)
+  
+  app.logger.debug(session_id)
+  
+  api.update_session_id(user_email, session_id, db_name)
   session['session_id'] = session_id
 
   # create standard groups (e.g. for Customer Support, Sales) for this new network
   # print  str(api.new_group (session_id, "Sales", "Open", "Group for Sales teams"))
   
-  user_url = None
   if user_info.id:
-    user_url = 'http://%s.%s/?session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, session_id)
-    # user_url = 'http://%s/%s/?session_id=%s' % (settings.PRIMARY_DOMAIN, user_domain, session_id)
+    user_url = 'http://%s/%s/' % (settings.PRIMARY_DOMAIN, user_domain)
   else: # new user
-    user_url = 'http://%s.%s/everyone?getting_started=1&first_login=1&session_id=%s' % (user_domain, settings.PRIMARY_DOMAIN, session_id)
-    # user_url = 'http://%s/%s/everyone?getting_started=1&first_login=1&session_id=%s' % (settings.PRIMARY_DOMAIN, user_domain, session_id)
+    user_url = 'http://%s/%s/everyone?getting_started=1&first_login=1' \
+             % (settings.PRIMARY_DOMAIN, user_domain)
     
-  return redirect(user_url)  
+  resp = redirect(user_url)  
+  resp.set_cookie('network', user_domain)
+  return resp 
     
 if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   facebook = oauth.remote_app('facebook',
@@ -2281,12 +2298,12 @@ def messages(user_id=None, topic_id=None, action=None):
                            'title': 'Messages'}))
     return resp      
 
-
 @app.route("/", methods=["GET"])
 @line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
   session_id = request.args.get('session_id')
+  
   
   if hostname != settings.PRIMARY_DOMAIN:
     if not api.is_exists(db_name=hostname.replace('.', '_')):
@@ -2297,35 +2314,9 @@ def home():
 
       return redirect('/news_feed')
   
-  # access session to determine if there is any previously logged-in user, note that this session object *IS DIFFERENT THAN* that at subdomain
   session_id = session.get("session_id")
-  user_id = None
-  user_db = None
-  user_network = None
+  user_id = api.get_user_id(session_id)
 
-  # get all network
-  db_names = api.get_database_names()
-
-  # loop through network name, check for corresponding user_id, based on session_id, use this for auto-login
-  for db_name in db_names:
-    logged_in_user_id = api.get_user_id(session_id=session_id, db_name=db_name)
-
-    if logged_in_user_id:
-      user_id = logged_in_user_id
-      user_db = db_name
-
-  # print "DEBUG - in / - session_id = " + str(session_id)
-  # print "DEBUG - in / - user_id from cache = " + str(user_id)
-  # print "DEBUG - in / - user_db from cache = " + str(user_db)
-
-  # determine user network domain based on user db name
-  # for example if user db name = jupo_com_jupo_localhost_com and PRIMARY_DOMAIN = jupo.localhost.com then user network = jupo.com
-  if user_db:
-    user_network = user_db.replace('_', '.')[:-len(settings.PRIMARY_DOMAIN)-1]
-    # print "DEBUG - in / - user_network = " + str(user_network)
-  
-  # user_id = api.get_user_id(session_id)
-  
   if not user_id:
     code = request.args.get('code')
     user_id = api.get_user_id(code)
@@ -2340,15 +2331,15 @@ def home():
       return render_template('profile_setup.html',
                              owner=owner, jupo_home=settings.PRIMARY_DOMAIN,
                              code=code, user_id=user_id)
-    
+  
   if not session_id or not user_id:
     try:
       session.pop('session_id')
     except KeyError:
       pass
     
-    if hostname != settings.PRIMARY_DOMAIN:
-      return redirect('/sign_in')
+#     if hostname != settings.PRIMARY_DOMAIN:
+#       return redirect('/sign_in')
     
     email = request.args.get('email')
     message = request.args.get('message')
@@ -2364,7 +2355,8 @@ def home():
     return resp
   else:
     # session.pop("session_id") #clear session_id here since sub-domain can't clear session_id when logout
-    return redirect('http://' + user_network + '.' + settings.PRIMARY_DOMAIN + '/news_feed?session_id=' + session_id)
+    return redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN,
+                                                request.cookies.get('network')))
   
   
 @app.route("/news_feed", methods=["GET", "OPTIONS"])
@@ -2372,7 +2364,7 @@ def home():
 @app.route('/archived', methods=['GET', 'OPTIONS'])
 @app.route('/archived/page<int:page>', methods=['GET', 'OPTIONS'])
 @app.route("/news_feed/archive_from_here", methods=["POST"])
-@login_required
+#@login_required
 @line_profile
 def news_feed(page=1):  
   session_id = session.get("session_id")
@@ -2384,6 +2376,8 @@ def news_feed(page=1):
     
     
   user_id = api.get_user_id(session_id)
+  if not user_id:
+    return redirect('/sign_in')
   
   if user_id and request.cookies.get('redirect_to'):
     redirect_to = request.cookies.get('redirect_to')
@@ -2955,21 +2949,23 @@ def files():
 def attachment(attachment_id=None, action=None):
   session_id = session.get("session_id")
   if request.path.endswith('new'):
+    
     file = request.files.get('file')
     filename = file.filename
     attachment_id = api.new_attachment(session_id, 
-                                 file.filename, 
-                                 file.stream.read())
+                                       file.filename, 
+                                       file.stream.read())
+    
     info = api.get_attachment_info(attachment_id)
     info = {'html': render_template('attachment.html', attachment=info),
             'attachment_id': str(attachment_id)}
     json = dumps(info)
     return Response(json, mimetype='application/json')
 
-  
   elif action == 'remove':
     api.remove_attachment(session_id, attachment_id)
     return str(attachment_id)
+  
   else:
     attachment = api.get_attachment(attachment_id)
     post_id = request.args.get('rel')
@@ -3308,6 +3304,62 @@ def _update():
 #===============================================================================
 # Run App
 #===============================================================================
+from werkzeug.wrappers import Request
+
+class NetworkNameDispatcher(object):
+  """
+  Convert the first part of request PATH_INFO to hostname for backward 
+  compatibility
+  
+  Eg: 
+    
+     http://jupo.com/example.com/news_feed
+     
+  -> http://example.com.jupo.com/news_feed
+  
+   
+  """
+  def __init__(self, app):
+    self.app = app
+
+  def __call__(self, environ, start_response):
+    path = environ.get('PATH_INFO', '')
+    items = path.lstrip('/').split('/', 1)
+      
+    if '.' in items[0]:  # is domain name
+      environ['HTTP_HOST'] = items[0] + '.' + settings.PRIMARY_DOMAIN
+      if len(items) > 1:
+        environ['PATH_INFO'] = '/%s' % items[1]
+      else:
+        environ['PATH_INFO'] = '/'
+      
+      return self.app(environ, start_response)
+        
+    else:
+      request = Request(environ)
+      network = request.cookies.get('network')
+      if not network:
+        return self.app(environ, start_response) 
+      
+      if request.method == 'GET':
+        url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN,
+                                  network, request.path)
+        if request.query_string:
+          url += '?' + request.query_string
+          
+        response = redirect(url)
+        return response(environ, start_response)
+      
+      else:
+        environ['HTTP_HOST'] = network + '.' + settings.PRIMARY_DOMAIN
+        return self.app(environ, start_response)
+        
+      
+    
+
+app.wsgi_app = NetworkNameDispatcher(app.wsgi_app)
+
+
 
 if __name__ == "__main__":
   

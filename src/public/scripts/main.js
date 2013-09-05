@@ -44,8 +44,8 @@ $(document).ready(function(e) {
 
 
   if (window.location.href.indexOf('#comment-') != -1) {
-    var comment_id = window.location.href.split('#')[1]
-    var comment = $('#' + comment_id)
+    var comment_id = window.location.href.split('#')[1];
+    var comment = $('#' + comment_id);
     if (comment.length > 0) {
       comment.addClass('animate flash');
       
@@ -2210,7 +2210,7 @@ $(document).ready(function(e) {
         }
       } else {
         if (href.indexOf(',') == -1) {
-          href = href.split('?')[0] 
+          href = href.split('?')[0];
         } else {
           var user_ids = href.split('?')[1].replace(',' + _this.val(), '').replace(_this.val() + ',', '');
           href = href.split('?')[0] + '?' + user_ids;
@@ -2219,7 +2219,7 @@ $(document).ready(function(e) {
       
       group_chat.attr('href', href);  
       if (href.indexOf('?user_ids=') != -1) {
-        group_chat.show()
+        group_chat.show();
       } else {
         group_chat.hide();
       }
@@ -2228,8 +2228,8 @@ $(document).ready(function(e) {
   $('#global').on('click', 'a.chat', function() {
     
     var href = $(this).attr('href');
-    var type = href.split('/')[2];
-    var id = href.split('/')[3];
+    var type = href.split('/')[3];
+    var id = href.split('/')[4];
     if (id == undefined && href.indexOf('user_ids') != -1) {
       type = type.split('?')[0];
       $.ajax({
@@ -2238,8 +2238,8 @@ $(document).ready(function(e) {
              success: function(resp) {
                id = resp;
              }     
-      })         
-      href = href.split('?')[0] + '/' + id;
+      });
+      href = href.split('?')[1] + '/' + id;
     }
     var chat_id = type + '-' + id;
     
@@ -2288,7 +2288,7 @@ $(document).ready(function(e) {
     
     return false;
 
-  })
+  });
 
   
   
@@ -2453,14 +2453,14 @@ $(document).ready(function(e) {
           setTimeout(function() {
             new_offset = last.offset().top;
             $('#' + chatbox_id + ' ul.messages').scrollTop(new_offset - prev_offset);
-          }, 0)
+          }, 0);
           
           $('#' + chatbox_id + " .messages li.message a.async").tipsy({
             gravity: 'e'
           });
           
           // highlight code snippets
-          prettyPrint()
+          prettyPrint();
           
           // Remove duplicate datetime titles
           var seen = {};
@@ -2472,7 +2472,7 @@ $(document).ready(function(e) {
               seen[txt] = true;
           });
         }
-      })
+      });
     }
     
     return false;
@@ -2654,7 +2654,7 @@ $(document).ready(function(e) {
 
   $('#friends-online').on('submit', 'form', function(e) {
     e.preventDefault();
-  })
+  });
   
   
   
@@ -2766,7 +2766,7 @@ $(document).ready(function(e) {
     
     
     
-  })
+  });
   
   
   
@@ -2815,7 +2815,7 @@ $(document).ready(function(e) {
       }
       
       try {
-        clearTimeout($.global.people_search_timeout)
+        clearTimeout($.global.people_search_timeout);
       } catch (err) {}
       $.global.people_search_timeout= setTimeout(function() {
         
@@ -2853,7 +2853,7 @@ $(document).ready(function(e) {
                 $.global.people_search_not_found_last_message = resp;
               }
             }
-         })
+         });
         
         
         
@@ -2863,9 +2863,9 @@ $(document).ready(function(e) {
         
               
         
-      }, 300)
+      }, 300);
     }
-  })
+  });
   
   
 

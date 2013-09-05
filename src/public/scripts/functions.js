@@ -2401,6 +2401,24 @@ function enable_emoticons_autocomplete(element) {
 
 function refresh(element) {
   preload_autocomplete();
+  
+  // update network prefix
+  $('a[href^="/"]').each(function(index, value) {
+    var network = get_cookie('network');
+    if (network && $(this).attr('href').indexOf('/' + network) != 0) {
+      var new_href = '/' + get_cookie('network') + $(this).attr('href');
+      $(this).attr('href', new_href);
+    }
+  });
+  
+  $("a[href^='/']").each(function(index, value) {
+    var network = get_cookie('network');
+    if (network && $(this).attr('href').indexOf('/' + network) != 0) {
+      var new_href = '/' + get_cookie('network') + $(this).attr('href');
+      $(this).attr('href', new_href);
+    }
+  });
+  
 
   $('div.tipsy').remove();
   
