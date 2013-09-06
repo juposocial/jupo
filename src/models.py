@@ -13,8 +13,7 @@ import api
 import filters
 import settings
 
-
-
+from lib.string_tools import slugify_ext
 
 class Model:
   def __init__(self, info, db_name=None):
@@ -747,6 +746,14 @@ class Group(Model):
   @property
   def name(self):
     return self.info.get('name')
+
+  @property
+  def slug(self):
+    return slugify_ext(self.info.get('name'))
+
+  @property
+  def posting_email(self):
+    return "group-" + self.slug + "@reply.jupo.com" #TODO: hardcode for now, will fix later once we finished register by seperate domains
   
   @property
   def logo(self):    
@@ -965,8 +972,12 @@ class Feed(Model):
     
   @property
   def raw_message(self):
-    return self.info.get('message')    
+    return self.info.get('message')
       
+  @property
+  def plain_html(self):
+    return self.info.get('plain_html')
+  
   @property
   def message(self):
     if self.is_system_message():
