@@ -2427,14 +2427,17 @@ def new_post_from_email(message_id, receivers, sender,
   return True
 
 def new_feed(session_id, message, viewers, 
-             attachments=[], facebook_access_token=None):
-  db_name = get_database_name()
+             attachments=[], facebook_access_token=None, **kwargs):
+  if kwargs.get('db_name'):
+    db_name = kwargs.get('db_name')
+  else:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not message:
     return False
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
     
@@ -2455,7 +2458,7 @@ def new_feed(session_id, message, viewers,
       if str(i).isdigit():
         _viewers.add(long(i))
       elif validate_email(i):
-        _viewers.add(get_user_id_from_email_address(i))
+        _viewers.add(get_user_id_from_email_address(i, db_name=db_name))
         # TODO: send mail thông báo cho post owner nếu địa chỉ mail không tồn tại
       else:
         continue
@@ -2484,13 +2487,24 @@ def new_feed(session_id, message, viewers,
     hashtags = []
   
   ts = utctime()
-  info = {'message': message,
+  plain_html = kwargs.get('plain_html')
+  if plain_html: 
+    info = {'message': message,
           '_id': new_id(),
           'owner': user_id,
           'viewers': list(viewers),
           'hashtags': hashtags,
           'timestamp': ts,
-          'last_updated': ts}
+          'last_updated': ts,
+          'plain_html':plain_html}
+  else:
+    info = {'message': message,
+            '_id': new_id(),
+            'owner': user_id,
+            'viewers': list(viewers),
+            'hashtags': hashtags,
+            'timestamp': ts,
+            'last_updated': ts}
   if files:
     info['attachments'] = files
   
@@ -2533,7 +2547,7 @@ def new_feed(session_id, message, viewers,
   user_ids = set()
   for i in viewers:
     if is_group(i):
-      member_ids = get_group_member_ids(i)
+      member_ids = get_group_member_ids(i, db_name=db_name)
       for id in member_ids:
         user_ids.add(id)
     else:

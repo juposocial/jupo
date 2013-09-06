@@ -215,7 +215,7 @@ div.token-input-dropdown ul li.token-input-selected-dropdown-item {
 div.token-input-dropdown li > img, div.token-input-dropdown li > div.icon {
   width: 16px;
   height: 16px;
-  margin: 0 5px;
+  margin: 0 5px;      
   -moz-background-origin: 3px;
   float: left;
   border-radius: 50px;
@@ -405,7 +405,6 @@ a#pickfiles {
   padding: 4px 10px;
   display: block;
 }
-
 
 /*======================== Textarea Auto complete =========================*/
 ul.auto-list {
@@ -2427,81 +2426,6 @@ form.new tr#send-to td, form.new tr#attach td {
   border-top: 1px dashed #ececec;
 }
 
-form.new div.file-chooser > a {
-  display: inline-block;
-  height: 14px;
-  font-family: "Lucida Grande", "Segoe UI", "Tahoma", "Helvetica Neue", "Helvetica", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  color: #636363;
-  text-decoration: none;
-  padding: 1px 7px 5px 7px;
-  border: 1px solid #ebebeb;
-  border-radius: 2px;
-  border-bottom-color: #d4d4d4;
-  background: #fcfcfc;
-  background: -moz-linear-gradient(top, #fcfcfc 0%, #f5f5f5 100%);
-  background: -webkit-linear-gradient(top, #fcfcfc 0%, #f5f5f5 100%);
-  background: linear-gradient(to bottom, #fcfcfc 0%, #f5f5f5 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fcfcfc', endColorstr='#f5f5f5',GradientType=0);
-  
-}
-
-form.new div.file-chooser > a:hover {
-  border-color: #dedede;
-  border-bottom-color: #cacaca;
-  background: #fdfdfd;
-  background: -moz-linear-gradient(top, #fdfdfd 0%, #f5f5f5 100%);
-  background: -webkit-linear-gradient(top, #fdfdfd 0%, #f5f5f5 100%);
-  background: linear-gradient(to bottom, #fdfdfd 0%, #f5f5f5 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fdfdfd', endColorstr='#f5f5f5',GradientType=0);
-
-}
-
-form.new div.file-chooser > a:active {
-  border-color: #d1d1d1;
-  box-shadow: inset 0 1px 1px rgba(0,0,0,0.1);
-}
-
-form.new a.google-drive-chooser i {
-  background: url(https://ssl.gstatic.com/docs/doclist/images/infinite_arrow_favicon_4.ico);
-  display: inline-block; width: 15px; height: 14px; vertical-align: bottom; margin: 0 5px 0 2px;
-  background-size: 100%;
-  position: relative;
-  top: -2px;
-}
-
-form.new a.dropbox-chooser i {
-  display: inline-block;
-  width: 15px;
-  height: 14px;
-  vertical-align: bottom;
-  margin: 0 2px;
-  background: transparent url('https://www.dropbox.com/static/images/widgets/dbx-saver-status.png') no-repeat;
-  position: relative;
-  top: 2px;
-}
-
-form.new a#pick-file i {
-  background: url('/public/images/hdd.png');
-display: inline-block;
-width: 15px;
-height: 14px;
-vertical-align: bottom;
-margin: 0 2px;
-position: relative;
-top: -2px;
-}
-
-form.new div.file-chooser {
-  margin: 1px 5px 0;
-}
-
-form.new div.file-chooser a, 
-form.new div.file-chooser input {
-  margin-right: 2px;
-}
-
 form.new span.intro {
   margin-bottom: 5px;
   display: block;
@@ -2846,7 +2770,7 @@ div#body article .info, div#overlay article div.info {
   line-height: 20px;
 }
 
-section .attachment div.info {
+div.attachment div.info {
   padding: 3px 0 0;
 }
 
@@ -2894,7 +2818,7 @@ span.task-status {
   margin-right: 20px;
 }
 
-div#body section div.attachment, div#overlay section div.attachment {/*   margin-top: 5px; */
+div#body div.attachment, div#overlay div.attachment {/*   margin-top: 5px; */
   border-left: 1px solid #CCC;
   padding-left: 8px;
 }
@@ -2961,7 +2885,7 @@ div.email {
   display: none;
 }
 
-section div.attachment div.info p {
+div.attachment div.info p {
   margin: 0;
   padding: 0;
 }
@@ -4517,7 +4441,7 @@ div#toggle-settings a {
 
 
 
-section div.attachment img.favicon {
+div.attachment img.favicon {
   width: 12px;
   margin-right: 4px;
   margin-top: 1px;
@@ -4572,18 +4496,18 @@ form #event label {
   background-position: -11px -474px;
 }
 
-section div.attachment i {
+div.attachment i {
   margin-top: 3px;
   display: block;
   float: left;
   margin-left: -15px;
 }
 
-section div.attachment i.details-icon {
+div.attachment i.details-icon {
   margin-top: 4px;
 }
 
-section div.attachment div.info {
+div.attachment div.info {
   margin-left: 15px;
 }
 
@@ -4619,7 +4543,7 @@ section article .attach-icon {
   opacity: 1;
 }
 
-section div.attachment {
+div.attachment {
   border: 0 !important;
   padding-left: 15px !important;
 }
@@ -4628,7 +4552,7 @@ div.attachment div.info {
   margin-left: 0 !important;
 }
 
-/*section div.attachment:before {
+div.attachment:before {
   content: '\201C';
   height: 0;
   margin-left: -15px;
@@ -4637,7 +4561,7 @@ div.attachment div.info {
   margin-top: 7px;
   color: #37404e;
   font-family: arial;
-}*/
+}
 
 /* div.attachment:after { */
 /*   content: '\201D'; */
@@ -6419,6 +6343,29 @@ article .file-attachment .title.image-name a {
   box-shadow: 0 4px 12px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 250px rgba(255, 255, 255, .1);
 }
 
+#popup .form_email_html{
+  top: 10%;
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: 800px;
+  height: 500px;
+  background: white;
+  overflow: hidden;
+  padding: 0px 0 0;
+  background-color: white;
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-clip: padding-box;
+  -webkit-box-shadow: 0 4px 12px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 250px rgba(255, 255, 255, .1);
+  -moz-box-shadow: 0 4px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.5), 0 0 250px rgba(255, 255, 255, .1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 250px rgba(255, 255, 255, .1);
+}
+
 #popup .content #page-header {
   padding: 11px 0 2px;
   background-color: #ECECEC;
@@ -7326,14 +7273,6 @@ form.invite textarea {
   resize: none;
 }
 
-/*
-form.invite ul.token-input-list {
-  width: 478px;
-  padding: 2px 2px 1px;
-}
-*/
-
-/* format "invite friends" popup */
 form.invite ul.token-input-list {
   width: 478px;
   padding: 2px 2px 1px;
@@ -7359,6 +7298,8 @@ form.invite ul.token-input-list::-webkit-scrollbar-thumb
   -webkit-box-shadow: inset 0 0 6px rgba(10,0,0,.3);
   background-color: #2b96f1;
 }
+
+
 
 /*form.invite ul.token-input-list li.token-input-token {
   overflow: hidden;
