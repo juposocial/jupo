@@ -97,5 +97,8 @@
       $('input.friends_invited').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});
     {% endfor %}
  
-
+    {% for email in email_addrs %}
+      $('input.friends').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});
+    {% endfor %}
+    
 </script>

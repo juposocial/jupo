@@ -2868,6 +2868,11 @@ $(document).ready(function(e) {
   })
   
   
+  $("#body").on("click", 'a.view_plain_html', function(e) {
+    var href = $(this).attr('href');
+    open_in_popup_mode(href, null);
+    return false;
+  })
 
  
 });

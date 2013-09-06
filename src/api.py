@@ -2427,14 +2427,17 @@ def new_post_from_email(message_id, receivers, sender,
   return True
 
 def new_feed(session_id, message, viewers, 
-             attachments=[], facebook_access_token=None):
-  db_name = get_database_name()
+             attachments=[], facebook_access_token=None, **kwargs):
+  if kwargs.get('db_name'):
+    db_name = kwargs.get('db_name')
+  else:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not message:
     return False
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
     
@@ -2455,7 +2458,7 @@ def new_feed(session_id, message, viewers,
       if str(i).isdigit():
         _viewers.add(long(i))
       elif validate_email(i):
-        _viewers.add(get_user_id_from_email_address(i))
+        _viewers.add(get_user_id_from_email_address(i, db_name=db_name))
         # TODO: send mail thông báo cho post owner nếu địa chỉ mail không tồn tại
       else:
         continue
@@ -2484,13 +2487,24 @@ def new_feed(session_id, message, viewers,
     hashtags = []
   
   ts = utctime()
-  info = {'message': message,
+  plain_html = kwargs.get('plain_html')
+  if plain_html: 
+    info = {'message': message,
           '_id': new_id(),
           'owner': user_id,
           'viewers': list(viewers),
           'hashtags': hashtags,
           'timestamp': ts,
-          'last_updated': ts}
+          'last_updated': ts,
+          'plain_html':plain_html}
+  else:
+    info = {'message': message,
+            '_id': new_id(),
+            'owner': user_id,
+            'viewers': list(viewers),
+            'hashtags': hashtags,
+            'timestamp': ts,
+            'last_updated': ts}
   if files:
     info['attachments'] = files
   
@@ -2533,7 +2547,7 @@ def new_feed(session_id, message, viewers,
   user_ids = set()
   for i in viewers:
     if is_group(i):
-      member_ids = get_group_member_ids(i)
+      member_ids = get_group_member_ids(i, db_name=db_name)
       for id in member_ids:
         user_ids.add(id)
     else:
@@ -2699,6 +2713,17 @@ def undo_remove(session_id, feed_id):
   # TODO: chỉ cho xóa nếu chưa có ai đọc
   return feed_id
 
+@line_profile
+def get_plain_html_in_comment(session_id, feed_id, comment_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  info = db.stream.find_one({'_id': long(feed_id)})
+  comments = info.get('comments')
+  for comment in comments:
+    if comment.get('_id') == comment_id:
+      return comment.get('plain_html')
+  return None
+  
 @line_profile
 def get_feed(session_id, feed_id, group_id=None):
   db_name = get_database_name()
@@ -3242,24 +3267,32 @@ def mark_cancelled(session_id, task_id):
 # Comment Actions --------------------------------------------------------------
 
 def new_comment(session_id, message, ref_id, 
-                attachments=None, reply_to=None, from_addr=None, db_name=None):
+                attachments=None, reply_to=None, from_addr=None, db_name=None, **kwargs):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
 #  if not message:
 #    return False
-
+  
   user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
   
   ts = utctime()
-  comment = {'_id': new_id(),
+  if kwargs.has_key('plain_html'):
+    plain_html = kwargs.get('plain_html')
+    comment = {'_id': new_id(),
              'owner': user_id,
              'message': message,
-             'timestamp': ts}    
-  
+             'timestamp': ts,
+             'plain_html': plain_html}
+  else:
+    comment = {'_id': new_id(),
+               'owner': user_id,
+               'message': message,
+               'timestamp': ts}    
+    
   files = []
   if attachments:
     if isinstance(attachments, list):
@@ -3360,15 +3393,15 @@ def new_comment(session_id, message, ref_id,
       push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
       
       
-#       if user_id != id and id not in mentions:
-#         # send email notification
-#         u = get_user_info(id)
-#         if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
-#           if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
-#             send_mail_queue.enqueue(send_mail, u.email, 
-#                                     mail_type='new_comment', 
-#                                     user_id=user_id, post=info, 
-#                                     db_name=db_name)
+      if user_id != id and id not in mentions:
+        # send email notification
+        u = get_user_info(id)
+        if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
+          if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
+            send_mail_queue.enqueue(send_mail, u.email, 
+                                    mail_type='new_comment', 
+                                    user_id=user_id, post=info, 
+                                    db_name=db_name)
   
   urls = extract_urls(message)
   if urls:
