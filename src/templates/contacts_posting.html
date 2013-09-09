@@ -14,7 +14,7 @@
           <input type='checkbox' value='{{ group.id }}|{{ group.name }}' class='checkbox-posting' />
         </label>
     
-        <img class='small-avatar lfloat' src='{{ group.logo }}'>
+        <!--<img class='small-avatar lfloat' src='{{ group.logo }}'>-->
     
         <i class="group-icon"></i>
         <a href='#' class='async user'>{{ group.name }}</a>
@@ -22,6 +22,7 @@
         <br>
       </li>
     {% endfor %}
+    <div class="line-separator"></div>
   {% endif %}
   {% set contacts = owner.contacts + owner.google_contacts_as_obj %}
   {% if contacts %}
@@ -64,5 +65,5 @@
     </li>
   {% endif %}
 </ul>
-<ul><li class="group-chat"><a id="submit-contacts-to-post" class="button chat lfloat" href='#'>Select</a></li></ul>
+<ul><li class="group-chat postin" style="display: inline;"><a id="submit-contacts-to-post" class="button chat lfloat" href='#'>Select</a></li></ul>
 

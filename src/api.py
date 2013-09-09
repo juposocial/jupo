@@ -2180,7 +2180,7 @@ def get_member_email_addresses(db_name=None):
                             for i in db.owner.find({'email': {'$ne': None}, 'name' : {'$ne': None}}, 
                                                    {'email': True})]
 
-  print "DEBUG - in get_member_email_addresses - member_email_addresses = " + str(member_email_addresses)
+  # print "DEBUG - in get_member_email_addresses - member_email_addresses = " + str(member_email_addresses)
 
   return member_email_addresses
 

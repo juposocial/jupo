@@ -1693,7 +1693,6 @@ def contacts():
 
     # get groups
     groups = api.get_groups(session_id)
-    print "DEBUG - in contacts() - groups = " + str(groups)
 
     body = render_template('contacts_posting.html',
                           groups=groups,
