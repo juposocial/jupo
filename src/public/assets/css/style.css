@@ -6779,3 +6779,22 @@ footer.entry-meta {
 .comment-form textarea {
   height: 220px;
 }
+/* Custom section signup */
+.section {
+  width: 100%;
+  overflow: hidden;
+  padding-top: 80px;
+  padding-bottom: 80px;
+  clear: both;
+  text-align: center;
+  border-bottom: 1px solid #eeeeee;
+}
+.section.signup h1 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #d62229;
+  font-weight: 500;
+}
+.section.signup input {
+  width: 256px;
+}
