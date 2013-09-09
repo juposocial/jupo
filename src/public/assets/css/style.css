@@ -6780,9 +6780,14 @@ footer.entry-meta {
   height: 220px;
 }
 /* Custom section signup */
-.section.signup
-{
+.section {
+  width: 100%;
+  overflow: hidden;
+  padding-top: 80px;
   padding-bottom: 80px;
+  clear: both;
+  text-align: center;
+  border-bottom: 1px solid #eeeeee;
 }
 .section.signup h1 {
   margin-top: 0;
