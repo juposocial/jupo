@@ -7885,3 +7885,7 @@ div.chatbox div.header .arrow-top-border {
   left: 125px;
 }
 
+.line-separator{
+  height:1px;
+  border-bottom:1px dotted #313030;
+}
