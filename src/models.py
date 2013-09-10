@@ -731,7 +731,7 @@ class File(Model):
   
   @property
   def owner(self):
-    return self.info.get('history')[-1].get('owner')
+    return self.info.get('history')[0].get('owner')
       
   @property
   def mimetype(self):
@@ -1095,7 +1095,8 @@ class Feed(Model):
   def is_note(self):
     if self.info and self.info.get('version'):
       return True
-    
+    return False
+  
   def is_event(self):
     if self.info and self.info.get('when'):
       return True
