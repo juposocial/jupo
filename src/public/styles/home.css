@@ -2427,6 +2427,25 @@ form.new tr#send-to td, form.new tr#attach td {
   border-top: 1px dashed #ececec;
 }
 
+form.new a.select-contacts i {
+  height: 24px;
+  width: 30px;
+  float: right;
+  margin-top: -1px;
+}
+
+form.new a.select-contacts {
+  opacity: .8;
+}
+
+form.new a.select-contacts:hover {
+  opacity: 1;
+}
+
+form.new a.select-contacts:active {
+  opacity: .7;
+}
+
 form.new div.file-chooser > a {
   display: inline-block;
   height: 14px;
