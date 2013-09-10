@@ -3142,10 +3142,10 @@ def file(file_id=None, action=None, size=None):
   
   elif action == 'rename':
     new_name = request.form.get('name')
-    if not new_name:
+    info = api.get_file_info(session_id, file_id)
+    if not new_name or (info.owner != owner.id):
       abort(400)
     api.rename_file(session_id, file_id, new_name)
-    info = api.get_file_info(session_id, file_id)
     
     return render_template('file.html', owner=owner,file=info)
     
