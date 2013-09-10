@@ -24,15 +24,13 @@
         <li><a href='/file/{{ file.id }}' class='async'>View Details...</a></li>
           
         <li> <a id='replace-{{ fid }}'><i class='upload-icon'></i> New Version</a></li>
-        <li>  <a href='/file/{{ file.id }}/rename' class='rename' data-name="{{ file.name }}" data-id="post-{{ file.id }}">Rename</a></li>
-           
+        {% if file.owner == owner.id and not file.read_receipts %}
+          <li>  <a href='/file/{{ file.id }}/rename' class='rename' data-name="{{ file.name }}" data-id="post-{{ file.id }}">Rename</a></li>
+        {% endif %}
            
         <li><a href='/feed/{{ file.id }}/reshare' class='forward'>Share with...</a></li>
-        {% if file.owner.id == owner.id and not file.read_receipts %}
-          {% if file.is_note() and file.details.version | length > 1 %}
-          {% else %}
+        {% if file.owner == owner.id and not file.read_receipts %}
             <li><a href='/feed/{{ file.id }}/remove' class='remove'>Remove this file</a></li>
-          {% endif %}
         {% endif %}
         <li><a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' download="{{ file.name }}" class='forward'>Download this file</a></li> 
 
@@ -86,17 +84,15 @@
             <div class="arrow-top"></div>
             <li><a href='/file/{{ file.id }}' class='async'>View Details...</a></li>
               
-               {% set fid = file.id | unique_by_timestamp %} 
-              <li> <a id='replace-{{ fid }}'><i class='upload-icon'></i> New Version</a></li>
-            <li>  <a href='/file/{{ file.id }}/rename' class='rename' data-name="{{ file.name }}" data-id="post-{{ file.id }}">Rename</a></li>
-               
+            {% set fid = file.id | unique_by_timestamp %} 
+            <li> <a id='replace-{{ fid }}'><i class='upload-icon'></i> New Version</a></li>
+            {% if file.owner == owner.id and not file.read_receipts %}
+              <li>  <a href='/file/{{ file.id }}/rename' class='rename' data-name="{{ file.name }}" data-id="post-{{ file.id }}">Rename</a></li>
+            {% endif %}   
                
             <li><a href='/feed/{{ file.id }}/reshare' class='forward'>Share with...</a></li>
-            {% if file.owner.id == owner.id and not file.read_receipts %}
-              {% if file.is_note() and file.details.version | length > 1 %}
-              {% else %}
+            {% if file.owner == owner.id and not file.read_receipts %}
                 <li><a href='/feed/{{ file.id }}/remove' class='remove'>Remove this file</a></li>
-              {% endif %}
             {% endif %}
             <li><a href='/attachment/{{ file.attachment_id }}?rel={{ file.id }}' download='{{ file.name }}' class='forward'>Download this file</a></li> 
     
