@@ -132,7 +132,7 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
   
   if not db_name:
     db_name = get_database_name()
-    
+  
   domain = db_name.replace('_', '.')
 
   if mail_type == 'thanks':    
@@ -147,6 +147,10 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     else:
       subject = "%s has invited you to Jupo" % (kwargs.get('username'))
       
+    # support subdir instead of subdomain ( jupo.com/your-net-work instead of your-network.jupo.com )
+    user_domain = to_addresses.split('@')[1]
+    domain = '%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
+
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
     body = template.render(domain=domain, **kwargs)
     
@@ -421,9 +425,6 @@ def get_database_name():
   db_name = None
   if request:
     hostname = request.headers.get('Host')
-    
-    if 'localhost' in hostname:
-      hostname = 'play.jupo.dev'
       
     if hostname:
       network = request.cookies.get('network')
@@ -620,7 +621,7 @@ def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
     user = db.owner.find_one({"facebook_id": facebook_id}, {'_id': True})
   else:
     user = db.owner.find_one({"session_id": session_id}, {'_id': True})
-    
+  
   if user:
     user_id = user.get("_id")
     cache.set(key, user_id)

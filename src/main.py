@@ -610,6 +610,8 @@ def invite():
       if addrs or invited_addrs:
         if addrs:
           addrs = addrs.split(',')
+        else:
+          addrs = []
 
         # include invited email address (if any) as well
         if invited_addrs:
@@ -951,7 +953,7 @@ def google_authorized():
   # save token for later use
   token = data.get('access_token')
   session['oauth_google_token'] = token
-  print "DEBUG - in google_authorized - token = " + str(token)
+  # print "DEBUG - in google_authorized - token = " + str(token)
   
   # fetch user info
   url = 'https://www.googleapis.com/oauth2/v1/userinfo'
@@ -1484,14 +1486,13 @@ def user(user_id=None, page=1, view=None):
   elif request.path.endswith('/complete_profile'):
     name = request.form.get('name')
     gender = request.form.get('gender')
-    
     password = request.form.get('password')
     avatar = request.files.get('file')
     
     fid = api.new_attachment(session_id, avatar.filename, avatar.stream.read())
     new_session_id = api.complete_profile(session_id, 
                                           name, password, gender, fid)
-    
+
     resp = redirect('/everyone?getting_started=1&first_login=1')  
     if new_session_id:
       session['session_id'] = new_session_id
@@ -2334,9 +2335,6 @@ def messages(user_id=None, topic_id=None, action=None):
 @line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
-  if hostname == 'localhost':
-    hostname = 'play.jupo.dev'
-  
   
   session_id = request.args.get('session_id')
   
@@ -2364,9 +2362,19 @@ def home():
     if user_id and not session_id:
       session['session_id'] = code
       owner = api.get_user_info(user_id)
-      return render_template('profile_setup.html',
-                             owner=owner, jupo_home=settings.PRIMARY_DOMAIN,
-                             code=code, user_id=user_id)
+
+      resp = make_response(
+               render_template('profile_setup.html',
+                                 owner=owner, jupo_home=settings.PRIMARY_DOMAIN,
+                                 code=code, user_id=user_id)
+             )
+
+      # set the network here so that api.get_database_name() knows which network calls it
+      resp.set_cookie('network', owner.email_domain)
+
+      return resp
+
+
   
   if not session_id or not user_id:
     try:
@@ -3364,6 +3372,11 @@ class NetworkNameDispatcher(object):
     items = path.lstrip('/').split('/', 1)
       
     if '.' in items[0]:  # is domain name
+      # print "DEBUG - in NetworkNameDispatcher - items = " + items[0]
+      
+      # save user network for later use
+      # session['subnetwork'] = items[0]
+
       environ['HTTP_HOST'] = items[0] + '.' + settings.PRIMARY_DOMAIN
       if len(items) > 1:
         environ['PATH_INFO'] = '/%s' % items[1]
@@ -3441,7 +3454,7 @@ if __name__ == "__main__":
       server.stop()
   
   
-  run_app(debug=False)
+  run_app(debug=True)
 
 
 
