@@ -2665,7 +2665,7 @@ $(document).ready(function(e) {
           }
           
           var chat_id = _boxchat.attr('id').replace('chat-', '');
-          var message = _.escape($('.content', msg).text());
+          var message = _.escape($('.content', msg).html());
           message = '<i class="msg-reply-icon"></i>' + message;
           
           $('ul.topics a.chat.' + chat_id + ' div.message').html(message);
