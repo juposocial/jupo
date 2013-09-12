@@ -83,7 +83,8 @@
               {% set id = item.id | unique_by_timestamp %}
               <div class='lfloat'>
                 <a id='pickfile-{{ id }}' class='attach-button' title='Attach files'><i class='attach-icon'></i>From Computer</a> | 
-                <a class='dropbox-file-chooser'>Dropbox</a>
+                <a class='dropbox-file-chooser'>Dropbox</a> | 
+                <a id='google-drive-file-chooser-post-{{ item.id }}'>Google Drive</a>
               </div>
               <input type='hidden' name='attachments'>
   {#
@@ -95,8 +96,8 @@
             
               
               <script type="text/javascript">
-            
-            
+              
+              
  
                 $('#body').on('click', 'form.new-comment a.dropbox-file-chooser', function() {
                   Dropbox.choose({

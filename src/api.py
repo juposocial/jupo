@@ -6164,6 +6164,7 @@ def new_message(session_id, message, user_id=None, topic_id=None,
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
+  
   owner_id = get_user_id(session_id, db_name=db_name)
   if not owner_id:
     return False

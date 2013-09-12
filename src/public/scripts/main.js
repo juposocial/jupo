@@ -2385,7 +2385,7 @@ $(document).ready(function(e) {
     })
     
     
-  })
+  });
   
   $('#body, #chat').on('click', 'div.chatbox div.header a.archive', function() {
     var _this = $(this);
@@ -2428,7 +2428,7 @@ $(document).ready(function(e) {
         }
     })
     return false;
-  })
+  });
   
   $('#body, #chat').on('click', 'div.chatbox div.header a.leave', function() {
     var r = confirm("You will stop receiving messages from this conversation and people will see that you left.");
@@ -2906,17 +2906,21 @@ $(document).ready(function(e) {
             }
          });
         
-        
-        
-        
-        
-        
-        
-              
-        
       }, 300);
     }
   });
+  
+  
+  
+  
+  
+  
+  
+  
+ 
+  
+  
+  
   
   
 

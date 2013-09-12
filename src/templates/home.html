@@ -223,6 +223,9 @@
   <script type='text/javascript' src='//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
   <script type='text/javascript' src="/public/scripts/google-code-prettify/prettify.js"></script>
 
+  <script src="https://www.google.com/jsapi?key={{ settings.GOOGLE_API_KEY }}"></script>
+  <script src="/public/scripts/googledrive.filepicker.js"></script>
+  <script src="https://apis.google.com/js/client.js"></script>
   {% if debug == True %}
     <script type='text/javascript' src='/public/scripts/detect_timezone.min.js'></script>
     <script type='text/javascript' src='/public/scripts/jquery.caret.js'></script>
@@ -274,9 +277,11 @@
     
   <script type="text/javascript" src="https://www.dropbox.com/static/api/1/dropins.js" id="dropboxjs" data-app-key="{{ settings.DROPBOX_APP_KEY }}"></script>
   
-  <script src="/public/scripts/googledrive.filepicker.js"></script>
-  <script src="https://www.google.com/jsapi?key={{ settings.GOOGLE_API_KEY }}"></script>
-  <script src="https://apis.google.com/js/client.js?onload=initPicker"></script>
+  
+  <script>
+    GOOGLE_API_KEY = '{{ settings.GOOGLE_API_KEY }}';
+    GOOGLE_CLIENT_ID = '{{ settings.GOOGLE_CLIENT_ID | replace(".apps.googleusercontent.com", "") }}';
+  </script>
   
   {% if debug == True %}
     
