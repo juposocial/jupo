@@ -103,12 +103,12 @@
         {% if comment.attachments | length == 1 and 'image' in comment.attachments[0].mimetype %}
           <div class="file-attachment image">
             {% set attachment = comment.attachments[0] %}
-            <a href='{% if attachment.is_dropbox_file() %}{{ attachment.serving_url }}{% else %}/attachment/{{ attachment.id }}.png?rel={{ item.id }}{% endif %}' target='_blank' rel='gallery' class="lfloat">
-              <img src='{% if attachment.is_dropbox_file() %}{{ attachment.serving_url }}{% else %}/attachment/{{ attachment.id }}.png?rel={{ item.id }}{% endif %}' alt='{{ attachment.name }} ({{ attachment.size }})'  title='{{ attachment.name }} ({{ attachment.size }})'>
+            <a href='{% if attachment.is_dropbox_file() or attachment.is_google_drive_file() %}{{ attachment.serving_url }}{% else %}/attachment/{{ attachment.id }}.png?rel={{ item.id }}{% endif %}' target='_blank' rel='gallery' class="lfloat">
+              <img src='{% if attachment.is_dropbox_file() or attachment.is_google_drive_file() %}{{ attachment.serving_url }}{% else %}/attachment/{{ attachment.id }}.png?rel={{ item.id }}{% endif %}' alt='{{ attachment.name }} ({{ attachment.size }})'  title='{{ attachment.name }} ({{ attachment.size }})'>
             </a>
             <div class='lfloat'>
-              <a href='{% if attachment.is_dropbox_file() %}{{ attachment.serving_url }}{% else %}/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}{% endif %}' target='_blank' title='{{ attachment.name }}' download='{{ attachment.name }}'>{{ attachment.name | truncate(30, True) }}</a>
-              <span class='gray'>({{ attachment.size }})</span>
+              <a href='{% if attachment.is_dropbox_file() or attachment.is_google_drive_file() %}{{ attachment.serving_url }}{% else %}/attachment/{{ attachment.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}{% endif %}' target='_blank' title='{{ attachment.name }}'>{{ attachment.name | truncate(30, True) }}</a>
+              {% if not attachment.is_google_drive_file() %}<span class='gray'>({{ attachment.size }})</span>{% endif %}
             </div>
           </div>
               
@@ -118,8 +118,8 @@
             {% if file.id or file.is_dropbox_file() %}
               <div>
                 <i class='attach-icon lfloat'></i>
-                <a href='{% if file.is_dropbox_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}{% endif %}' target='_blank' title='{{ file.name }}' download='{{ file.name }}'>{{ file.name | truncate(30, True) }}</a>
-                <span class='gray'>({{ file.size }})</span>
+                <a href='{% if file.is_dropbox_file() or file.is_google_drive_file() %}{{ file.serving_url }}{% else %}/attachment/{{ file.id }}?rel={% if item %}{{ item.id }}{% else %}{{ comment.post_id }}{% endif %}{% endif %}' target='_blank' title='{{ file.name }}'>{{ file.name | truncate(30, True) }}</a>
+                {% if not file.is_google_drive_file() %}<span class='gray'>({{ file.size }})</span>{% endif %}
               </div>
             {% endif %}
           {% endfor %}

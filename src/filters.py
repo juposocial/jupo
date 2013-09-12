@@ -240,6 +240,13 @@ def autolink(text):
         name = parts[0][2:]
         s = s.replace(mention,
                       '<a href="%s" target="_blank">%s</a>' % (link, name))
+      elif '](google-drive-file:' in mention:
+        
+        parts = mention.split("](google-drive-file:")
+        link = parts[1][:-1]
+        name = parts[0][2:]
+        s = s.replace(mention,
+                      '<a href="%s" target="_blank">%s</a>' % (link, name))
         
       else:
         continue
@@ -669,6 +676,9 @@ def clean(text):
         name = parts[0][2:]
       elif '](dropbox-file:' in mention:
         parts = mention.split("](dropbox-file:")
+        name = parts[0][2:]
+      elif '](google-drive-file:' in mention:
+        parts = mention.split("](google-drive-file:")
         name = parts[0][2:]
       else:
         parts = mention.split("](group:")

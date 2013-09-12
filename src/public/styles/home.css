@@ -516,6 +516,7 @@ ul.dropdown-menu a {
   text-decoration: none;
   padding: 4px 15px;
   outline: 0;
+  line-height: 20px !important;
 }
 
 ul.dropdown-menu li a {

@@ -8,6 +8,7 @@
 	 */
 	var FilePicker = window.FilePicker = function(options) {
 		// Config
+		
 		this.apiKey = options.apiKey;
 		this.clientId = options.clientId;
 		

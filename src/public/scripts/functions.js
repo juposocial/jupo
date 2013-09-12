@@ -299,6 +299,74 @@ function start_chat(chat_id) {
       enable_emoticons_autocomplete('#chat-' + chat_id);
       
       
+        // Google drive files
+        var new_chat_file_picker = new FilePicker({
+          apiKey: GOOGLE_API_KEY,
+          clientId: GOOGLE_CLIENT_ID,
+          buttonEl: document.getElementById('google-drive-chatbox-file-chooser'),
+          onSelect: function(file) {
+            
+            var link = null;
+            if (file.embedLink) {
+              link = file.embedLink;
+            } else {
+              link = file.webContentLink;
+            }
+            
+            info = {
+              'name': file.title, 
+              'link': link,
+              'type': 'google-drive-file'
+            };
+            
+            var url = '/chat/' + chat_id.replace('-', '/') + '/new_file?' + $.param(info);
+                  
+            update_status(chat_id + '|is uploading file...');
+            $('#chat-' + chat_id + ' div.status').html("Uploading...").show();
+            
+            $.ajax({
+              url: url, 
+              type: 'POST',
+              headers: {
+                'X-CSRFToken': get_cookie('_csrf_token')
+              },
+              success: function(resp) {
+              
+                $('#chat-' + chat_id + ' div.status').html('').fadeOut('fast');
+          
+          
+                var last_msg = $('#chat-' + chat_id + ' li.message:last');
+                var msg = $(resp);
+        
+                var msg_id = msg.attr('id').split('-')[1];
+                var msg_ts = msg.data('ts');
+                var sender_id = msg.attr('data-sender-id');
+                
+                if (msg_ts - last_msg.data('ts') < 120 && last_msg.attr('data-sender-id') == sender_id && last_msg.attr('data-msg-ids').indexOf(msg_id) == -1) {
+                  var content = $('.content', msg).html();
+                  $('.content', last_msg).html($('.content', last_msg).html() + '<br>' + content);
+                  $(last_msg).data('ts', msg_ts);
+                  $(last_msg).attr('data-msg-ids', $(last_msg).attr('data-msg-ids') + ',' + msg_id);
+                  
+                } else {
+                  $('#chat-' + chat_id + ' .messages').append(resp);
+                }
+                
+                
+                setTimeout(function() {
+                  $('#chat-' + chat_id + ' .messages').scrollTop(99999);
+                }, 10);
+              }
+            });
+            
+          }
+        
+        
+        }); 
+      
+      
+              
+      
       // Dropbox files
       
       $('#chat-' + chat_id).on('click', 'div.header a.dropbox-chooser', function() {
@@ -2532,6 +2600,90 @@ function refresh(element) {
   // });
 
   /* Upload */
+ 
+ 
+ 
+  if ($(element + ' #google-drive-chooser').length > 0) {
+    var new_post_file_picker = new FilePicker({
+      apiKey: GOOGLE_API_KEY,
+      clientId: GOOGLE_CLIENT_ID,
+      buttonEl: document.getElementById('google-drive-chooser'),
+      onSelect: function(file) {
+        
+        if ($('div#attachments div#attachment-' + file.id).length == 0) {
+          
+          delete file.exportLinks;
+          delete file.result;
+          
+          var link = null;
+          if (file.embedLink) {
+            link = file.embedLink;
+          } else {
+            link = file.webContentLink;
+          }
+        
+          var html = "<div class='attachment' id='attachment-" + file.id + "' data-file='" + btoa(JSON_stringify(file)) + "'>"
+                   + "<a href='" + link + "' target='_blank'>" + file.title + "</a>" 
+                   + "<a class='remove-attachment' href='#'>×</a>"
+                   + "</div>";
+          
+          $('div#attachments').append(html);
+          $('div#attachments').removeClass('hidden');
+      
+          attachments = $('input[name="attachments"]').val() + btoa(JSON_stringify(file)) + ',';
+          $('input[name="attachments"]').val(attachments);
+      
+          refresh('div#attachments');
+          
+          
+          $('form a#pick-file').trigger('click');
+        }
+             
+      }
+      
+      
+    }); 
+  }
+  
+  $(element + ' li.feed[id]').each(function(index, value) {
+    var post_id = $(this).attr('id');
+    
+    
+     var a = new FilePicker({
+        apiKey: GOOGLE_API_KEY,
+        clientId: GOOGLE_CLIENT_ID,
+        buttonEl: document.getElementById('google-drive-file-chooser-' + post_id),
+        onSelect: function(file) {
+          
+            delete file.exportLinks;
+            delete file.result;
+            
+            var link = null;
+            if (file.embedLink) {
+              link = file.embedLink;
+            } else {
+              link = file.webContentLink;
+            }
+            
+          if ($('li#' + post_id + ' div.attachments div#attachment-' + file.id).length == 0) {
+            
+              var html = "<div class='attachment' id='attachment-" + file.id + "' data-file='" + btoa(JSON_stringify(file)) + "'>"
+                       + "<a href='" + link + "' target='_blank'>" + file.title + "</a>" 
+                       + "<a class='remove-attachment' href='#'>×</a>"
+                       + "</div>";
+              
+              $('li#' + post_id + ' div.attachments').append(html);
+              $('li#' + post_id + ' div.attachments').removeClass('hidden');
+          
+              attachments = $('li#' + post_id + ' input[name="attachments"]').val() + btoa(JSON_stringify(file)) + ',';
+              $('li#' + post_id + ' input[name="attachments"]').val(attachments);
+          
+              refresh('li#' + post_id + ' div.attachments');
+            }
+        }
+      }); 
+    
+  });
  
 
   try {

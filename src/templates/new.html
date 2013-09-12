@@ -118,54 +118,7 @@ Leave a message...
         
         
         <script>
-          function initPicker() {
-            $.global.google_drive_files = [];
-            var picker = new FilePicker({
-              apiKey: '{{ settings.GOOGLE_API_KEY }}',
-              clientId: '{{ settings.GOOGLE_CLIENT_ID | replace(".apps.googleusercontent.com", "") }}',
-              buttonEl: document.getElementById('google-drive-chooser'),
-              onSelect: function(file) {
-                
-                $.global.google_drive_files.push(file);
-                
-                if ($('div#attachments div#attachment-' + file.id).length == 0) {
-                  
-                  delete file.exportLinks;
-                  delete file.result;
-                  
-                  var link = null;
-                  if (file.embedLink) {
-                    link = file.embedLink;
-                  } else {
-                    link = file.webContentLink;
-                  }
-                
-                  var html = "<div class='attachment' id='attachment-" + file.id + "' data-file='" + btoa(JSON_stringify(file)) + "'>"
-                           + "<a href='" + link + "' target='_blank'>" + file.title + "</a>" 
-                           + "<a class='remove-attachment' href='#'>×</a>"
-                           + "</div>";
-                  
-                  $('div#attachments').append(html);
-                  $('div#attachments').removeClass('hidden');
-              
-                  attachments = $('input[name="attachments"]').val() + btoa(JSON_stringify(file)) + ',';
-                  $('input[name="attachments"]').val(attachments);
-              
-                  refresh('div#attachments');
-                  
-                  
-                  $('form a#pick-file').trigger('click');
-                }
-                     
-              }
-              
-              
-            }); 
-          }
-          
-          try {
-            initPicker();
-          } catch(err) {}
+            
         </script>
         
         
@@ -283,7 +236,7 @@ Leave a message...
           $('form.group #name input').focus().select();
         {% endif %}
       }, 1);
-  })
+  });
   </script>
   
   
