@@ -591,7 +591,7 @@ def invite():
     else:
       group = {}
       title = None
-      
+    
     return dumps({'title': title,
                   'body': render_template('invite.html', 
                                           title=title,
@@ -2561,6 +2561,8 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
+@app.route("/feed/<int:feed_id>/view_plain_html", methods=["OPTIONS", "POST"])
+@app.route("/feed/<int:feed_id>/<int:comment_id>/view_comment_plain_html", methods=["OPTIONS", "POST"])
 @line_profile
 def feed_actions(feed_id=None, action=None, 
                  message_id=None, domain=None, comment_id=None):
@@ -2648,7 +2650,18 @@ def feed_actions(feed_id=None, action=None,
       return render_template('feed.html', 
                              owner=owner,
                              feed=feed)
-    
+  
+  elif request.path.endswith('/view_plain_html'):
+    feed = api.get_feed(session_id, feed_id)
+    body = feed.plain_html.replace('\n',' ')
+    json = dumps({'body':body, 'title':'view_plain_html'})
+    return Response(json, content_type='application/json')
+  
+  elif request.path.endswith('view_comment_plain_html'):
+    body = api.get_plain_html_in_comment(session_id, feed_id, comment_id)
+    json = dumps({'body':body, 'title':'view_plain_html'})
+    return Response(json, content_type='application/json')
+  
   elif request.path.endswith('/reshare'):
     if request.method == 'GET':
       return render_template('reshare.html', feed_id=feed_id)

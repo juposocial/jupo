@@ -176,7 +176,7 @@
     
 
       
-      
+    
     <div class="footer">
       {% if comment.is_email() %}
         <a href='#!/feed/{{ item.id }}/{{ comment.message_id }}' class='overlay gray'><time class='timeago' title='{{ comment.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ comment.timestamp | isoformat(owner.utcoffset) }}'>{{ comment.timestamp | friendly_format(owner.utcoffset, short=True) }}</time></a>
@@ -193,8 +193,12 @@
         · <a href='#comment-{{ comment.reply_to }}' class='reply-to' title='In reply to {{ comment.reply_src.owner.name }}: "{{ comment.reply_src.message | clean | truncate(60) }}"'><i class='reply-icon'></i></a>
       {% endif %}
       
-       
-    {% if owner.id %}   
+      {% if comment.plain_html %}
+        · <a class="view_plain_html" href='/feed/{{ feed.id }}/{{ comment.id }}/view_comment_plain_html'>View</a>
+      {% endif %}
+      
+      
+    {% if owner.id %}
       {% if owner.id not in comment.liked_user_ids %}
         · <a class='toggle' href='/like/{{ comment.id }}?post_id={{ item.id }}' data-name='Unlike' data-href='/unlike/{{ comment.id }}?post_id={{ item.id }}'>Like</a>
       {% else %}
