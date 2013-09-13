@@ -398,7 +398,7 @@
                 </div>
                 {% endif %}
               {% else %}
-                
+                                
                 <div>
                   {{ content | nl2br | safe }}
                 </div>
@@ -408,6 +408,9 @@
               {% if mode != 'view' %}
                   <div>
                     {{ summary | nl2br | safe }}
+                    {% if feed.plain_html %}
+                      <a class="view_plain_html" style="font-size: 11px;" href='/feed/{{ feed.id }}/view_plain_html'>See more</a>
+                    {% endif %}
                   </div>
                 
                   {% if content | length > summary | length + 3 %}
@@ -540,6 +543,8 @@
               <i class='like-icon'></i> 
               <span class='likes-count'>{{ feed.liked_user_ids | length }}</span>
             </span>
+            
+            
           {% else %}
             &nbsp;
           {% endif %}
@@ -557,10 +562,14 @@
               <a class='toggle' href='/unlike/{{ feed.id }}' data-name='Like' data-href='/like/{{ feed.id }}'>Unlike</a> ·
            {% endif %}
            
+            
          
            <a href='/feed/{{ feed.id }}/reshare' class='forward'>Share</a> ·
-           <a class="reply" rel="#{{ feed.id }}-comments">Comment</a>
-                  
+           <a class="reply" rel="#{{ feed.id }}-comments">Comment</a> .
+           
+           {% if feed.plain_html %}
+              <a class="view_plain_html" href='/feed/{{ feed.id }}/view_plain_html'>View</a>
+           {% endif %}       
           
       </div>
   

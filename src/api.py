@@ -44,6 +44,7 @@ from lib import encode_url
 from lib.url import extract_urls
 from lib.hot_ranking import get_score
 from lib.pbkdf2 import pbkdf2_bin # From https://github.com/mitsuhiko/python-pbkdf2
+from lib.string_tools import slugify_ext
 
 from gridfs import GridFS, NoFile
 from bson.binary import Binary
@@ -441,7 +442,6 @@ def get_database_name():
     # Ensure indexes
     DATABASE[db_name].owner.ensure_index('session_id', background=True)
     DATABASE[db_name].owner.ensure_index('email', background=True)
-    DATABASE[db_name].owner.ensure_index('facebook_id', background=True)
     DATABASE[db_name].owner.ensure_index('name', background=True)
     DATABASE[db_name].owner.ensure_index('password', background=True)
     DATABASE[db_name].owner.ensure_index('members', background=True)
@@ -805,6 +805,16 @@ def get_user_id_from_username(username):
   db = DATABASE[db_name]
   
   user = db.owner.find_one({"name": username}, {'_id': True})
+  if user:
+    user_id = user.get("_id")
+    return user_id
+  return None
+
+def get_user_id_from_nickname(nickname): #nickname = the part before @ in email
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  user = db.owner.find_one({"email": re.compile('^' + nickname + '@', re.IGNORECASE)}, {'_id': True})
   if user:
     user_id = user.get("_id")
     return user_id
@@ -2221,6 +2231,25 @@ def get_email_addresses(session_id, db_name=None):
   records = db.email.find({'$or': query})
   return [i['email'].strip() for i in records]
 
+def get_group_id_from_group_slug(slug, db_name=None):
+  if not slug:
+    return False
+
+  db = DATABASE[db_name]
+
+  #find group by slug
+  if slug != 'public':
+    record = db.owner.find_one({'slug': slug})  
+
+    if record:
+      group_id = record['_id']
+      return group_id
+    else:
+      return None
+  else:
+    return 'public'
+
+
 def get_user_id_from_email_address(email, db_name=None):
   if not email:
     return False
@@ -2417,14 +2446,17 @@ def new_post_from_email(message_id, receivers, sender,
   return True
 
 def new_feed(session_id, message, viewers, 
-             attachments=[], facebook_access_token=None):
-  db_name = get_database_name()
+             attachments=[], facebook_access_token=None, **kwargs):
+  if kwargs.get('db_name'):
+    db_name = kwargs.get('db_name')
+  else:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not message:
     return False
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
     
@@ -2445,7 +2477,7 @@ def new_feed(session_id, message, viewers,
       if str(i).isdigit():
         _viewers.add(long(i))
       elif validate_email(i):
-        _viewers.add(get_user_id_from_email_address(i))
+        _viewers.add(get_user_id_from_email_address(i, db_name=db_name))
         # TODO: send mail thông báo cho post owner nếu địa chỉ mail không tồn tại
       else:
         continue
@@ -2476,13 +2508,24 @@ def new_feed(session_id, message, viewers,
     hashtags = []
   
   ts = utctime()
-  info = {'message': message,
+  plain_html = kwargs.get('plain_html')
+  if plain_html: 
+    info = {'message': message,
           '_id': new_id(),
           'owner': user_id,
           'viewers': list(viewers),
           'hashtags': hashtags,
           'timestamp': ts,
-          'last_updated': ts}
+          'last_updated': ts,
+          'plain_html':plain_html}
+  else:
+    info = {'message': message,
+            '_id': new_id(),
+            'owner': user_id,
+            'viewers': list(viewers),
+            'hashtags': hashtags,
+            'timestamp': ts,
+            'last_updated': ts}
   if files:
     info['attachments'] = files
   
@@ -2496,7 +2539,6 @@ def new_feed(session_id, message, viewers,
   db.stream.insert(info)
   
   index_queue.enqueue(add_index, info['_id'], message, viewers, 'post', db_name)
-  
   
   # send notification
   for id in viewers:
@@ -2526,7 +2568,7 @@ def new_feed(session_id, message, viewers,
   user_ids = set()
   for i in viewers:
     if is_group(i):
-      member_ids = get_group_member_ids(i)
+      member_ids = get_group_member_ids(i, db_name=db_name)
       for id in member_ids:
         user_ids.add(id)
     else:
@@ -2692,6 +2734,17 @@ def undo_remove(session_id, feed_id):
   # TODO: chỉ cho xóa nếu chưa có ai đọc
   return feed_id
 
+@line_profile
+def get_plain_html_in_comment(session_id, feed_id, comment_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  info = db.stream.find_one({'_id': long(feed_id)})
+  comments = info.get('comments')
+  for comment in comments:
+    if comment.get('_id') == comment_id:
+      return comment.get('plain_html')
+  return None
+  
 @line_profile
 def get_feed(session_id, feed_id, group_id=None):
   db_name = get_database_name()
@@ -3235,24 +3288,32 @@ def mark_cancelled(session_id, task_id):
 # Comment Actions --------------------------------------------------------------
 
 def new_comment(session_id, message, ref_id, 
-                attachments=None, reply_to=None, from_addr=None, db_name=None):
+                attachments=None, reply_to=None, from_addr=None, db_name=None, **kwargs):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
 #  if not message:
 #    return False
-
+  
   user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
   
   ts = utctime()
-  comment = {'_id': new_id(),
+  if kwargs.has_key('plain_html'):
+    plain_html = kwargs.get('plain_html')
+    comment = {'_id': new_id(),
              'owner': user_id,
              'message': message,
-             'timestamp': ts}    
-  
+             'timestamp': ts,
+             'plain_html': plain_html}
+  else:
+    comment = {'_id': new_id(),
+               'owner': user_id,
+               'message': message,
+               'timestamp': ts}    
+    
   files = []
   if attachments:
     if isinstance(attachments, list):
@@ -3358,15 +3419,15 @@ def new_comment(session_id, message, ref_id,
       push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
       
       
-#       if user_id != id and id not in mentions:
-#         # send email notification
-#         u = get_user_info(id)
-#         if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
-#           if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
-#             send_mail_queue.enqueue(send_mail, u.email, 
-#                                     mail_type='new_comment', 
-#                                     user_id=user_id, post=info, 
-#                                     db_name=db_name)
+      if user_id != id and id not in mentions:
+        # send email notification
+        u = get_user_info(id)
+        if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
+          if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
+            send_mail_queue.enqueue(send_mail, u.email, 
+                                    mail_type='new_comment', 
+                                    user_id=user_id, post=info, 
+                                    db_name=db_name)
   
   urls = extract_urls(message)
   if urls:
@@ -4606,7 +4667,8 @@ def new_group(session_id, name, privacy="closed", about=None):
           'last_updated': utctime(),
           'members': [user_id],
           'leaders': [user_id],
-          'name': name, 
+          'name': name,
+          'slug': slugify_ext(name),
           'privacy': privacy,
           '_id': new_id()}
   if about:
@@ -4638,6 +4700,11 @@ def update_group_info(session_id, group_id, info):
   if info.has_key('members'):
     info['members'] = [long(i) for i in info.get('members')]
   
+  #set slug based on name
+  print "Update group - name = " + info['name']
+  #print "Update group - slug = " + info['slug']
+  info['slug'] = slugify_ext(info['name'])
+
   db.owner.update({'leaders': user_id, 
                    '_id': long(group_id)}, {'$set': info})
   key = '%s:groups' % user_id
@@ -5977,10 +6044,10 @@ def get_network_info(db_name):
 
 @line_profile
 def get_networks(user_id, user_email=None):
-  key = 'networks'
-  out = cache.get(key, namespace=user_id)
-  if out is not None:
-    return out
+#   key = '%s:networks' % user_id
+#   out = cache.get(key)
+#   if out is not None:
+#     return out
   
   
   def sortkeypicker(keynames):
@@ -6019,7 +6086,7 @@ def get_networks(user_id, user_email=None):
   out = sorted(networks_list, 
                key=sortkeypicker(['-unread_notifications', 
                                   'name', '-timestamp']))
-  cache.set(key, out, namespace=user_id)
+#   cache.set(key, out)
   return out
 
 PRIMARY_IP = socket.gethostbyname(settings.PRIMARY_DOMAIN)
