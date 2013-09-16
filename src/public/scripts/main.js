@@ -387,7 +387,7 @@ $(document).ready(function(e) {
     mark_as_read_timer = setTimeout(function() {
       mark_as_read(post_id);
     }, 50);
-  })
+  });
 
   $('#body').on('mouseleave', 'li.unread > section', function() {
     id = $(this).parent().attr('id');
@@ -2345,8 +2345,8 @@ $(document).ready(function(e) {
   
   $('#chat, #body').on('mouseenter', '.chatbox.unread', function() {
     var _this = $(this);
-    var type = _this.attr('id').split('-')[1] 
-    var id = _this.attr('id').split('-')[2] 
+    var type = _this.attr('id').split('-')[1];
+    var id = _this.attr('id').split('-')[2];
     var chat_id = type + '-' + id;
     
     var url = '/chat/' + type + '/' + id + '/mark_as_read';
@@ -2382,7 +2382,7 @@ $(document).ready(function(e) {
         
         decr('#left-sidebar #messages .count', 1);
       }
-    })
+    });
     
     
   });
@@ -2404,9 +2404,9 @@ $(document).ready(function(e) {
             close_chat(chat_id);
           }
         }
-    })
+    });
     return false;
-  })
+  });
   
   
   $('#body, #chat').on('click', 'div.chatbox div.header a.unarchive', function() {
@@ -2426,7 +2426,7 @@ $(document).ready(function(e) {
             _this.attr('href', '/messages/' + chat_id.replace('-', '/') + '/archive').attr('class', 'archive').text('Archive');
           }
         }
-    })
+    });
     return false;
   });
   
@@ -2442,21 +2442,21 @@ $(document).ready(function(e) {
             'X-CSRFToken': get_cookie('_csrf_token')
           },
           success: function(html){ 
-            code = '<li class="message"><div class="content">You left the conversation.</div></li>'
+            code = '<li class="message"><div class="content">You left the conversation.</div></li>';
             
             $('ul.messages', chatbox).append(code);
             
             setTimeout(function() {
               $('ul.messages', chatbox).scrollTop(99999);
-            }, 10)
+            }, 10);
             
             $('html').trigger('click');
             
           }
-      })
+      });
     }
     return false;
-  })
+  });
   
   $('#body, #chat').on('click', 'div.header a.add-friends-to-chat', function() {
     var chatbox = $(this).parents('div.chatbox');
@@ -2474,8 +2474,12 @@ $(document).ready(function(e) {
   
   
   $('#chat').on('click', '.chatbox .header', function(e) {
-    var chatbox_id = $(this).parent().attr('id');
-    toggle_chatbox(chatbox_id);
+    if (e.target.className == 'dropbox-chooser' || e.target.className == 'google-drive-chooser') {
+      return true;
+    } else {
+      var chatbox_id = $(this).parent().attr('id');
+      toggle_chatbox(chatbox_id);
+    }
   });
   
   $('#chat, #body').on('click', '.chatbox .message a.image-expander', function(e) {
