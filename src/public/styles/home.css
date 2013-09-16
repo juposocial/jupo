@@ -7909,3 +7909,11 @@ div.chatbox div.header .arrow-top-border {
   height:1px;
   border-bottom:1px dotted #313030;
 }
+
+
+
+.picker.modal-dialog-bg {
+  z-index: 10;
+}
+
+
