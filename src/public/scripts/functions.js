@@ -2080,8 +2080,13 @@ function enable_emoticons_autocomplete(element) {
   var emojis = $.map(emojis, function(value, i) {return {key: value, name:value}});
   
   try {
-  
-    $(element + ' form.new textarea.mention, form.new-comment textarea.mention').atwho('run').atwho({
+    if (element == '#body') {
+      target_atwho = element + ' form.new textarea.mention, form.new-comment textarea.mention';
+    } else if (element.indexOf('#chat-user') != -1) {
+      target_atwho = element + ' form.chat textarea.mentions';
+    }
+        
+    $(target_atwho).atwho('run').atwho({
         at: ":",
         data: emojis,
         tpl: "<li data-value=':${key}:'><img src='http://a248.e.akamai.net/assets.github.com/images/icons/emoji/${name}.png' height='20' width='20' class='emoticon' /> ${name}</li>",
