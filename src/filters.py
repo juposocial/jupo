@@ -18,6 +18,8 @@ from lib.wordunmunger import unmungeHtml
 from BeautifulSoup import BeautifulSoup, Tag, NavigableString, Comment
 from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 
+from lib import emoji
+
 months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
 
 
@@ -454,16 +456,7 @@ def to_embed_code(url, width=437, height=246):
 
 @line_profile
 def autoemoticon(text):
-  text = " %s" % text # add a space at first of line - simple hack for emoticon bugs &xxx;) -> ;)
-  symbols = EMOTICONS.keys()
-  symbols.sort(key=len, reverse=True)
-  for symbol in symbols:
-    for pattern in [' %s', ' %s. ', ' %s.\n', ' %s.\r\n', '\n%s', '\r\n%s', '%s\n', '%s\r\n']:
-      if pattern % symbol in text:
-        text = text.replace(pattern % symbol, pattern % EMOTICONS[symbol].replace("<img src", 
-                                                                                  "<img class='emoticon' src"))
-        break
-  return text[1:]
+  return emoji.emoji(text)
 
 
 def unique_by_timestamp(text):
