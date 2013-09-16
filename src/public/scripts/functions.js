@@ -2717,6 +2717,9 @@ function refresh(element) {
       });
 
       $.global.uploader.start();
+      
+      $('form.new tr#attach, form.new div#attachments').removeClass('hidden');
+      
     });
 
     $.global.uploader.bind('UploadProgress', function(up, file) {
