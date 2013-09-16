@@ -58,7 +58,7 @@
           {% endif %} 
 #}          
     {% else %}
-          <a href="/user/{{ feed.owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.owner.email }}'{% endif %}>{{ feed.owner.name }}</a>
+          <a href="/user/{{ feed.owner.id }}" class='async' {% if feed.is_email() %} title='{{ feed.owner.email }}'{% endif %}>{{ feed.owner.name }}</a>{% if viewers | length > 1 %}, {% endif %}
           
           
           
@@ -102,17 +102,30 @@
                     
           {% else %}
           
-            {% if viewers %}  
-              &#x21e2;
-              {% for user in viewers %}
+            {% if viewers %}
+               
+              {% if viewers | length == 1 %}
+                  &#x21e2;
+                  {% set user = viewers[0] %}
+                  
                   {% if user.id == 'public' %}
-                  <a href='/everyone' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                    <a href='/everyone' class='async'>{{ user.name }}</a>
                   {% elif user.is_group() %}
-                    <a href='/group/{{ user.id }}' class='overlay'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                    <a href='/group/{{ user.id }}' class='overlay'>{{ user.name }}</a>
                   {% else %}
-                    <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                    <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>
                   {% endif %}
-              {% endfor %}
+              {% else %}
+                {% for user in viewers %}
+                    {% if user.id == 'public' %}
+                    <a href='/everyone' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                    {% elif user.is_group() %}
+                      <a href='/group/{{ user.id }}' class='overlay'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                    {% else %}
+                      <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index != viewers | length %}, {% endif %}
+                    {% endif %}
+                {% endfor %}
+              {% endif %}
             {% endif %}
           {% endif %}
           
