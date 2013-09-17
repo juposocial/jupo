@@ -39,7 +39,7 @@
               <a href="http://blog.jupo.com">Blog</a>
             </li>
             <li class="page_item page-item-4">
-              <a href="http://jupo.com/oauth/google?domain=jupo.com" class="btn btn-sign-in">Sign-in</a>
+              <a href="/oauth/google?domain=jupo.com" class="btn btn-sign-in">Sign-in</a>
             </li>
           </ul>
         </div>
@@ -56,7 +56,7 @@
           <p>Google Apps get social with Jupo, just one-click away!</p>
           <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST">
             <div class="form-group">
-              <input name="email" type="text" class="form-control" placeholder="Enter you Google Apps mail here!" />
+              <input id="email" name="email" type="text" class="form-control" placeholder="Enter you Google Apps mail here!" />
             </div>
             <button class="btn btn-success" type="submit">Get Started!</button>
             
