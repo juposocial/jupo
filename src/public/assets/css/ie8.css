@@ -7,7 +7,7 @@ div[class*="col-"],
 .screenshot {
   filter: alpha(opacity=100) !important;
 }
-.home #masthead {
+.homepage #masthead {
   background-color: #222;
 }
 .jumbotron {

@@ -15,7 +15,7 @@
   <script src="/public/assets/js/modernizr.js"></script>
   <link rel="shortcut icon" href="/public/assets/img/favicon.ico">
 </head>
-<body class="home">
+<body class="homepage">
 
   <header id="masthead" class="site-header navbar navbar-inverse navbar-fixed-top" role="banner">
     <div class="container">
@@ -39,7 +39,7 @@
               <a href="http://blog.jupo.com">Blog</a>
             </li>
             <li class="page_item page-item-4">
-              <a href="/oauth/google?domain=jupo.com" class="btn btn-sign-in">Sign-in</a>
+              <a href="http://jupo.com/oauth/google?domain=jupo.com" class="btn btn-sign-in">Sign-in</a>
             </li>
           </ul>
         </div>
@@ -52,19 +52,21 @@
     <div class="jumbotron">
       <div class="container">
         <div class="intro">
-          <h1>Get All Your Team Work In One Place!</h1>
+          <h1>Using Google Apps in a Facebook way!</h1>
           <p>Google Apps get social with Jupo, just one-click away!</p>
           <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST">
             <div class="form-group">
-              <input id="email" type="email" name="email" class="form-control" placeholder="Enter you Google Apps mail here!" />
+              <input name="email" type="text" class="form-control" placeholder="Enter you Google Apps mail here!" />
             </div>
             <button class="btn btn-success" type="submit">Get Started!</button>
-
+            
             <input type="hidden" name="domain" value="{{ domain }}">
             <input type="hidden" name="call_from" value="landing">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            
           </form>
         </div>
+        
         {% with messages = get_flashed_messages() %}
           {% if messages %}
             {% for message in messages %}
@@ -74,6 +76,7 @@
             {% endfor %}    
           {% endif %}
         {% endwith %}
+
         <div class="screenshot"></div>
       </div>
     </div>
@@ -109,7 +112,7 @@
           <a name="section1" class="section-anchor"></a>
 
           <div class="row">
-            <div class="col-md-7" data-pos="left">
+      <div class="col-md-7" data-pos="left">
               <img src="/public/assets/img/img-0.png" class="img-responsive" />
             </div>
             <div class="col-md-5" data-pos="right">
@@ -117,6 +120,7 @@
               <p class="lead">Bring your team’s communication to a familiar workspace. 
               <br>Start collaborating right away.</p>
             </div>
+            
           </div>
         </section>
 
@@ -148,35 +152,16 @@
           </div>
         </section>
 
-        <!--
-        <section class="section section-animation" id="load_section4">
-          <a name="section4" class="section-anchor"></a>
-          
-          <div class="row">
-            <div class="col-md-5" data-pos="left">
-              <h2>Integrated third parties.</h2>
-              <p class="lead">You can use your own team’s apps. Jupo works with Google Apps, Drive, Dropbox and <a href="#">many more</a> to come</p>
-            </div>
-            <div class="col-md-7" data-pos="right">
-              <img src="/public/assets/img/img-3-0.png" class="img-responsive" />
-              <div class="content-animation zoom left-2">
-                <img src="/public/assets/img/img-3-1.png" class="img-responsive">
-              </div>
-            </div>
-          </div>
-        </section>
-        -->
-
         <section class="section section-animation" id="load_section5">
           <a name="section5" class="section-anchor"></a>
           
           <div class="row">
-            <div class="col-md-7" data-pos="left">
-              <img src="/public/assets/img/img-4.png" class="img-responsive" />
-            </div>
-            <div class="col-md-5" data-pos="right">
+            <div class="col-md-5" data-pos="left">
               <h2>Third party. Supported.</h2>
               <p class="lead">You can use your own team’s apps. Jupo works with Google Apps, Drive, Dropbox and many more to come</p>
+            </div>
+            <div class="col-md-7" data-pos="right">
+              <img src="/public/assets/img/img-4.png" class="img-responsive" />
             </div>
           </div>
         </section>
@@ -185,7 +170,7 @@
           <h1>Sign-up Now!</h1>
           <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST">
             <div class="form-group">
-              <input id="email" type="email" name="email" class="form-control" placeholder="Enter you Google Apps mail here!" />
+              <input id="email" type="text" name="email" class="form-control" placeholder="Enter you Google Apps mail here!" />
             </div>
             <button class="btn btn-success" type="submit">Get Started!</button>
 
@@ -194,17 +179,12 @@
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
           </form>
         </section>
-
+    
       </div>
-
     </main>
 
     <footer id="colophon" class="site-footer" role="contentinfo">
       <div class="site-info container">
-        <!--
-        <p class="pull-left"><a href="http://wordpress.org/" title="A Semantic Personal Publishing Platform" rel="generator">Proudly powered by WordPress</a></p>
-        <p class="pull-right">Theme: DW Neon by <a href="http://www.designwall.com/" rel="designer">DesignWall</a>.</p>
-        -->
         <p class="pull-right">Copyright 2013 @ JUPO</p>
       </div>
     </footer>

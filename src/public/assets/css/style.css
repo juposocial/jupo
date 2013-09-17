@@ -6260,7 +6260,7 @@ body.loading > * {
 .admin-bar #masthead {
   margin-top: 28px;
 }
-.home #masthead {
+.homepage #masthead {
   background-color: transparent;
 }
 .header-color #masthead {
@@ -6272,7 +6272,7 @@ body.loading > * {
 #masthead .container {
   padding: 0;
 }
-.home #masthead .container {
+.homepage #masthead .container {
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 #masthead .navbar-nav {
@@ -6444,12 +6444,12 @@ body.loading > * {
   opacity: 1;
   filter: alpha(opacity=100);
 }
-.home .site-main {
+.homepage .site-main {
   box-shadow: 0 3px 30px black;
   margin-top: 700px;
   z-index: 3;
 }
-.home .site-main {
+.homepage .site-main {
   max-width: 100%;
 }
 @media (min-width: 992px) {
@@ -6457,7 +6457,7 @@ body.loading > * {
     max-width: 820px;
     margin: 0 auto;
   }
-  .home .site-main .container {
+  .homepage .site-main .container {
     max-width: 1200px;
   }
 }
@@ -6465,6 +6465,7 @@ body.loading > * {
   width: 100%;
   overflow: hidden;
   padding-top: 80px;
+  padding-bottom: 80px;
   clear: both;
   text-align: center;
   border-bottom: 1px solid #eeeeee;
@@ -6476,9 +6477,6 @@ body.loading > * {
   .section {
     padding-top: 20px;
   }
-}
-.section .col-group {
-  padding-bottom: 80px;
 }
 .section .section-scroll {
   height: 0;
@@ -6513,6 +6511,13 @@ body.loading > * {
   position: relative;
   -webkit-transition: all 0.5s ease-out;
   transition: all 0.5s ease-out;
+}
+@media (min-width: 992px) {
+  .section div[data-pos] {
+    display: table-cell;
+    vertical-align: middle;
+    float: none;
+  }
 }
 @media (max-width: 992px) {
   .section div[data-pos] > * {
@@ -6551,7 +6556,6 @@ body.loading > * {
 }
 .section div[data-pos="left"] > * {
   float: right;
-  padding-right: 30px;
   text-align: right;
 }
 .section div[data-pos="right"] > * {
@@ -6703,8 +6707,7 @@ footer.entry-meta {
   margin-bottom: 40px;
 }
 @media (min-width: 992px) {
-  .category #comments,
-  .single #comments {
+  #comments {
     padding: 20px 60px 0 60px;
   }
 }
@@ -6779,6 +6782,7 @@ footer.entry-meta {
 .comment-form textarea {
   height: 220px;
 }
+
 /* Custom section signup */
 .section {
   width: 100%;

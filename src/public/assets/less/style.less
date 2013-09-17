@@ -121,7 +121,7 @@ body.loading {
 
   background-color: @gray-darker;
 
-  .home & {
+  .homepage & {
     background-color: transparent;
   }
 
@@ -134,7 +134,7 @@ body.loading {
   }
 
   .container {
-    .home & {
+    .homepage & {
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     }
     
@@ -325,7 +325,7 @@ body.loading {
     .opacity(1);
   }
 
-  .home & {
+  .homepage & {
     box-shadow: 0 3px 30px black;
     margin-top: 700px;
     z-index: 3;
@@ -335,7 +335,7 @@ body.loading {
   margin-right: auto;
   margin-left: auto;
 
-  .home & {
+  .homepage & {
     max-width: 100%;
   }
 
@@ -344,7 +344,7 @@ body.loading {
       max-width: 820px;
       margin: 0 auto;
 
-      .home & {
+      .homepage & {
         max-width: 1200px;
       }
     }
@@ -354,6 +354,7 @@ body.loading {
   width: 100%;
   overflow: hidden;
   padding-top: 80px;
+  padding-bottom: 80px;
   clear: both;
   text-align: center;
   border-bottom: 1px solid @main-content-border;
@@ -364,10 +365,6 @@ body.loading {
 
   @media (max-width: @screen-phone) {
     padding-top: 20px;
-  }
-
-  .col-group {
-    padding-bottom: 80px;
   }
 
   .section-scroll {
@@ -406,6 +403,11 @@ body.loading {
   div[data-pos] {
     display: inline-block;
     vertical-align: top;
+    @media (min-width: @screen-desktop) {
+      display: table-cell;
+      vertical-align: middle;
+      float: none;
+    }
     position: relative;
     .transition(all .5s ease-out);
 
@@ -448,7 +450,6 @@ body.loading {
 
     > * {
       float: right;
-      padding-right: 30px;
       text-align: right;
     }
   }
@@ -644,10 +645,7 @@ footer.entry-meta {
   margin-bottom: 40px;
 
   @media (min-width: @screen-desktop) {
-    .category &,
-    .single & {
       padding: 20px 60px 0 60px;
-    }
   }
 }
 
