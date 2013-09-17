@@ -71,12 +71,20 @@
 {% block top_scripts %}
 
   <script type='text/javascript' src='//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
+  <script type='text/javascript' src="/public/scripts/google-code-prettify/prettify.js"></script>
+  <script src="https://www.google.com/jsapi?key={{ settings.GOOGLE_API_KEY }}"></script>
+  <script src="https://apis.google.com/js/client.js"></script>
+  <script src="/public/scripts/googledrive.filepicker.js"></script>
+  
+  <script>
+    GOOGLE_API_KEY = '{{ settings.GOOGLE_API_KEY }}';
+    GOOGLE_CLIENT_ID = '{{ settings.GOOGLE_CLIENT_ID | replace(".apps.googleusercontent.com", "") }}';
+  </script>
   
   {% assets filters="jspacker", 
             output="lib.js",
             'scripts/disable_console_log.js',
             'scripts/detect_timezone.min.js',
-            'scripts/jquery.caret.js',
             'scripts/plupload.js',
             'scripts/plupload.html5.js',
             'scripts/jquery.elastic.js',
@@ -105,6 +113,8 @@
 
 {% block bottom_scripts %}
 
+  <script type="text/javascript" src="https://www.dropbox.com/static/api/1/dropins.js" id="dropboxjs" data-app-key="{{ settings.DROPBOX_APP_KEY }}"></script>
+  
   {% assets filters="jspacker", 
             output="post.js",
             "scripts/main.js" %}

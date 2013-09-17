@@ -2597,7 +2597,8 @@ def feed_actions(feed_id=None, action=None,
   
   user_id = api.get_user_id(session_id)
   if not user_id:
-    abort(400)
+    if not request.path.startswith('/post/'):
+      return redirect('/')
     
   utcoffset = request.cookies.get('utcoffset')
   if utcoffset:
@@ -2874,6 +2875,7 @@ def feed_actions(feed_id=None, action=None,
 #                                background='dark-bg', 
                                owner=owner,
                                mode='view',
+                               settings=settings,
                                title=title, description=description, image=image, feed=feed)
       else:
         return render_homepage(session_id, 

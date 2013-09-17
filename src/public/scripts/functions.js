@@ -299,6 +299,7 @@ function start_chat(chat_id) {
       enable_emoticons_autocomplete('#chat-' + chat_id);
       
       
+      if ($('#google-drive-chatbox-file-chooser').length != 0) { 
         // Google drive files
         var new_chat_file_picker = new FilePicker({
           apiKey: GOOGLE_API_KEY,
@@ -364,7 +365,7 @@ function start_chat(chat_id) {
         
         }); 
       
-      
+      }
               
       
       // Dropbox files
@@ -2090,13 +2091,13 @@ function enable_emoticons_autocomplete(element) {
         tpl: "<li data-value=':${key}:'><img src='http://a248.e.akamai.net/assets.github.com/images/icons/emoji/${name}.png' height='20' width='20' class='emoticon' /> ${name}</li>",
         display_flag: false
     }).on('inserted.atwho', function(e) {
-      console.log('emo inserted')
+      console.log('emo inserted');
       $.global.emoticon_inserted = true;
       
       setTimeout(function () {
         $.global.emoticon_inserted = false;
-      }, 100)
-    })
+      }, 100);
+    });
   
   } catch (err) {}
 }
@@ -2105,18 +2106,23 @@ function refresh(element) {
   preload_autocomplete();
   
   // update network prefix
+  var network = get_cookie('network');
+  if (!network) {
+    var parts = window.location.pathname.split('/');
+    if (parts[1].indexOf('.') !== -1) {
+      network = parts[1];
+    } 
+  }
   $('a[href^="/"]').each(function(index, value) {
-    var network = get_cookie('network');
     if (network && $(this).attr('href').indexOf('/' + network) != 0) {
-      var new_href = '/' + get_cookie('network') + $(this).attr('href');
+      var new_href = '/' + network + $(this).attr('href');
       $(this).attr('href', new_href);
     }
   });
   
   $("a[href^='/']").each(function(index, value) {
-    var network = get_cookie('network');
     if (network && $(this).attr('href').indexOf('/' + network) != 0) {
-      var new_href = '/' + get_cookie('network') + $(this).attr('href');
+      var new_href = '/' + network + $(this).attr('href');
       $(this).attr('href', new_href);
     }
   });
@@ -2182,7 +2188,7 @@ function refresh(element) {
       hintText: 'Add people or group...',
       animateDropdown: false,
       resultsFormatter: function(item) {
-        return "<li><img class='" + item.type + "' src='" + item.avatar + "'>" + item.name + "</li>"
+        return "<li><img class='" + item.type + "' src='" + item.avatar + "'>" + item.name + "</li>";
       },
       prePopulate: prefill,
       allowEmail: true,
@@ -2269,8 +2275,9 @@ function refresh(element) {
   $(element + ' li.feed[id]').each(function(index, value) {
     var post_id = $(this).attr('id');
     
+    if ($(element + ' #google-drive-file-chooser-' + post_id).length > 0) {
     
-     var a = new FilePicker({
+      var a = new FilePicker({
         apiKey: GOOGLE_API_KEY,
         clientId: GOOGLE_CLIENT_ID,
         buttonEl: document.getElementById('google-drive-file-chooser-' + post_id),
@@ -2303,6 +2310,7 @@ function refresh(element) {
             }
         }
       }); 
+    }
     
   });
  
