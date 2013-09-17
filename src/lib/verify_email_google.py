@@ -11,7 +11,10 @@ def is_google_apps_email(email):
     return False
   
   for mx in mx_hosts:
-    _, host_server = mx
+    try:
+      priority, host_server = mx
+    except ValueError, e:
+      host_server = mx
     if 'google' in str(host_server).lower() and 'aspmx' in str(host_server).lower():
       return True
     
