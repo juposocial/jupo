@@ -224,8 +224,8 @@
   <script type='text/javascript' src="/public/scripts/google-code-prettify/prettify.js"></script>
 
   <script src="https://www.google.com/jsapi?key={{ settings.GOOGLE_API_KEY }}"></script>
-  <script src="/public/scripts/googledrive.filepicker.js"></script>
   <script src="https://apis.google.com/js/client.js"></script>
+  <script src="/public/scripts/googledrive.filepicker.js"></script>
   {% if debug == True %}
     <script type='text/javascript' src='/public/scripts/detect_timezone.min.js'></script>
     <script type='text/javascript' src='/public/scripts/plupload.js'></script>
@@ -321,7 +321,7 @@
   
   {% if first_login %}
     
-      //$('#invite_url').trigger('click');
+      <!-- $('#invite_url').trigger('click'); -->
       <script type='text/javascript' src='/public/scripts/functions.js'></script>
       <script type="text/javascript">
         var href = "/invite";
