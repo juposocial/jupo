@@ -2081,9 +2081,9 @@ function enable_emoticons_autocomplete(element) {
   try {
     if (element == '#body') {
       target_atwho = element + ' form.new textarea.mention, form.new-comment textarea.mention';
-    } else if (element.indexOf('#chat-user') != -1) {
+    } else if ( (element.indexOf('#chat-user') != -1) || (element.indexOf('#chat-topic') != -1) )  {
       target_atwho = element + ' form.chat textarea.mentions';
-    }
+    } 
         
     $(target_atwho).atwho('run').atwho({
         at: ":",
