@@ -305,16 +305,15 @@ class User(Model):
       
       return '/img/' + str(avatar) + '.jpg'
     
-    # try gravatar
+    # robohash
     default = "http://jupo.s3.amazonaws.com/images/user2.png"
     if not self.email:
       return default
     
     email = self.email.strip().lower()
-    size = 50
-    gravatar_url = "http://www.gravatar.com/avatar/" + md5(email.lower()).hexdigest() + "?"
-    gravatar_url += urlencode({'d':default, 's':str(size)})
-    return gravatar_url
+    width = height = 50
+    robohash_url = 'http://robohash.org/%s.png?set=set1&size=%sx%s&gravatar=yes' % (email, width, height)
+    return robohash_url
   
   @property
   def introduction(self):
