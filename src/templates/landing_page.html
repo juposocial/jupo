@@ -13,6 +13,9 @@
   <link href="/public/assets/css/ie8.css" rel="stylesheet">
   <![endif]-->
   <script src="/public/assets/js/modernizr.js"></script>
+  <!--<script src="/public/assets/js/jquery.min.js"></script>
+  <script src="/public/assets/js/jquery.validate.min.js"></script>-->
+  <script src="/public/assets/js/parsley-standalone.min.js"></script>
   <link rel="shortcut icon" href="/public/assets/img/favicon.ico">
 </head>
 <body class="homepage">
@@ -54,11 +57,11 @@
         <div class="intro">
           <h1>Using Google Apps in a Facebook way!</h1>
           <p>Google Apps get social with Jupo, just one-click away!</p>
-          <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST">
+          <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST" data-validate="parsley">
             <div class="form-group">
-              <input id="email" name="email" type="text" class="form-control" placeholder="Enter you Google Apps mail here!" />
+              <input id="email" name="email" type="text" class="form-control" placeholder="Enter you Google Apps mail here!" data-type="email" data-error-message="Email is blank or not provided by Google App. Please check again" data-error-container="div.flash-message" />
             </div>
-            <button class="btn btn-success" type="submit">Get Started!</button>
+            <button class="btn btn-success" type="submit" id="submit">Get Started!</button>
             
             <input type="hidden" name="domain" value="{{ domain }}">
             <input type="hidden" name="call_from" value="landing">
@@ -66,7 +69,7 @@
             
           </form>
         </div>
-        
+        <div class='flash-message'></div>
         {% with messages = get_flashed_messages() %}
           {% if messages %}
             {% for message in messages %}
