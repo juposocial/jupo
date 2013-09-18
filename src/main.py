@@ -51,6 +51,7 @@ import settings
 from lib.verify_email_google import is_google_apps_email
 from app import CURRENT_APP, render
 
+from lib.userinfuser import ui_api
 
 requests.adapters.DEFAULT_RETRIES = 3
 
@@ -60,6 +61,9 @@ assets = WebAssets(app)
 
 if settings.SENTRY_DSN:
   sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
+
+if settings.USER_INFUSER_EMAIL:
+  ui = ui_api.UserInfuser(settings.USER_INFUSER_EMAIL, settings.USER_INFUSER_KEY)
   
 csrf = SeaSurf(app)
 oauth = OAuth()
@@ -80,6 +84,10 @@ def render_homepage(session_id, title, **kwargs):
       owner = None
   else:
     owner = None
+
+  # reuse owner variable if already provided
+  if kwargs.has_key('owner'):
+    owner = kwargs.pop('owner')
     
   if owner:
     friends_online = [i for i in owner.contact_ids \
@@ -95,7 +103,7 @@ def render_homepage(session_id, title, **kwargs):
       group.unread_posts = 0 # api.get_unread_posts_count(session_id, group.id)
     
     unread_messages = api.get_unread_messages(session_id)
-#     unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
+    # unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
     unread_messages_count = len(unread_messages)
     unread_notification_count = api.get_unread_notifications_count(session_id)\
                               + unread_messages_count
@@ -1001,10 +1009,6 @@ def google_authorized():
                                        google_contacts=contacts,
                                        db_name=db_name)
   
-  app.logger.debug(db_name)
-  app.logger.debug(user)
-  
-  app.logger.debug(session_id)
   
   api.update_session_id(user_email, session_id, db_name)
   session['session_id'] = session_id
@@ -1017,6 +1021,9 @@ def google_authorized():
   else: # new user
     user_url = 'http://%s/%s/everyone?getting_started=1&first_login=1' \
              % (settings.PRIMARY_DOMAIN, user_domain)
+
+  # Gamification - award badge
+  ui.award_badge(user_email, "Jupo-Early_Adopter-private")
     
   resp = redirect(user_url)  
   resp.set_cookie('network', user_domain)
@@ -2343,7 +2350,6 @@ def home():
   
   session_id = request.args.get('session_id')
   
-  
   if hostname != settings.PRIMARY_DOMAIN:
     if not api.is_exists(db_name=hostname.replace('.', '_')):
       abort(404)    
@@ -2435,7 +2441,7 @@ def news_feed(page=1):
       resp.delete_cookie('redirect_to')
       return resp
   
-  
+
   # Bắt user dùng facebook phải invite friends trước khi dùng ứng dụng
 #  
 #  if request.args.get('request') and request.args.get('to[0]'):
@@ -2480,8 +2486,10 @@ def news_feed(page=1):
                           include_archived_posts=False)
     category = None
     
-    
   owner = api.get_user_info(user_id)
+
+  # Gamification
+  owner.user_gamification_data = ui.get_user_data(owner.email)
   
   if request.method == "OPTIONS":
     if page > 1:
@@ -2543,6 +2551,7 @@ def news_feed(page=1):
                            category=category,
                            pinned_posts=pinned_posts,
                            suggested_friends=suggested_friends,
+                           owner=owner,
                            feeds=feeds)
     
   resp.delete_cookie('redirect_to')

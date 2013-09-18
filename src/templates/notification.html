@@ -54,6 +54,13 @@
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
         <span class='username'>{{ message.sender.name }}</span> ({{ message.sender.email }}) just joined Jupo.
         Go and say welcome to {{ message.sender.name }}
+
+    {% elif key.startswith('invitation_accepted:') %}
+        
+      <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>     
+        <span class='username'>{{ message.sender.name }}</span> ({{ message.sender.email }}) just joined Jupo.
+        You've awarded a badge for inviting him/her :) Thanks !
       
       
     {% elif key.startswith('comment:') %}

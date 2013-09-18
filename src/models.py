@@ -470,10 +470,13 @@ class User(Model):
     out = api.get_networks(self.id, self.email)
     return out if out else []
     
-    
   @property
   def disabled_notifications(self):
     return self.info.get('disabled_notifications', [])
+
+  @property
+  def user_gamification_data(self):
+    return self.info.get('user_gamification_data')
 
   @property
   def ref(self):
