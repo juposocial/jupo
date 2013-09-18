@@ -2,7 +2,7 @@
 
 {% block title %}
   {% if unread_notification_count != 0 %}({{ unread_notification_count }}){% endif %}
-  {% if title %}{{ title }}{% else %}Jupo{% endif %}
+  {% if title %}{{ title | to_text }}{% else %}Jupo{% endif %}
 {% endblock %}
 
 
