@@ -6327,7 +6327,7 @@ body.loading > * {
   text-align: center;
   background: #484e5c url("../img/head.jpg") no-repeat;
   background-position: top center;
-  background-size: cover;
+  background-size: 100%;
   overflow: hidden;
   min-height: 930px;
   position: fixed;
@@ -6801,4 +6801,7 @@ footer.entry-meta {
 }
 .section.signup input {
   width: 256px;
+}
+
+.flash-message {
 }
