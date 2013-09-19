@@ -4704,10 +4704,23 @@ def leave_group(session_id, group_id):
   user_id = get_user_id(session_id)
   if not user_id:
     return False
+  
   group_info = db.owner.find_one({'_id': long(group_id)})
   if not group_info:
     return False
   
+  if group_info.get('privacy') == 'open':
+    db.owner.update({'_id': group_id}, {'$pull': {'members': user_id}})
+    db.owner.update({'_id': group_id}, {'$pull': {'pending_members': user_id}})
+    
+  elif group_info.get('privacy') == 'closed':
+    db.owner.update({'_id': group_id}, {'$pull': {'members': user_id}})
+    
+    pending_members = group_info.get('pending_members', [])
+    if user_id in pending_members:
+      pending_members.remove(user_id)
+      db.owner.update({'_id': group_id}, 
+                      {'$set': {'pending_members': pending_members}})
   
   key = '%s:groups' % user_id
   cache.delete(key)
@@ -4715,19 +4728,7 @@ def leave_group(session_id, group_id):
   key = '%s:group_ids' % user_id
   cache.delete(key)
   
-  if group_info.get('privacy') == 'open':
-    db.owner.update({'_id': group_id}, {'$pull': {'members': user_id}})
-    db.owner.update({'_id': group_id}, {'$pull': {'pending_members': user_id}})
-    
-    return True
-  elif group_info.get('privacy') == 'closed':
-    pending_members = group_info.get('pending_members', [])
-    if user_id in pending_members:
-      pending_members.remove(user_id)
-      db.owner.update({'_id': group_id}, 
-                            {'$set': {'pending_members': pending_members}})
-      return None
-    return False
+  return True
   
 def add_member(session_id, group_id, user_id):
   # TODO: datetime user join group
