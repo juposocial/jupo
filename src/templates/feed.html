@@ -394,7 +394,9 @@
       {% else %}
         <div class='expandable'>
             {% set content = feed.message | autolink | autoemoticon | sanitize %}
+            {% set content_without_emoticon = feed.message | autolink | sanitize %}
             {% set summary = content | lines_truncate | fix_unclosed_tags %}
+            {% set summary_without_emoticon = content_without_emoticon | lines_truncate | fix_unclosed_tags %}
             
             {% if "</iframe>" in feed.message %}
               {{ feed.message | sanitize | fix_unclosed_tags | safe }}
@@ -404,7 +406,7 @@
                   {{ summary | nl2br | safe }}
                 </div>
                 
-                {% if content | length > (summary | length) %}  {# '...' = 3 characters #}
+                {% if content_without_emoticon | length > (summary_without_emoticon | length) %}  {# '...' = 3 characters #}
                 <a class='see-more'>See more</a>
                 <div class='attachment hidden'>
                   {{ content | nl2br | safe }}
@@ -423,7 +425,7 @@
                     {{ summary | nl2br | safe }}
                   </div>
                 
-                  {% if content | length > summary | length + 3 %}
+                  {% if content_without_emoticon | length > summary_without_emoticon | length + 3 %}
                   <a class='see-more'>See more</a>
                   <div class='hidden'>
                     {{ content | nl2br | safe }}
