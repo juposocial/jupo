@@ -669,11 +669,11 @@ function preload_autocomplete() {
         }
 
         $.global.coworkers = resp.filter(function(e) {
-          return e.type == 'user'
+          return e.type == 'user';
         });
         
       }
-    })
+    });
   }
   
   else {
@@ -837,7 +837,7 @@ function decr(id, value) {
 
 function get_doc_height() {
   var D = document;
-  return Math.max(Math.max(D.body.scrollHeight, D.documentElement.scrollHeight), Math.max(D.body.offsetHeight, D.documentElement.offsetHeight), Math.max(D.body.clientHeight, D.documentElement.clientHeight))
+  return Math.max(Math.max(D.body.scrollHeight, D.documentElement.scrollHeight), Math.max(D.body.offsetHeight, D.documentElement.offsetHeight), Math.max(D.body.clientHeight, D.documentElement.clientHeight));
 };
 
 (function($) {
@@ -1537,7 +1537,7 @@ function open_in_async_mode(href, rel, data, f) {
     resp = $.parseJSON(data);
 
     if (resp.title) {
-      update_title(resp.title)
+      update_title(resp.title);
     }
 
     if (rel) {
@@ -1570,7 +1570,7 @@ function open_in_async_mode(href, rel, data, f) {
         $(this).html(resp.body);
         $(this).attr('class', 'animate fadeIn').show();
         next();
-      })
+      });
     } else {
       $("#overlay").queue(function(next) {
         $(this).attr('class', 'animate fadeOut'); 
@@ -1580,12 +1580,12 @@ function open_in_async_mode(href, rel, data, f) {
         $('#body').html(resp.body);
         $('#body').attr('class', 'animate fadeIn').show();
         next();
-      })
+      });
     }
     
     setTimeout(function() {
       refresh('#body');
-    }, 200)
+    }, 200);
     
     if (scroll_to != null) {
       setTimeout(function() {
@@ -1674,7 +1674,7 @@ function open_in_async_mode(href, rel, data, f) {
             
             $(this).attr('class', 'animate fadeIn').show();
             next();
-          })
+          });
         } else {
           $("#overlay").queue(function(next) {
             $(this).attr('class', 'animate fadeOut'); 
@@ -1690,7 +1690,7 @@ function open_in_async_mode(href, rel, data, f) {
             
             $('#body').attr('class', 'animate fadeIn').show();
             next();
-          })
+          });
         }
 
     
@@ -1753,7 +1753,7 @@ function open_in_popup_mode(href, data) {
         refresh('#popup');
         return false;
       }
-    })
+    });
     return false;
 }
 
@@ -1812,7 +1812,7 @@ function open_in_overlay_mode(href, data) { // has #! in url
         $(this).hide();
         $('#overlay').attr('class', 'animate fadeIn').show();
         next();
-      })
+      });
     } else {
       $("#overlay").queue(function(next) {
         $(this).attr('class', 'animate fadeOut'); 
@@ -1820,7 +1820,7 @@ function open_in_overlay_mode(href, data) { // has #! in url
       }).delay(100).hide().queue(function(next) {
         $(this).attr('class', 'animate fadeIn').show();
         next();
-      })
+      });
     }
       
 
@@ -1917,7 +1917,7 @@ function open_in_overlay_mode(href, data) { // has #! in url
             $(this).hide();
             $('#overlay').attr('class', 'animate fadeIn').show();
             next();
-          })
+          });
         } else {
           $("#overlay").queue(function(next) {
             $(this).attr('class', 'animate fadeOut'); 
@@ -1925,7 +1925,7 @@ function open_in_overlay_mode(href, data) { // has #! in url
           }).delay(100).hide().queue(function(next) {
             $(this).attr('class', 'animate fadeIn').show();
             next();
-          })
+          });
         }
 
         if (scroll_to != null) {
@@ -2076,9 +2076,11 @@ function enable_emoticons_autocomplete(element) {
     "wc", "weary", "wedding", "whale", "whale2", "wheelchair", "white_check_mark", "white_circle", "white_flower", "white_square",
     "white_square_button", "wind_chime", "wine_glass", "wink", "wolf", "woman", "womans_clothes", "womans_hat", "womens", "worried",
     "wrench", "x", "yellow_heart", "yen", "yum", "zap", "zero", "zzz"
-  ]
+  ];
 
-  var emojis = $.map(emojis, function(value, i) {return {key: value, name:value}});
+  var emojis = $.map(emojis, function(value, i) {
+    return {key: value, name:value};
+  });
   
   try {
     if (element == '#body') {
@@ -2204,7 +2206,7 @@ function refresh(element) {
     minChars: 1,
     fullNameTrigger: false,
     onDataRequest: function(mode, query, callback) {
-      search_mentions(query, callback)
+      search_mentions(query, callback);
     }
   });
 
@@ -2569,14 +2571,14 @@ function hide_error() {
 
 
 function show_loading() {
-  $('.loading-bezel').removeClass('hidden').addClass('animate popin')
+  $('.loading-bezel').removeClass('hidden').addClass('animate popin');
 }
 
 function hide_loading() {
   $('.loading-bezel').addClass('animate popout').delay(200).queue(function(next) {
-    $(this).removeClass('animate popin popout').addClass('hidden')
+    $(this).removeClass('animate popin popout').addClass('hidden');
     next();
-  })
+  });
 }
 
 /*
@@ -2672,9 +2674,9 @@ function update_status(status, async) {
         }
       },
       success: function(resp) {
-        console.log('request sent.')
+        console.log('request sent.');
       }
-    })
+    });
   }
 
 }
@@ -2684,9 +2686,9 @@ function update_status(status, async) {
 function start_pingpong() {
   $.global.pingpong = setInterval(function() {
     $.get('/ping', function(resp) {
-      console.log(resp)
-    })
-  }, 60000)
+      console.log(resp);
+    });
+  }, 60000);
 }
 
 
@@ -2724,7 +2726,7 @@ function init_avatar_uploader() {
     });
 
     $.global.avatar_uploader.bind('FileUploaded', function(up, file, response) {
-      response = $.parseJSON(response.response)
+      response = $.parseJSON(response.response);
       
       $.ajax({
         type: 'POST',
@@ -2735,7 +2737,7 @@ function init_avatar_uploader() {
         success: function(resp) {
           window.location.href = '/';
         }
-      })
+      });
 
     });
 }

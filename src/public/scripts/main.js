@@ -126,9 +126,9 @@ $(document).ready(function(e) {
     $('html').trigger('click');
     
     var post = $(this).parents('li.feed');
-    var href = $(this).data('href')
+    var href = $(this).data('href');
     
-    var content = $('article.message div.expandable > div', post)
+    var content = $('article.message div.expandable > div', post);
     
     if (content.is(':visible') == false) {
       $('footer div.actions a.see-changes', post).trigger('click');
@@ -152,8 +152,8 @@ $(document).ready(function(e) {
   });
   
   $("#body, #overlay").on('keydown', "article div[contenteditable]", function(e) {
-    console.log(e.keyCode)
-    var _this = $(this)
+    console.log(e.keyCode);
+    var _this = $(this);
     if (e.keyCode == 13) {    // Enter
       $.ajax({
         type: "POST",
@@ -162,14 +162,14 @@ $(document).ready(function(e) {
         },
         url: _this.data('href') + '?msg=' + _this.text().trim(),
         success: function(resp) {
-          console.log(resp)
+          console.log(resp);
         }
       });
-      _this.removeAttr('contenteditable').blur()
+      _this.removeAttr('contenteditable').blur();
       return false;
       
     } else if (e.keyCode == 27) { // ESC
-      _this.html($.global.last_content).removeAttr('contenteditable').blur()
+      _this.html($.global.last_content).removeAttr('contenteditable').blur();
     }
   });
 
@@ -251,7 +251,7 @@ $(document).ready(function(e) {
 
       }
     });
-    console.log('asdf')
+    console.log('asdf');
     return false;
 
   });
@@ -268,7 +268,7 @@ $(document).ready(function(e) {
     }
     // $('.notice-item-close', $(this).parents('div.notice-wrap')).trigger('click');
     
-  })
+  });
 
   $('#body, #overlay').on('click', 'a.undo', function(e) {
 
@@ -305,7 +305,7 @@ $(document).ready(function(e) {
       });
     }
     return false;
-  })
+  });
 
   $('#body, #overlay').on('click', 'a.forward', function(e) {
     
@@ -326,7 +326,7 @@ $(document).ready(function(e) {
           $('footer', feed).hide();
           feed.append(html);
           
-          $('form.viewers input[id^="token-input-"]', feed).focus()
+          $('form.viewers input[id^="token-input-"]', feed).focus();
           return false;
         }
       });
@@ -351,7 +351,7 @@ $(document).ready(function(e) {
     });
     return false;
 
-  })
+  });
 
   // $("a[rel=gallery], a.popup").fancybox({
     // mouseWheel: false,
@@ -618,7 +618,7 @@ $(document).ready(function(e) {
       }
     });
     return false;
-  })
+  });
 
   $('#body, #overlay, #popup').on('click', 'a.toggle', function() {
 
@@ -740,7 +740,7 @@ $(document).ready(function(e) {
         }
       } else {
         if (href.indexOf(',') == -1) {
-          href = href.split('?')[0] 
+          href = href.split('?')[0];
         } else {
           var user_ids = href.split('?')[1].replace(',' + _this.val(), '').replace(_this.val() + ',', '');
           href = href.split('?')[0] + '?' + user_ids;
@@ -749,7 +749,7 @@ $(document).ready(function(e) {
       
       group_chat.attr('href', href);  
       if (href.indexOf('?user_ids=') != -1) {
-        group_chat.show()
+        group_chat.show();
       } else {
         group_chat.hide();
       }
@@ -884,7 +884,7 @@ $(document).ready(function(e) {
     $('div#unread-messages').hide();
     $('div#unread-messages span#unread').html('0');
     return false;
-  })
+  });
 
   $('#overlay').on("submit", 'form#profile-update', function() {
     $.ajax({
@@ -894,7 +894,7 @@ $(document).ready(function(e) {
       data: $(this).serializeArray(),
       success: function(resp) {
         if (resp == "Error") {
-          show_error()
+          show_error();
         } else {
           window.location.href = window.location.pathname;
         }
@@ -1059,7 +1059,7 @@ $(document).ready(function(e) {
   $('#body, #overlay').on('click', 'a.update-comment', function() {
     // Hủy bỏ tất cả các comment đang edit
     $('li.comment div.update-comment').addClass('hidden');
-    $('li.comment div.message').removeClass('hidden')
+    $('li.comment div.message').removeClass('hidden');
     $('li.comment div.footer').removeClass('hidden');
     $('li.comment a.update-comment.hidden').removeClass('hidden');
     $('li.comment div.update-comment textarea.mention').mentionsInput("reset");
@@ -1069,29 +1069,29 @@ $(document).ready(function(e) {
     
     comment_id = $(this).parents('li.comment').attr('id');
     
-    update_form = $('#' + comment_id + ' div.update-comment')
+    update_form = $('#' + comment_id + ' div.update-comment');
     if (update_form.is(':visible')) {
       
       update_form.addClass('hidden');
-      $('#' + comment_id + ' div.message').removeClass('hidden')
+      $('#' + comment_id + ' div.message').removeClass('hidden');
       $('#' + comment_id + ' div.footer').removeClass('hidden');
     }
     
     else {
       update_form.removeClass('hidden');
-      $('#' + comment_id + ' div.message').addClass('hidden')
+      $('#' + comment_id + ' div.message').addClass('hidden');
       $('#' + comment_id + ' div.footer').addClass('hidden');
       text = $('.raw-message', update_form).text();
       setTimeout(function() {
         $('textarea.mention', update_form).val(text);
         $('textarea.mention', update_form).mentionsInput("update");
         $('textarea.mention', update_form).focus();
-      }, 10)
+      }, 10);
       
       
     }
     
-  })
+  });
   
   
   $('#body, #overlay').on('submit', 'div.update-comment form', function() {
@@ -1127,16 +1127,16 @@ $(document).ready(function(e) {
         
         $('#' + comment_id + ' div.update-comment').addClass('hidden');
         $('#' + comment_id + ' a.update-comment').removeClass('hidden');
-        $('#' + comment_id + ' div.message').removeClass('hidden')
-        $('#' + comment_id + ' div.footer').removeClass('hidden')
+        $('#' + comment_id + ' div.message').removeClass('hidden');
+        $('#' + comment_id + ' div.footer').removeClass('hidden');
         
       }
-    })    
+    });
     
     return false;
     
     
-  })
+  });
   
   
   $('#body, #overlay').on('keydown', 'form.new-comment textarea, form.update-comment textarea', function(e) {
@@ -1190,8 +1190,8 @@ $(document).ready(function(e) {
       if ($('#' + comment_id + ' div.update-comment').length > 0) {
         $('#' + comment_id + ' div.update-comment').addClass('hidden');
         $('#' + comment_id + ' a.update-comment').removeClass('hidden');
-        $('#' + comment_id + ' div.message').removeClass('hidden')
-        $('#' + comment_id + ' div.footer').removeClass('hidden')
+        $('#' + comment_id + ' div.message').removeClass('hidden');
+        $('#' + comment_id + ' div.footer').removeClass('hidden');
         
       }
       
@@ -1301,7 +1301,7 @@ $(document).ready(function(e) {
           refresh('#' + comments_list_id);
         }
       }
-    })
+    });
 
 
     return false;
@@ -1319,7 +1319,7 @@ $(document).ready(function(e) {
     console.log('a.reply clicked');
     
     // Phải dùng attr(data-) vì comment_id là số quá to, .data() nó parse ra số -> sai mất
-    comment_id = $(this).attr('data-comment-id')
+    comment_id = $(this).attr('data-comment-id');
     username = $(this).data('owner-name');
     user_id = $(this).attr('data-owner-id');
     if (user_id) {
@@ -1332,7 +1332,7 @@ $(document).ready(function(e) {
       comments_list.toggle();
     }
     
-    mention_textarea = $('li.new-comment textarea.mention', comments_list)
+    mention_textarea = $('li.new-comment textarea.mention', comments_list);
     mention_textarea.mentionsInput('reset');
     
     $('li.write-a-comment', comments_list).remove();
@@ -1341,7 +1341,7 @@ $(document).ready(function(e) {
     mention_textarea.focus();
     if (username) {
       
-      var marked_up_text = '@[' + username + '](user:' + user_id + ')'
+      var marked_up_text = '@[' + username + '](user:' + user_id + ')';
       mention_textarea.val(marked_up_text);
       mention_textarea.mentionsInput("update");
       
@@ -1370,7 +1370,7 @@ $(document).ready(function(e) {
     
     $('div.tipsy').remove();
     
-  })
+  });
   
   $('#body, #overlay').on('click', 'section footer div.actions a.see-changes', function() {
     
@@ -1379,7 +1379,7 @@ $(document).ready(function(e) {
     $('> article.message div.expandable', section).toggleClass('hidden');
     $('> article.message div.expandable + div', section).toggleClass('hidden');
     
-  })
+  });
 
 
   $('#body, #overlay').on('click', 'a.remove-comment', function() {
@@ -1396,12 +1396,12 @@ $(document).ready(function(e) {
             'X-CSRFToken': get_cookie('_csrf_token')
           },
           url: $(this).attr('href')
-        })
+        });
     }
   
 
     return false;
-  })
+  });
 
   $("#body, #overlay").on("click", 'a.mark', function(e) {
     // $.global.mouse_inside_overlay = false;
@@ -1428,7 +1428,7 @@ $(document).ready(function(e) {
         'X-CSRFToken': get_cookie('_csrf_token')
       },
       url: href
-    })
+    });
 
     return false;
   });
@@ -1677,7 +1677,7 @@ $(document).ready(function(e) {
         }
         
         else { // enter key pressed
-          console.log('enter key pressed')
+          console.log('enter key pressed');
           return false;
         }
       }
@@ -1793,7 +1793,7 @@ $(document).ready(function(e) {
           return false;
 
         }
-      })
+      });
 
     }
     return false;
@@ -1915,7 +1915,7 @@ $(document).ready(function(e) {
   // })
 
   $('html').on('click', function(e) {
-    console.log(e)
+    console.log(e);
     
    
 
@@ -1980,13 +1980,13 @@ $(document).ready(function(e) {
     $(this).prev('div').hide();
     $(this).next('div.hidden').show();
     $(this).hide();
-  })
+  });
 
   $("#body, #overlay").on('click', '.comment a.see-more', function() {
     $(this).prev('span.text').hide();
     $(this).next('span.text.hidden').show();
     $(this).hide();
-  })
+  });
 
   $("#body, #overlay").on("click", '.current', function() {
     $(".current ul").remove();
@@ -2010,7 +2010,7 @@ $(document).ready(function(e) {
       $('div.info').html("You're now in the waiting list.<br>We'll email you when Jupo is ready.").fadeIn(3000);
     });
     return false;
-  })
+  });
   // Invite form
   // $('#body').on('submit', 'form#invite', function() {
     // var msg = $('span', this);
@@ -2122,7 +2122,7 @@ $(document).ready(function(e) {
 
   $('#body').on('change', 'input#show-archived-posts', function() {
     checked = $(this).is(':checked');
-    console.log(checked)
+    console.log(checked);
     if (checked) {
       set_cookie('show_all', 1);
     } else {
@@ -2130,7 +2130,7 @@ $(document).ready(function(e) {
     }
 
     $('#left-sidebar li#news-feed > a').trigger('click');
-  })
+  });
 
   $('#body').on('click', 'a.archive-from-here', function() {
 
@@ -2156,7 +2156,7 @@ $(document).ready(function(e) {
       return false;
     }
 
-  })
+  });
 
   $('#body').on('click', 'a.filter', function() {
 
@@ -2169,7 +2169,7 @@ $(document).ready(function(e) {
     ul.toggle();
     return false;
 
-  })
+  });
 
   $('#header-container').on('click', 'a#menu-toggle', function() {
     if ($('#left-sidebar').width() <= 0) {
@@ -2179,7 +2179,7 @@ $(document).ready(function(e) {
       $('#global, #main').removeClass('global-default-styles');
       $('#left-sidebar').removeClass('left-sidebar-default-styles');
     }
-  })
+  });
   
   
   
@@ -2201,7 +2201,7 @@ $(document).ready(function(e) {
     
     var undisplayed_count = $('.comment-count', _this).html() - displayed_count;
     if (undisplayed_count <= 0) {
-      _this.parent().remove()
+      _this.parent().remove();
     }
     else if (undisplayed_count > 5) {
       $('text', _this).html('View previous comments');
@@ -2237,7 +2237,7 @@ $(document).ready(function(e) {
     
     return false;
     
-  })
+  });
   
   
   
@@ -2246,7 +2246,7 @@ $(document).ready(function(e) {
     $('ul#friends-online').toggleClass('hidden');
     return false;
     
-  })
+  });
 
   $('#popup').on('click', 'input.checkbox-chat', function() {      
       var _this = $(this);
@@ -2898,7 +2898,7 @@ $(document).ready(function(e) {
                 $('input.checkbox-chat','#popup').show();
                 $('#popup ul.people li input[type="checkbox"]').each(function(index, value) {
                   if (group_chat_url.indexOf($(this).val()) != -1) {
-                    $(this).attr('checked', 'checked')
+                    $(this).attr('checked', 'checked');
                   }
                 });
               }              
