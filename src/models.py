@@ -299,11 +299,15 @@ class User(Model):
       return avatar
     elif avatar:
       attachment = api.get_attachment_info(avatar, db_name=self.db_name)
-      filename = '%s_60.jpg' % attachment.md5
-      if attachment.md5 and api.is_s3_file(filename, db_name=self.db_name):
-        return 'http://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME, filename)
-      
-      return '/img/' + str(avatar) + '.jpg'
+      attachment_size = attachment.size
+
+      # even if user chose no file to upload, currently there is still a record for that in attachment with size = 0 bytes
+      if attachment_size != '0 bytes':
+        filename = '%s_60.jpg' % attachment.md5
+        if attachment.md5 and api.is_s3_file(filename, db_name=self.db_name):
+          return 'http://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME, filename)
+        
+        return '/img/' + str(avatar) + '.jpg'
     
     # robohash
     default = "http://jupo.s3.amazonaws.com/images/user2.png"

@@ -953,7 +953,6 @@ def google_authorized():
   # save token for later use
   token = data.get('access_token')
   session['oauth_google_token'] = token
-  # print "DEBUG - in google_authorized - token = " + str(token)
   
   # fetch user info
   url = 'https://www.googleapis.com/oauth2/v1/userinfo'
@@ -967,7 +966,6 @@ def google_authorized():
   if not user_email or '@' not in user_email:
     return redirect('/')
   
-  # user_domain = (user_email.split('@')[1]).split('.')[0]
   user_domain = user_email.split('@')[1]
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
@@ -984,7 +982,6 @@ def google_authorized():
   db_name = '%s_%s' % (user_domain.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
 
-  
   # create new network
   api.new_network(db_name, db_name.split('_', 1)[0])
 
@@ -1003,7 +1000,6 @@ def google_authorized():
   
   app.logger.debug(db_name)
   app.logger.debug(user)
-  
   app.logger.debug(session_id)
   
   api.update_session_id(user_email, session_id, db_name)
