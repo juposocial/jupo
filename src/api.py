@@ -151,7 +151,7 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       subject = "%s has invited you to Jupo" % (kwargs.get('username'))
 
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
-    body = template.render(domain=domain, **kwargs)
+    body = template.render(domain=domain, to_addresses=to_addresses, **kwargs)
     
   elif mail_type == 'forgot_password':
     subject = 'Your password on Jupo'
@@ -922,6 +922,7 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
                           is_new_user=is_new_user,
                           user_id=user.id,
                           username=user.name, 
+                          avatar=user.avatar,
                           msg=msg,
                           group_id=group.id, 
                           group_name=group.name,
