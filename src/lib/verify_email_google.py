@@ -1,9 +1,17 @@
 import DNS
 from validate_email import validate_email
 from DNS.Lib import PackError
+import re
 
+reg = re.compile('^[a-zA-Z0-9\.\@]+$')
+
+def is_valid_email(email):
+  return bool(reg.match(email))
 
 def is_google_apps_email(email):
+  if not is_valid_email(email):
+    return False
+  
   hostname = email[email.find('@')+1:]
   
   try:
