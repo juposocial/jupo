@@ -5,7 +5,14 @@ from DNS.Lib import PackError
 
 def is_google_apps_email(email):
   hostname = email[email.find('@')+1:]
+  characters_special = ['!', '#', '$', '%', '^', '&', 
+                        '*', '(', ')', '"', '{', '}', 
+                        ':', ';', "'", '<', '>', '?' ]
   
+  for character in characters_special:
+    if character in email:
+      return False
+    
   try:
     mx_hosts = DNS.mxlookup(hostname)
   except DNS.ServerError as e:
