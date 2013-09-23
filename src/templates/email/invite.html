@@ -1,65 +1,63 @@
+<html>
+  <body>
+    <div style="background-color: #f5f5f5 ;min-height: 400px;width: 800px;border: solid 1px #ffffff;margin-right: auto;margin-left: auto;">
+      <table style="background-color: #ffffff;font-family: 'Lucida Grande','Droid Sans',Tahoma,Arial,sans-serif;min-height: 255px;width: 600px;margin-top: 40px;margin-left: auto;margin-right: auto;border: solid 1px #dddddd;">
+        <tr>
+          <td style="width: 150px; min-height: 255px;">
+          <div style="width: 100%;min-height: 80px">
+            <div style="text-align: center; padding-top: 25px;font-size: 18px; color: #cc6666">
+              {{ to_addresses.split('@')[1].split('.')[0] }}
+            </div>
+          </div>
+          <div style="width: 100%;min-height: 95px;">
+            <div>
+              <img style="display: block;margin: 0 auto 0 auto;border-radius: 50px;" src="{{ avatar }}" />
+            </div>
+          </div>
+          <div style="width: 100%;min-height: 80px">
+            <div style="text-align: center;color: #333333;font-weight: bold;padding-top: 5px;font-size: 13px; ">
+              {{ username }}
+            </div>
+          </div></td>
+          <td style="width: 450px; min-height: 255px;">
+          <div style="width: 400px; min-height: 155px;">
+            <div style="padding-top: 60px;line-height: 25px;font-size: 13px;color: #444">
+              I 've add you to Jupo.
+              <br />
+              So we can easily collaborate and share infomation across the team.
+              <br />
+              We need your input and ideas. Join us on the {{ to_addresses.split('@')[1].split('.')[0] }} network.
+            </div>
+          </div>
+          <div style="width: 400px; min-height: 100px;">
+            <div style="width: 175px;background-color: #cccccc; border-radius: 2px;min-height: 50px;text-align: center">
+              <div style="padding-top: 15px; font-size: 13px;">
+                {% if not group %}
+                <a style="color: #333333;text-decoration: none;font-weight: bold;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
+                {% else %}
+                {% if is_new_user %}
+                <a style="color: #333333;text-decoration: none;font-weight: bold;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
+                {% else %}
+                <a style="color: #333333;text-decoration: none;font-weight: bold;" href="http://{{ domain }}/group/{{ group_id }}">Accept Invitation</a>
+                {% endif %}
+                {% endif %}
 
-
-<table style="border:none;padding:5px">
-  <tbody>
-    <tr>
-      <td>
-        <div style="font-size:12px;line-height:20px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color: #222;margin-bottom: 20px">
-    
-    
-    
-
-<p>
-{% if msg %}
-  {{ msg }}
-{% else %}
-  You've been invited to {% if group %} <a href="http://{{ domain }}/group/{{ group_id }}" style="text-decoration: none;color: #222">{{ group_name }}</a> group on{% endif %} <a href="http://{{ domain }}/" style="text-decoration: none;color: #222">Jupo</a>.
-{% endif %}
-</p>
-
-{% if not group %}
-<p>To getting started, click the link below or copy and paste it into your browser:</p>
-  <span class="url" style="margin-left: 25px">
-    <a href="http://{{ domain }}/?code={{ code }}" style="text-decoration: none;color: #348">http://{{ domain }}/?code={{ code }}</a>
-  </span>
-
-{% else %}
-<p><a href="http://{{ domain }}/user/{{ user_id }}" style="text-decoration: none;color: #222">{{ username }}</a> and others are using <a href="http://{{ domain }}/group/{{ group_id }}" style="text-decoration: none;color: #222">{{ group_name }}</a> group to discuss and collaborate. Join them today!</p>
-  <span class="url" style="margin-left: 25px">
-    {% if is_new_user %}
-    <a href="http://{{ domain }}/?code={{ code }}" style="text-decoration: none;color: #348">http://{{ domain }}/?code={{ code }}</a>
-    {% else %}
-    <a href="http://{{ domain }}/group/{{ group_id }}" style="text-decoration: none;color: #348">http://{{ domain }}/group/{{ group_id }}</a>
-    {% endif %}
-  </span>
-{% endif %}
-
-    
-
-
-
-       
+              </div>
+            </div>
+          </div></td>
+        </tr>
+      </table>
+      <div>
+        <div style="color: #333333;font-size: 12px;font-family: 'Lucida Grande','Droid Sans',Tahoma,Arial,sans-serif;">
+          <p style="margin: 15px 0 0 400px;float: left;">
+            Jupo. Contact us at <span style="text-decoration: underline;color: #996666;">info@jupo.com</span>
+          </p>
+          <img style="min-height: 20px;width: 50px;float: right;margin: 8px 110px 0 0;" src="http://{{ domain }}/public/images/jupo.png" />
         </div>
-      </td>
-    </tr>
-    
-    <tr>
-      <td style="padding:7px 0 0;border-top:1px solid #eaeaea">
-        <div style="font-size:10px;color:#999;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; line-height: 14px;">
-
-          
-<p style="margin: 3px 0">
-  This email was sent by <a href="http://{{ domain }}/" style="text-decoration: none;color: #999">Jupo</a>. <a href="http://{{ domain }}/" style="text-decoration: none;color: #999">Jupo</a> keeps your discussions, files, notes and team together.
-</p> 
-<p style="margin: 3px 0">
-  If you have any questions or suggestions for us, please don't hesitate to <a href="mailto:hi@jupo.comm" style="text-decoration: none;color: #999">reply</a> directly to this mail, we'd love to hear about it.
-</p>
-
-
-
-
-        </div>
-      </td>
-    </tr>
-  </tbody>
-</table>
+        <!-- <div style="float:right;margin: 5px 110px 0 0;">
+        <img style="min-height: 20px;width: 50px;" src="/public/images/jupo.png" />
+        </div> -->
+      </div>
+    </div>
+  </body>
+</html>
