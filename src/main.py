@@ -114,7 +114,7 @@ def render_homepage(session_id, title, **kwargs):
     
   
   hostname = request.headers.get('Host')
-
+  
   #logo text based on subdomain (user-specific network)
   logo_text = hostname.split('.')[0]
 
@@ -124,7 +124,8 @@ def render_homepage(session_id, title, **kwargs):
       logo_text = network_info['name']
       if title == 'Jupo':
         title = logo_text
-
+    
+  network_name = owner.email.split('@')[1]
   resp = Response(render_template('home.html', 
                                   owner=owner,
                                   title=title, 
@@ -136,6 +137,7 @@ def render_homepage(session_id, title, **kwargs):
                                   stats=stats,
                                   debug=settings.DEBUG,
                                   logo_text=logo_text,
+                                  network_name=network_name,
                                   domain=hostname,
                                   request=request,
                                   settings=settings,
