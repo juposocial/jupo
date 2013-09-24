@@ -649,8 +649,14 @@ def get_session_id(user_id, db_name=None):
 def is_exists(email=None, db_name=None):
   if db_name is not None:
     if db_name in get_database_names():
-      return True
-    return False
+      # check further more, if there is no user yet, consider non-exist as well
+      db = DATABASE[db_name]
+      if db.owner.find_one():
+        return True
+      else:
+        return False
+    else:
+      return False
   elif db_name == settings.PRIMARY_DOMAIN.split(':')[0].replace('.', '_'):
     return True
   else:
