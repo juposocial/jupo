@@ -4263,6 +4263,9 @@ def new_attachment(session_id_or_user_id, filename, filedata):
   db = DATABASE[db_name]
   datastore = GridFS(db)
   
+  if not session_id_or_user_id:
+    return False
+  
   if isinstance(session_id_or_user_id, int) \
   or isinstance(session_id_or_user_id, long) \
   or session_id_or_user_id.isdigit():

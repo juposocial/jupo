@@ -1672,33 +1672,14 @@ def contacts():
   call_from = request.args.get('from')
   
   if call_from and call_from == 'posting':
-    # filter Google contacts that already in contacts (meaning registered)
-    google_contacts_not_registered = []
-
-    for c in owner.google_contacts_as_obj:
-      registered = 0
-
-      # loop through registered users to compare
-      for u in owner.contacts:
-        if u.email == c.email:
-          registered = 1
-
-      # add to google_contacts_not_registered
-      if registered == 0:
-        google_contacts_not_registered.append(c)
-    
-    # print "DEBUG - in contacts() - owner.contacts = " + str(owner.contacts[0].name) + " - " + str(owner.contacts[0].is_registered)
-    owner.google_contacts_as_obj = google_contacts_not_registered
-
-    # get groups
-    groups = api.get_groups(session_id)
+    tab = request.args.get('tab', 'contacts')
 
     body = render_template('contacts_posting.html',
-                          groups=groups,
-                          owner=owner)
+                           tab=tab,
+                           owner=owner)
   else:
     body = render_template('contacts.html',
-                          owner=owner)
+                           owner=owner)
   
   return Response(dumps({'body': body,
                          'title': 'Contacts'}), 

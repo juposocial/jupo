@@ -3,67 +3,86 @@
     <input autofocus type='text' name='query' placeholder="Search people">
 
   </form>
-  <h2>Contacts</h2>
+  <h2>
+      <a class='popup {% if tab == "groups" %}active{% endif %}' href='/contacts?from=posting&tab=groups'>Groups</a> · 
+      <a class='popup {% if tab == "contacts" %}active{% endif %}' href='/contacts?from=posting&tab=contacts'>Contacts</a> · 
+      <a class='popup {% if tab == "google-contacts" %}active{% endif %}' href='/contacts?from=posting&tab=google-contacts'>Google Contacts</a>
+  </h2>
 </div>
 
 <ul class='people'>
-  {% if groups %}
-    {% for group in groups %}
-      <li>
-        <label class='lfloat'>
-          <input type='checkbox' value='{{ group.id }}|{{ group.name }}' class='checkbox-posting' />
-        </label>
+  {% if tab == 'groups' %}
+    {% set groups = owner.groups %}
     
-        <!--<img class='small-avatar lfloat' src='{{ group.logo }}'>-->
+    {% if groups %}
     
-        <i class="group-icon"></i>
-        <a href='#' class='async user'>{{ group.name }}</a>
-        
-        <br>
-      </li>
-    {% endfor %}
-    <div class="line-separator"></div>
-  {% endif %}
-  {% set contacts = owner.contacts + owner.google_contacts_as_obj %}
-  {% if contacts %}
- 
-    {% for user in contacts %}
-      {% if user.email %}
-    
-        <li>
+      {% for group in owner.groups %}
+        <li class='select'>
           <label class='lfloat'>
-            <input type='checkbox' value='{{ user.id }}|{{ user.name }}' class='checkbox-posting' />
+            <input type='checkbox' value='{{ group.id }}|{{ group.name }}' class='checkbox-posting' />
           </label>
-
-          <!--
-          <a class='button chat rfloat' href='/chat/user/{{ user.id }}'>Start Chat</a>
-          -->
       
-          <img class='small-avatar lfloat' src='{{ user.avatar }}'>
-      
-          {% if user.is_registered() == True %} <!-- registered user -->
-            <a href='/user/{{ user.id }}' class='async user'>{{ user.name }}</a>
-            <i class='{{ user.status }}  user-{{ user.id }}-status'></i>
-          {% else %} <!-- Google contacts -->
-            <a href='#' class='async user'>{{ user.email }}</a>
-            Google contact
-          {% endif %}
+          <a href='/group/{{ group.id }}' class='async user'>{{ group.name }}</a><br>
+          <span class='info'>{{ group.member_ids | length }} members</span>
+          
           <br>
-      
-          {% set last_online = user.last_online %}
-          <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>
-            {{ last_online | friendly_format(owner.utcoffset, short=True) }}
-          </time>
-      
         </li>
-    
-      {% endif %}
-    {% endfor %}
-  {% else %}
-    <li>
-      Your contact list is empty. <a href="/search?type=email&ref=everyone" class="popup">Invite people by Email</a>
-    </li>
+      {% endfor %}
+    {% else %}
+      <li>
+        You have no groups. <a href="/group/new" class="popup">Create one</a>
+      </li>
+    {% endif %}
+  
+  {% elif tab in ['contacts', 'google-contacts'] %}
+  
+    {% if tab == 'google-contacts' %}
+      {% set contacts = owner.google_contacts_as_obj %}
+    {% else %}
+      {% set contacts = owner.contacts %}
+    {% endif %}
+ 
+    {% if contacts %}
+      {% for user in contacts %}
+        {% if user.email %}
+      
+          <li class='select'>
+            <label class='lfloat'>
+              <input type='checkbox' value='{{ user.id }}|{{ user.name }}' class='checkbox-posting' />
+            </label>
+        
+            <img class='small-avatar lfloat' src='{{ user.avatar }}'>
+        
+            {% if user.is_registered() == True %} <!-- registered user -->
+              <a href='/user/{{ user.id }}' class='async user'>{{ user.name }}</a>
+              <i class='{{ user.status }}  user-{{ user.id }}-status'></i>
+            {% else %} <!-- Google contacts -->
+              <a href='#' class='async user'>{{ user.email }}</a>
+            {% endif %}
+            <br>
+            
+            {% if user.is_registered() == True %}
+              {% set last_online = user.last_online %}
+              <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>
+                {{ last_online | friendly_format(owner.utcoffset, short=True) }}
+              </time>
+            {% else %}
+              <span class='info'>
+                <a class="invite" href="/invite?email={{ user.email }}">Send Invite</a>
+              </span>
+            {% endif %}
+        
+          </li>
+      
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <li>
+        You have no contacts. <a href="/invite" class="popup">Invite someone</a>
+      </li>
+    {% endif %}
   {% endif %}
+  
 </ul>
 <ul><li class="group-chat postin" style="display: inline;"><a id="submit-contacts-to-post" class="button chat lfloat" href='#'>Select</a></li></ul>
 

@@ -2437,6 +2437,7 @@ form.new a.select-contacts i {
 
 form.new a.select-contacts {
   opacity: .8;
+  padding: 1px 5px 1px 10px;
 }
 
 form.new a.select-contacts:hover {
@@ -6477,10 +6478,18 @@ article .file-attachment .title.image-name a {
 }
 
 #popup .content #page-header h2 a {
-  font-size: 16px;
-  font-weight: bold;
-  font-family: arial;
-  color: #37404e;
+  font-size: 12px;
+  padding: 0 2px;
+  color: rgba(137, 145, 156, 0.9);
+}
+
+#popup .content #page-header h2 a:first-child {
+  padding: 0 2px 0 0;
+}
+
+#popup .content #page-header h2 a.active {
+  color: #333;
+  font-size: 14px;
 }
 
 #popup .content #page-header .info {
@@ -7049,8 +7058,8 @@ width: 260px;
 
 #popup #page-header.search h2 {
   position: absolute;
-left: 22px;
-line-height: 25px;
+  left: 20px;
+  line-height: 25px;
 }
 
 #popup #page-header.search form {
@@ -7100,7 +7109,9 @@ top: 8px;
   padding: 0 10px 0 20px;
 }
 
-#popup .people span.email {
+#popup .people span.email, 
+#popup .people span.info,
+#popup .people span.info a {
   color: rgba(137,145,156,0.9);
   font-size: 11px;
   float: left;
@@ -7905,15 +7916,34 @@ div.chatbox div.header .arrow-top-border {
   left: 125px;
 }
 
-.line-separator{
-  height:1px;
-  border-bottom:1px dotted #313030;
-}
-
-
-
 .picker.modal-dialog-bg {
   z-index: 10;
 }
 
 
+
+#popup li.select {
+  z-index: 0;
+  padding: 15px 20px 13px 40px;
+  position: relative;
+}
+
+#popup li.select label {
+  padding-top: 22px;
+  padding-left: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  margin-left: 0;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+#popup li.select label:active {
+  background: #fafafa;
+}

@@ -790,7 +790,11 @@ $(document).ready(function(e) {
       }
     });
     
-    element.replaceWith('<a href="#" class="button"> ✔ Sent</a>');
+    if (element.hasClass('button') == true) {
+      element.replaceWith('<a href="#" class="button"> ✔ Sent</a>');
+    } else {
+      element.replaceWith('<a href="#"> ✔ Sent</a>');
+    }
     return false;
   });
 
