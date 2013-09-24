@@ -144,11 +144,17 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = template.render()
     
   elif mail_type == 'invite':
+    list_ref_text = ""
+    if kwargs.get('list_ref'):
+      list_ref_text = "and " + str(len(kwargs.get('list_ref')) - 1) + " other(s) "
+
     if kwargs.get('group_name'):
-      subject = "%s has invited you to %s" % (kwargs.get('username'), 
+      subject = "%s %s has invited you to %s" % (kwargs.get('username'),
+                                              list_ref_text, 
                                               kwargs.get('group_name'))
     else:
-      subject = "%s has invited you to Jupo" % (kwargs.get('username'))
+      subject = "%s %s has invited you to Jupo" % (kwargs.get('username'),
+                                              list_ref_text)
 
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
     body = template.render(domain=domain, **kwargs)
@@ -903,14 +909,19 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
   code = hashlib.md5(email + str(settings.SECRET_KEY)).hexdigest()
   info = db.owner.find_one({'email': email}, {'password': True, 'ref': True})
   is_new_user = True
+  list_ref = None
   if info:
     if info.has_key('password'):  # existed account
       _id = info['_id']
       is_new_user = False
     else:
       _id = info['_id']
+
+      # append user_id to the existing list of ObjectID in info['ref']
+      list_ref = [info['ref'], user_id] 
+      
       db.owner.update({'_id': _id},
-                      {'$set': {'ref': [info['ref'], user_id], # append user_id to the existing list of ObjectID in info['ref']
+                      {'$set': {'ref': list_ref, 
                                 'session_id': code,
                                 'timestamp': utctime()}})
   else:
@@ -939,6 +950,7 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
                           msg=msg,
                           group_id=group.id, 
                           group_name=group.name,
+                          list_ref=list_ref,
                           db_name=db_name)
   
   db.owner.update({'_id': user_id}, {'$addToSet': {'google_contacts': email}})
