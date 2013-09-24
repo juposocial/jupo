@@ -900,8 +900,8 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
   user_id = get_user_id(session_id)
   user = get_user_info(user_id)
   email = email.strip().lower()
-  code = hashlib.md5(email + str(utctime())).hexdigest()
-  info = db.owner.find_one({'email': email}, {'password': True})
+  code = hashlib.md5(email + str(settings.SECRET_KEY)).hexdigest()
+  info = db.owner.find_one({'email': email}, {'password': True, 'ref': True})
   is_new_user = True
   if info:
     if info.has_key('password'):  # existed account
@@ -910,7 +910,7 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
     else:
       _id = info['_id']
       db.owner.update({'_id': _id},
-                      {'$set': {'ref': user_id,
+                      {'$set': {'ref': [info['ref'], user_id], # append user_id to the existing list of ObjectID in info['ref']
                                 'session_id': code,
                                 'timestamp': utctime()}})
   else:
@@ -970,8 +970,9 @@ def complete_profile(code, name, password, gender, avatar):
   user = get_user_info(user_id)
 
   # add this user to list of contact of referal
-  referer_id = user.ref
-  add_to_contacts(get_session_id(referer_id), user_id)
+  referer_id_array = user.ref
+  for referer_id in referer_id_array:
+    add_to_contacts(get_session_id(referer_id), user_id)
   
   session_id = info['session_id']
   friends = db.owner.find({'google_contacts': user.email})
@@ -2209,9 +2210,12 @@ def get_invited_addresses(db_name=None, user_id=None):
   invited_addresses = [i['email'] \
                        for i in db.owner.find({'email': {'$ne': None}, 
                                                'name': None, 
-                                               'ref': user_id}, 
+                                               # 'ref': re.compile(str(user_id))}, 
+                                               'ref': user_id},
                                               {'email': True})]
 
+  print "DEBUG - in get_invited_addresses - user_id = " + str(user_id)
+  print "DEBUG - in get_invited_addresses - invited_addresses = " + str(invited_addresses)
   return invited_addresses
 
 def get_email_addresses(session_id, db_name=None):
