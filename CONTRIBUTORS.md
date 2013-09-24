@@ -1,4 +1,3 @@
-
   
 The current cast of people who work on Jupo it full time in Hanoi.
 
@@ -22,4 +21,4 @@ We have dozens of non-developer contributors as well. Amongst other activities, 
   * Evangelize Jupo in various places online
   
 We'd love to have YOU as a contributor too! 
-Come and talk to us on Jupo (<http://play.jupo.com/>) and we can help you get started.
+Come and talk to us on Jupo (<http://jupo.com/>) and we can help you get started.
