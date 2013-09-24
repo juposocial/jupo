@@ -43,8 +43,16 @@
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="#" title="DW Neon" rel="home">
-          <img src="/public/assets/img/logo.png" alt="">
+        <a class="navbar-brand" href="#" title="Jupo" rel="home">
+          {% if network != "" %}
+            <span class="network-logo">{{ network }}</span>
+            <!--
+            @
+            <img src="/public/assets/img/logo-small.png" alt="">
+            -->
+          {% else %}
+            <img src="/public/assets/img/logo.png" alt="">  
+          {% endif %}
         </a>
       </div>
       <nav id="site-navigation" class="main-navigation navbar-collapse collapse" role="navigation">
@@ -70,7 +78,11 @@
     <div class="jumbotron">
       <div class="container">
         <div class="intro">
-          <h1>Using Google Apps in a Facebook way!</h1>
+          {% if network_exist == 1 %}
+            <h1>Join network <span class="network-headline">{{ network }}</span> to collaborate with your colleagues now</h1>
+          {% else %}
+            <h1>Welcome to your network <span class="network-headline">{{ network }}</span>. <br/> Want to claim it ? Just sign in :)</h1>
+          {% endif %}
           <p>Google Apps get social with Jupo, just one-click away!</p>
           <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST" data-validate="parsley">
             <div class="form-group">

@@ -2341,10 +2341,15 @@ def home():
   
   session_id = request.args.get('session_id')
   
-  
+  network = ""
+  network_exist = 1
+
   if hostname != settings.PRIMARY_DOMAIN:
+    # used to 404 if network doesn't exist. now we switch to customized landing page for them (even if network doesn't exist yet)
     if not api.is_exists(db_name=hostname.replace('.', '_')):
-      abort(404)    
+      network_exist = 0
+    network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+
     if session_id:
       session.permanent = True
       session['session_id'] = request.args.get('session_id')
@@ -2394,6 +2399,8 @@ def home():
                                     email=email,
                                     settings=settings,
                                     domain=settings.PRIMARY_DOMAIN,
+                                    network=network,
+                                    network_exist=network_exist,
                                     message=message))
     
     back_to = request.args.get('back_to')
@@ -2402,7 +2409,6 @@ def home():
     
     return resp
   else:
-    # session.pop("session_id") #clear session_id here since sub-domain can't clear session_id when logout
     return redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN,
                                                 request.cookies.get('network')))
   
