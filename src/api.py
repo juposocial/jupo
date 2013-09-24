@@ -918,7 +918,12 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
       _id = info['_id']
 
       # append user_id to the existing list of ObjectID in info['ref']
-      list_ref = [info['ref'], user_id] 
+      if not isinstance(info['ref'], list):
+        list_ref = [info['ref'], user_id]
+      else:
+        if not user_id in info['ref']:
+          info['ref'].append(user_id)
+        list_ref = info['ref']
       
       db.owner.update({'_id': _id},
                       {'$set': {'ref': list_ref, 
