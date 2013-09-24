@@ -6807,7 +6807,12 @@ footer.entry-meta {
 }
 
 /* customized landing page for network */
-.network {
+.network-logo {
+  font-size: 1.5em;
+  color: #FFF;
+}
+
+.network-headline {
   background-color: #d62229;
   border-color: #ab171e;
   border: none !important;

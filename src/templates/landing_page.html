@@ -29,9 +29,14 @@
           <span class="icon-bar"></span>
         </button>
         <a class="navbar-brand" href="#" title="Jupo" rel="home">
-          <img src="/public/assets/img/logo.png" alt="">
           {% if network != "" %}
-            | {{ network }}
+            <span class="network-logo">{{ network }}</span>
+            <!--
+            @
+            <img src="/public/assets/img/logo-small.png" alt="">
+            -->
+          {% else %}
+            <img src="/public/assets/img/logo.png" alt="">  
           {% endif %}
         </a>
       </div>
@@ -59,9 +64,9 @@
       <div class="container">
         <div class="intro">
           {% if network_exist == 1 %}
-            <h1>Join network <span class="network">{{ network }}</span> to collaborate with your colleagues now</h1>
+            <h1>Join network <span class="network-headline">{{ network }}</span> to collaborate with your colleagues now</h1>
           {% else %}
-            <h1>Welcome to your network <span class="network">{{ network }}</span>. <br/> Want to claim it ? Just sign in :)</h1>
+            <h1>Welcome to your network <span class="network-headline">{{ network }}</span>. <br/> Want to claim it ? Just sign in :)</h1>
           {% endif %}
           <p>Google Apps get social with Jupo, just one-click away!</p>
           <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST" data-validate="parsley">
