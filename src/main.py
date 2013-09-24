@@ -2406,7 +2406,6 @@ def home():
     return redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN,
                                                 request.cookies.get('network')))
   
-  
 @app.route("/news_feed", methods=["GET", "OPTIONS"])
 @app.route("/news_feed/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route('/archived', methods=['GET', 'OPTIONS'])
@@ -2414,7 +2413,7 @@ def home():
 @app.route("/news_feed/archive_from_here", methods=["POST"])
 #@login_required
 @line_profile
-def news_feed(page=1):  
+def news_feed(page=1):
   session_id = session.get("session_id")
     
   if request.path.endswith('archive_from_here'):
@@ -2425,7 +2424,9 @@ def news_feed(page=1):
     
   user_id = api.get_user_id(session_id)
   if not user_id:
-    return redirect('/sign_in')
+    resp = Response(render_template('landing_page.html',
+                                    domain=settings.PRIMARY_DOMAIN))
+    return resp
   
   if user_id and request.cookies.get('redirect_to'):
     redirect_to = request.cookies.get('redirect_to')
