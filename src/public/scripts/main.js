@@ -36,7 +36,7 @@ $(document).ready(function(e) {
   $.global.history = [];
   sessionStorage.clear();
 
-  if ($('#header-container').length > 0) {
+  if ($('a#pick-avatar').length > 0) {
     init_avatar_uploader();
   }  
   refresh('#body');
