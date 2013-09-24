@@ -327,8 +327,18 @@ class User(Model):
       width = height = 50
       avatar_url = 'http://robohash.org/%s.png?set=set1&size=%sx%s&gravatar=yes' % (email, width, height)
     elif avatar_renderer == 'initials':
-      # render avatar
-      initials = ''.join([c[0].upper() for c in self.name.split(' ')])
+      # render avatar, using initials from first and last word
+      # initials = ''.join([c[0].upper() for c in self.name.split(' ')])
+      initials_array = self.name.split(' ')
+      first_initial = initials_array[0][0].upper()
+      
+      initials = first_initial
+
+      if len(initials_array) > 1:
+        last_initial = initials_array[-1][0].upper()
+        
+        initials = initials + "" + last_initial
+
       fontSize = 100
       
       fontPath = path.join(path.dirname(path.abspath(__file__)), "public/styles/HelveticaNeueLight.ttf")
