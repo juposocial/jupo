@@ -2431,6 +2431,7 @@ def news_feed(page=1):
   user_id = api.get_user_id(session_id)
   if not user_id:
     resp = Response(render_template('landing_page.html',
+                                    settings=settings,
                                     domain=settings.PRIMARY_DOMAIN))
     return resp
   
