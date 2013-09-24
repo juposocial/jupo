@@ -75,5 +75,8 @@ DROPBOX_APP_KEY = None
 CUSTOMER_IO_SITE_ID = None
 CUSTOMER_IO_API_KEY = None
 
+# Mixpanel
+MIXPANEL_TOKEN = None
+
 
 SENTRY_DSN = 'http://021f15179a8c48dc9a93183b9ce84f5f:7c882e6967574b69a71ecd8021f374ff@sentry.jupo.com/3'

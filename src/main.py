@@ -556,7 +556,9 @@ def discover(name='discover', page=1):
     if not user_id:
   #    return render_homepage(session_id, 'Get work done. Faster. | Jupo', 
   #                           view='intro')
-      return render_template('landing_page.html', domain=settings.PRIMARY_DOMAIN)
+      return render_template('landing_page.html', 
+                             settings=settings,
+                             domain=settings.PRIMARY_DOMAIN)
     else:
       return render_homepage(session_id, 'Discover', 
                              view='discover',
@@ -2390,6 +2392,7 @@ def home():
     message = request.args.get('message')
     resp = Response(render_template('landing_page.html',
                                     email=email,
+                                    settings=settings,
                                     domain=settings.PRIMARY_DOMAIN,
                                     message=message))
     
