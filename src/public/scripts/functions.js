@@ -2235,58 +2235,15 @@ function refresh(element) {
  
  
   if ($(element + ' #google-drive-chooser').length > 0) {
-    var new_post_file_picker = new FilePicker({
-      apiKey: GOOGLE_API_KEY,
-      clientId: GOOGLE_CLIENT_ID,
-      buttonEl: document.getElementById('google-drive-chooser'),
-      onSelect: function(file) {
-        
-        if ($('div#attachments div#attachment-' + file.id).length == 0) {
-          
-          delete file.exportLinks;
-          delete file.result;
-          
-          var link = null;
-          if (file.embedLink) {
-            link = file.embedLink;
-          } else {
-            link = file.webContentLink;
-          }
-        
-          var html = "<div class='attachment' id='attachment-" + file.id + "' data-file='" + btoa(JSON_stringify(file)) + "'>"
-                   + "<a href='" + link + "' target='_blank'>" + file.title + "</a>" 
-                   + "<a class='remove-attachment' href='#'>×</a>"
-                   + "</div>";
-          
-          $('div#attachments').append(html);
-          $('div#attachments').removeClass('hidden');
-      
-          attachments = $('input[name="attachments"]').val() + btoa(JSON_stringify(file)) + ',';
-          $('input[name="attachments"]').val(attachments);
-      
-          refresh('div#attachments');
-          
-          
-          $('form a#pick-file').trigger('click');
-        }
-             
-      }
-      
-      
-    }); 
-  }
-  
-  $(element + ' li.feed[id]').each(function(index, value) {
-    var post_id = $(this).attr('id');
-    
-    if ($(element + ' #google-drive-file-chooser-' + post_id).length > 0) {
-    
-      var a = new FilePicker({
+    try {
+      var new_post_file_picker = new FilePicker({
         apiKey: GOOGLE_API_KEY,
         clientId: GOOGLE_CLIENT_ID,
-        buttonEl: document.getElementById('google-drive-file-chooser-' + post_id),
+        buttonEl: document.getElementById('google-drive-chooser'),
         onSelect: function(file) {
           
+          if ($('div#attachments div#attachment-' + file.id).length == 0) {
+            
             delete file.exportLinks;
             delete file.result;
             
@@ -2296,24 +2253,70 @@ function refresh(element) {
             } else {
               link = file.webContentLink;
             }
-            
-          if ($('li#' + post_id + ' div.attachments div#attachment-' + file.id).length == 0) {
-            
-              var html = "<div class='attachment' id='attachment-" + file.id + "' data-file='" + btoa(JSON_stringify(file)) + "'>"
-                       + "<a href='" + link + "' target='_blank'>" + file.title + "</a>" 
-                       + "<a class='remove-attachment' href='#'>×</a>"
-                       + "</div>";
-              
-              $('li#' + post_id + ' div.attachments').append(html);
-              $('li#' + post_id + ' div.attachments').removeClass('hidden');
           
-              attachments = $('li#' + post_id + ' input[name="attachments"]').val() + btoa(JSON_stringify(file)) + ',';
-              $('li#' + post_id + ' input[name="attachments"]').val(attachments);
-          
-              refresh('li#' + post_id + ' div.attachments');
-            }
+            var html = "<div class='attachment' id='attachment-" + file.id + "' data-file='" + btoa(JSON_stringify(file)) + "'>"
+                     + "<a href='" + link + "' target='_blank'>" + file.title + "</a>" 
+                     + "<a class='remove-attachment' href='#'>×</a>"
+                     + "</div>";
+            
+            $('div#attachments').append(html);
+            $('div#attachments').removeClass('hidden');
+        
+            attachments = $('input[name="attachments"]').val() + btoa(JSON_stringify(file)) + ',';
+            $('input[name="attachments"]').val(attachments);
+        
+            refresh('div#attachments');
+            
+            
+            $('form a#pick-file').trigger('click');
+          }
+               
         }
+        
+        
       }); 
+    } catch (err) {}
+  }
+  
+  $(element + ' li.feed[id]').each(function(index, value) {
+    var post_id = $(this).attr('id');
+    
+    if ($(element + ' #google-drive-file-chooser-' + post_id).length > 0) {
+      try {
+        var a = new FilePicker({
+          apiKey: GOOGLE_API_KEY,
+          clientId: GOOGLE_CLIENT_ID,
+          buttonEl: document.getElementById('google-drive-file-chooser-' + post_id),
+          onSelect: function(file) {
+            
+              delete file.exportLinks;
+              delete file.result;
+              
+              var link = null;
+              if (file.embedLink) {
+                link = file.embedLink;
+              } else {
+                link = file.webContentLink;
+              }
+              
+            if ($('li#' + post_id + ' div.attachments div#attachment-' + file.id).length == 0) {
+              
+                var html = "<div class='attachment' id='attachment-" + file.id + "' data-file='" + btoa(JSON_stringify(file)) + "'>"
+                         + "<a href='" + link + "' target='_blank'>" + file.title + "</a>" 
+                         + "<a class='remove-attachment' href='#'>×</a>"
+                         + "</div>";
+                
+                $('li#' + post_id + ' div.attachments').append(html);
+                $('li#' + post_id + ' div.attachments').removeClass('hidden');
+            
+                attachments = $('li#' + post_id + ' input[name="attachments"]').val() + btoa(JSON_stringify(file)) + ',';
+                $('li#' + post_id + ' input[name="attachments"]').val(attachments);
+            
+                refresh('li#' + post_id + ' div.attachments');
+              }
+          }
+        }); 
+      } catch (err) {}
     }
     
   });
