@@ -95,6 +95,27 @@
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             
           </form>
+
+          <br/>
+
+          <form class="form-inline" role="form" id='sign-in' action='/{{ network }}/sign_in' method='post' data-validate="parsley">
+            <div class="form-group">
+              <input type='text' name='email' class="form-control" placeholder="Email" autocomplete="off" data-type="email" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}>
+              <input type='password' name='password' class="form-control" placeholder="Password" autocomplete="off" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}>
+            </div>
+
+            <button class="btn btn-success" type="submit" id="submit">Get Started!</button>
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="network" value="{{ network }}">
+            <input type="hidden" name="back_to" value="http://{{ domain }}/{{ network }}">
+
+            {% if message %}
+              <p class='msg'>
+                <strong>{{ message | safe }}</strong>
+              </p>
+            {% endif %}
+          </form>
+
         </div>
         <div class='flash-message'></div>
         {% with messages = get_flashed_messages() %}

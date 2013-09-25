@@ -664,6 +664,7 @@ def jobs():
 @app.route("/<any(sign_in, sign_up, sign_out, forgot_password, reset_password):action>", methods=["GET", "OPTIONS", "POST"])
 def authentication(action=None):
   hostname = request.headers.get('Host')
+  print "DEBUG - in authentication - hostname = " + str(hostname)
   
   db_name = hostname.replace('.', '_')
   
@@ -703,12 +704,26 @@ def authentication(action=None):
     
     email = request.form.get("email")
     password = request.form.get("password")
+
     back_to = request.form.get('back_to', request.args.get('back_to'))
     user_agent = request.environ.get('HTTP_USER_AGENT')
     app.logger.debug(user_agent)
     remote_addr = request.environ.get('REMOTE_ADDR')
-    session_id = api.sign_in(email, password, 
-                             user_agent=user_agent, remote_addr=remote_addr)
+
+    network = request.form.get("network")
+
+    session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+
+    if session_id is None: # new user
+      # sign up instantly (!)
+      api.sign_up(email=email, password=password, name="", user_agent=user_agent, remote_addr=remote_addr)
+
+      # then sign in again
+      session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+    elif session_id == False: # existing user, wrong password
+      flash('Wrong password, please try again :)')
+      return redirect(back_to)
+
     app.logger.debug(session_id)
     if session_id:
     
@@ -731,6 +746,10 @@ def authentication(action=None):
       else:
         resp = redirect('/news_feed')  
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
+
+      # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
+      resp.set_cookie('network', network)
+
       return resp
     else:
       if not email:
@@ -1086,7 +1105,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
                                            name=me.data.get('name'), 
                                            gender=me.data.get('gender'), 
                                            avatar='https://graph.facebook.com/%s/picture' % facebook_id, 
-                                           link=me.data.get('link'), 
+                                           link=me.data.get('link'),
                                            locale=me.data.get('locale'), 
                                            timezone=me.data.get('timezone'), 
                                            verified=me.data.get('verified'), 
@@ -2319,6 +2338,7 @@ def messages(user_id=None, topic_id=None, action=None):
 @line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
+  print "DEBUG - in home() - hostname = " + str(hostname)
   
   session_id = request.args.get('session_id')
   
