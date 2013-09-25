@@ -124,7 +124,9 @@ def render_homepage(session_id, title, **kwargs):
       logo_text = network_info['name']
       if title == 'Jupo':
         title = logo_text
-
+  
+  if not kwargs.has_key('first_login'):
+    kwargs['first_login'] = None
   resp = Response(render_template('home.html', 
                                   owner=owner,
                                   title=title, 
@@ -593,7 +595,7 @@ def invite():
     else:
       group = {}
       title = None
-      
+    
     return dumps({'title': title,
                   'body': render_template('invite.html', 
                                           title=title,
@@ -1486,7 +1488,6 @@ def user(user_id=None, page=1, view=None):
     gender = request.form.get('gender')
     password = request.form.get('password')
     avatar = request.files.get('file')
-    
     fid = api.new_attachment(session_id, avatar.filename, avatar.stream.read())
     new_session_id = api.complete_profile(session_id, 
                                           name, password, gender, fid)
@@ -2144,9 +2145,12 @@ def chat(topic_id=None, user_id=None, action=None):
       if type_ == 'google-drive-file':
         message = '@[%s](%s:%s)' % (name, type_, link)
       else:
-        message = '@[%s (%s)](dropbox-file:%s)' % (name, 
+        if bytes:
+          message = '@[%s (%s)](dropbox-file:%s)' % (name, 
                                                    api.sizeof(int(bytes)),
                                                    link)
+        else:
+          message = '@[%s](dropbox-file:%s)' % (name, link)
       html = api.new_message(session_id, message, 
                              user_id=user_id, topic_id=topic_id,)
       return html
@@ -2567,6 +2571,8 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
+@app.route("/feed/<int:feed_id>/view_plain_html", methods=["OPTIONS", "POST"])
+@app.route("/feed/<int:feed_id>/<int:comment_id>/view_comment_plain_html", methods=["OPTIONS", "POST"])
 @line_profile
 def feed_actions(feed_id=None, action=None, 
                  message_id=None, domain=None, comment_id=None):
@@ -2655,7 +2661,18 @@ def feed_actions(feed_id=None, action=None,
       return render_template('feed.html', 
                              owner=owner,
                              feed=feed)
-    
+  
+  elif request.path.endswith('/view_plain_html'):
+    feed = api.get_feed(session_id, feed_id)
+    body = feed.plain_html.replace('\n',' ')
+    json = dumps({'body':body, 'title':'view_plain_html'})
+    return Response(json, content_type='application/json')
+  
+  elif request.path.endswith('view_comment_plain_html'):
+    body = api.get_plain_html_in_comment(session_id, feed_id, comment_id)
+    json = dumps({'body':body, 'title':'view_plain_html'})
+    return Response(json, content_type='application/json')
+  
   elif request.path.endswith('/reshare'):
     if request.method == 'GET':
       return render_template('reshare.html', feed_id=feed_id)

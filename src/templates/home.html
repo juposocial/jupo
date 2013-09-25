@@ -338,7 +338,7 @@
          
       {% if request.args and not request.path.endswith('/new') %}
         $(document).ready(function() {
-            hopscotch.startTour({{ request.args.keys()[0] }});
+            hopscotch.startTour('{{ request.args.keys()[0] }}');
         })
       {% endif %}
   </script>
