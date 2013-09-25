@@ -148,8 +148,13 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
       subject = "%s has invited you to %s" % (kwargs.get('username'), 
                                               kwargs.get('group_name'))
     else:
-      subject = "%s has invited you to Jupo" % (kwargs.get('username'))
-
+      if kwargs.get('username'):
+        subject = "%s has invited you to %s" % (kwargs.get('username'),
+                                                domain.split('/')[1].split('.')[0])
+      else:
+        subject = "%s has invited you to %s" % (kwargs.get('sender').split('@')[0],
+                                                domain.split('/')[1].split('.')[0])
+        
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
     body = template.render(domain=domain, **kwargs)
     
@@ -935,6 +940,7 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
                           is_new_user=is_new_user,
                           user_id=user.id,
                           username=user.name,
+                          sender=user.email,
                           avatar=user.avatar,
                           msg=msg,
                           group_id=group.id, 

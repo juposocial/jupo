@@ -16,7 +16,11 @@
           </div>
           <div style="width: 100%;min-height: 80px">
             <div style="text-align: center;color: #333333;font-weight: bold;padding-top: 5px;font-size: 13px;font-family: Lucida grande; ">
-              {{ username }}
+              {% if username %}
+                {{ username.split('@')[0] }}
+              {% else %}
+                {{ sender.split('@')[0] }}
+              {% endif %}
             </div>
           </div></td>
           <td style="width: 450px; min-height: 255px;">
