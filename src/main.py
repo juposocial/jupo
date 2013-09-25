@@ -1497,33 +1497,33 @@ def user(user_id=None, page=1, view=None):
     return resp
     
   elif request.path.endswith('/update'):
-    old_password = request.form.get('current_password')
-    new_password = request.form.get('new_password')
-    confirm_new_password = request.form.get('confirm_new_password')
-    
-    if not new_password:
-      return redirect('/?message=New password must not be empty')
-      
-    
-    if old_password:
-      if new_password != confirm_new_password:
-        return redirect('/?message=New password does not match')
-      else:
-        ok = api.change_password(session_id, old_password, new_password)
-        
-        api.set_status(session_id, 'offline')
-        api.sign_out(session_id)
-        session.pop('session_id')
-        
-        return redirect('/?message=Password updated successfully.')
-    
-    if not old_password and new_password and new_password == confirm_new_password:
-      if owner.has_password():
-        return redirect('/?message=Please enter your current password.')
-      else:
-        user_id = api.get_user_id(session_id)
-        api.reset_password(user_id, new_password)
-        return redirect('/?message=New password updated successfully.')
+#     old_password = request.form.get('current_password')
+#     new_password = request.form.get('new_password')
+#     confirm_new_password = request.form.get('confirm_new_password')
+#     
+#     if not new_password:
+#       return redirect('/?message=New password must not be empty')
+#       
+#     
+#     if old_password:
+#       if new_password != confirm_new_password:
+#         return redirect('/?message=New password does not match')
+#       else:
+#         ok = api.change_password(session_id, old_password, new_password)
+#         
+#         api.set_status(session_id, 'offline')
+#         api.sign_out(session_id)
+#         session.pop('session_id')
+#         
+#         return redirect('/?message=Password updated successfully.')
+#     
+#     if not old_password and new_password and new_password == confirm_new_password:
+#       if owner.has_password():
+#         return redirect('/?message=Please enter your current password.')
+#       else:
+#         user_id = api.get_user_id(session_id)
+#         api.reset_password(user_id, new_password)
+#         return redirect('/?message=New password updated successfully.')
     
     
     name = request.form.get('name')
