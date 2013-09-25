@@ -431,9 +431,11 @@ def get_database_name():
   db_name = None
   if request:
     hostname = request.headers.get('Host')
+    print "DEBUG - in get_database_name - hostname = " + str(hostname)
       
     if hostname:
       network = request.cookies.get('network')
+      print "DEBUG - in get_database_name - network = " + str(network)
       if network and not hostname.startswith(network):
         hostname = network + '.' + settings.PRIMARY_DOMAIN
         
@@ -1159,6 +1161,7 @@ def sign_in_with_twitter():
 
 def sign_up(email, password, name, user_agent=None, remote_addr=None):
   db_name = get_database_name()
+  print "DEBUG - in sign_up - db_name = " + db_name
   db = DATABASE[db_name]
   
   email = email.strip().lower()
