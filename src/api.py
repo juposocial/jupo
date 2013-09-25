@@ -254,7 +254,14 @@ def is_snowflake_id(_id):
   else:
     return False
 
-  
+def is_domain_name(host):
+  if not host:
+    return False
+  try:
+    socket.gethostbyname(host)
+    return True
+  except socket.gaierror:
+    return False
 
 #===============================================================================
 # Securely hash and check passwords using PBKDF2

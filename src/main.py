@@ -3365,8 +3365,8 @@ class NetworkNameDispatcher(object):
   def __call__(self, environ, start_response):
     path = environ.get('PATH_INFO', '')
     items = path.lstrip('/').split('/', 1)
-      
-    if '.' in items[0]:  # is domain name
+    
+    if '.' in items[0] and api.is_domain_name(items[0]):  # is domain name
       # print "DEBUG - in NetworkNameDispatcher - items = " + items[0]
       
       # save user network for later use
