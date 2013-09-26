@@ -2195,8 +2195,6 @@ def get_member_email_addresses(db_name=None):
                             for i in db.owner.find({'email': {'$ne': None}, 'name' : {'$ne': None}}, 
                                                    {'email': True})]
 
-  # print "DEBUG - in get_member_email_addresses - member_email_addresses = " + str(member_email_addresses)
-
   return member_email_addresses
 
 def get_invited_addresses(db_name=None, user_id=None):
@@ -2276,6 +2274,18 @@ def all_emails():
   db = DATABASE[db_name]
   
   return db.email.find()
+
+def update_user_avatar(email, avatar=None):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  email = email.strip().lower()
+  if avatar:
+    if db.owner.find_one({'email': email}):
+      db.owner.update({'email': email}, {'$set': {'avatar': avatar}})
+  
+  cache.delete('%s:all_users' % db_name)
+  return True
 
 def update_user(email, name=None, owner=None, avatar=None):
   db_name = get_database_name()
