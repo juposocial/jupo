@@ -3073,6 +3073,7 @@ def profile_pictures(attachment_id, size='60'):
     if size.isdigit():
       size = int(size)
       filedata = zoom(data, size, size)
+      # filedata = data
     else:
       width, height = size.split('_')
       filedata = zoom(data, int(width), int(height))
