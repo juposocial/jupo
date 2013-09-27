@@ -1057,6 +1057,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   #  return facebook.authorize(callback='http://play.jupo.com/oauth/facebook/authorized')
     callback_url = url_for('facebook_authorized',
                            domain=request.args.get('domain', settings.PRIMARY_DOMAIN),
+                           network=request.args.get('network'),
                            _external=True)
     app.logger.debug(callback_url)
     return facebook.authorize(callback=callback_url)
@@ -1067,6 +1068,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   @facebook.authorized_handler
   def facebook_authorized(resp):
     domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+    network = request.args.get('network')
     
     if resp is None:
       return 'Access denied: reason=%s error=%s' % (request.args['error_reason'],
@@ -1097,7 +1099,8 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     facebook_id = me.data['id']
     friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
   
-    db_name = domain.lower().strip().replace('.', '_')
+    # generate db_name based on full URL ( e.g. gmail.com.jupo.com)
+    db_name = (network + "." + domain).lower().strip().replace('.', '_')
     
     user_info = api.get_user_info(email=me.data.get('email'), db_name=db_name)
   
@@ -1124,16 +1127,23 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
           if db != db_name:
             api.update_session_id(email, session_id, db)
           
+    # support subdir ( domain/network )
+    url = 'http://%s/%s/' % (domain, network)
+
     if domain == settings.PRIMARY_DOMAIN:
       session['session_id'] = session_id
+
       if user_info.id:
-        return redirect('/')
+        url = url
       else: # new user
-        return redirect('/everyone?getting_started=1')
+        url = url + 'everyone?getting_started=1'
     else:
-      url = 'http://%s/?session_id=%s' % (domain, session_id)
-      resp = redirect(url)
-      return resp
+      url = url + 'session_id=' + str(session_id)
+
+    resp = redirect(url)
+    resp.set_cookie('network', network)
+
+    return resp
   
   
   @facebook.tokengetter

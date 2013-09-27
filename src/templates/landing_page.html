@@ -83,7 +83,14 @@
           {% else %}
             <h1>Welcome to your network <span class="network-headline">{{ network }}</span>. <br/> Want to claim it ? Just sign in :)</h1>
           {% endif %}
-          <p>Google Apps get social with Jupo, just one-click away!</p>
+          <!--<p>Google Apps get social with Jupo, just one-click away!</p>-->
+
+          <div class='social-login'>
+            <a href='/oauth/facebook?domain={{ domain }}&network={{ network }}' class='facebook-button'> <i class='fb-icon'></i> <span> Login with Facebook </span> </a>
+            <a href='/oauth/google?domain={{ domain }}' class='google-button'> <i class='google-plus-icon'></i> <span>Login with Google</span> </a>
+          </div>
+
+          <!--
           <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST" data-validate="parsley">
             <div class="form-group">
               <input id="email" name="email" type="text" class="form-control" placeholder="Enter you Google Apps mail here!" data-type="email" data-error-message="Email is blank or not provided by Google App. Please check again" data-error-container="div.flash-message" />
@@ -95,9 +102,9 @@
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             
           </form>
-
           <br/>
-
+          -->
+          <p>... or just use your own email</p>
           <form class="form-inline" role="form" id='sign-in' action='/{{ network }}/sign_in' method='post' data-validate="parsley">
             <div class="form-group">
               <input type='text' name='email' class="form-control" placeholder="Email" autocomplete="off" data-type="email" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}>
