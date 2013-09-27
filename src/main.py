@@ -722,7 +722,6 @@ def authentication(action=None):
           if db != db_name:
             api.update_session_id(email, session_id, db)
 
-      
       session.permanent = True
       session['session_id'] = session_id
       if back_to:
@@ -1006,6 +1005,7 @@ def google_authorized():
   
   api.update_session_id(user_email, session_id, db_name)
   session['session_id'] = session_id
+  session.permanent = True
 
   # create standard groups (e.g. for Customer Support, Sales) for this new network
   # print  str(api.new_group (session_id, "Sales", "Open", "Group for Sales teams"))
@@ -1107,6 +1107,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
           
     if domain == settings.PRIMARY_DOMAIN:
       session['session_id'] = session_id
+      session.permanent = True
       if user_info.id:
         return redirect('/')
       else: # new user
