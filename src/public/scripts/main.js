@@ -846,16 +846,11 @@ $(document).ready(function(e) {
       }
     });
     href = href.replace('/unfollow', '/follow');
-    
-    
-    if (window.location.href.indexOf('/group/') != -1) {
-      element.replaceWith('<a href="' + href + '" class="button follow">Follow</a>');
+
+    if ($(this).parents('#right-sidebar').length > 0) {
+      element.replaceWith('<a href="' + href + '" class="follow">+ Add Contact</a>');
     } else {
-      if ($(this).parents('#right-sidebar').length > 0) {
-        element.replaceWith('<a href="' + href + '" class="follow">+ Add Contact</a>');
-      } else {
-        element.replaceWith('<a href="' + href + '" class="button follow">Add to Contacts</a>');
-      }
+      element.replaceWith('<a href="' + href + '" class="button follow">Add to Contacts</a>');
     }
     return false;
   });

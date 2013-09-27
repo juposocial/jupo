@@ -372,12 +372,12 @@
             {% if owner.id in group.administrator_ids %}
               <a class='popup button' href='/group/{{ group.id }}/edit'>Edit Group</a>
             {% elif owner.id in group.member_ids %}
-              <a class='unfollow button' href='/group/{{ group.id }}/unfollow'>{% if group.privacy == 'open' %}Unfollow{% else %}Leave Group{% endif %}</a>
+              <a class='button toggle' href='/group/{{ group.id }}/unfollow' data-name='Join Group' data-href='/group/{{ group.id }}/follow'>Leave Group</a>
             {% elif owner.id in group.pending_member_ids %}
               <a class='toggle button' href='/group/{{ group.id }}/unfollow' data-name='Ask to Join Group' data-href='/group/{{ group.id }}/follow'>Cancel Request</a>
             {% else %}
               {% if group.privacy == 'open' %}
-              <a class='button toggle' href='/group/{{ group.id }}/follow' data-name='Unfollow' data-href='/group/{{ group.id }}/unfollow'>Follow</a>
+              <a class='button toggle' href='/group/{{ group.id }}/follow' data-name='Leave Group' data-href='/group/{{ group.id }}/unfollow'>Join Group</a>
               {% else %}
               <a class='button toggle' href='/group/{{ group.id }}/follow' data-name='Cancel Request' data-href='/group/{{ group.id }}/unfollow'>Ask to Join Group</a>
               {% endif %}
@@ -408,7 +408,7 @@
             {% if group.id == 'public' %}
             <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
             {% elif owner.id in group.member_ids or group.privacy == 'open' %}
-            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.member_ids | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.member_ids | length }} Members</a>
             {% else %}
             {{ group.about }}
             {% endif %}
@@ -545,7 +545,7 @@
         <div class='body'>
            <div class='stats'>
              
-            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} Members</a>
             
             {% if group.id != 'public' and owner.id in group.member_ids %}
              · <a href='/search?query=&type=people&ref=group-{{ group.id }}' class='popup'>Add people</a>
@@ -575,7 +575,7 @@
             {% if group.id == 'public' %}
             <a href='/people' class='popup'>{{ group.members_count }} People</a>
             {% else %}
-            <a href='/group/{{ group.id }}/members' class='popup'>{{ group.members_count }} {% if group.privacy == 'open' %}Followers{% else %}Members{% endif %}</a>
+            <a href='/group/{{ group.id }}/members' class='popup'>{{ group.members_count }} Members</a>
             {% endif %}
             
             

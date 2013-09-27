@@ -20,7 +20,7 @@
           <span>{{ group.name | truncate(25, True) }}</span>
         
           <div class='info'>
-            <span class=''>{{ group.members | length }} {% if group.privacy == 'open' %}followers{% else %}members{% endif %}</span>          
+            <span class=''>{{ group.members | length }} members</span>
           </div>
         </a>
       </li>
@@ -63,7 +63,7 @@
           <span>{{ group.name | truncate(25, True) }}</span>
         
           <div class='info'>
-            <span class=''>{{ group.members | length }} {% if group.privacy == 'open' %}followers{% else %}members{% endif %}</span>          
+            <span class=''>{{ group.members | length }} members</span>
           </div>
         </a>
       </li>
