@@ -2894,7 +2894,7 @@ $(document).ready(function(e) {
               var group_chat_url = $('#popup .group-chat a').attr('href');
               if (group_chat_url != undefined)
               {
-                $('input.checkbox-chat','#popup').show();
+                $('#popup label.checkbox').show();
                 $('#popup ul.people li input[type="checkbox"]').each(function(index, value) {
                   if (group_chat_url.indexOf($(this).val()) != -1) {
                     $(this).attr('checked', 'checked');
