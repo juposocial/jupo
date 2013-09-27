@@ -321,11 +321,12 @@ class User(Model):
       # robohash
       default = "http://jupo.s3.amazonaws.com/images/user2.png"
       if not self.email:
-        avatar_url = default
+        return default
       
       email = self.email.strip().lower()
       width = height = 50
-      avatar_url = 'http://robohash.org/%s.png?set=set1&size=%sx%s&gravatar=yes' % (email, width, height)
+      avatar_url = 'http://robohash.org/%s.png?set=set1&size=%sx%s&gravatar=yes'\
+                   % (email, width, height)
     elif avatar_renderer == 'initials':
       # render avatar, using initials from first and last word
       # initials = ''.join([c[0].upper() for c in self.name.split(' ')])
@@ -339,12 +340,14 @@ class User(Model):
         
         initials = initials + "" + last_initial
 
-      fontSize = 100
+      font_size = 100
       
-      fontPath = path.join(path.dirname(path.abspath(__file__)), "public/styles/HelveticaNeueLight.ttf")
-      font = ImageFont.truetype(fontPath, fontSize)
+      font_path = path.join(path.dirname(path.abspath(__file__)),
+                            "public/styles/HelveticaNeueLight.ttf")
+      font = ImageFont.truetype(font_path, font_size)
       
-      # big canvas with big font size --> still being crisp when resize later (hopefully)
+      # big canvas with big font size --> still being crisp when
+      # resize later (hopefully)
       W, H = (230, 230)
       blank_canvas = Image.new("RGBA", (W, H), (255,255,255))
       draw = ImageDraw.Draw(blank_canvas)
@@ -515,7 +518,6 @@ class User(Model):
   
   @property
   def google_contacts(self):
-    # return [User({'_id': api.get_user_id_from_email_address(email, db_name=self.db_name), 'email': email}) for email in self.info.get('google_contacts', [])]
     return self.info.get('google_contacts')
 
   @property

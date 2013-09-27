@@ -1675,6 +1675,10 @@ def contacts():
   if call_from and call_from == 'posting':
     tab = request.args.get('tab', 'contacts')
 
+    if tab == 'google-contacts':
+      if owner.google_contacts:
+        owner.google_contacts = [api.get_user_info(email=email)
+                                 for email in owner.google_contacts]
     body = render_template('contacts_posting.html',
                            tab=tab,
                            owner=owner)

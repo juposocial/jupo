@@ -638,7 +638,7 @@ def get_session_id(user_id, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  if user_id and user_id != 'public':
+  if str(user_id).isdigit():
     user = db.owner.find_one({"_id": long(user_id)}, {'session_id': True,
                                                       'password': True})
     if not user:

@@ -37,7 +37,7 @@
   {% elif tab in ['contacts', 'google-contacts'] %}
   
     {% if tab == 'google-contacts' %}
-      {% set contacts = owner.google_contacts_as_obj %}
+      {% set contacts = owner.google_contacts %}
     {% else %}
       {% set contacts = owner.contacts %}
     {% endif %}
@@ -62,10 +62,14 @@
             <br>
             
             {% if user.is_registered() == True %}
-              {% set last_online = user.last_online %}
-              <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>
-                {{ last_online | friendly_format(owner.utcoffset, short=True) }}
-              </time>
+              {% if tab == 'google-contacts' %}
+                <span class='info'>{{ user.email }}</span>
+              {% else %}
+                {% set last_online = user.last_online %}
+                <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>
+                  {{ last_online | friendly_format(owner.utcoffset, short=True) }}
+                </time>
+              {% endif %}
             {% else %}
               <span class='info'>
                 <a class="invite" href="/invite?email={{ user.email }}">Send Invite</a>
