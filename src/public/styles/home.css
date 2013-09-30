@@ -7357,6 +7357,32 @@ form.invite textarea {
   resize: none;
 }
 
+form.invite ul.emails {
+  margin-top: 3px;
+  margin-bottom: 12px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  height: 100px;
+  overflow-y: auto;
+  border: 1px solid rgba(196,205,224,0.6);
+  box-shadow: inset 0 1px 3px -1px #ddd;
+}
+
+
+form.invite ul.emails label {
+  color: #333;
+  display: block;
+  padding: 2px 5px;
+  float: none;
+}
+
+form.invite ul.emails input[type='checkbox'] {
+  float: left;
+  margin-top: 3px;
+  margin-right: 6px;
+}
 /*
 form.invite ul.token-input-list {
   width: 478px;

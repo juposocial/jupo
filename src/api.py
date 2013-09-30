@@ -2238,7 +2238,7 @@ def get_member_email_addresses(db_name=None):
   # (same table owner, got no email field)
   member_email_addresses = [i['email'] \
                             for i in db.owner.find({'email': {'$ne': None}, 'name' : {'$ne': None}}, 
-                                                   {'email': True})]
+                                                   {'email': True}) if i.get('email').strip()]
 
   return member_email_addresses
 
@@ -2256,7 +2256,8 @@ def get_invited_addresses(db_name=None, user_id=None):
                                                'name': None, 
                                                # 'ref': re.compile(str(user_id))}, 
                                                'ref': user_id},
-                                              {'email': True})]
+                                              {'email': True})\
+                       if i.get('email').strip()]
 
   print "DEBUG - in get_invited_addresses - user_id = " + str(user_id)
   print "DEBUG - in get_invited_addresses - invited_addresses = " + str(invited_addresses)

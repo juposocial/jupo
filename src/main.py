@@ -581,6 +581,8 @@ def invite():
 
     # not registered but got invitation
     invited_addrs = api.get_invited_addresses(user_id=user_id)
+    
+    google_contacts = owner.google_contacts
 
     email_addrs = []
     if owner.google_contacts is not None:
@@ -598,7 +600,9 @@ def invite():
                   'body': render_template('invite.html', 
                                           title=title,
                                           email_addrs=email_addrs,
+                                          member_addrs=member_addrs,
                                           invited_addrs=invited_addrs,
+                                          google_contacts=google_contacts,
                                           group=group)})
   else:
     email = request.form.get('email', request.args.get('email'))
@@ -606,20 +610,17 @@ def invite():
       api.invite(session_id, email, group_id)
       return ' ✔ Done '
     else:
-      addrs = request.form.get('to')
-      invited_addrs = request.form.get('to_invited')
+      addrs = set()
+      for k in request.form.keys():
+        if k.startswith('item-'):
+          addrs.add(request.form.get(k))
+           
+      for i in request.form.get('to', '').split(','):
+        if i:
+          addrs.add(i)
+      
       msg = request.form.get('msg')
-      if addrs or invited_addrs:
-        if addrs:
-          addrs = addrs.split(',')
-        else:
-          addrs = []
-
-        # include invited email address (if any) as well
-        if invited_addrs:
-          invited_addrs = invited_addrs.split(',')
-          addrs = addrs + invited_addrs
-
+      if addrs:
         for addr in addrs:
           if addr.isdigit():
             email = api.get_user_info(addr).email

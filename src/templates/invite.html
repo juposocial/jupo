@@ -1,32 +1,28 @@
   <div id="page-header">
-          <h2>{% if title %}{{ title | safe }}{% else %}Invite Friends to Jupo{% endif %}</h2>
+          <h2>{% if title %}{{ title | safe }}{% elif email_addrs or invited_addrs %}Get the team together{% else %}Invite Friends to Jupo{% endif %}</h2>
   </div> 
 
   <form class='invite' action='/invite' method='post'>
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="group_id" value="{{ group.id }}">
     
-    <!--
-    <ul class='people'>
-      {% if email_addrs %}
+    {% if email_addrs or invited_addrs %}
+    
+    {{ email_addrs | length }} people haven't joined yet. <a class='toggle-check-all'>Check/Uncheck All</a>
+    <ul class='emails'>
         {% for email in email_addrs %}
-          {{ email }}
+          <li><label><input type='checkbox' value='{{ email }}' checked name='item-1-{{ loop.index }}'> {{ email }}</label></li>
         {% endfor %}
-      {% else %}
-        <li>
-          Your Google contact list is empty
-        </li>
-      {% endif %}
+        
+        {% for email in invited_addrs %}
+          <li><label><input type='checkbox' value='{{ email }}' name='item-2-{{ loop.index }}'> {{ email }}</label></li>
+        {% endfor %}
     </ul>
-    -->
-
-    <label>Type names or email addresses:</label>
-    <input class="friends" placeholder="Enter an email address..." name='to'></input><br>
-
-    {% if invited_addrs|length > 0 %}
-      <label>People has been invited but not joined yet, give them a reminder as well?</label>
-      <input class="friends_invited" placeholder="Enter an email address..." name='to_invited'></input><br>
     {% endif %}
+    
+
+    <label>Let me type:</label>
+    <input class="friends" placeholder="Enter an email address..." name='to'><br>
     
     <label>Message (optional)</label>
     <textarea name='msg'></textarea>
@@ -37,17 +33,26 @@
   
 <script>
 
+  $('.toggle-check-all').click(function() {
+    if ($('ul.emails input[type="checkbox"]').attr('checked') == null) {
+      $('ul.emails input[type="checkbox"]').attr('checked', 'checked');
+    } else {
+      $('ul.emails input[type="checkbox"]').attr('checked', null);
+    }
+    return false;
+  });
+
    users = [
      {% for email in email_addrs %}
        {'type': 'email', 'avatar': '/public/images/send-mail.png', 'name': '{{ email }}', 'id': '{{ email }}'}, 
      {% endfor %}
-   ]
+   ];
 
    users_invited = [
      {% for email in invited_addrs %}
        {'type': 'email', 'avatar': '/public/images/send-mail.png', 'name': '{{ email }}', 'id': '{{ email }}'}, 
      {% endfor %}
-   ]
+   ];
   
    $('input.friends').tokenInput(users, {
       searchDelay: 300,
@@ -87,15 +92,6 @@
         $('div.token-input-dropdown').css('visibility','visible');
         $('div.token-input-dropdown').css('display','none');
     });
-
-    //populate with all Google App emails
-    {% for email in email_addrs %}
-      $('input.friends').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});
-    {% endfor %}
-
-    {% for email in invited_addrs %}
-      $('input.friends_invited').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});
-    {% endfor %}
  
 
 </script>
