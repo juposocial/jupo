@@ -6,7 +6,7 @@ from flask import redirect, request, session, Response
 from functools import wraps
 from lib import cache
 import api
-
+import settings
 
 def login_required(f):
   """
@@ -26,7 +26,8 @@ def login_required(f):
         
       return f(*args, **kwargs)
     
-    resp = redirect('/')
+    url_landing_page = 'http://' + settings.PRIMARY_DOMAIN
+    resp = redirect(url_landing_page)
     resp.delete_cookie('channel_id')
     resp.delete_cookie('network')
     resp.delete_cookie('new_user')
@@ -34,7 +35,13 @@ def login_required(f):
     if back_to:
       resp.set_cookie('redirect_to', back_to)
     else:
-      resp.set_cookie('redirect_to', request.url)
+      hostname = request.headers.get('Host')
+      network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+      back_to = request.url
+      path = back_to[(back_to.find(hostname) + len(hostname)):]
+      url_redirect = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN,
+                                          network, path)
+      resp.set_cookie('redirect_to', url_redirect)
     return resp
   return wrapper
   
