@@ -966,8 +966,7 @@ def google_login():
 @app.route('/oauth/google/authorized')
 def google_authorized():
   code = request.args.get('code')
-  domain = request.args.get('state').split(";")[0]
-  network = request.args.get('state').split(";")[1]
+  domain, network = request.args.get('state').split(";")
   
   # get access_token
   url = 'https://accounts.google.com/o/oauth2/token'
@@ -1146,9 +1145,8 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     if domain == settings.PRIMARY_DOMAIN:
       session['session_id'] = session_id
 
-      if user_info.id:
-        url = url
-      else: # new user
+      # getting start for new user
+      if not user_info.id:
         url = url + 'everyone?getting_started=1'
     else:
       url = url + 'session_id=' + str(session_id)
