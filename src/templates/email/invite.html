@@ -22,7 +22,11 @@
           <td style="width: 450px; min-height: 255px;">
           <div style="width: 400px; min-height: 155px;">
             <div style="padding-top: 60px;line-height: 25px;font-size: 13px;color: #444";>
+              {% if not group_id %}
               <span style="font-family: Lucida grande"> I 've add you to Jupo.</span>
+              {% else %}
+              <span style="font-family: Lucida grande"> I 've add you to {{ group_name }}.</span>
+              {% endif %}
               <br />
               <span style="font-family: Lucida grande">So we can easily collaborate and share infomation across the team.</span>
               <br />
@@ -32,7 +36,7 @@
           <div style="width: 400px; min-height: 100px;">
             <div style="width: 175px;background-color: #cccccc; border-radius: 2px;min-height: 50px;text-align: center">
               <div style="padding-top: 15px; font-size: 13px;">
-                {% if not group %}
+                {% if not group_id %}
                 <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
                 {% else %}
                 {% if is_new_user %}
