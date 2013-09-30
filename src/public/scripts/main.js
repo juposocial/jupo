@@ -923,12 +923,17 @@ $(document).ready(function(e) {
   
   $('#popup').on("submit", 'form.invite', function() {
     var _this = $(this);
+    
+    $('input.button', _this).val('Sending...');
     $.ajax({
       type: "POST",
       cache: false,
       url: $(this).attr('action'),
       data: $(this).serializeArray(),
       success: function(group_id) {
+        
+        $('input.button', _this).val('Send Invitation');
+        
         $('textarea[name="msg"]', _this).val('');
         $('input.friends', _this).tokenInput('clear');
         
@@ -936,6 +941,7 @@ $(document).ready(function(e) {
         return false;
       },
       error: function() {
+        $('input.button', _this).val('Send Invitation');
         $('textarea[name="msg"]', _this).val('');
         $('input.friends', _this).tokenInput('clear');
         

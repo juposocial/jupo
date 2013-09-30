@@ -144,29 +144,39 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = template.render()
     
   elif mail_type == 'invite':
-    ref_count = len(kwargs.get('list_ref', []))
+    refs = kwargs.get('list_ref', [])
+    ref_count = len(refs)
     if ref_count >= 2:
+      text = kwargs.get('username')
       if ref_count == 2:
-        list_ref_text = "and 1 other"
+        text += ' and %s' % get_user_info([i for i in refs \
+                                           if i != kwargs.get('user_id')][-1],
+                                          db_name=db_name).name
+      elif ref_count == 3:
+        text += ', %s and 1 other' % \
+          (get_user_info([i for i in refs \
+                          if i != kwargs.get('user_id')][-1],
+                         db_name=db_name).name)
       else:
-        list_ref_text = "and %s others" % (ref_count - 1)
+        text += ', %s and %s others' % \
+          (get_user_info([i for i in refs \
+                          if i != kwargs.get('user_id')][-1],
+                         db_name=db_name).name,
+           ref_count - 2)
+      
+      text += ' have invited you to'
         
       if kwargs.get('group_name'):
-        subject = "%s %s have invited you to %s" % (kwargs.get('username'),
-                                                    list_ref_text, 
-                                                    kwargs.get('group_name'))
+        subject = "%s %s" % (text, kwargs.get('group_name'))
       else:
-        subject = "%s %s have invited you to Jupo" % (kwargs.get('username'),
-                                                      list_ref_text)
+        subject = "%s Jupo" % (text)
 
     else:
       if kwargs.get('group_name'):
-        subject = "%s %s has invited you to %s" % (kwargs.get('username'),
-                                                   list_ref_text, 
-                                                   kwargs.get('group_name'))
+        subject = "%s has invited you to %s" % (kwargs.get('username'),
+                                                kwargs.get('group_name'))
       else:
-        subject = "%s %s has invited you to Jupo" % (kwargs.get('username'),
-                                                     list_ref_text)
+        subject = "%s has invited you to Jupo" % (kwargs.get('username'))
 
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
     body = template.render(domain=domain, **kwargs)
@@ -918,34 +928,39 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
   user_id = get_user_id(session_id)
   user = get_user_info(user_id)
   email = email.strip().lower()
-  code = hashlib.md5(email + str(settings.SECRET_KEY)).hexdigest()
+  code = hashlib.md5(email + settings.SECRET_KEY).hexdigest()
   info = db.owner.find_one({'email': email}, {'password': True, 'ref': True})
   is_new_user = True
   list_ref = None
   if info:
-    if info.has_key('password'):  # existed account
-      _id = info['_id']
-      is_new_user = False
-    else:
-      _id = info['_id']
+    _id = info['_id']
 
-      # append user_id to the existing list of ObjectID in info['ref']
-      if not isinstance(info['ref'], list):
-        list_ref = [info['ref'], user_id]
-      else:
+    # append user_id to the existing list of ObjectID in info['ref']
+    if not info.get('ref'):
+      list_ref = []
+    else:
+      if isinstance(info['ref'], list):
         if not user_id in info['ref']:
           info['ref'].append(user_id)
         list_ref = info['ref']
-      
-      db.owner.update({'_id': _id},
-                      {'$set': {'ref': list_ref, 
-                                'session_id': code,
-                                'timestamp': utctime()}})
+      else:
+        list_ref = [info['ref']]
+    
+    list_ref.append(user_id)
+    list_ref = list(set(list_ref))
+    
+    if info.get('password'):
+      actions = {'$set': {'ref': list_ref}}
+    else:
+      actions = {'$set': {'ref': list_ref, 
+                          'session_id': code}}
+  
+    db.owner.update({'_id': _id}, actions)
   else:
     _id = new_id()
     db.owner.insert({'_id': _id,
                      'email': email,
-                     'ref': user_id,
+                     'ref': [user_id],
                      'timestamp': utctime(),
                      'session_id': code})
     
