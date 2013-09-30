@@ -130,7 +130,7 @@ div.hopscotch-bubble {
   font-family: Helvetica, Arial;
   font-size: 13px;
   position: absolute;
-  z-index: 999999;
+  z-index: 9;
   -moz-background-clip: padding;
   -webkit-background-clip: padding;
   background-clip: padding-box;

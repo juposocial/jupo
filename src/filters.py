@@ -435,7 +435,7 @@ def flavored_markdown(text):
   
 @line_profile
 def to_embed_code(url, width=437, height=246): 
-  youtube_embed_code_template = '<iframe width="%s" height="%s" src="https://www.youtube.com/embed/%s?wmode=opaque" frameborder="0" allowfullscreen></iframe>'
+  youtube_embed_code_template = '<iframe width="%s" height="%s" src="//www.youtube.com/embed/%s?wmode=opaque" frameborder="0" allowfullscreen></iframe>'
   if not url.startswith('http'):
     urls = api.extract_urls(url)
     if urls:
