@@ -23,7 +23,7 @@
       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
       
         <input name='email' type='text' placeholder='{{ owner.email }}' readonly>
-        <input name='name' type='text' placeholder='Display name'>
+        <input name='name' type='text' placeholder='Display name' required="">
 
         <!-- hidden due to the change to Google App authentication only -->
         <input type='hidden' name='password' value=''>
