@@ -144,11 +144,39 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = template.render()
     
   elif mail_type == 'invite':
-    if kwargs.get('group_name'):
-      subject = "%s has invited you to %s" % (kwargs.get('username'), 
-                                              kwargs.get('group_name'))
+    refs = kwargs.get('list_ref', [])
+    ref_count = len(refs)
+    if ref_count >= 2:
+      text = kwargs.get('username')
+      if ref_count == 2:
+        text += ' and %s' % get_user_info([i for i in refs \
+                                           if i != kwargs.get('user_id')][-1],
+                                          db_name=db_name).name
+      elif ref_count == 3:
+        text += ', %s and 1 other' % \
+          (get_user_info([i for i in refs \
+                          if i != kwargs.get('user_id')][-1],
+                         db_name=db_name).name)
+      else:
+        text += ', %s and %s others' % \
+          (get_user_info([i for i in refs \
+                          if i != kwargs.get('user_id')][-1],
+                         db_name=db_name).name,
+           ref_count - 2)
+      
+      text += ' have invited you to'
+        
+      if kwargs.get('group_name'):
+        subject = "%s %s" % (text, kwargs.get('group_name'))
+      else:
+        subject = "%s Jupo" % (text)
+
     else:
-      subject = "%s has invited you to Jupo" % (kwargs.get('username'))
+      if kwargs.get('group_name'):
+        subject = "%s has invited you to %s" % (kwargs.get('username'),
+                                                kwargs.get('group_name'))
+      else:
+        subject = "%s has invited you to Jupo" % (kwargs.get('username'))
 
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
     body = template.render(domain=domain, **kwargs)
@@ -900,24 +928,39 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
   user_id = get_user_id(session_id)
   user = get_user_info(user_id)
   email = email.strip().lower()
-  code = hashlib.md5(email + str(utctime())).hexdigest()
-  info = db.owner.find_one({'email': email}, {'password': True})
+  code = hashlib.md5(email + settings.SECRET_KEY).hexdigest()
+  info = db.owner.find_one({'email': email}, {'password': True, 'ref': True})
   is_new_user = True
+  list_ref = None
   if info:
-    if info.has_key('password'):  # existed account
-      _id = info['_id']
-      is_new_user = False
+    _id = info['_id']
+
+    # append user_id to the existing list of ObjectID in info['ref']
+    if not info.get('ref'):
+      list_ref = []
     else:
-      _id = info['_id']
-      db.owner.update({'_id': _id},
-                      {'$set': {'ref': user_id,
-                                'session_id': code,
-                                'timestamp': utctime()}})
+      if isinstance(info['ref'], list):
+        if not user_id in info['ref']:
+          info['ref'].append(user_id)
+        list_ref = info['ref']
+      else:
+        list_ref = [info['ref']]
+    
+    list_ref.append(user_id)
+    list_ref = list(set(list_ref))
+    
+    if info.get('password'):
+      actions = {'$set': {'ref': list_ref}}
+    else:
+      actions = {'$set': {'ref': list_ref, 
+                          'session_id': code}}
+  
+    db.owner.update({'_id': _id}, actions)
   else:
     _id = new_id()
     db.owner.insert({'_id': _id,
                      'email': email,
-                     'ref': user_id,
+                     'ref': [user_id],
                      'timestamp': utctime(),
                      'session_id': code})
     
@@ -939,6 +982,7 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
                           msg=msg,
                           group_id=group.id, 
                           group_name=group.name,
+                          list_ref=list_ref,
                           db_name=db_name)
   
   db.owner.update({'_id': user_id}, {'$addToSet': {'google_contacts': email}})
@@ -970,8 +1014,9 @@ def complete_profile(code, name, password, gender, avatar):
   user = get_user_info(user_id)
 
   # add this user to list of contact of referal
-  referer_id = user.ref
-  add_to_contacts(get_session_id(referer_id), user_id)
+  referer_id_array = user.ref
+  for referer_id in referer_id_array:
+    add_to_contacts(get_session_id(referer_id), user_id)
   
   session_id = info['session_id']
   friends = db.owner.find({'google_contacts': user.email})
@@ -2209,9 +2254,12 @@ def get_invited_addresses(db_name=None, user_id=None):
   invited_addresses = [i['email'] \
                        for i in db.owner.find({'email': {'$ne': None}, 
                                                'name': None, 
-                                               'ref': user_id}, 
+                                               # 'ref': re.compile(str(user_id))}, 
+                                               'ref': user_id},
                                               {'email': True})]
 
+  print "DEBUG - in get_invited_addresses - user_id = " + str(user_id)
+  print "DEBUG - in get_invited_addresses - invited_addresses = " + str(invited_addresses)
   return invited_addresses
 
 def get_email_addresses(session_id, db_name=None):
