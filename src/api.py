@@ -889,14 +889,14 @@ def sign_in(email, password, user_agent=None, remote_addr=None):
   else:
     session_id = None
     if user.get('password') is True:
-      # user logged in via oAuth, return specific provider (based on user link)
-      oAuth_provider = ""
+      # user logged in via oauth, return specific provider (based on user link)
+      oauth_provider = ""
 
       if "facebook" in user.get("link"):
-        oAuth_provider = 'Facebook'
+        oauth_provider = 'Facebook'
         return -1
       elif "google" in user.get("link"):
-        oAuth_provider = 'Google'
+        oauth_provider = 'Google'
         return -2
       else:
         return False
