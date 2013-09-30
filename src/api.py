@@ -459,9 +459,11 @@ def get_database_name():
   db_name = None
   if request:
     hostname = request.headers.get('Host')
+    # print "DEBUG - in get_database_name - hostname = " + str(hostname)
       
     if hostname:
       network = request.cookies.get('network')
+      # print "DEBUG - in get_database_name - network = " + str(network)
       if network and not hostname.startswith(network):
         hostname = network + '.' + settings.PRIMARY_DOMAIN
         
@@ -880,13 +882,24 @@ def sign_in(email, password, user_agent=None, remote_addr=None):
   email = email.strip().lower()
   user = db.owner.find_one({"email": email}, {'password': True,
                                               'salt': True,
+                                              'link': True,
                                               'session_id': True})
   if not user or not user.get('password'):
     return None
   else:
     session_id = None
     if user.get('password') is True:
-      return False
+      # user logged in via oauth, return specific provider (based on user link)
+      oauth_provider = ""
+
+      if "facebook" in user.get("link"):
+        oauth_provider = 'Facebook'
+        return -1
+      elif "google" in user.get("link"):
+        oauth_provider = 'Google'
+        return -2
+      else:
+        return False
     elif '$' in user.get('password'): # PBKDF2 hashing
       ok = check_hash(password, user['password'])
     else:  # old password hashing (sha512 + salt)
@@ -1204,6 +1217,7 @@ def sign_in_with_twitter():
 
 def sign_up(email, password, name, user_agent=None, remote_addr=None):
   db_name = get_database_name()
+  print "DEBUG - in sign_up - db_name = " + db_name
   db = DATABASE[db_name]
   
   email = email.strip().lower()

@@ -65,7 +65,7 @@
               <a href="http://blog.jupo.com">Blog</a>
             </li>
             <li class="page_item page-item-4">
-              <a href="/oauth/google?domain=jupo.com" class="btn btn-sign-in">Sign-in</a>
+              <a href="/oauth/google?domain={{ domain }}&network={{ network }}" class="btn btn-sign-in">Sign-in</a>
             </li>
           </ul>
         </div>
@@ -83,19 +83,50 @@
           {% else %}
             <h1>Welcome to your network <span class="network-headline">{{ network }}</span>. <br/> Want to claim it ? Just sign in :)</h1>
           {% endif %}
-          <p>Google Apps get social with Jupo, just one-click away!</p>
-          <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST" data-validate="parsley">
-            <div class="form-group">
-              <input id="email" name="email" type="text" class="form-control" placeholder="Enter you Google Apps mail here!" data-type="email" data-error-message="Email is blank or not provided by Google App. Please check again" data-error-container="div.flash-message" />
+          <!--<p>Google Apps get social with Jupo, just one-click away!</p>-->
+
+          {% if network %}
+            <!-- for sub-network -->
+            <div class='social-login'>
+              <a href='/oauth/facebook?domain={{ domain }}&network={{ network }}' class='facebook-button'> <i class='fb-icon'></i> <span> Login with Facebook </span> </a>
+              <a href='/oauth/google?domain={{ domain }}&network={{ network }}' class='google-button'> <i class='google-plus-icon'></i> <span>Login with Google</span> </a>
             </div>
-            <button class="btn btn-success" type="submit" id="submit">Get Started!</button>
-            
-            <input type="hidden" name="domain" value="{{ domain }}">
-            <input type="hidden" name="call_from" value="landing">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-            
-          </form>
+
+            <p>... or just use your own email</p>
+            <form class="form-inline" role="form" id='sign-in' action='/{{ network }}/sign_in' method='post' data-validate="parsley">
+              <div class="form-group">
+                <input type='text' name='email' class="form-control" placeholder="Email" autocomplete="off" data-type="email" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}>
+                <input type='password' name='password' class="form-control" placeholder="Password" autocomplete="off" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}>
+              </div>
+
+              <button class="btn btn-success" type="submit" id="submit">Get Started!</button>
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="network" value="{{ network }}">
+              <input type="hidden" name="back_to" value="http://{{ domain }}/{{ network }}">
+
+              {% if message %}
+                <p class='msg'>
+                  <strong>{{ message | safe }}</strong>
+                </p>
+              {% endif %}
+            </form>
+          {% else %}
+            <!-- for landing page -->
+            <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST" data-validate="parsley">
+              <div class="form-group">
+                <input id="email" name="email" type="text" class="form-control" placeholder="Enter you Google Apps mail here!" data-type="email" data-error-message="Email is blank or not provided by Google App. Please check again" data-error-container="div.flash-message" />
+              </div>
+              <button class="btn btn-success" type="submit" id="submit">Get Started!</button>
+
+              <input type="hidden" name="domain" value="{{ domain }}">
+              <input type="hidden" name="call_from" value="landing">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+            </form>
+            <br/>
+          {% endif %}
         </div>
+
         <div class='flash-message'></div>
         {% with messages = get_flashed_messages() %}
           {% if messages %}

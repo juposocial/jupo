@@ -704,12 +704,32 @@ def authentication(action=None):
     
     email = request.form.get("email")
     password = request.form.get("password")
+
     back_to = request.form.get('back_to', request.args.get('back_to'))
     user_agent = request.environ.get('HTTP_USER_AGENT')
     app.logger.debug(user_agent)
     remote_addr = request.environ.get('REMOTE_ADDR')
-    session_id = api.sign_in(email, password, 
-                             user_agent=user_agent, remote_addr=remote_addr)
+
+    network = request.form.get("network")
+
+    session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+
+    if session_id is None: # new user
+      # sign up instantly (!)
+      api.sign_up(email=email, password=password, name="", user_agent=user_agent, remote_addr=remote_addr)
+
+      # then sign in again
+      session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+    elif session_id == False: # existing user, wrong password
+      flash('Wrong password, please try again :)')
+      return redirect(back_to)
+    elif session_id == -1:
+      flash('You used this email address with Facebook login. Please try it again')
+      return redirect(back_to)
+    elif session_id == -2:
+      flash('You used this email address with Google login. Please try it again')
+      return redirect(back_to)
+
     app.logger.debug(session_id)
     if session_id:
     
@@ -731,6 +751,10 @@ def authentication(action=None):
       else:
         resp = redirect('/news_feed')  
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
+
+      # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
+      resp.set_cookie('network', network)
+
       return resp
     else:
       if not email:
@@ -932,16 +956,17 @@ def google_login():
     email = request.args.get('email')
 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+  network = request.args.get('network')
   
   # return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt_1=auto&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
   #                % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
   return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
-                  % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
+                  % (settings.GOOGLE_REDIRECT_URI, (domain + ";" + network), settings.GOOGLE_CLIENT_ID, email, email))
 
 @app.route('/oauth/google/authorized')
 def google_authorized():
   code = request.args.get('code')
-  domain = request.args.get('state', settings.PRIMARY_DOMAIN)
+  domain, network = request.args.get('state').split(";")
   
   # get access_token
   url = 'https://accounts.google.com/o/oauth2/token'
@@ -968,7 +993,13 @@ def google_authorized():
   if not user_email or '@' not in user_email:
     return redirect('/')
   
+  # with this, user network will be determined solely based on user email
   user_domain = user_email.split('@')[1]
+
+  # if network = '', user logged in from homepage --> determine network based on user email address
+  # if network != '', user logged in from sub-network page --> let authenticate user with that sub-network
+  if network and network != "":
+    user_domain = network
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
@@ -1039,6 +1070,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   #  return facebook.authorize(callback='http://play.jupo.com/oauth/facebook/authorized')
     callback_url = url_for('facebook_authorized',
                            domain=request.args.get('domain', settings.PRIMARY_DOMAIN),
+                           network=request.args.get('network'),
                            _external=True)
     app.logger.debug(callback_url)
     return facebook.authorize(callback=callback_url)
@@ -1049,6 +1081,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   @facebook.authorized_handler
   def facebook_authorized(resp):
     domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+    network = request.args.get('network')
     
     if resp is None:
       return 'Access denied: reason=%s error=%s' % (request.args['error_reason'],
@@ -1079,7 +1112,8 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     facebook_id = me.data['id']
     friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
   
-    db_name = domain.lower().strip().replace('.', '_')
+    # generate db_name based on full URL ( e.g. gmail.com.jupo.com)
+    db_name = (network + "." + domain).lower().strip().replace('.', '_')
     
     user_info = api.get_user_info(email=me.data.get('email'), db_name=db_name)
   
@@ -1087,7 +1121,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
                                            name=me.data.get('name'), 
                                            gender=me.data.get('gender'), 
                                            avatar='https://graph.facebook.com/%s/picture' % facebook_id, 
-                                           link=me.data.get('link'), 
+                                           link=me.data.get('link'),
                                            locale=me.data.get('locale'), 
                                            timezone=me.data.get('timezone'), 
                                            verified=me.data.get('verified'), 
@@ -1106,17 +1140,23 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
           if db != db_name:
             api.update_session_id(email, session_id, db)
           
+    # support subdir ( domain/network )
+    url = 'http://%s/%s/' % (domain, network)
+
     if domain == settings.PRIMARY_DOMAIN:
       session['session_id'] = session_id
       session.permanent = True
-      if user_info.id:
-        return redirect('/')
-      else: # new user
-        return redirect('/everyone?getting_started=1')
+
+      # getting start for new user
+      if not user_info.id:
+        url = url + 'everyone?getting_started=1'
     else:
-      url = 'http://%s/?session_id=%s' % (domain, session_id)
-      resp = redirect(url)
-      return resp
+      url = url + '?session_id=' + str(session_id)
+
+    resp = redirect(url)
+    resp.set_cookie('network', network)
+
+    return resp
   
   
   @facebook.tokengetter
@@ -2325,6 +2365,7 @@ def messages(user_id=None, topic_id=None, action=None):
 @line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
+  print "DEBUG - in home() - hostname = " + str(hostname)
   
   session_id = request.args.get('session_id')
   
@@ -3391,7 +3432,7 @@ class NetworkNameDispatcher(object):
       request = Request(environ)
       network = request.cookies.get('network')
       if not network:
-        return self.app(environ, start_response) 
+        return self.app(environ, start_response)
       
       if request.method == 'GET':
         url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN,
