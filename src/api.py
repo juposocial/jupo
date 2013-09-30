@@ -144,17 +144,29 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = template.render()
     
   elif mail_type == 'invite':
-    list_ref_text = ""
-    if kwargs.get('list_ref'):
-      list_ref_text = "and " + str(len(kwargs.get('list_ref')) - 1) + " other(s) "
+    ref_count = len(kwargs.get('list_ref', []))
+    if ref_count >= 2:
+      if ref_count == 2:
+        list_ref_text = "and 1 other"
+      else:
+        list_ref_text = "and %s others" % (ref_count - 1)
+        
+      if kwargs.get('group_name'):
+        subject = "%s %s have invited you to %s" % (kwargs.get('username'),
+                                                    list_ref_text, 
+                                                    kwargs.get('group_name'))
+      else:
+        subject = "%s %s have invited you to Jupo" % (kwargs.get('username'),
+                                                      list_ref_text)
 
-    if kwargs.get('group_name'):
-      subject = "%s %s has invited you to %s" % (kwargs.get('username'),
-                                              list_ref_text, 
-                                              kwargs.get('group_name'))
     else:
-      subject = "%s %s has invited you to Jupo" % (kwargs.get('username'),
-                                              list_ref_text)
+      if kwargs.get('group_name'):
+        subject = "%s %s has invited you to %s" % (kwargs.get('username'),
+                                                   list_ref_text, 
+                                                   kwargs.get('group_name'))
+      else:
+        subject = "%s %s has invited you to Jupo" % (kwargs.get('username'),
+                                                     list_ref_text)
 
     template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
     body = template.render(domain=domain, **kwargs)
