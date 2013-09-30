@@ -956,7 +956,7 @@ def google_login():
     email = request.args.get('email')
 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
-  network = request.args.get('network')
+  network = request.args.get('network', '')
   
   # return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt_1=auto&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
   #                % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
