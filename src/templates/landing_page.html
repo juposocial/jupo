@@ -65,7 +65,7 @@
               <a href="http://blog.jupo.com">Blog</a>
             </li>
             <li class="page_item page-item-4">
-              <a href="/oauth/google?domain=jupo.com" class="btn btn-sign-in">Sign-in</a>
+              <a href="/oauth/google?domain={{ domain }}&network={{ network }}" class="btn btn-sign-in">Sign-in</a>
             </li>
           </ul>
         </div>
@@ -87,7 +87,7 @@
 
           <div class='social-login'>
             <a href='/oauth/facebook?domain={{ domain }}&network={{ network }}' class='facebook-button'> <i class='fb-icon'></i> <span> Login with Facebook </span> </a>
-            <a href='/oauth/google?domain={{ domain }}' class='google-button'> <i class='google-plus-icon'></i> <span>Login with Google</span> </a>
+            <a href='/oauth/google?domain={{ domain }}&network={{ network }}' class='google-button'> <i class='google-plus-icon'></i> <span>Login with Google</span> </a>
           </div>
 
           <!--

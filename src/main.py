@@ -664,7 +664,6 @@ def jobs():
 @app.route("/<any(sign_in, sign_up, sign_out, forgot_password, reset_password):action>", methods=["GET", "OPTIONS", "POST"])
 def authentication(action=None):
   hostname = request.headers.get('Host')
-  print "DEBUG - in authentication - hostname = " + str(hostname)
   
   db_name = hostname.replace('.', '_')
   
@@ -722,6 +721,12 @@ def authentication(action=None):
       session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
     elif session_id == False: # existing user, wrong password
       flash('Wrong password, please try again :)')
+      return redirect(back_to)
+    elif session_id == -1:
+      flash('You used this email address with Facebook login. Please try it again')
+      return redirect(back_to)
+    elif session_id == -2:
+      flash('You used this email address with Google login. Please try it again')
       return redirect(back_to)
 
     app.logger.debug(session_id)
@@ -951,16 +956,18 @@ def google_login():
     email = request.args.get('email')
 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+  network = request.args.get('network')
   
   # return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt_1=auto&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
   #                % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
   return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
-                  % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
+                  % (settings.GOOGLE_REDIRECT_URI, (domain + ";" + network), settings.GOOGLE_CLIENT_ID, email, email))
 
 @app.route('/oauth/google/authorized')
 def google_authorized():
   code = request.args.get('code')
-  domain = request.args.get('state', settings.PRIMARY_DOMAIN)
+  domain = request.args.get('state').split(";")[0]
+  network = request.args.get('state').split(";")[1]
   
   # get access_token
   url = 'https://accounts.google.com/o/oauth2/token'
@@ -987,7 +994,13 @@ def google_authorized():
   if not user_email or '@' not in user_email:
     return redirect('/')
   
+  # with this, user network will be determined solely based on user email
   user_domain = user_email.split('@')[1]
+
+  # if network = '', user logged in from homepage --> determine network based on user email address
+  # if network != '', user logged in from sub-network page --> let authenticate user with that sub-network
+  if network and network != "":
+    user_domain = network
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
@@ -3414,7 +3427,7 @@ class NetworkNameDispatcher(object):
       request = Request(environ)
       network = request.cookies.get('network')
       if not network:
-        return self.app(environ, start_response) 
+        return self.app(environ, start_response)
       
       if request.method == 'GET':
         url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN,
