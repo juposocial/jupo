@@ -35,7 +35,7 @@ def login_required(f):
       resp.set_cookie('redirect_to', back_to)
     else:
       hostname = request.headers.get('Host')
-      network = hostname[:(len(hostname) - (len(settings.PRIMARY_DOMAIN) + 1))]
+      network = hostname[:-(len(settings.PRIMARY_DOMAIN)+1)]
       back_to = request.url
       path = back_to[(back_to.find(hostname) + len(hostname)):]
       url_redirect = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, network, path)
