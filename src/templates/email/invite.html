@@ -37,13 +37,13 @@
             <div style="width: 175px;background-color: #cccccc; border-radius: 2px;min-height: 50px;text-align: center">
               <div style="padding-top: 15px; font-size: 13px;">
                 {% if not group_id %}
-                <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
+                  <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
                 {% else %}
-                {% if is_new_user %}
-                <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
-                {% else %}
-                <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/group/{{ group_id }}">Accept Invitation</a>
-                {% endif %}
+                  {% if is_new_user %}
+                  <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
+                  {% else %}
+                  <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/group/{{ group_id }}">Accept Invitation</a>
+                  {% endif %}
                 {% endif %}
 
               </div>

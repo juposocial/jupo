@@ -964,6 +964,7 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
     
     if info.get('password'):
       actions = {'$set': {'ref': list_ref}}
+      is_new_user = False
     else:
       actions = {'$set': {'ref': list_ref, 
                           'session_id': code}}
