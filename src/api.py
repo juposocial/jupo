@@ -984,20 +984,30 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
   else:
     group = Group({})
     
-
-  send_mail_queue.enqueue(send_mail, email, 
-                          mail_type='invite', 
-                          code=code, 
-                          is_new_user=is_new_user,
-                          user_id=user.id,
-                          username=user.name,
-                          avatar=user.avatar,
-                          msg=msg,
-                          group_id=group.id, 
-                          group_name=group.name,
-                          list_ref=list_ref,
-                          db_name=db_name)
-  
+  status_invitation = db.activity.find_one({'sender': user_id, 'receiver': _id}, 
+                                           {'timestamp': True})
+  accept_invitation = False
+  if status_invitation and status_invitation.has_key('timestamp'):
+    if utctime() - status_invitation['timestamp'] >= 6*3600:
+      accept_invitation = True
+  else:
+    accept_invitation = True
+    
+  if accept_invitation:
+    send_mail_queue.enqueue(send_mail, email, 
+                            mail_type='invite', 
+                            code=code, 
+                            is_new_user=is_new_user,
+                            user_id=user.id,
+                            username=user.name,
+                            avatar=user.avatar,
+                            msg=msg,
+                            group_id=group.id, 
+                            group_name=group.name,
+                            db_name=db_name)
+    db.activity.update({'sender': user_id, 'receiver': _id},
+                       {'$set': {'timestamp': utctime()}}, upsert=True)
+    
   db.owner.update({'_id': user_id}, {'$addToSet': {'google_contacts': email}})
     
   return True
