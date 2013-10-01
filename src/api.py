@@ -144,7 +144,7 @@ def send_mail(to_addresses, subject=None, body=None, mail_type=None,
     body = template.render()
     
   elif mail_type == 'invite':
-    refs = kwargs.get('list_ref', [])
+    refs = list(set(kwargs.get('list_ref', [])))
     ref_count = len(refs)
     if ref_count >= 2:
       text = kwargs.get('username')
@@ -1025,13 +1025,16 @@ def complete_profile(code, name, password, gender, avatar):
   
   # Send notification to friends
   user = get_user_info(user_id)
+  
+  session_id = info['session_id']
 
   # add this user to list of contact of referal
   referer_id_array = user.ref
-  for referer_id in referer_id_array:
-    add_to_contacts(get_session_id(referer_id), user_id)
+  if referer_id_array:
+    for referer_id in referer_id_array:
+      add_to_contacts(get_session_id(referer_id), user_id)
+      add_to_contacts(session_id, referer_id)
   
-  session_id = info['session_id']
   friends = db.owner.find({'google_contacts': user.email})
   for user in friends:
     notification_queue.enqueue(new_notification, 

@@ -8,14 +8,16 @@
     
     {% if email_addrs or invited_addrs %}
     
-    {{ email_addrs | length }} people haven't joined yet. <a class='toggle-check-all'>Check/Uncheck All</a>
+    {% if email_addrs | length > 0 %}{{ email_addrs | length }} people haven't joined yet{% else %}You have {{ google_contacts | length }} google contacts{% endif %}. <a class='toggle-check-all'>Check/Uncheck All</a>
     <ul class='emails'>
         {% for email in email_addrs %}
           <li><label><input type='checkbox' value='{{ email }}' checked name='item-1-{{ loop.index }}'> {{ email }}</label></li>
         {% endfor %}
         
-        {% for email in invited_addrs %}
+        {% for email in google_contacts %}
+          {% if email not in email_addrs %}
           <li><label><input type='checkbox' value='{{ email }}' name='item-2-{{ loop.index }}'> {{ email }}</label></li>
+          {% endif %}
         {% endfor %}
     </ul>
     {% endif %}
