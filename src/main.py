@@ -716,10 +716,12 @@ def authentication(action=None):
 
     if session_id is None: # new user
       # sign up instantly (!)
-      api.sign_up(email=email, password=password, name="", user_agent=user_agent, remote_addr=remote_addr)
+      # api.sign_up(email=email, password=password, name="", user_agent=user_agent, remote_addr=remote_addr)
 
       # then sign in again
-      session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+      # session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+      flash('Please check your email address and password.')
+      return redirect(back_to)
     elif session_id == False: # existing user, wrong password
       flash('Wrong password, please try again :)')
       return redirect(back_to)
@@ -778,6 +780,9 @@ def authentication(action=None):
         
 
   elif request.path.endswith('sign_up'):
+    network = request.form.get("network")
+    back_to = request.form.get('back_to', request.args.get('back_to'))
+
     if request.method == 'GET':
       welcome = request.args.get('welcome')
       email = request.args.get('email')
@@ -795,11 +800,15 @@ def authentication(action=None):
     
     alerts = {}
     if email and api.is_exists(email):
-      alerts['email'] = '"%s" is already in use.' % email
+      # alerts['email'] = '"%s" is already in use.' % email
+      flash('Email is already in use')
+      return redirect(back_to)
     if len(password) < 6:
-      alerts['password'] = 'Your password must be at least 6 characters long.'
+      # alerts['password'] = 'Your password must be at least 6 characters long.'
+      flash('Your password must be at least 6 characters long.')
+      return redirect(back_to)
     
-    
+    # input error, redirect to login page
     if alerts.keys():
       resp = Response(render_template('sign_up.html', 
                                       alerts=alerts,
@@ -810,8 +819,10 @@ def authentication(action=None):
                                       PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
                                       network_info=network_info))
       return resp
+    # input OK, process to sign up
     else:
       session_id = api.sign_up(email, password, name)
+      print "DEBUG - in sign_up - session_id after api.sign_up = " + str(session_id)
       if session_id:
         
         # Sign in for all networks
@@ -828,9 +839,14 @@ def authentication(action=None):
         
         user_id = api.get_user_id(session_id)
         if api.is_admin(user_id):
-          return redirect('/groups')
+          resp = redirect('/groups')
         else:
-          return redirect('/everyone?getting_started=1')  
+          resp = redirect('/everyone?getting_started=1')
+
+        # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
+        resp.set_cookie('network', network)
+
+        return resp
       else:
         return redirect('/')
       
