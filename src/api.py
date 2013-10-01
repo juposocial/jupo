@@ -1084,7 +1084,10 @@ def sign_in_with_google(email, name, gender, avatar,
     if not session_id:
       session_id = hashlib.md5(email + str(utctime())).hexdigest()
       # update avatar here as well, any other stuffs to update ?
-      info = {'session_id': session_id, 'avatar': avatar}
+      if user.get('avatar'):
+        info = {'session_id': session_id}
+      else:
+        info = {'session_id': session_id, 'avatar': avatar}
       if not user.get('password'):
         info['password'] = True
       if notify_list:
