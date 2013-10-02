@@ -69,7 +69,7 @@
           </li>
           -->
           <li class="page_item page-item-2">
-            <a href="http://blog.jupo.com">Blog</a>
+            <a href="#">Blog</a>
           </li>
         </ul>
       </nav>
@@ -77,8 +77,8 @@
   </header>
 
   <div class="site-content">
-
-    <div class="jumbotron">
+    {% if network %}
+    <div class="jumbotron network-page">
     <div class="inner">
       <div class="container">
 
@@ -95,6 +95,28 @@
 
           <div class="col-md-6" data-pos="right">
             <form class="form-signup form-signup-vertical" role="form" id='sign-in' method='post' data-validate="parsley">
+              <!--
+              <div id="google-authentication">
+                <div class="form-group">
+
+                  <div class="popover top">
+                    <div class="arrow"></div>
+                    <div class="popover-content">
+                      <h3>Enter your Google Apps email</h3>
+                      <p>Get all Google Apps features to enhance your company communication & collaboration.</p>
+                    </div>
+                  </div>
+
+                  <div class="input-group">
+                    <input type="text" name='email' class="form-control input-lg" placeholder="Email address" autocomplete="off" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
+                    <span class="input-group-btn">
+                      <a class="btn btn-lg btn-primary" href="/oauth/google?domain={{ domain }}&network={{ network }}">Get Started!</a>
+                    </span>
+                    <span class="input-group-addon">@joomsolutions.com</span>
+                  </div>
+                </div>
+              </div>
+              -->
               <div id="normal-authentication">
                 <div class="form-group">
                   {% if message %}
@@ -113,7 +135,7 @@
                   -->
                   <div class="input-group input-group-lg">
                     <input type="text" name='email' class="form-control input-lg" placeholder="Email address" autocomplete="off" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
-                    <!--<span class="input-group-addon">@joomsolutions.com</span>-->
+                    <!--<span class="input-group-addon">@{{ network }}</span>-->
                   </div>
                 </div>
                 <div class="form-group">
@@ -131,8 +153,13 @@
                 <p>You can also login with your <br />
                 <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class=""><i class="icon-facebook"></i>&nbsp;&nbsp;Facebook Account</a>
                 <span>&nbsp;&nbsp;or&nbsp;&nbsp;</span>
+                <!--
+                <a href="" title="" class=""><i class="icon-apple"></i>&nbsp;&nbsp;Email Account</a></p>
+                -->
                 <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class=""><i class="icon-google-plus"></i>&nbsp;&nbsp;Google Account</a></p>
               </div>
+
+              <div class='flash-message'></div>
 
               <input type="hidden" name="name" value="">
 
@@ -155,33 +182,59 @@
 
         </div>
 
-        <div class="intro">
-
-          {% if network %}
-
-          {% else %}
-            <!-- for landing page -->
-            <form class="form-inline" role="form" id='authenticate-with-google' action='/oauth/google' method="POST" data-validate="parsley">
-              <div class="form-group">
-                <input id="email" name="email" type="text" class="form-control" placeholder="Enter you Google Apps mail here!" data-type="email" data-error-message="Email is blank or not provided by Google App. Please check again" data-error-container="div.flash-message" />
-              </div>
-              <button class="btn btn-success" type="submit" id="submit">Get Started!</button>
-
-              <input type="hidden" name="domain" value="{{ domain }}">
-              <input type="hidden" name="call_from" value="landing">
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-
-            </form>
-            <br/>
-          {% endif %}
-        </div>
-
-
-
         <div class="screenshot"></div>
       </div>
     </div>
     </div>
+    {% else %}
+      <div class="jumbotron jumbotron-homepage">
+      <div class="inner">
+        <div class="container">
+          <div class="intro">
+
+            <h1>Give your Google App extra power</h1>
+            <p>...by creating your own Facebook version for your team.</p>
+
+            <form class="form-signup form-signup-horizontal" role="form" id='authenticate-with-google' action='/oauth/google' method="POST" data-validate="parsley">
+            <div class="form-group">
+            <!-- <div class="popover top">
+                <div class="arrow"></div>
+                <div class="popover-content">
+                  <h3>Enter your Google App username</h3>
+                  <p>Get all Facebook features is just 1 click away.</p>
+                </div>
+              </div> -->
+
+              <div class="input-group">
+                <input type="text" class="form-control input-lg" placeholder="Enter you Google Apps email here!" id="email" name="email" data-type="email" data-error-message="Email is blank or not provided by Google App. Please check again" data-error-container="div.flash-message" />
+                <span class="input-group-btn">
+                  <button class="btn btn-lg btn-primary" type="submit">Get Started!</button>
+                </span>
+              </div>
+            </div>
+              <div class='flash-message'></div>
+
+              {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                  {% for message in messages %}
+                    <div class='flash-message'>
+                      {{ message | safe }}
+                    </div>
+                  {% endfor %}
+                {% endif %}
+              {% endwith %}
+
+              <input type="hidden" name="domain" value="{{ domain }}">
+              <input type="hidden" name="call_from" value="landing">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            </form>
+
+          </div>
+          <!-- <div class="screenshot"></div> -->
+        </div>
+      </div>
+      </div>
+    {% endif %}
     <a class="jumbo-anchor"></a>
 
     <main id="main" class="site-main" role="main">

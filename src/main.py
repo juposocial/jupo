@@ -720,7 +720,7 @@ def authentication(action=None):
 
       # then sign in again
       # session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
-      flash('Please check your email address and password.')
+      flash('Please check your email address/password.')
       return redirect(back_to)
     elif session_id == False: # existing user, wrong password
       flash('Wrong password, please try again :)')
@@ -801,6 +801,7 @@ def authentication(action=None):
     alerts = {}
     if email and api.is_exists(email):
       # alerts['email'] = '"%s" is already in use.' % email
+      print "DEBUG - in sign_up - check #1"
       flash('Email is already in use')
       return redirect(back_to)
     if len(password) < 6:
@@ -822,7 +823,6 @@ def authentication(action=None):
     # input OK, process to sign up
     else:
       session_id = api.sign_up(email, password, name)
-      print "DEBUG - in sign_up - session_id after api.sign_up = " + str(session_id)
       if session_id:
         
         # Sign in for all networks
@@ -848,7 +848,8 @@ def authentication(action=None):
 
         return resp
       else:
-        return redirect('/')
+        flash('Something went wrong :(.')
+        return redirect(back_to)
       
   elif request.path.endswith('sign_out'):
     # token = session.get('oauth_google_token')

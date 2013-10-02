@@ -6078,7 +6078,7 @@ body.loading > * {
   left: 0;
   top: 0;
   margin: 0;
-  background: #484e5c url("../img/head.jpg") no-repeat top center;
+  background: #484e5c url("../img/head-home.jpg") no-repeat top center;
   background-size: cover;
   overflow: hidden;
   position: fixed;
@@ -6736,8 +6736,16 @@ footer.entry-meta {
   height: 220px;
 }
 
+.network-logo {
+  color: #FFF !important;
+}
+
 .flash-message {
   /*margin-left: 5px;	
   border-left: 2px solid #F7901D;*/
   color: #F7901D;
+}
+
+.network-page {
+  background: #484e5c url("../img/head-network.jpg") no-repeat top center !important;
 }
