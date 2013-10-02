@@ -8,8 +8,11 @@
     
     {% if email_addrs or invited_addrs %}
     
-    {% if email_addrs | length > 0 %}{{ email_addrs | length }} people haven't joined yet{% else %}You have {{ google_contacts | length }} google contacts{% endif %}. <a class='toggle-check-all'>Check/Uncheck All</a>
+    {% if email_addrs | length > 0 %}{{ email_addrs | length }} people haven't joined yet{% else %}You have {{ google_contacts | length }} google contacts{% endif %}.
+    <br>
+    <label class='toggle-check-all'><input type='checkbox'> Select All</label><br>
     <ul class='emails'>
+          
         {% for email in email_addrs %}
           <li><label><input type='checkbox' value='{{ email }}' checked name='item-1-{{ loop.index }}'> {{ email }}</label></li>
         {% endfor %}
@@ -35,13 +38,13 @@
   
 <script>
 
-  $('.toggle-check-all').click(function() {
-    if ($('ul.emails input[type="checkbox"]').attr('checked') == null) {
-      $('ul.emails input[type="checkbox"]').attr('checked', 'checked');
+  $('#popup .toggle-check-all input[type="checkbox"]').change(function() {
+    if ($(this).is(':checked')) {
+      $('#popup ul.emails input[type="checkbox"]').attr('checked', 'checked');
     } else {
-      $('ul.emails input[type="checkbox"]').attr('checked', null);
+      $('#popup ul.emails input[type="checkbox"]').attr('checked', null);
     }
-    return false;
+    
   });
 
    users = [

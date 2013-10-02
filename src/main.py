@@ -3415,6 +3415,9 @@ class NetworkNameDispatcher(object):
     path = environ.get('PATH_INFO', '')
     items = path.lstrip('/').split('/', 1)
     
+    if '/_debug_toolbar/' in path:
+      return self.app(environ, start_response)
+    
     if '.' in items[0] and api.is_domain_name(items[0]):  # is domain name
       # print "DEBUG - in NetworkNameDispatcher - items = " + items[0]
       
@@ -3457,7 +3460,7 @@ app.wsgi_app = NetworkNameDispatcher(app.wsgi_app)
 
 if __name__ == "__main__":
   
-  @werkzeug.serving.run_with_reloader
+#   @werkzeug.serving.run_with_reloader
   def run_app(debug=True):
       
     from cherrypy import wsgiserver
@@ -3485,7 +3488,7 @@ if __name__ == "__main__":
       'HIDE_FLASK_FROM_STACKTRACES': True
     }
     
-  #   toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+    toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
     
   
     
