@@ -1731,6 +1731,11 @@ function open_in_popup_mode(href, data) {
     if ($.global.request != undefined) {
       $.global.request.abort();
     }
+    
+    // Save current scrolling position & lock background scrolling
+    $.global.scroll = $("body").scrollTop();
+    $('body').addClass('popup-open'); 
+    
     //fix pop up invite friends show white line on left screen
     $('div.token-input-dropdown').css('visibility','hidden'); 
     hide_searchbox_dropdown();
@@ -1948,7 +1953,13 @@ function open_in_overlay_mode(href, data) { // has #! in url
 function close_popup() {
   $('#popup').addClass('hidden');
   $('#popup .content').html('');
-        // $('html').removeClass('no-scroll');
+  
+  $('body').removeClass('popup-open');
+    
+  // Unlock background scrolling
+  $('body').removeClass('popup-open'); 
+  $("body").scrollTop($.global.scroll);
+  $.global.scroll = null;
 }
 
 function close_overlay() {

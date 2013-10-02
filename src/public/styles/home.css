@@ -7981,3 +7981,7 @@ div.chatbox div.header .arrow-top-border {
 #popup li.select label:active {
   background: #fafafa;
 }
+
+body.popup-open {
+  overflow: hidden;
+}
