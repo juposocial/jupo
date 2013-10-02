@@ -401,13 +401,17 @@
 
         </h2>
 
-        {% if group.id != 'public' %}
-          <h3><i class='email-icon lfloat'></i> {{ group.posting_email }}</h3>
-        {% endif %}
 
         <div class='info subtitle'>
-
+          
+            
           <div class='stats'>
+            {% if group.id != 'public' %}
+            <span class='gray'>
+              <a href='mailto:{{ group.posting_email }}' target='_blank' class='gray'>{{ group.posting_email }}</a>
+            </span>
+            {% endif %}
+            {#
             {% if group.id == 'public' %}
             <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
             {% elif owner.id in group.member_ids or group.privacy == 'open' %}
@@ -415,6 +419,7 @@
             {% else %}
             {{ group.about }}
             {% endif %}
+            #}
           </div>    
         </div>
         
@@ -580,7 +585,6 @@
             {% else %}
             <a href='/group/{{ group.id }}/members' class='popup'>{{ group.members_count }} Members</a>
             {% endif %}
-            
             
             <br>
             Moderators:

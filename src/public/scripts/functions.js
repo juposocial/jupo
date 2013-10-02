@@ -1749,7 +1749,7 @@ function open_in_popup_mode(href, data) {
       success: function(resp) {
         hide_loading();
         // $('html').addClass('no-scroll');
-        if (resp.title == 'view_plain_html'){
+        if (resp.title == 'view_html'){
           var div_frame = $('<div class="form_email_html"></div>');
           var frame = $('<iframe sandbox="" style="border: 0px" width="100%" height="100%" scrolling="auto"></iframe>');
           frame.attr('srcdoc', resp.body);

@@ -249,6 +249,8 @@ class Model:
   def is_email(self):
     if self.info and self.info.has_key('message_id'):
       return True
+    if self.info and self.info.get('html'):
+      return True
   
   def to_dict(self):
     return self.info
@@ -560,8 +562,8 @@ class Comment(Model):
       return self.info.get('message')
   
   @property
-  def plain_html(self):
-    return self.info.get('plain_html')
+  def html(self):
+    return self.info.get('html')
     
   @property
   def original_message(self):
@@ -1062,8 +1064,8 @@ class Feed(Model):
     return self.info.get('message')
       
   @property
-  def plain_html(self):
-    return self.info.get('plain_html')
+  def html(self):
+    return self.info.get('html')
   
   @property
   def message(self):

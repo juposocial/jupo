@@ -2596,8 +2596,8 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
-@app.route("/feed/<int:feed_id>/view_plain_html", methods=["OPTIONS", "POST"])
-@app.route("/feed/<int:feed_id>/<int:comment_id>/view_comment_plain_html", methods=["OPTIONS", "POST"])
+@app.route("/feed/<int:feed_id>/view_html", methods=["OPTIONS", "POST"])
+@app.route("/feed/<int:feed_id>/<int:comment_id>/view_comment_html", methods=["OPTIONS", "POST"])
 @login_required
 @line_profile
 def feed_actions(feed_id=None, action=None, 
@@ -2688,15 +2688,15 @@ def feed_actions(feed_id=None, action=None,
                              owner=owner,
                              feed=feed)
   
-  elif request.path.endswith('/view_plain_html'):
+  elif request.path.endswith('/view_html'):
     feed = api.get_feed(session_id, feed_id)
-    body = feed.plain_html.replace('\n',' ')
-    json = dumps({'body':body, 'title':'view_plain_html'})
+    body = feed.html.replace('\n',' ')
+    json = dumps({'body':body, 'title':'view_html'})
     return Response(json, content_type='application/json')
   
-  elif request.path.endswith('view_comment_plain_html'):
-    body = api.get_plain_html_in_comment(session_id, feed_id, comment_id)
-    json = dumps({'body':body, 'title':'view_plain_html'})
+  elif request.path.endswith('view_comment_html'):
+    body = api.get_html_in_comment(session_id, feed_id, comment_id)
+    json = dumps({'body':body, 'title':'view_html'})
     return Response(json, content_type='application/json')
   
   elif request.path.endswith('/reshare'):

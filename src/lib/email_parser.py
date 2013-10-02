@@ -216,7 +216,7 @@ def get_reply_text(data):
   msg = email.message_from_string(data)
   msg_type = None
   message_plain_text = None
-  message_plain_html = None
+  message_html = None
   if msg.get_content_maintype() == 'text':
     message = msg.get_payload(decode=True)
   elif msg.get_content_maintype() == 'multipart': #If message is multi part we only want the text version of the body, this walks the message and gets the body.
@@ -224,7 +224,7 @@ def get_reply_text(data):
       if part.get_content_type() == "text/plain":
         message_plain_text = part.get_payload(decode=True)
       elif part.get_content_type() == 'text/html':
-        message_plain_html = part.get_payload(decode=True)
+        message_html = part.get_payload(decode=True)
       else:
         continue
   else:
@@ -232,11 +232,11 @@ def get_reply_text(data):
   
   message_plain_text = get_text(message_plain_text).strip()
   
-  if message_plain_text and message_plain_html:
+  if message_plain_text and message_html:
     if len(message_plain_text) < 500:
       message = message_plain_text
     else:
-      message = message_plain_html
+      message = message_html
       msg_type = 'text/html'
       
   msg = message.split('-- \n', 1)[0]

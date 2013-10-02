@@ -2613,8 +2613,8 @@ def new_feed(session_id, message, viewers,
     hashtags = []
   
   ts = utctime()
-  plain_html = kwargs.get('plain_html')
-  if plain_html: 
+  html = kwargs.get('html')
+  if html: 
     info = {'message': message,
           '_id': new_id(),
           'owner': user_id,
@@ -2622,7 +2622,7 @@ def new_feed(session_id, message, viewers,
           'hashtags': hashtags,
           'timestamp': ts,
           'last_updated': ts,
-          'plain_html':plain_html}
+          'html':html}
   else:
     info = {'message': message,
             '_id': new_id(),
@@ -2840,14 +2840,14 @@ def undo_remove(session_id, feed_id):
   return feed_id
 
 @line_profile
-def get_plain_html_in_comment(session_id, feed_id, comment_id):
+def get_html_in_comment(session_id, feed_id, comment_id):
   db_name = get_database_name()
   db = DATABASE[db_name]
   info = db.stream.find_one({'_id': long(feed_id)})
   comments = info.get('comments')
   for comment in comments:
     if comment.get('_id') == comment_id:
-      return comment.get('plain_html')
+      return comment.get('html')
   return None
   
 @line_profile
@@ -3406,13 +3406,13 @@ def new_comment(session_id, message, ref_id,
     return False
   
   ts = utctime()
-  if kwargs.has_key('plain_html'):
-    plain_html = kwargs.get('plain_html')
+  if kwargs.has_key('html'):
+    html = kwargs.get('html')
     comment = {'_id': new_id(),
              'owner': user_id,
              'message': message,
              'timestamp': ts,
-             'plain_html': plain_html}
+             'html': html}
   else:
     comment = {'_id': new_id(),
                'owner': user_id,

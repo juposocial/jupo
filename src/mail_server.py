@@ -88,7 +88,7 @@ class JupoSMTPServer(smtpd.SMTPServer):
       if not session_id:
         return None
       if type_message:
-        api.new_comment(session_id, 'Please click view to see more', post_id, db_name=db_name, plain_html=message)
+        api.new_comment(session_id, 'Please click view to see more', post_id, db_name=db_name, html=message)
       else:
         api.new_comment(session_id, message, post_id, db_name=db_name)
       return None
@@ -156,7 +156,7 @@ class JupoSMTPServer(smtpd.SMTPServer):
       else:
         api.new_feed(session_id, subject, target, 
                      attachments=None, facebook_access_token=None, 
-                     plain_html=message, db_name=db_name)
+                     html=message, db_name=db_name)
     else:
       return None
     
