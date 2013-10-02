@@ -18,6 +18,9 @@ jQuery(function($){
           } else {
               $('body').removeClass('header-color');
           }
+          if(pos < 120) {
+              $('body').removeClass('header-color'); 
+          }
       });
     });
 
