@@ -984,10 +984,18 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
     group = get_group_info(session_id, group_id)
   else:
     group = Group({})
+  
+  if group_id:
+    status_invitation = db.activity.find_one({'sender': user_id, 
+                                              'receiver': _id, 
+                                              'group': long(group_id)}, {'timestamp': True})
     
-  status_invitation = db.activity.find_one({'sender': user_id, 'receiver': _id}, 
-                                           {'timestamp': True})
+  else:
+    status_invitation = db.activity.find_one({'sender': user_id, 
+                                              'receiver': _id, 
+                                              'group': {'$exists': False}}, {'timestamp': True})
   accept_invitation = False
+  
   if status_invitation and status_invitation.has_key('timestamp'):
     if utctime() - status_invitation['timestamp'] >= 6*3600:
       accept_invitation = True
@@ -1006,8 +1014,17 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
                             group_id=group.id, 
                             group_name=group.name,
                             db_name=db_name)
-    db.activity.update({'sender': user_id, 'receiver': _id},
-                       {'$set': {'timestamp': utctime()}}, upsert=True)
+    
+    if group_id:
+      db.activity.update({'sender': user_id, 
+                          'receiver': _id, 
+                          'group': long(group_id)},
+                         {'$set': {'timestamp': utctime()}}, upsert=True)
+    else:
+      db.activity.update({'sender': user_id, 
+                          'receiver': _id, 
+                          'group': {'$exists': False}},
+                         {'$set': {'timestamp': utctime()}}, upsert=True)
     
   db.owner.update({'_id': user_id}, {'$addToSet': {'google_contacts': email}})
     
