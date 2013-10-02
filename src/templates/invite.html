@@ -95,5 +95,8 @@
         $('div.token-input-dropdown').css('display','none');
     });
  
-
+    {% for email in email_addrs %}
+      $('input.friends').tokenInput("add", {id: '{{ email }}', name: '{{ email }}'});
+    {% endfor %}
+    
 </script>

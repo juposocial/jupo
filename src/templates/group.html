@@ -399,8 +399,11 @@
                   - Notes
               {% endif %}
 
-        </h2>    
+        </h2>
 
+        {% if group.id != 'public' %}
+          <h3><i class='email-icon lfloat'></i> {{ group.posting_email }}</h3>
+        {% endif %}
 
         <div class='info subtitle'>
 
