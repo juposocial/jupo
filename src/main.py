@@ -3413,16 +3413,16 @@ from werkzeug.wrappers import Request
 
 class NetworkNameDispatcher(object):
   """
-  Convert the first part of request PATH_INFO to hostname for backward 
+  Convert the first part of request PATH_INFO to hostname for backward
   compatibility
-  
-  Eg: 
-    
+
+  Eg:
+
      http://jupo.com/example.com/news_feed
-     
+
   -> http://example.com.jupo.com/news_feed
-  
-   
+
+
   """
   def __init__(self, app):
     self.app = app
@@ -3430,10 +3430,11 @@ class NetworkNameDispatcher(object):
   def __call__(self, environ, start_response):
     path = environ.get('PATH_INFO', '')
     items = path.lstrip('/').split('/', 1)
-    
+
+    print "DEBUG - in init app - items[0] = " + str(items[0])
     if '.' in items[0] and api.is_domain_name(items[0]):  # is domain name
       # print "DEBUG - in NetworkNameDispatcher - items = " + items[0]
-      
+
       # save user network for later use
       # session['subnetwork'] = items[0]
 
@@ -3442,47 +3443,48 @@ class NetworkNameDispatcher(object):
         environ['PATH_INFO'] = '/%s' % items[1]
       else:
         environ['PATH_INFO'] = '/'
-      
+
       return self.app(environ, start_response)
-        
+
     else:
       request = Request(environ)
       network = request.cookies.get('network')
+      print "DEBUG - in init app - network = " + str(network)
       if not network:
         return self.app(environ, start_response)
-      
+
       if request.method == 'GET':
         url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN,
                                   network, request.path)
         if request.query_string:
           url += '?' + request.query_string
-          
+
         response = redirect(url)
         return response(environ, start_response)
-      
+
       else:
         environ['HTTP_HOST'] = network + '.' + settings.PRIMARY_DOMAIN
         return self.app(environ, start_response)
-        
-      
-    
+
+
+
 
 app.wsgi_app = NetworkNameDispatcher(app.wsgi_app)
 
 
 
 if __name__ == "__main__":
-  
+
   @werkzeug.serving.run_with_reloader
   def run_app(debug=True):
-      
+
     from cherrypy import wsgiserver
-      
+
     app.debug = debug
-  
+
     # app.config['SERVER_NAME'] = settings.PRIMARY_DOMAIN
-    
-    app.config['DEBUG_TB_PROFILER_ENABLED'] = True
+
+    app.config['DEBUG_TB_PROFILER_ENABLED'] = False
     app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
     app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
     app.config['DEBUG_TB_PANELS'] = [
@@ -3500,11 +3502,11 @@ if __name__ == "__main__":
       'SHOW_STACKTRACES': True,
       'HIDE_FLASK_FROM_STACKTRACES': True
     }
-    
+
   #   toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
-    
-  
-    
+
+
+
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
     try:
       print 'Serving HTTP on 0.0.0.0 port 9000...'
@@ -3512,11 +3514,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
       print '\nGoodbye.'
       server.stop()
-  
-  
+
+
   run_app(debug=True)
-
-
-
-
-

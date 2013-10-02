@@ -95,29 +95,38 @@
 
           <div class="col-md-6" data-pos="right">
             <form class="form-signup form-signup-vertical" role="form" id='sign-in' method='post' data-validate="parsley">
-              <!--
               <div id="google-authentication">
                 <div class="form-group">
+
 
                   <div class="popover top">
                     <div class="arrow"></div>
                     <div class="popover-content">
-                      <h3>Enter your Google Apps email</h3>
+                      <!--<h3>Enter your Google Apps email</h3>-->
                       <p>Get all Google Apps features to enhance your company communication & collaboration.</p>
                     </div>
                   </div>
 
-                  <div class="input-group">
+
+                  <div class="btn-group-wrap">
+                    <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-google"><i class="icon-google-plus"></i> Sign in with Google Apps account</a>
+                    <p style="width: 100%; margin-left: 45%;">-or-</p>
+                    <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-social-small btn-fb"><i class="icon-facebook"></i> Sign in with Facebook account</a>
+                    <a href="#" title="" class="btn btn-social btn-social-small btn-jupo" onclick="$('#normal-authentication').slideToggle(); "><i class="icon-asterisk"></i> Sign in with JUPO account</a>
+                  </div>
+
+                  <!--
+                  div class="input-group">
                     <input type="text" name='email' class="form-control input-lg" placeholder="Email address" autocomplete="off" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
                     <span class="input-group-btn">
                       <a class="btn btn-lg btn-primary" href="/oauth/google?domain={{ domain }}&network={{ network }}">Get Started!</a>
                     </span>
-                    <span class="input-group-addon">@joomsolutions.com</span>
+                    <span class="input-group-addon">@{{ network }}</span>
                   </div>
+                  -->
                 </div>
               </div>
-              -->
-              <div id="normal-authentication">
+              <div id="normal-authentication" style="display: none">
                 <div class="form-group">
                   {% if message %}
                     <p class='msg'>
@@ -149,15 +158,15 @@
                 </div>
               </div>
 
+              <!--
               <div class="form-links">
                 <p>You can also login with your <br />
                 <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class=""><i class="icon-facebook"></i>&nbsp;&nbsp;Facebook Account</a>
                 <span>&nbsp;&nbsp;or&nbsp;&nbsp;</span>
-                <!--
                 <a href="" title="" class=""><i class="icon-apple"></i>&nbsp;&nbsp;Email Account</a></p>
-                -->
                 <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class=""><i class="icon-google-plus"></i>&nbsp;&nbsp;Google Account</a></p>
               </div>
+              -->
 
               <div class='flash-message'></div>
 

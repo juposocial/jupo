@@ -6199,33 +6199,48 @@ body.loading > * {
   }
 }
 .btn-group-wrap .btn {
-  margin: 0 5px;
+  margin: 5px 5px;
 }
 .btn-group-wrap p {
   font-size: 12px;
 }
 .btn-social {
-  background-color: #222222;
+  /* background-color: #D62229; */
   color: #fff;
   position: relative;
   padding: 0 20px 0 50px;
-  height: 34px;
-  line-height: 34px;
-  font-size: 14px;
-  opacity: .5;
+  height: 45px;
+  line-height: 45px;
+  font-size: 19px;
+  opacity: .8; 
 }
+
+.btn-social-small {
+  height: 35px;
+  line-height: 35px;
+}
+
 .btn-social [class^="icon-"],
 .btn-social [class*=" icon-"] {
-  border-right: 1px solid rgba(255, 255, 255, 0.35);
+  border-right: 1px solid rgba(0,0,0,0.2);
   position: absolute;
   display: block;
   left: 0;
   top: -1px;
-  width: 34px;
-  height: 34px;
-  line-height: 34px;
+  width: 45px;
+  height: 45px;
+  line-height: 45px;
+  font-size: 18px;
+}
+
+.btn-social-small [class^="icon-"],
+.btn-social-small [class*=" icon-"] {
+  width: 35px;
+  height: 35px;
+  line-height: 35px;
   font-size: 16px;
 }
+
 .btn-social:hover,
 .btn-social:active,
 .btn-social:focus {
@@ -6233,9 +6248,14 @@ body.loading > * {
   color: #fff;
 }
 .btn-fb {
+  opacity: 0.5;
   background-color: #4c66a4;
 }
 .btn-jupo {
+  opacity: 0.5;
+  background-color: #222222;
+}
+.btn-google {
   background-color: #d62229;
 }
 .form-links {
@@ -6258,7 +6278,7 @@ body.loading > * {
   border-color: #1f1f1f;
   color: #fff;
   font-size: 11px;
-  margin-top: -101px;
+  margin-top: -60px;
   left: 0;
   text-align: center;
 }
