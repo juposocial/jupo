@@ -150,9 +150,11 @@
           <div class="arrow-top-border"></div>
           <div class="arrow-top"></div>
           
+          {% if feed.is_public() %}
           <li>
-            <a href='/post/{{ feed.id }}' target='_blank'>Permanent link</a>
+            <a href='/post/{{ feed.id }}' target='_blank'>Get public link</a>
           </li>
+          {% endif %}
         
           {% if feed.owner.id == owner.id and not feed.is_note() and not feed.is_system_message() %}
           <li>
