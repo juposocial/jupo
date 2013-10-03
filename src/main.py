@@ -2596,7 +2596,6 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
-@login_required
 @line_profile
 def feed_actions(feed_id=None, action=None, 
                  message_id=None, domain=None, comment_id=None):
@@ -2634,7 +2633,14 @@ def feed_actions(feed_id=None, action=None,
   user_id = api.get_user_id(session_id)
   if not user_id:
     if not request.path.startswith('/post/'):
-      return redirect('/')
+#       return redirect('/')
+      resp = redirect('http://' + settings.PRIMARY_DOMAIN)
+      hostname = request.headers.get('Host')
+      network = hostname[:-(len(settings.PRIMARY_DOMAIN)+1)]
+      url_redirect = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, network, request.path)
+      resp.set_cookie('redirect_to', url_redirect)
+      
+      return resp
     
   utcoffset = request.cookies.get('utcoffset')
   if utcoffset:
@@ -3488,7 +3494,7 @@ if __name__ == "__main__":
       'HIDE_FLASK_FROM_STACKTRACES': True
     }
     
-    toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+#     toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
     
   
     
