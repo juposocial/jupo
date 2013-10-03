@@ -8,9 +8,10 @@
     
     {% if email_addrs or invited_addrs %}
     
-    {% if email_addrs | length > 0 %}{{ email_addrs | length }} people haven't joined yet{% else %}You have {{ google_contacts | length }} google contacts{% endif %}.
-    <br>
-    <label class='toggle-check-all'><input type='checkbox'> Select All</label><br>
+    
+    <label class='toggle-check-all'><input type='checkbox'> Select All
+      <span class='rfloat'>{% if email_addrs | length > 0 %}{{ email_addrs | length }} people haven't joined yet{% else %}You have {{ google_contacts | length }} google contacts{% endif %}.</span>  
+    </label><br>
     <ul class='emails'>
           
         {% for email in email_addrs %}

@@ -7378,6 +7378,10 @@ form.invite label.toggle-check-all {
   width: 100%;
 }
 
+form.invite label.toggle-check-all span {
+  margin-right: 5px;
+}
+
 
 form.invite ul.emails label {
   color: #333;

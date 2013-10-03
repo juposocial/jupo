@@ -113,7 +113,7 @@ $(document).ready(function(e) {
   $(window).scroll(function() {
     if ($('div#overlay').is(':visible') == false && $(window).scrollTop() + $(window).height() > get_doc_height() - 250) {
       console.log('scroll end');
-      if ($.global.loading != true) {
+      if ($.global.loading !== true && $('body').hasClass('popup-open') === false) {
         $('a.next').trigger('click');
       }
     }
