@@ -2478,9 +2478,17 @@ def home():
     
     return resp
   else:
-    return redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN,
-                                                request.cookies.get('network')))
-  
+    network = request.cookies.get('network')
+    is_custom_domain = api.domain_is_ok(hostname)
+    if network:
+      return redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN,
+                                                  network))
+    elif is_custom_domain:
+      return redirect('/news_feed')
+    else:
+      return redirect('http://%s/news_feed' % (settings.PRIMARY_DOMAIN))
+      
+      
 @app.route("/news_feed", methods=["GET", "OPTIONS"])
 @app.route("/news_feed/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route('/archived', methods=['GET', 'OPTIONS'])
