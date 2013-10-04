@@ -753,8 +753,10 @@ def authentication(action=None):
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
 
       # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
-      resp.set_cookie('network', network)
-
+      if api.is_domain_name(network):
+        resp.set_cookie('network', network)
+      else:
+        resp.delete_cookie('network')
       return resp
     else:
       if not email:
@@ -998,8 +1000,10 @@ def google_authorized():
 
   # if network = '', user logged in from homepage --> determine network based on user email address
   # if network != '', user logged in from sub-network page --> let authenticate user with that sub-network
-  if network and network != "":
+  if network:
     user_domain = network
+    
+  is_custom_domain = api.domain_is_ok(user_domain)
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
@@ -1012,8 +1016,11 @@ def google_authorized():
   if contacts:
     contacts = list(set(contacts))  
 
-  db_name = '%s_%s' % (user_domain.replace('.', '_'), 
-                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  if is_custom_domain:
+    db_name = user_domain.replace('.', '_')
+  else:
+    db_name = '%s_%s' % (user_domain.replace('.', '_'), 
+                         settings.PRIMARY_DOMAIN.replace('.', '_'))
 
   # create new network
   api.new_network(db_name, db_name.split('_', 1)[0])
@@ -1042,14 +1049,23 @@ def google_authorized():
   # create standard groups (e.g. for Customer Support, Sales) for this new network
   # print  str(api.new_group (session_id, "Sales", "Open", "Group for Sales teams"))
   
+   
+  if is_custom_domain: 
+    user_url = 'http://%s' % user_domain
+  else:
+    user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
+    
   if user_info.id:
-    user_url = 'http://%s/%s/' % (settings.PRIMARY_DOMAIN, user_domain)
+    user_url += '/?session_id=%s' % session_id
   else: # new user
-    user_url = 'http://%s/%s/everyone?getting_started=1&first_login=1' \
+    user_url += '/everyone?getting_started=1&first_login=1' \
              % (settings.PRIMARY_DOMAIN, user_domain)
     
   resp = redirect(user_url)  
-  resp.set_cookie('network', user_domain)
+  if api.is_domain_name(user_domain):
+    resp.set_cookie('network', user_domain)
+  else:
+    resp.delete_cookie('network')
   return resp 
     
 if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
@@ -1154,8 +1170,10 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
       url = url + '?session_id=' + str(session_id)
 
     resp = redirect(url)
-    resp.set_cookie('network', network)
-
+    if api.is_domain_name(network):
+      resp.set_cookie('network', network)
+    else:
+      resp.delete_cookie('network')
     return resp
   
   
@@ -2377,6 +2395,8 @@ def home():
     if not api.is_exists(db_name=hostname.replace('.', '_')):
       network_exist = 0
     network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+    if not api.is_domain_name(network):
+      network = hostname
 
     if session_id:
       session.permanent = True
@@ -2406,8 +2426,12 @@ def home():
              )
 
       # set the network here so that api.get_database_name() knows which network calls it
-      resp.set_cookie('network', owner.email_domain)
-
+      network = owner.email_domain
+      
+      if api.is_domain_name(network):
+        resp.set_cookie('network', owner.email_domain)
+      else:
+        resp.delete_cookie('network')
       return resp
 
 
@@ -2914,11 +2938,14 @@ def feed_actions(feed_id=None, action=None,
             image = url.favicon
       if request.path.startswith('/post/') or not owner.id:
         return render_template('post.html',
-#                                background='dark-bg', 
+                               network=request.headers.get('Host')[:-(len(settings.PRIMARY_DOMAIN) + 1)],
                                owner=owner,
                                mode='view',
                                settings=settings,
-                               title=title, description=description, image=image, feed=feed)
+                               title=title, 
+                               description=description, 
+                               image=image, 
+                               feed=feed)
       else:
         return render_homepage(session_id, 
                                title=title, description=description, image=image,
@@ -3424,7 +3451,12 @@ class NetworkNameDispatcher(object):
     if '/_debug_toolbar/' in path:
       return self.app(environ, start_response)
     
-    if '.' in items[0] and api.is_domain_name(items[0]):  # is domain name
+    network_is_domain_name = api.is_domain_name(items[0])
+    if environ.get('HTTP_HOST') != settings.PRIMARY_DOMAIN:
+      return self.app(environ, start_response)
+      
+    
+    if '.' in items[0] and network_is_domain_name:  # is domain name
       # print "DEBUG - in NetworkNameDispatcher - items = " + items[0]
       
       # save user network for later use

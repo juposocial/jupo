@@ -47,8 +47,8 @@
         <a href='/' class='async'><img src='/public/images/logo/jupo-full.png'></a>
         <br>
         {% if not owner or not owner.id %}
-        <a href='/sign_in'>Sign in</a> or 
-        <a href='/sign_up'>create an account</a> to post comments.
+        <a href='/{{ network }}'>Sign in</a> or 
+        <a href='/{{ network }}'>create an account</a> to post comments.
         {% endif %}
       </div>
     </div>

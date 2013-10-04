@@ -7029,20 +7029,22 @@ width: 260px;
 }
 
 #body.post {
-  margin-top: 50px;
+  margin: 50px 0;
   width: 534px;
   border: none;
   padding: 0;
   box-shadow: none;
   position: absolute;
   padding-bottom: 50px;
-  min-height: auto;
+  left: 50%;
+  margin-left: -325px;
 }
 
 #body.post > div.float {
   position: fixed;
-  left: 750px;
+  left: 50%;
   top: 60px;
+  margin-left: 250px;
 }
 
 #body.post li.feed {
