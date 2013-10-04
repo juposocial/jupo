@@ -5,7 +5,7 @@
         <tr>
           <td style="width: 150px; min-height: 255px;">
           <div style="width: 100%;min-height: 80px">
-            <div style="text-align: center; padding-top: 25px;font-size: 18px; color: #cc6666;font-family: Lucida grande;">
+            <div style="text-align: center; padding-top: 25px;font-size: 18px; color: #cc6666;font-family: 'lucida grande',tahoma,verdana,arial,sans-serif;">
               {{ domain.split('/')[1].split('.')[0] }}
             </div>
           </div>
@@ -15,7 +15,7 @@
             </div>
           </div>
           <div style="width: 100%;min-height: 80px">
-            <div style="text-align: center;word-break: break-word;color: #333333;font-weight: bold;padding-top: 5px;font-size: 13px;font-family: Lucida grande; ">
+            <div style="text-align: center;word-break: break-word;color: #333333;font-weight: bold;padding-top: 5px;font-size: 13px;font-family: 'lucida grande',tahoma,verdana,arial,sans-serif; ">
               {{ username.split('@')[0] }}
             </div>
           </div></td>
@@ -23,26 +23,26 @@
           <div style="width: 400px; min-height: 155px;">
             <div style="padding-top: 60px;line-height: 25px;font-size: 13px;color: #444";>
               {% if not group_id %}
-              <span style="font-family: Lucida grande"> I 've add you to Jupo.</span>
+              <span style="font-family: 'lucida grande',tahoma,verdana,arial,sans-serif,"> I've added you to Jupo.</span>
               {% else %}
-              <span style="font-family: Lucida grande"> I 've add you to {{ group_name }}.</span>
+              <span style="font-family: 'lucida grande',tahoma,verdana,arial,sans-serif"> I've added you to {{ group_name }}.</span>
               {% endif %}
               <br />
-              <span style="font-family: Lucida grande">So we can easily collaborate and share infomation across the team.</span>
+              <span style="font-family: 'lucida grande',tahoma,verdana,arial,sans-serif">So we can easily collaborate and share infomation across the team.</span>
               <br />
-              <span style="font-family: Lucida grande">We need your input and ideas. Join us on the {{ domain.split('/')[1].split('.')[0] }} network.</span>
+              <span style="font-family: 'lucida grande',tahoma,verdana,arial,sans-serif">We need your input and ideas. Join us on the <span style="font-weight: bold">{{ domain.split('/')[1].split('.')[0] }}</span>  network.</span>
             </div>
           </div>
           <div style="width: 400px; min-height: 100px;">
             <div style="width: 175px;background-color: #cccccc; border-radius: 2px;min-height: 50px;text-align: center">
               <div style="padding-top: 15px; font-size: 13px;">
                 {% if not group_id %}
-                  <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
+                  <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: 'lucida grande',tahoma,verdana,arial,sans-serif;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
                 {% else %}
                   {% if is_new_user %}
-                  <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
+                  <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: 'lucida grande',tahoma,verdana,arial,sans-serif;" href="http://{{ domain }}/?code={{ code }}">Accept Invitation</a>
                   {% else %}
-                  <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: Lucida grande;" href="http://{{ domain }}/group/{{ group_id }}">Accept Invitation</a>
+                  <a style="color: #333333;text-decoration: none;font-weight: bold;font-family: 'lucida grande',tahoma,verdana,arial,sans-serif;" href="http://{{ domain }}/group/{{ group_id }}">Accept Invitation</a>
                   {% endif %}
                 {% endif %}
 
@@ -53,7 +53,7 @@
       </table>
       <div>
         <div style="color: #333333;font-size: 12px;">
-          <p style="margin: 15px 0 0 400px;float: left;font-family: Lucida grande;">
+          <p style="margin: 15px 0 0 400px;float: left;font-family: 'lucida grande',tahoma,verdana,arial,sans-serif;">
             Jupo. Contact us at <span style="text-decoration: underline;color: #996666;">info@jupo.com</span>
           </p>
           <img style="min-height: 20px;width: 50px;float: right;margin: 8px 110px 0 0;" src="http://{{ domain }}/public/images/jupo.png" />
