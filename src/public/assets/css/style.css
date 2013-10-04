@@ -6955,6 +6955,10 @@ a.async {
 	margin-top: 2px;
 }
 
-.post header {
-	
+.post header {	
+}
+
+.google-apps-features {
+	color: #CCC;
+	font-size: 0.7em;
 }

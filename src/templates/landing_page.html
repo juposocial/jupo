@@ -101,53 +101,78 @@
               <div id="google-authentication">
                 <h2>Getting Start</h2>
                 <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-lg btn-social btn-google"><i class="icon-google-plus-sign"></i> Sign in with Google App Account </a>
+                {% if network == 'joomsolutions.com' %}
+                  <ul class="google-apps-features">
+                    <li><i class="icon-check"></i> Access your contacts in no time</li>
+                    <li><i class="icon-check"></i> Leverage Google Apps add-on</li>
+                    <li><i class="icon-check"></i> One-click, no password</li>
+                  </ul>
+                  <!--
+                  <div class="form-group">
+                    <div class="popover top">
+                      <div class="arrow"></div>
+                      <div class="popover-content">
+                        <h3>Oops</h3>
+                        <p>Something went wrong :(.</p>
+                      </div>
+                    </div>
+                  </div>
+                  -->
+                {% endif %}
 
-                <p class="form-links">
-                  You can also enjoy Jupo with these options below...
-                </p>
+                <!-- not all network will support FB authentication -->
+                {% if network != 'joomsolutions.com' %}
+                  <p class="form-links">
+                    You can also enjoy Jupo with these options below...
+                  </p>
 
-                <div class="form-group">
-                  <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-fb pull-left"><i class="icon-facebook"></i> Facebook Account</a>
-                  <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social pull-right"><i class="icon-google-plus"></i> Google Account</a>
-                </div>
+                  <div class="form-group">
+                    <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-fb pull-left"><i class="icon-facebook"></i> Facebook Account</a>
+                    <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social pull-right"><i class="icon-google-plus"></i> Google Account</a>
+                  </div>
+                {% endif %}
               </div>
               <!-- oAuth buttons | END -->
 
-              <div id="jupo-login" class="form-group form-group-hasslide">
+              <!-- not all network will support FB authentication -->
+              {% if network != 'joomsolutions.com' %}
+                <div id="jupo-login" class="form-group form-group-hasslide">
 
-                <div class="btn-group-social">
-                  <div class="jupo-login-form">
-                    <div class="form-group">
-                      <div class="popover top">
-                        <div class="arrow"></div>
-                        <div class="popover-content">
-                          <h3>Oops</h3>
-                          <p>Something went wrong :(.</p>
+                  <div class="btn-group-social">
+                    <div class="jupo-login-form">
+                      <div class="form-group">
+                        <!--
+                        <div class="popover top">
+                          <div class="arrow"></div>
+                          <div class="popover-content">
+                            <h3>Oops</h3>
+                            <p>Something went wrong :(.</p>
+                          </div>
+                        </div>
+                        -->
+
+                        <div class="input-group">
+                          <input type="text" name='email' class="form-control" placeholder="Email address" autocomplete="off" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
+                          <!--<span class="input-group-addon">@{{ network }}</span>-->
                         </div>
                       </div>
+                      <div class="form-group">
+                        <input type="password" name='password' class="form-control" placeholder="Password" autocomplete="off" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}/>
+                      </div>
 
-
-                      <div class="input-group">
-                        <input type="text" name='email' class="form-control" placeholder="Email address" autocomplete="off" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
-                        <!--<span class="input-group-addon">@{{ network }}</span>-->
+                      <div class="btn-group btn-group-jupo">
+                        <button class="btn btn-primary" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_up'; document.getElementById('sign-in').submit();">Create Account</button>
+                          <span class="btn-seperator">or</span>
+                        <button class="btn btn-default" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_in'; document.getElementById('sign-in').submit();">Signin</button>
                       </div>
                     </div>
-                    <div class="form-group">
-                      <input type="password" name='password' class="form-control" placeholder="Password" autocomplete="off" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}/>
-                    </div>
 
-                    <div class="btn-group btn-group-jupo">
-                      <button class="btn btn-primary" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_up'; document.getElementById('sign-in').submit();">Create Account</button>
-                        <span class="btn-seperator">or</span>
-                      <button class="btn btn-default" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_in'; document.getElementById('sign-in').submit();">Signin</button>
-                    </div>
+                    <button title="" class="btn btn-social btn-jupo">
+                      <i class="icon-chevron-sign-up"></i> Use your own JUPO account
+                    </button>
                   </div>
-
-                  <button title="" class="btn btn-social btn-jupo">
-                    <i class="icon-chevron-sign-up"></i> Use your own JUPO account
-                  </button>
                 </div>
-              </div>
+              {% endif %}
 
               <div class="form-links" style="margin: 0">
                 <a href="#" title="" class="">What's this?</a>
