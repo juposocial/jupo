@@ -156,12 +156,12 @@
                         -->
 
                         <div class="input-group">
-                          <input type="text" name='email' class="form-control" placeholder="Email address" autocomplete="off" data-required="true" data-type="email" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
+                          <input type="text" name='email' class="form-control" placeholder="Email address" data-required="true" data-type="email" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
                           <!--<span class="input-group-addon">@{{ network }}</span>-->
                         </div>
                       </div>
                       <div class="form-group">
-                        <input type="password" name='password' class="form-control" placeholder="Password" autocomplete="off" data-required="true" data-error-message="Password is invalid. Please check again" data-error-container="div.flash-message" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}/>
+                        <input type="password" name='password' class="form-control" placeholder="Password" data-required="true" data-error-message="Password is invalid. Please check again" data-error-container="div.flash-message" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}/>
                       </div>
 
                       <div class="btn-group btn-group-jupo">
@@ -190,7 +190,6 @@
 
               <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="network" value="{{ network }}">
-              <input type="hidden" name="back_to" value="http://{{ domain }}/{{ network }}">
 
               <!--<div class='flash-message'></div>-->
               {% with messages = get_flashed_messages() %}

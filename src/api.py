@@ -6150,9 +6150,11 @@ def get_networks(user_id, user_email=None):
 
 PRIMARY_IP = socket.gethostbyname(settings.PRIMARY_DOMAIN)
 def domain_is_ok(domain_name):
+  if not domain_name:
+    return False
   try:
     return PRIMARY_IP in socket.gethostbyaddr(domain_name)[-1]
-  except socket.gaierror:
+  except (socket.gaierror, socket.herror):
     return False
  
 
