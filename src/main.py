@@ -716,10 +716,12 @@ def authentication(action=None):
 
     if session_id is None: # new user
       # sign up instantly (!)
-      api.sign_up(email=email, password=password, name="", user_agent=user_agent, remote_addr=remote_addr)
+      # api.sign_up(email=email, password=password, name="", user_agent=user_agent, remote_addr=remote_addr)
 
       # then sign in again
-      session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+      # session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+      flash('Please check your email/password.')
+      return redirect(back_to)
     elif session_id == False: # existing user, wrong password
       flash('Wrong password, please try again :)')
       return redirect(back_to)
@@ -778,6 +780,9 @@ def authentication(action=None):
         
 
   elif request.path.endswith('sign_up'):
+    network = request.form.get("network")
+    back_to = request.form.get('back_to', request.args.get('back_to'))
+
     if request.method == 'GET':
       welcome = request.args.get('welcome')
       email = request.args.get('email')
@@ -795,11 +800,16 @@ def authentication(action=None):
     
     alerts = {}
     if email and api.is_exists(email):
-      alerts['email'] = '"%s" is already in use.' % email
+      # alerts['email'] = '"%s" is already in use.' % email
+      print "DEBUG - in sign_up - check #1"
+      flash('Email is already in use')
+      return redirect(back_to)
     if len(password) < 6:
-      alerts['password'] = 'Your password must be at least 6 characters long.'
+      # alerts['password'] = 'Your password must be at least 6 characters long.'
+      flash('Your password must be at least 6 characters long.')
+      return redirect(back_to)
     
-    
+    # input error, redirect to login page
     if alerts.keys():
       resp = Response(render_template('sign_up.html', 
                                       alerts=alerts,
@@ -810,6 +820,7 @@ def authentication(action=None):
                                       PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
                                       network_info=network_info))
       return resp
+    # input OK, process to sign up
     else:
       session_id = api.sign_up(email, password, name)
       if session_id:
@@ -828,11 +839,17 @@ def authentication(action=None):
         
         user_id = api.get_user_id(session_id)
         if api.is_admin(user_id):
-          return redirect('/groups')
+          resp = redirect('/groups')
         else:
-          return redirect('/everyone?getting_started=1')  
+          resp = redirect('/everyone?getting_started=1')
+
+        # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
+        resp.set_cookie('network', network)
+
+        return resp
       else:
-        return redirect('/')
+        flash('Please check your email/password.')
+        return redirect(back_to)
       
   elif request.path.endswith('sign_out'):
     # token = session.get('oauth_google_token')
@@ -2633,13 +2650,12 @@ def feed_actions(feed_id=None, action=None,
   user_id = api.get_user_id(session_id)
   if not user_id:
     if not request.path.startswith('/post/'):
-#       return redirect('/')
+      # return redirect('/')
       resp = redirect('http://' + settings.PRIMARY_DOMAIN)
       hostname = request.headers.get('Host')
       network = hostname[:-(len(settings.PRIMARY_DOMAIN)+1)]
       url_redirect = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, network, request.path)
       resp.set_cookie('redirect_to', url_redirect)
-      
       return resp
     
   utcoffset = request.cookies.get('utcoffset')
@@ -3403,16 +3419,16 @@ from werkzeug.wrappers import Request
 
 class NetworkNameDispatcher(object):
   """
-  Convert the first part of request PATH_INFO to hostname for backward 
+  Convert the first part of request PATH_INFO to hostname for backward
   compatibility
-  
-  Eg: 
-    
+
+  Eg:
+
      http://jupo.com/example.com/news_feed
-     
+
   -> http://example.com.jupo.com/news_feed
-  
-   
+
+
   """
   def __init__(self, app):
     self.app = app
@@ -3426,7 +3442,7 @@ class NetworkNameDispatcher(object):
     
     if '.' in items[0] and api.is_domain_name(items[0]):  # is domain name
       # print "DEBUG - in NetworkNameDispatcher - items = " + items[0]
-      
+
       # save user network for later use
       # session['subnetwork'] = items[0]
 
@@ -3435,30 +3451,31 @@ class NetworkNameDispatcher(object):
         environ['PATH_INFO'] = '/%s' % items[1]
       else:
         environ['PATH_INFO'] = '/'
-      
+
       return self.app(environ, start_response)
-        
+
     else:
       request = Request(environ)
       network = request.cookies.get('network')
+      print "DEBUG - in init app - network = " + str(network)
       if not network:
         return self.app(environ, start_response)
-      
+
       if request.method == 'GET':
         url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN,
                                   network, request.path)
         if request.query_string:
           url += '?' + request.query_string
-          
+
         response = redirect(url)
         return response(environ, start_response)
-      
+
       else:
         environ['HTTP_HOST'] = network + '.' + settings.PRIMARY_DOMAIN
         return self.app(environ, start_response)
-        
-      
-    
+
+
+
 
 app.wsgi_app = NetworkNameDispatcher(app.wsgi_app)
 
@@ -3468,14 +3485,14 @@ if __name__ == "__main__":
   
 #   @werkzeug.serving.run_with_reloader
   def run_app(debug=True):
-      
+
     from cherrypy import wsgiserver
-      
+
     app.debug = debug
-  
+
     # app.config['SERVER_NAME'] = settings.PRIMARY_DOMAIN
-    
-    app.config['DEBUG_TB_PROFILER_ENABLED'] = True
+
+    app.config['DEBUG_TB_PROFILER_ENABLED'] = False
     app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
     app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
     app.config['DEBUG_TB_PANELS'] = [
@@ -3493,11 +3510,10 @@ if __name__ == "__main__":
       'SHOW_STACKTRACES': True,
       'HIDE_FLASK_FROM_STACKTRACES': True
     }
-    
-#     toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
-    
-  
-    
+
+  #   toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
+
+
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
     try:
       print 'Serving HTTP on 0.0.0.0 port 9000...'
@@ -3505,11 +3521,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
       print '\nGoodbye.'
       server.stop()
-  
-  
+
+
   run_app(debug=True)
-
-
-
-
-
