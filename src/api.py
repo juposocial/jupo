@@ -1256,7 +1256,8 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
   db = DATABASE[db_name]
   
   email = email.strip().lower()
-  name = name.strip()
+  if name:
+    name = name.strip()
   raw_password = password
   
   # Validation
