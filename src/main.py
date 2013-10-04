@@ -705,12 +705,13 @@ def authentication(action=None):
     email = request.form.get("email")
     password = request.form.get("password")
 
-    back_to = request.form.get('back_to', request.args.get('back_to'))
+    back_to = request.args.get('back_to', '')
     user_agent = request.environ.get('HTTP_USER_AGENT')
     app.logger.debug(user_agent)
     remote_addr = request.environ.get('REMOTE_ADDR')
 
     network = request.form.get("network")
+    is_custom_domain = api.domain_is_ok(network) if network != settings.PRIMARY_DOMAIN else False
 
     session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
 
@@ -755,7 +756,7 @@ def authentication(action=None):
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
 
       # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
-      if api.is_domain_name(network):
+      if api.is_domain_name(network) and not is_custom_domain:
         resp.set_cookie('network', network)
       else:
         resp.delete_cookie('network')
@@ -783,7 +784,8 @@ def authentication(action=None):
 
   elif request.path.endswith('sign_up'):
     network = request.form.get("network")
-    back_to = request.form.get('back_to', request.args.get('back_to'))
+    back_to = request.args.get('back_to', '')
+    is_custom_domain = api.domain_is_ok(network) if network != settings.PRIMARY_DOMAIN else False
 
     if request.method == 'GET':
       welcome = request.args.get('welcome')
@@ -846,7 +848,10 @@ def authentication(action=None):
           resp = redirect('/everyone?getting_started=1')
 
         # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
-        resp.set_cookie('network', network)
+        if api.is_domain_name(network) and not is_custom_domain:
+          resp.set_cookie('network', network)
+        else:
+          resp.delete_cookie('network')
 
         return resp
       else:
@@ -981,6 +986,7 @@ def google_login():
   #                % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
   return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
                   % (settings.GOOGLE_REDIRECT_URI, (domain + ";" + network), settings.GOOGLE_CLIENT_ID, email, email))
+  
 
 @app.route('/oauth/google/authorized')
 def google_authorized():
@@ -1020,7 +1026,7 @@ def google_authorized():
   if network:
     user_domain = network
     
-  is_custom_domain = api.domain_is_ok(user_domain)
+  is_custom_domain = api.domain_is_ok(network) if network != settings.PRIMARY_DOMAIN else False
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
@@ -1068,18 +1074,17 @@ def google_authorized():
   
    
   if is_custom_domain: 
-    user_url = 'http://%s' % user_domain
+    user_url = 'http://%s/?session_id=%s' % (user_domain, session_id)
   else:
     user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
     
-  if user_info.id:
-    user_url += '/?session_id=%s' % session_id
-  else: # new user
-    user_url += '/everyone?getting_started=1&first_login=1' \
-             % (settings.PRIMARY_DOMAIN, user_domain)
+    if user_info.id:
+      user_url += '/news_feed'
+    else: # new user
+      user_url += '/everyone?getting_started=1&first_login=1'
     
   resp = redirect(user_url)  
-  if api.is_domain_name(user_domain):
+  if api.is_domain_name(user_domain) and not is_custom_domain:
     resp.set_cookie('network', user_domain)
   else:
     resp.delete_cookie('network')
@@ -1146,7 +1151,11 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
   
     # generate db_name based on full URL ( e.g. gmail.com.jupo.com)
-    db_name = (network + "." + domain).lower().strip().replace('.', '_')
+    is_custom_domain = api.domain_is_ok(network) if network != settings.PRIMARY_DOMAIN else False
+    if is_custom_domain:
+      db_name = network.replace('.', '_')
+    else:
+      db_name = (network + "." + domain).lower().strip().replace('.', '_')
     
     user_info = api.get_user_info(email=me.data.get('email'), db_name=db_name)
   
@@ -1174,7 +1183,10 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
             api.update_session_id(email, session_id, db)
           
     # support subdir ( domain/network )
-    url = 'http://%s/%s/' % (domain, network)
+    if is_custom_domain:
+      url = 'http://%s/' % network
+    else:
+      url = 'http://%s/%s/' % (domain, network)
 
     if domain == settings.PRIMARY_DOMAIN:
       session['session_id'] = session_id
@@ -1187,7 +1199,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
       url = url + '?session_id=' + str(session_id)
 
     resp = redirect(url)
-    if api.is_domain_name(network):
+    if api.is_domain_name(network) and not is_custom_domain:
       resp.set_cookie('network', network)
     else:
       resp.delete_cookie('network')
@@ -2406,6 +2418,8 @@ def home():
   
   network = ""
   network_exist = 1
+  
+  is_custom_domain = api.domain_is_ok(hostname) if hostname != settings.PRIMARY_DOMAIN else False
 
   if hostname != settings.PRIMARY_DOMAIN:
     # used to 404 if network doesn't exist. now we switch to customized landing page for them (even if network doesn't exist yet)
@@ -2445,7 +2459,7 @@ def home():
       # set the network here so that api.get_database_name() knows which network calls it
       network = owner.email_domain
       
-      if api.is_domain_name(network):
+      if api.is_domain_name(network) and not is_custom_domain:
         resp.set_cookie('network', owner.email_domain)
       else:
         resp.delete_cookie('network')
@@ -2459,9 +2473,6 @@ def home():
     except KeyError:
       pass
     
-#     if hostname != settings.PRIMARY_DOMAIN:
-#       return redirect('/sign_in')
-    
     email = request.args.get('email')
     message = request.args.get('message')
     resp = Response(render_template('landing_page.html',
@@ -2472,7 +2483,7 @@ def home():
                                     network_exist=network_exist,
                                     message=message))
     
-    back_to = request.args.get('back_to')
+    back_to = request.args.get('back_to', '')
     if back_to:
       resp.set_cookie('redirect_to', back_to)
     

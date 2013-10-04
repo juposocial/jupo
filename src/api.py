@@ -1256,7 +1256,8 @@ def sign_up(email, password, name, user_agent=None, remote_addr=None):
   db = DATABASE[db_name]
   
   email = email.strip().lower()
-  name = name.strip()
+  if name:
+    name = name.strip()
   raw_password = password
   
   # Validation
@@ -6150,9 +6151,11 @@ def get_networks(user_id, user_email=None):
 
 PRIMARY_IP = socket.gethostbyname(settings.PRIMARY_DOMAIN)
 def domain_is_ok(domain_name):
+  if not domain_name:
+    return False
   try:
     return PRIMARY_IP in socket.gethostbyaddr(domain_name)[-1]
-  except socket.gaierror:
+  except (socket.gaierror, socket.herror):
     return False
  
 
