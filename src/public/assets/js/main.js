@@ -67,7 +67,8 @@ jQuery(function($){
     });
 
     // placeholder fix all browsers
-    $('[placeholder]').focus(function() {
+    /*
+	$('[placeholder]').focus(function() {
       var input = $(this);
       if (input.val() == input.attr('placeholder')) {
         input.val('');
@@ -80,4 +81,5 @@ jQuery(function($){
         input.val(input.attr('placeholder'));
       }
     }).blur();
+	*/
 });

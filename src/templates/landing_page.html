@@ -13,12 +13,10 @@
   <link href="/public/assets/css/ie8.css" rel="stylesheet">
   <![endif]-->
 
-  <script src="/public/assets/js/modernizr.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
-  <!--<script src="/public/assets/js/jquery.min.js"></script>
-  <script src="/public/assets/js/jquery.validate.min.js"></script>-->
   <script src="/public/assets/js/parsley-standalone.min.js"></script>
+  <script src="/public/assets/js/modernizr.js"></script>
 
   <link rel="shortcut icon" href="/public/assets/img/favicon.ico">
 
@@ -60,11 +58,13 @@
       </div>
       <nav id="site-navigation" class="collapse navbar-collapse main-navigation pull-right" role="navigation">
         <ul class="nav navbar-nav">
+          <!--
           <li class="current_page_item active">
             <a href="index.html" title="Home">Home</a>
           </li>
+          -->
           <li class="page_item page-item-4">
-            <a href="#">Meta</a>
+            <a href="http://meta.jupo.com">Meta</a>
           </li>
           <li class="page_item page-item-2">
             <a href="http://blog.jupo.com">Blog</a>
@@ -156,18 +156,18 @@
                         -->
 
                         <div class="input-group">
-                          <input type="text" name='email' class="form-control" placeholder="Email address" autocomplete="off" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
+                          <input type="text" name='email' class="form-control" placeholder="Email address" autocomplete="off" data-required="true" data-type="email" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
                           <!--<span class="input-group-addon">@{{ network }}</span>-->
                         </div>
                       </div>
                       <div class="form-group">
-                        <input type="password" name='password' class="form-control" placeholder="Password" autocomplete="off" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}/>
+                        <input type="password" name='password' class="form-control" placeholder="Password" autocomplete="off" data-required="true" data-error-message="Password is invalid. Please check again" data-error-container="div.flash-message" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}/>
                       </div>
 
                       <div class="btn-group btn-group-jupo">
-                        <button class="btn btn-primary" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_up'; document.getElementById('sign-in').submit();">Create Account</button>
+                        <button class="btn btn-primary" type="submit" onclick="if ($('#sign-in').parsley('validate') == false) { return ;}; if (location.host == '{{ domain }}') {document.getElementById('sign-in').action = '/{{ network }}/sign_up';} else {document.getElementById('sign-in').action = '/sign_up';} document.getElementById('sign-in').submit();">Create Account</button>
                           <span class="btn-seperator">or</span>
-                        <button class="btn btn-default" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_in'; document.getElementById('sign-in').submit();">Signin</button>
+                        <button class="btn btn-default" type="submit" onclick="if ($('#sign-in').parsley('validate') == false) { return ;}; if (location.host == '{{ domain }}') {document.getElementById('sign-in').action = '/{{ network }}/sign_in';} else {document.getElementById('sign-in').action = '/sign_in';} document.getElementById('sign-in').submit();">Signin</button>
                       </div>
                     </div>
 
@@ -420,6 +420,7 @@
 			$('#jupo-login .jupo-login-form').click (function(e) {
 				e.stopPropagation();
 			});
+
 		})(jQuery);
 	</script>
 </body>
