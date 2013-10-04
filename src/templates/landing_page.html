@@ -12,13 +12,16 @@
   <!--[if (lt IE 9) & (!IEMobile)]>
   <link href="/public/assets/css/ie8.css" rel="stylesheet">
   <![endif]-->
+
   <script src="/public/assets/js/modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
   <!--<script src="/public/assets/js/jquery.min.js"></script>
   <script src="/public/assets/js/jquery.validate.min.js"></script>-->
   <script src="/public/assets/js/parsley-standalone.min.js"></script>
+
   <link rel="shortcut icon" href="/public/assets/img/favicon.ico">
-  
-  
+
   {% if settings.MIXPANEL_TOKEN %}
   <script type="text/javascript">
   (function(e,b){if(!b.__SV){var a,f,i,g;window.mixpanel=b;a=e.createElement("script");a.type="text/javascript";a.async=!0;a.src=("https:"===e.location.protocol?"https:":"http:")+'//cdn.mxpnl.com/libs/mixpanel-2.2.min.js';f=e.getElementsByTagName("script")[0];f.parentNode.insertBefore(a,f);b._i=[];b.init=function(a,e,d){function f(b,h){var a=h.split(".");2==a.length&&(b=b[a[0]],h=a[1]);b[h]=function(){b.push([h].concat(Array.prototype.slice.call(arguments,0)))}}var c=b;"undefined"!==
@@ -63,13 +66,8 @@
           <li class="page_item page-item-4">
             <a href="#">Meta</a>
           </li>
-          <!--
-          <li class="page_item page-item-4">
-            <a href="/oauth/google?domain={{ domain }}&network={{ network }}" class="btn btn-sign-in">Sign-in</a>
-          </li>
-          -->
           <li class="page_item page-item-2">
-            <a href="#">Blog</a>
+            <a href="http://blog.jupo.com">Blog</a>
           </li>
         </ul>
       </nav>
@@ -99,78 +97,63 @@
 
           <div class="col-md-6" data-pos="right">
             <form class="form-signup form-signup-vertical" role="form" id='sign-in' method='post' data-validate="parsley">
+              <!-- oAuth buttons | START -->
               <div id="google-authentication">
+                <h2>Getting Start</h2>
+                <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-lg btn-social btn-google"><i class="icon-google-plus-sign"></i> Sign in with Google App Account </a>
+
+                <p class="form-links">
+                  You can also enjoy Jupo with these options below...
+                </p>
+
                 <div class="form-group">
+                  <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-fb pull-left"><i class="icon-facebook"></i> Facebook Account</a>
+                  <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social pull-right"><i class="icon-google-plus"></i> Google Account</a>
+                </div>
+              </div>
+              <!-- oAuth buttons | END -->
+
+              <div id="jupo-login" class="form-group form-group-hasslide">
+
+                <div class="btn-group-social">
+                  <div class="jupo-login-form">
+                    <div class="form-group">
+                      <div class="popover top">
+                        <div class="arrow"></div>
+                        <div class="popover-content">
+                          <h3>Oops</h3>
+                          <p>Something went wrong :(.</p>
+                        </div>
+                      </div>
 
 
-                  <div class="popover top">
-                    <div class="arrow"></div>
-                    <div class="popover-content">
-                      <!--<h3>Enter your Google Apps email</h3>-->
-                      <p>Get all Google Apps features to enhance your company communication & collaboration.</p>
+                      <div class="input-group">
+                        <input type="text" name='email' class="form-control" placeholder="Email address" autocomplete="off" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
+                        <!--<span class="input-group-addon">@{{ network }}</span>-->
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <input type="password" name='password' class="form-control" placeholder="Password" autocomplete="off" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}/>
+                    </div>
+
+                    <div class="btn-group btn-group-jupo">
+                      <button class="btn btn-primary" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_up'; document.getElementById('sign-in').submit();">Create Account</button>
+                        <span class="btn-seperator">or</span>
+                      <button class="btn btn-default" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_in'; document.getElementById('sign-in').submit();">Signin</button>
                     </div>
                   </div>
 
-
-                  <div class="btn-group-wrap">
-                    <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-google"><i class="icon-google-plus"></i> Sign in with Google Apps account</a>
-                    <p style="width: 100%; margin-left: 45%;">-or-</p>
-                    <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-social-small btn-fb"><i class="icon-facebook"></i> Sign in with Facebook account</a>
-                    <a href="#" title="" class="btn btn-social btn-social-small btn-jupo" onclick="$('#normal-authentication').slideToggle(); "><i class="icon-asterisk"></i> Sign in with JUPO account</a>
-                  </div>
-
-                  <!--
-                  div class="input-group">
-                    <input type="text" name='email' class="form-control input-lg" placeholder="Email address" autocomplete="off" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
-                    <span class="input-group-btn">
-                      <a class="btn btn-lg btn-primary" href="/oauth/google?domain={{ domain }}&network={{ network }}">Get Started!</a>
-                    </span>
-                    <span class="input-group-addon">@{{ network }}</span>
-                  </div>
-                  -->
-                </div>
-              </div>
-              <div id="normal-authentication" style="display: none">
-                <div class="form-group">
-                  {% if message %}
-                    <p class='msg'>
-                      <strong>{{ message | safe }}</strong>
-                    </p>
-                  {% endif %}
-                  <!--
-                  <div class="popover top">
-                    <div class="arrow"></div>
-                    <div class="popover-content">
-                      <h3>Enter your Google App username</h3>
-                      <p>Get all Facebook features to push your company communication & collaboration to the next level.</p>
-                    </div>
-                  </div>
-                  -->
-                  <div class="input-group input-group-lg">
-                    <input type="text" name='email' class="form-control input-lg" placeholder="Email address" autocomplete="off" data-error-message="Email is invalid. Please check again" data-error-container="div.flash-message" {% if email %}value="{{ email }}"{% else %}autofocus{% endif %}/>
-                    <!--<span class="input-group-addon">@{{ network }}</span>-->
-                  </div>
-                </div>
-                <div class="form-group">
-                  <input type="password" name='password' class="form-control input-lg" placeholder="Password" autocomplete="off" {% if password %}value="{{ password }}" autofocus{% elif msg %}autofocus{% endif %}/>
-                </div>
-
-                <div class="btn-group btn-group-lg">
-                  <button class="btn btn-lg btn-primary" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_up'; document.getElementById('sign-in').submit();">Create Account</button>
-                    <span class="btn-seperator">or</span>
-                  <button class="btn btn-lg btn-default" type="submit" onclick="document.getElementById('sign-in').action = '/{{ network }}/sign_in'; document.getElementById('sign-in').submit();">Signin</button>
+                  <button title="" class="btn btn-social btn-jupo">
+                    <i class="icon-chevron-sign-up"></i> Use your own JUPO account
+                  </button>
                 </div>
               </div>
 
-              <!--
-              <div class="form-links">
-                <p>You can also login with your <br />
-                <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class=""><i class="icon-facebook"></i>&nbsp;&nbsp;Facebook Account</a>
-                <span>&nbsp;&nbsp;or&nbsp;&nbsp;</span>
-                <a href="" title="" class=""><i class="icon-apple"></i>&nbsp;&nbsp;Email Account</a></p>
-                <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class=""><i class="icon-google-plus"></i>&nbsp;&nbsp;Google Account</a></p>
+              <div class="form-links" style="margin: 0">
+                <a href="#" title="" class="">What's this?</a>
+                <span>&nbsp;&nbsp;/&nbsp;&nbsp;</span>
+                <a href="#" title="" class="">Contact Us</a>
               </div>
-              -->
 
               <div class='flash-message'></div>
 
@@ -188,6 +171,13 @@
                       {{ message | safe }}
                     </div>
                   {% endfor %}
+
+                  <script type="text/javascript">
+                    // if there is error, most likely due to normal authentication, popup the username/password again
+                    $('#jupo-login').addClass('active');
+                    $('#jupo-login input:first').focus();
+                    $( ".flash-message" ).effect( "shake" );
+                  </script>
                 {% endif %}
               {% endwith %}
             </form>
@@ -366,9 +356,42 @@
 
   <a id="back-to-top" class="scrollup icon-circle-arrow-up" href="#"></a>
 
-  <script src="/public/assets/js/jquery.js"></script>
   <script src="/public/assets/js/bootstrap.js"></script>
   <script src="/public/assets/js/respond.js"></script>
   <script src="/public/assets/js/main.js"></script>
+  <script type="text/javascript">
+		!(function($) {
+      // random number that will change after 300 seconds (5 mins)
+      var randomNumber = (Math.round((new Date().getTime()/1000)/300) % 3) + 1;
+      var imageUrl = 'http://jupo.localhost.com/public/assets/img/head-' + randomNumber + '.jpg';
+
+      $('div.network-page').first().css('background-image', 'url("' + imageUrl + '")');
+
+			// toggle login form
+			$('.btn-jupo').click (function(e){
+				e.preventDefault();
+				var $this = $(this),
+					$parent = $('#jupo-login');
+				if ($parent.hasClass ('active')) {
+					$parent.removeClass ('active');
+				} else {
+					$parent.addClass ('active');
+					$('#jupo-login input:first').focus();
+				}
+				return false;
+			});
+			// hide when click outside
+			$(document).click (function() {
+				var $parent = $('#jupo-login');
+				if ($parent.hasClass ('active')) {
+					$parent.removeClass ('active');
+				}
+			});
+			// ignore when click on login form
+			$('#jupo-login .jupo-login-form').click (function(e) {
+				e.stopPropagation();
+			});
+		})(jQuery);
+	</script>
 </body>
 </html>

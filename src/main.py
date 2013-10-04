@@ -720,7 +720,7 @@ def authentication(action=None):
 
       # then sign in again
       # session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
-      flash('Please check your email address/password.')
+      flash('Please check your email/password.')
       return redirect(back_to)
     elif session_id == False: # existing user, wrong password
       flash('Wrong password, please try again :)')
@@ -848,7 +848,7 @@ def authentication(action=None):
 
         return resp
       else:
-        flash('Something went wrong :(.')
+        flash('Please check your email/password.')
         return redirect(back_to)
       
   elif request.path.endswith('sign_out'):
@@ -2650,7 +2650,14 @@ def feed_actions(feed_id=None, action=None,
   user_id = api.get_user_id(session_id)
   if not user_id:
     if not request.path.startswith('/post/'):
-      return redirect('/')
+      # return redirect('/')
+      resp = redirect('http://' + settings.PRIMARY_DOMAIN)
+      hostname = request.headers.get('Host')
+      network = hostname[:-(len(settings.PRIMARY_DOMAIN)+1)]
+      url_redirect = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, network, request.path)
+      resp.set_cookie('redirect_to', url_redirect)
+
+      return resp
     
   utcoffset = request.cookies.get('utcoffset')
   if utcoffset:

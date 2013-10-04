@@ -1,4 +1,6 @@
 @import url(http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,300italic,400italic,600italic);
+
+@import url(http://fonts.googleapis.com/css?family=Coda);
 /*!
  * Bootstrap v3.0.0
  *
@@ -259,7 +261,7 @@ html {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 body {
-  font-family: "Source Sans Pro", "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 1.375;
   color: #666666;
@@ -395,8 +397,8 @@ h6,
 .h4,
 .h5,
 .h6 {
-  font-family: "Source Sans Pro", "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 600;
+  font-family: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 400;
   line-height: 1.2;
 }
 h1 small,
@@ -5915,8 +5917,8 @@ html {
   -webkit-font-smoothing: subpixel-antialiased;
 }
 .no-touch a {
-  -webkit-transition: all 0.3s linear 0s;
-  transition: all 0.3s linear 0s;
+  -webkit-transition: all 0.2s linear 0s;
+  transition: all 0.2s linear 0s;
 }
 a:hover,
 a:active,
@@ -6078,12 +6080,12 @@ body.loading > * {
   left: 0;
   top: 0;
   margin: 0;
-  background: #484e5c url("../img/head-home.jpg") no-repeat top center;
+  background: #444444 url("../img/head-1.jpg") no-repeat top center;
   background-size: cover;
   overflow: hidden;
   position: fixed;
   z-index: 2;
-  font-size: 18px;
+  font-size: 20.8px;
   letter-spacing: 1px;
   font-weight: 300;
   padding: 0 !important;
@@ -6123,15 +6125,12 @@ body.loading > * {
 .jumbotron .container h2 {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   margin: 0 auto 20px;
-  font-weight: 300;
-}
-.jumbotron .container a {
-  color: #fff;
+  font-weight: 400;
 }
 .jumbotron .container p {
   color: #eee;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
-  line-height: 1.75;
+  line-height: 1.5;
 }
 .jumbotron .container h1.network-welcome {
   margin-bottom: 40px;
@@ -6150,7 +6149,7 @@ body.loading > * {
   margin-top: 22px;
 }
 .jumbotron .container .form-signup-vertical {
-  margin-top: -30px;
+  margin-top: -10px;
 }
 .jumbotron .container .form-signup-horizontal {
   margin-top: 33px;
@@ -6164,6 +6163,22 @@ body.loading > * {
 .jumbotron .container .form-links p {
   margin: 0;
   color: #aaa;
+}
+.jumbotron .container .form-links p a {
+  color: #fff;
+}
+.jumbotron .container .form-links p a:hover,
+.jumbotron .container .form-links p a:active,
+.jumbotron .container .form-links p a:focus {
+  color: #d62229;
+}
+.jumbotron .container .form-links a {
+  color: #aaa;
+}
+.jumbotron .container .form-links a:hover,
+.jumbotron .container .form-links a:active,
+.jumbotron .container .form-links a:focus {
+  color: #fff;
 }
 @media (max-width: 480px) {
   .jumbotron .container .intro {
@@ -6189,6 +6204,7 @@ body.loading > * {
 .form-signup input {
   border-width: 2px;
   border-color: #555;
+  border-radius: 4px;
 }
 .form-signup input:focus {
   border-color: #333;
@@ -6199,76 +6215,119 @@ body.loading > * {
   }
 }
 .btn-group-wrap .btn {
-  margin: 5px 5px;
+  margin: 0 5px;
 }
 .btn-group-wrap p {
-  font-size: 12px;
+  font-size: 14px;
 }
-.btn-social {
-  /* background-color: #D62229; */
-  color: #fff;
+.btn-social,
+a.btn-social {
+  background: #222222;
+  color: #aaa;
   position: relative;
   padding: 0 20px 0 50px;
-  height: 45px;
-  line-height: 45px;
-  font-size: 19px;
-  opacity: .8; 
+  height: 34px;
+  line-height: 34px;
+  font-size: 14px;
 }
-
-.btn-social-small {
-  height: 35px;
-  line-height: 35px;
-}
-
 .btn-social [class^="icon-"],
-.btn-social [class*=" icon-"] {
-  border-right: 1px solid rgba(0,0,0,0.2);
+a.btn-social [class^="icon-"],
+.btn-social [class*=" icon-"],
+a.btn-social [class*=" icon-"] {
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
   position: absolute;
   display: block;
   left: 0;
   top: -1px;
-  width: 45px;
-  height: 45px;
-  line-height: 45px;
-  font-size: 18px;
-}
-
-.btn-social-small [class^="icon-"],
-.btn-social-small [class*=" icon-"] {
-  width: 35px;
-  height: 35px;
-  line-height: 35px;
+  width: 34px;
+  height: 34px;
+  line-height: 34px;
   font-size: 16px;
+  text-align: center;
 }
-
 .btn-social:hover,
+a.btn-social:hover,
 .btn-social:active,
-.btn-social:focus {
-  opacity: 1;
+a.btn-social:active,
+.btn-social:focus,
+a.btn-social:focus {
+  background: #090909;
+  color: #fff !important;
+}
+.btn-google,
+a.btn-google {
+  background-color: #d62229;
   color: #fff;
 }
-.btn-fb {
-  opacity: 0.5;
-  background-color: #4c66a4;
+.btn-google:hover,
+a.btn-google:hover,
+.btn-google:active,
+a.btn-google:active,
+.btn-google:focus,
+a.btn-google:focus {
+  background-color: #aa1b21;
 }
-.btn-jupo {
-  opacity: 0.5;
-  background-color: #222222;
+.btn-lg.btn-social,
+a.btn-lg.btn-social {
+  font-size: 20px;
+  height: 50px;
+  line-height: 50px;
+  padding-left: 60px;
 }
-.btn-google {
-  background-color: #d62229;
+.btn-lg.btn-social:hover,
+a.btn-lg.btn-social:hover,
+.btn-lg.btn-social:active,
+a.btn-lg.btn-social:active,
+.btn-lg.btn-social:focus,
+a.btn-lg.btn-social:focus {
+  color: #fff !important;
 }
-.form-links {
+.btn-lg.btn-social [class^="icon-"],
+a.btn-lg.btn-social [class^="icon-"],
+.btn-lg.btn-social [class*=" icon-"],
+a.btn-lg.btn-social [class*=" icon-"] {
+  width: 50px;
+  height: 50px;
+  line-height: 50px;
+  font-size: 26px;
+  text-align: center;
+}
+.jumbotron .container .form-links {
   font-size: 14px;
   padding-left: 5px;
+  color: #aaa;
 }
-.form-links p {
+.jumbotron .container .form-links p {
   line-height: 1.75;
 }
 .form-group {
   position: relative;
 }
-.form-group .popover {
+.form-group:before,
+.form-group:after {
+  content: " ";
+  /* 1 */
+
+  display: table;
+  /* 2 */
+
+}
+.form-group:after {
+  clear: both;
+}
+.form-group:before,
+.form-group:after {
+  content: " ";
+  /* 1 */
+
+  display: table;
+  /* 2 */
+
+}
+.form-group:after {
+  clear: both;
+}
+.form-group .popover-form-validate {
   position: absolute;
   display: block;
   width: auto;
@@ -6278,27 +6337,27 @@ body.loading > * {
   border-color: #1f1f1f;
   color: #fff;
   font-size: 11px;
-  margin-top: -60px;
+  margin-top: -101px;
   left: 0;
   text-align: center;
 }
-.form-group .popover.top .arrow {
+.form-group .popover-form-validate.top .arrow {
   border-top-color: #1f1f1f;
   border-width: 8px;
   bottom: -17px;
 }
-.form-group .popover.top .arrow:after {
+.form-group .popover-form-validate.top .arrow:after {
   display: none;
 }
-.form-group .popover h3 {
+.form-group .popover-form-validate h3 {
   font-size: 14px;
   margin: 0 0 10px;
   font-weight: 600;
 }
-.form-group .popover p {
+.form-group .popover-form-validate p {
   line-height: 1.3;
 }
-.form-group .popover p:last-child {
+.form-group .popover-form-validate p:last-child {
   margin-bottom: 0;
 }
 .form-signup-horizontal {
@@ -6324,9 +6383,13 @@ body.loading > * {
   padding: 30px;
   background: rgba(0, 0, 0, 0.35);
   border-radius: 4px;
+  position: relative;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
+}
+.form-signup-vertical h2 {
+  display: none;
 }
 .form-signup-vertical .input-group {
   width: auto;
@@ -6345,6 +6408,13 @@ body.loading > * {
   display: inline-block;
   width: auto;
   position: absolute;
+  right: 4px;
+  top: 10px;
+  border: 0;
+  font-size: 12px;
+  border-radius: 4px;
+}
+.form-signup-vertical .input-group-lg .input-group-addon {
   right: 8px;
   top: 8px;
   border: 0;
@@ -6358,17 +6428,17 @@ body.loading > * {
 .form-signup-vertical .form-group + .form-group {
   margin-bottom: 22px;
 }
-.form-signup-vertical .btn-group {
+.form-signup-vertical .btn-group-jupo {
   position: relative;
   width: 100%;
 }
-.form-signup-vertical .btn-group .btn {
+.form-signup-vertical .btn-group-jupo .btn {
   width: 30%;
 }
-.form-signup-vertical .btn-group .btn-primary {
+.form-signup-vertical .btn-group-jupo .btn-primary {
   width: 70%;
 }
-.form-signup-vertical .btn-group .btn-seperator {
+.form-signup-vertical .btn-group-jupo .btn-seperator {
   display: block;
   width: 20px;
   height: 20px;
@@ -6379,11 +6449,79 @@ body.loading > * {
   color: #999;
   position: absolute;
   left: 70%;
-  top: 15px;
+  top: 8px;
   margin-left: -10px;
   z-index: 5;
   text-align: center;
   font-family: Arial, sans-serif;
+}
+.form-signup-vertical .btn-group-jupo .btn-group-lg .btn-seperator {
+  top: 8px;
+}
+.form-signup-vertical .btn-social {
+  width: 48%;
+  text-align: left;
+  border-radius: 4px;
+}
+.form-signup-vertical .btn-social.btn-lg {
+  width: 100%;
+  margin-top: 10px;
+  margin-bottom: 11px;
+}
+.form-signup-vertical .btn-group-social {
+  width: 100%;
+}
+.form-signup-vertical .btn-jupo {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  z-index: 3;
+}
+.form-signup-vertical .form-group-hasslide {
+  height: 35px;
+}
+.form-signup-vertical .form-group-hasslide .btn-group-social {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+.form-signup-vertical .jupo-login-form {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0 20px;
+  height: 0;
+  background: #fff;
+  box-shadow: none;
+  border-radius: 4px 4px 0 0;
+  border: 0;
+  overflow: hidden;
+  -webkit-transition: height 0.3s ease;
+  transition: height 0.3s ease;
+  margin-bottom: -7px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+.form-signup-vertical .jupo-login-form .input-group {
+  margin-bottom: 0;
+  margin-top: 10px;
+}
+.form-signup-vertical .jupo-login-form .form-group {
+  margin-bottom: 6px;
+}
+.form-signup-vertical .jupo-login-form input {
+  border-color: #ddd;
+}
+.form-signup-vertical .jupo-login-form input:focus {
+  border-color: #aaa;
+  box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.2);
+}
+.form-signup-vertical .active .jupo-login-form {
+  height: 170px;
+}
+.form-signup-vertical .active .btn-jupo {
+  border-radius: 0 0 4px 4px;
 }
 .page-header {
   background: url("../img/head.jpg") no-repeat bottom center;
@@ -6460,7 +6598,7 @@ body.loading > * {
   font-size: 64px;
   border-radius: 50%;
   border: 0;
-  background-color: #666;
+  background-color: #444;
   color: #fff;
   width: 100px;
   height: 100px;
@@ -6761,11 +6899,62 @@ footer.entry-meta {
 }
 
 .flash-message {
-  /*margin-left: 5px;	
-  border-left: 2px solid #F7901D;*/
   color: #F7901D;
+  font-weight: bold;
 }
 
 .network-page {
-  background: #484e5c url("../img/head-network.jpg") no-repeat top center !important;
+  background: #484e5c;
+  background-image: url("../img/head-network.jpg") no-repeat top center !important;
+}
+
+.post {
+    border: 0px none rgb(34, 34, 34);
+    color: #000;
+    font: normal normal normal 12px/18px 'lucida grande', tahoma, verdana, arial, sans-serif;
+    height: 385px;
+    left: 100px;
+    line-height: 18px;
+    margin-top: -100px;
+    min-height: 100%;
+    outline: rgb(34, 34, 34) none 0px;
+    padding: 0px 0px 50px;
+    text-rendering: optimizelegibility;
+    text-shadow: rgba(255, 255, 255, 0.247059) 0px 1px 0px;
+    width: 534px;
+	background: #FFF;
+	opacity: 0.8;
+	border-radius: 4px;
+	box-sizing: border-box;
+}
+
+.post li {
+	list-style-type: none;
+}
+
+.post header {
+	padding: 3px 35px 7px 47px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: #89919c;
+}
+
+a.async {
+	margin: 10px 10px 10px 10px;
+	/*background: #000;*/
+	color: #000 !important;
+	border-radius: 4px;
+	box-sizing: border-box;
+	opacity: 0.6;
+}
+
+.post .async img {
+	width: 60px;
+	height: 60px;
+	margin-top: 2px;
+}
+
+.post header {
+	
 }
