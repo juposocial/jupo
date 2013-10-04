@@ -78,8 +78,10 @@ CUSTOMER_IO_API_KEY = None
 # Mixpanel
 MIXPANEL_TOKEN = None
 
-
-SENTRY_DSN = 'http://021f15179a8c48dc9a93183b9ce84f5f:7c882e6967574b69a71ecd8021f374ff@sentry.jupo.com/3'
+SENTRY_DSN = None
 
 # Avatar renderer, values : initials, robohash
-AVATAR_RENDERER = None
+AVATAR_RENDERER = 'initials'
+
+# Zopim
+ZOPIM_ENABLE = False
