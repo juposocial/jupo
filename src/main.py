@@ -711,7 +711,6 @@ def authentication(action=None):
     remote_addr = request.environ.get('REMOTE_ADDR')
 
     network = request.form.get("network")
-    is_custom_domain = api.is_custom_domain(network)
     
     session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
 
@@ -756,10 +755,7 @@ def authentication(action=None):
         resp.set_cookie('channel_id', api.get_channel_id(session_id))
 
       # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
-      if api.is_domain_name(network) and not is_custom_domain:
-        resp.set_cookie('network', network)
-      else:
-        resp.delete_cookie('network')
+      resp.set_cookie('network', network)
       return resp
     else:
       if not email:
@@ -785,7 +781,6 @@ def authentication(action=None):
   elif request.path.endswith('sign_up'):
     network = request.form.get("network")
     back_to = request.args.get('back_to', '')
-    is_custom_domain = api.is_custom_domain(network)
     
 
     if request.method == 'GET':
@@ -806,7 +801,6 @@ def authentication(action=None):
     alerts = {}
     if email and api.is_exists(email):
       # alerts['email'] = '"%s" is already in use.' % email
-      print "DEBUG - in sign_up - check #1"
       flash('Email is already in use')
       return redirect(back_to)
     if len(password) < 6:
@@ -845,23 +839,17 @@ def authentication(action=None):
         user_id = api.get_user_id(session_id)
         user_domain = network if network else email.split('@', 1)[-1]
         
-        if is_custom_domain: 
-          user_url = 'http://%s/?session_id=%s' % (user_domain, session_id)
-        else:
-          user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
+        user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
           
-          if api.is_admin(user_id):
-            resp = redirect('/groups')
-          elif user_info.id:
-            user_url += '/news_feed'
-          else: # new user
-            user_url += '/everyone?getting_started=1&first_login=1'
+        if api.is_admin(user_id):
+          resp = redirect('/groups')
+        elif user_info.id:
+          user_url += '/news_feed'
+        else: # new user
+          user_url += '/everyone?getting_started=1&first_login=1'
 
         # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
-        if api.is_domain_name(network) and not is_custom_domain:
-          resp.set_cookie('network', network)
-        else:
-          resp.delete_cookie('network')
+        resp.set_cookie('network', network)
 
         return resp
       else:
@@ -893,8 +881,7 @@ def authentication(action=None):
         for db in db_names:
           if db != db_name:
             api.sign_out(session_id, db_name=db)
-      
-    # print "DEBUG - in sign_out - token = " + str(token)
+
     # return redirect('https://accounts.google.com/o/oauth2/revoke?token=' + str(token) + '&continue=http://jupo.localhost.com')
 
     # clear user info in memcache
@@ -1035,8 +1022,6 @@ def google_authorized():
   # if network != '', user logged in from sub-network page --> let authenticate user with that sub-network
   if network:
     user_domain = network
-    
-  is_custom_domain = api.is_custom_domain(network)
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
@@ -1048,11 +1033,8 @@ def google_authorized():
   if contacts:
     contacts = list(set(contacts))  
 
-  if is_custom_domain:
-    db_name = user_domain.replace('.', '_')
-  else:
-    db_name = '%s_%s' % (user_domain.replace('.', '_'), 
-                         settings.PRIMARY_DOMAIN.replace('.', '_'))
+  db_name = '%s_%s' % (user_domain.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
 
   # create new network
   api.new_network(db_name, db_name.split('_', 1)[0])
@@ -1077,26 +1059,22 @@ def google_authorized():
   api.update_session_id(user_email, session_id, db_name)
   session['session_id'] = session_id
   session.permanent = True
+  
+  app.logger.debug(session.items())
 
   # create standard groups (e.g. for Customer Support, Sales) for this new network
   # print  str(api.new_group (session_id, "Sales", "Open", "Group for Sales teams"))
   
    
-  if is_custom_domain: 
-    user_url = 'http://%s/?session_id=%s' % (user_domain, session_id)
-  else:
-    user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
+  user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
     
-    if user_info.id:
-      user_url += '/news_feed'
-    else: # new user
-      user_url += '/everyone?getting_started=1&first_login=1'
+  if user_info.id:
+    user_url += '/news_feed'
+  else: # new user
+    user_url += '/everyone?getting_started=1&first_login=1'
     
   resp = redirect(user_url)  
-  if api.is_domain_name(user_domain) and not is_custom_domain:
-    resp.set_cookie('network', user_domain)
-  else:
-    resp.delete_cookie('network')
+  resp.set_cookie('network', user_domain)
   return resp 
     
 if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
@@ -1160,11 +1138,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
   
     # generate db_name based on full URL ( e.g. gmail.com.jupo.com)
-    is_custom_domain = api.is_custom_domain(network)
-    if is_custom_domain:
-      db_name = network.replace('.', '_')
-    else:
-      db_name = (network + "." + domain).lower().strip().replace('.', '_')
+    db_name = (network + "." + domain).lower().strip().replace('.', '_')
     
     user_info = api.get_user_info(email=me.data.get('email'), db_name=db_name)
   
@@ -1192,26 +1166,17 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
             api.update_session_id(email, session_id, db)
           
     # support subdir ( domain/network )
-    if is_custom_domain:
-      url = 'http://%s/' % network
-    else:
-      url = 'http://%s/%s/' % (domain, network)
+    url = 'http://%s/%s/' % (domain, network)
 
-    if is_custom_domain:
-      session['session_id'] = session_id
-      session.permanent = True
+    session['session_id'] = session_id
+    session.permanent = True
 
-      # getting start for new user
-      if not user_info.id:
-        url = url + 'everyone?getting_started=1'
-    else:
-      url = url + '?session_id=' + str(session_id)
+    # getting start for new user
+    if not user_info.id:
+      url = url + 'everyone?getting_started=1'
 
     resp = redirect(url)
-    if api.is_domain_name(network) and not is_custom_domain:
-      resp.set_cookie('network', network)
-    else:
-      resp.delete_cookie('network')
+    resp.delete_cookie('network')
     return resp
   
   
@@ -1482,6 +1447,7 @@ def note(note_id=None, action=None, version=None):
                              mode='view',
                              full=True,
                              title=title, description=description, 
+                             settings=settings,
                              note=note)
     else:
       return render_homepage(session_id, note.title,
@@ -2421,14 +2387,11 @@ def messages(user_id=None, topic_id=None, action=None):
 @line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
-  print "DEBUG - in home() - hostname = " + str(hostname)
   
   session_id = request.args.get('session_id')
   
   network = ""
   network_exist = 1
-  
-  is_custom_domain = api.is_custom_domain(network)
 
   if hostname != settings.PRIMARY_DOMAIN:
     # used to 404 if network doesn't exist. now we switch to customized landing page for them (even if network doesn't exist yet)
@@ -2468,10 +2431,7 @@ def home():
       # set the network here so that api.get_database_name() knows which network calls it
       network = owner.email_domain
       
-      if api.is_domain_name(network) and not is_custom_domain:
-        resp.set_cookie('network', owner.email_domain)
-      else:
-        resp.delete_cookie('network')
+      resp.set_cookie('network', owner.email_domain)
       return resp
 
 
@@ -2499,12 +2459,9 @@ def home():
     return resp
   else:
     network = request.cookies.get('network')
-    is_custom_domain = api.is_custom_domain(network)
     if network:
       return redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN,
                                                   network))
-    elif is_custom_domain:
-      return redirect('/news_feed')
     else:
       return redirect('http://%s/news_feed' % (settings.PRIMARY_DOMAIN))
       
@@ -2524,7 +2481,8 @@ def news_feed(page=1):
     api.archive_posts(session_id, ts)
     return 'Done'
     
-    
+  app.logger.debug(api.get_database_name())
+  app.logger.debug(session_id)
   user_id = api.get_user_id(session_id)
   if not user_id:
     resp = Response(render_template('landing_page.html',
@@ -3501,7 +3459,6 @@ class NetworkNameDispatcher(object):
       
     
     if '.' in items[0] and network_is_domain_name:  # is domain name
-      # print "DEBUG - in NetworkNameDispatcher - items = " + items[0]
 
       # save user network for later use
       # session['subnetwork'] = items[0]
@@ -3517,7 +3474,6 @@ class NetworkNameDispatcher(object):
     else:
       request = Request(environ)
       network = request.cookies.get('network')
-      print "DEBUG - in init app - network = " + str(network)
       if not network:
         return self.app(environ, start_response)
 
@@ -3543,7 +3499,7 @@ app.wsgi_app = NetworkNameDispatcher(app.wsgi_app)
 
 if __name__ == "__main__":
   
-#   @werkzeug.serving.run_with_reloader
+  @werkzeug.serving.run_with_reloader
   def run_app(debug=True):
 
     from cherrypy import wsgiserver

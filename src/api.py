@@ -466,16 +466,14 @@ def get_database_names():
 def get_database_name():
   db_name = None
   if request:
-    hostname = request.headers.get('Host')
-    # print "DEBUG - in get_database_name - hostname = " + str(hostname)
+    hostname = request.headers.get('Host').split(':')[0]
       
     if hostname == settings.PRIMARY_DOMAIN:
       network = request.cookies.get('network')
-      # print "DEBUG - in get_database_name - network = " + str(network)
       if network and not hostname.startswith(network):
         hostname = network + '.' + settings.PRIMARY_DOMAIN
         
-    db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
+    db_name = hostname.lower().strip().replace('.', '_')
   if not db_name:
     db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
@@ -1259,7 +1257,6 @@ def sign_in_with_twitter():
 
 def sign_up(email, password, name, user_agent=None, remote_addr=None):
   db_name = get_database_name()
-  print "DEBUG - in sign_up - db_name = " + db_name
   db = DATABASE[db_name]
   
   email = email.strip().lower()
@@ -2316,8 +2313,6 @@ def get_invited_addresses(db_name=None, user_id=None):
                                               {'email': True})\
                        if i.get('email').strip()]
 
-  print "DEBUG - in get_invited_addresses - user_id = " + str(user_id)
-  print "DEBUG - in get_invited_addresses - invited_addresses = " + str(invited_addresses)
   return invited_addresses
 
 def get_email_addresses(session_id, db_name=None):
