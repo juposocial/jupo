@@ -291,6 +291,14 @@ def is_domain_name(host):
   except socket.gaierror:
     return False
 
+def is_custom_domain(domain):
+  if settings.PRIMARY_DOMAIN not in domain:
+    return True
+  elif is_domain_name(domain[:-(len(settings.PRIMARY_DOMAIN) + 1)]):
+    return False
+  else:
+    return True
+
 #===============================================================================
 # Securely hash and check passwords using PBKDF2
 #===============================================================================
@@ -2374,6 +2382,9 @@ def all_emails():
   return db.email.find()
 
 def update_user_avatar(email, avatar=None):
+  if not email:
+    return False
+  
   db_name = get_database_name()
   db = DATABASE[db_name]
   

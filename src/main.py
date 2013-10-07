@@ -711,8 +711,8 @@ def authentication(action=None):
     remote_addr = request.environ.get('REMOTE_ADDR')
 
     network = request.form.get("network")
-    is_custom_domain = api.domain_is_ok(network) if network != settings.PRIMARY_DOMAIN else False
-
+    is_custom_domain = api.is_custom_domain(network)
+    
     session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
 
     if session_id is None: # new user
@@ -785,7 +785,8 @@ def authentication(action=None):
   elif request.path.endswith('sign_up'):
     network = request.form.get("network")
     back_to = request.args.get('back_to', '')
-    is_custom_domain = api.domain_is_ok(network) if network != settings.PRIMARY_DOMAIN else False
+    is_custom_domain = api.is_custom_domain(network)
+    
 
     if request.method == 'GET':
       welcome = request.args.get('welcome')
@@ -842,10 +843,19 @@ def authentication(action=None):
         session['session_id'] = session_id
         
         user_id = api.get_user_id(session_id)
-        if api.is_admin(user_id):
-          resp = redirect('/groups')
+        user_domain = network if network else email.split('@', 1)[-1]
+        
+        if is_custom_domain: 
+          user_url = 'http://%s/?session_id=%s' % (user_domain, session_id)
         else:
-          resp = redirect('/everyone?getting_started=1')
+          user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
+          
+          if api.is_admin(user_id):
+            resp = redirect('/groups')
+          elif user_info.id:
+            user_url += '/news_feed'
+          else: # new user
+            user_url += '/everyone?getting_started=1&first_login=1'
 
         # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
         if api.is_domain_name(network) and not is_custom_domain:
@@ -1026,7 +1036,7 @@ def google_authorized():
   if network:
     user_domain = network
     
-  is_custom_domain = api.domain_is_ok(network) if network != settings.PRIMARY_DOMAIN else False
+  is_custom_domain = api.is_custom_domain(network)
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
@@ -1150,7 +1160,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
   
     # generate db_name based on full URL ( e.g. gmail.com.jupo.com)
-    is_custom_domain = api.domain_is_ok(network) if network != settings.PRIMARY_DOMAIN else False
+    is_custom_domain = api.is_custom_domain(network)
     if is_custom_domain:
       db_name = network.replace('.', '_')
     else:
@@ -1187,7 +1197,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     else:
       url = 'http://%s/%s/' % (domain, network)
 
-    if domain == settings.PRIMARY_DOMAIN:
+    if is_custom_domain:
       session['session_id'] = session_id
       session.permanent = True
 
@@ -2418,7 +2428,7 @@ def home():
   network = ""
   network_exist = 1
   
-  is_custom_domain = api.domain_is_ok(hostname) if hostname != settings.PRIMARY_DOMAIN else False
+  is_custom_domain = api.is_custom_domain(network)
 
   if hostname != settings.PRIMARY_DOMAIN:
     # used to 404 if network doesn't exist. now we switch to customized landing page for them (even if network doesn't exist yet)
@@ -2489,7 +2499,7 @@ def home():
     return resp
   else:
     network = request.cookies.get('network')
-    is_custom_domain = api.domain_is_ok(hostname)
+    is_custom_domain = api.is_custom_domain(network)
     if network:
       return redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN,
                                                   network))
