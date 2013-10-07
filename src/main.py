@@ -1033,8 +1033,7 @@ def google_authorized():
                                     % (data.get('token_type'),
                                        data.get('access_token'))})
   
-  # get contact from Google Contacts, filter those that on the same domain (most likely your colleagues)
-  contacts = api.re.findall("address='([^']*?@" + user_domain + ")'", resp.text)
+  contacts = api.re.findall("address='(.*?)'", resp.text)
 
   if contacts:
     contacts = list(set(contacts))  

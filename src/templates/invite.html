@@ -6,7 +6,7 @@
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="group_id" value="{{ group.id }}">
     
-    {% if email_addrs or invited_addrs %}
+    {% if google_contacts %}
     
     
     <label class='toggle-check-all'><input type='checkbox'> Select All
