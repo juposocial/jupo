@@ -1679,6 +1679,18 @@ def is_group(_id, db_name=None):
   cache.set(key, 0)
   return False
 
+def update_network_info(network_id, info):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  #user_id = get_user_id(session_id)
+  #if not user_id:
+  #  return False
+
+  db.info.update({'_id': ObjectId(network_id)}, {'$set': info})
+
+  return True
+
 def update_user_info(session_id, info):
   db_name = get_database_name()
   db = DATABASE[db_name]
@@ -6064,6 +6076,7 @@ def new_network(db_name, organization_name, description=None):
   info = {'domain': db_name.replace('_', '.'),
           'name': organization_name,
           'description': description,
+          'auth_google': 'on', # activate Google authentication for new network by default
           'timestamp': utctime()}
   DATABASE[db_name].info.insert(info)
   key = 'db_names'
@@ -6091,6 +6104,24 @@ def get_network_admin_ids(db_name=None):
   if users:
     return [i['_id'] for i in users]
   return [get_first_user_id(db_name)]
+
+def get_network_by_id(network_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  network = db.info.find_one({'_id': ObjectId(network_id)})
+
+  return network
+
+def get_network_by_hostname(hostname):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  network = db.info.find_one({'domain': hostname})
+
+  print "DEBUG - in get_network_by_name - network found = " + str(network)
+
+  return network
 
 @line_profile
 def get_network_info(db_name):

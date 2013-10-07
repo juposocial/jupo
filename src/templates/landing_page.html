@@ -105,7 +105,7 @@
               <div id="google-authentication">
                 <h2>Getting Start</h2>
                 <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-lg btn-social btn-google"><i class="icon-google-plus-sign"></i> Sign in with Google App Account </a>
-                {% if network == 'joomsolutions.com' %}
+                {% if (not network_info.auth_facebook)  %}
                   <ul class="google-apps-features">
                     <li><i class="icon-check"></i> Access your contacts in no time</li>
                     <li><i class="icon-check"></i> Leverage Google Apps add-on</li>
@@ -125,21 +125,25 @@
                 {% endif %}
 
                 <!-- not all network will support FB authentication -->
-                {% if network != 'joomsolutions.com' %}
+                {% if network_info.auth_facebook == 'on' and network_info.auth_google == 'on'  %}
                   <p class="form-links">
                     You can also enjoy Jupo with these options below...
                   </p>
 
                   <div class="form-group">
-                    <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-fb pull-left"><i class="icon-facebook"></i> Facebook Account</a>
-                    <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social pull-right"><i class="icon-google-plus"></i> Google Account</a>
+                    {% if network_info.auth_facebook == 'on' %}
+                      <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-fb pull-left"><i class="icon-facebook"></i> Facebook Account</a>
+                    {% endif %}
+                    {% if network_info.auth_google == 'on' %}
+                      <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social pull-right"><i class="icon-google-plus"></i> Google Account</a>
+                    {% endif %}
                   </div>
                 {% endif %}
               </div>
               <!-- oAuth buttons | END -->
 
               <!-- not all network will support FB authentication -->
-              {% if network != 'joomsolutions.com' %}
+              {% if network_info.auth_normal == 'on' %}
                 <div id="jupo-login" class="form-group form-group-hasslide">
 
                   <div class="btn-group-social">
