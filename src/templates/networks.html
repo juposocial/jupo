@@ -1,4 +1,56 @@
+{% if mode in ['edit', 'config'] %}
 
+  <div id="page-header" class='settings'>
+          <h2>Network Configuration</h2>
+  </div>
+
+  <form id='settings' action='/networks/{{ network._id }}/update' method='post' class='settings' enctype='multipart/form-data'>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="network_id" value="{{ network._id }}">
+
+    <div class="rfloat">
+
+    </div>
+
+    <h2>General</h2>
+
+    <ul class="field-set">
+
+      <li class="field field-text">
+        <label for="name">Name</label>
+        <input class="input-text" id="name" name="name" type="text" value="{{ network.name }}" readonly>
+      </li>
+
+      <li class="field field-text">
+        <label for="email">Description</label>
+        <input class="input-text" id="description" name="description" type="text" value="{{ network.description }}">
+      </li>
+
+      <h2>Authentication Settings</h2>
+      <ul class="field-set">
+        <li class="field field-checkbox">
+            <label title="Google authenticaiton">Google authentication</label>
+            <input {% if network.auth_google == 'on' %}checked="checked"{% endif %} class="input-checkbox" id="auth_google" name="auth_google" type="checkbox" onclick="return false">
+        </li>
+        <li class="field field-checkbox">
+            <label title="Facebook authenticaiton">Facebook authentication</label>
+            <input {% if network.auth_facebook == 'on' %}checked="checked"{% endif %} class="input-checkbox" id="auth_facebook" name="auth_facebook" type="checkbox">
+        </li>
+        <li class="field field-checkbox">
+            <label title="Normal authenticaiton">Normal authentication (email/password)</label>
+            <input {% if network.auth_normal == 'on' %}checked="checked"{% endif %} class="input-checkbox" id="auth_normal" name="auth_normal" type="checkbox">
+        </li>
+      </ul>
+
+    </ul>
+
+    <footer>
+      <input type='submit' value='Save Changes' class='button'>
+    </footer>
+
+  </form>
+
+{% else %}
 
 <div id="page-header" class="settings">
   <h2>Choose a Network</h2>
@@ -20,11 +72,13 @@
   </ul>
 </div>
 
+{% endif %}
 
 
-
+<!--
 <style>
   .content {
     width: 350px !important;
   }
 </style>
+-->
