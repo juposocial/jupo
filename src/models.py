@@ -317,9 +317,10 @@ class User(Model):
     avatar_renderer = settings.AVATAR_RENDERER
     avatar_url = ""
 
+    default = "http://jupo.s3.amazonaws.com/images/user2.png"
+    
     if avatar_renderer == 'robohash':
       # robohash
-      default = "http://jupo.s3.amazonaws.com/images/user2.png"
       if not self.email:
         return default
       
@@ -330,7 +331,12 @@ class User(Model):
     elif avatar_renderer == 'initials':
       # render avatar, using initials from first and last word
       # initials = ''.join([c[0].upper() for c in self.name.split(' ')])
-      initials_array = self.name.split(' ')
+      name = self.name if self.name else self.email
+      if not name:
+        return default
+        
+      initials_array = name.split()
+      
       first_initial = initials_array[0][0].upper()
       
       initials = first_initial
@@ -362,11 +368,12 @@ class User(Model):
       # save as attachment
       session_id = api.get_session_id(user_id=self.id)
 
-      buffer = StringIO.StringIO()
-      format = "PNG"
-      blank_canvas.save(buffer,format)
+      out = StringIO.StringIO()
+      blank_canvas.save(out, "PNG")
 
-      fid = api.new_attachment(session_id, "avatar.png", buffer.getvalue())
+      fid = api.new_attachment(session_id, "avatar.png", out.getvalue())
+      
+      out.close()
 
       avatar_url = '/img/' + str(fid) + '.png'
 
