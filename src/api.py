@@ -466,14 +466,15 @@ def get_database_names():
 def get_database_name():
   db_name = None
   if request:
-    hostname = request.headers.get('Host').split(':')[0]
-      
-    if hostname == settings.PRIMARY_DOMAIN:
+    hostname = request.headers.get('Host')
+
+    if hostname:
       network = request.cookies.get('network')
+
       if network and not hostname.startswith(network):
         hostname = network + '.' + settings.PRIMARY_DOMAIN
-        
-    db_name = hostname.lower().strip().replace('.', '_')
+
+      db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
   if not db_name:
     db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
