@@ -1688,15 +1688,13 @@ def update_network_info(network_id, info):
   #if not user_id:
   #  return False
 
-  if network_id is not None:
+  if network_id != "0":
     db.info.update({'_id': ObjectId(network_id)}, {'$set': info})
     return True
   else:
-    new_id = new_id()
-    info['_id'] = new_id
+    info['timestamp'] = utctime()
     db.info.insert(info)
-
-    return new_id
+    return False
 
 def update_user_info(session_id, info):
   db_name = get_database_name()
@@ -6193,7 +6191,10 @@ def get_networks(user_id, user_email=None):
     
   out = sorted(networks_list, 
                key=sortkeypicker(['-unread_notifications', 
-                                  'name', '-timestamp']))
+                                  'name']))
+  #out = sorted(networks_list,
+  #             key=sortkeypicker(['-unread_notifications',
+  #                                'name', '-timestamp']))
   cache.set(key, out, namespace=user_id)
   return out
 

@@ -1768,23 +1768,26 @@ def networks(network_id=None, view=None):
     abort(400)
     
   owner = api.get_user_info(user_id)
-  network = api.get_network_by_id(network_id)
 
-  # some old DB won't have info table (hence no network), init one with default values
-  if network is None:
-    hostname = request.headers.get('Host', '').split(':')[0]
-    print "DEBUG - in networks - about to create one - hostname = " + str(hostname) + " - network_id = " + str(network_id)
 
-    info = {'name': hostname.split('.')[0],
-            'domain'     : hostname,
-            'auth_google': 'on'}
 
-    new_network_id = api.update_network_info(network_id, info)
-
-    network = api.get_network_by_id(new_network_id)
-
-  if view in ['edit', 'config']:
+  if view in ['config']:
     if request.method == "OPTIONS":
+      if network_id != "0": # got network
+        network = api.get_network_by_id(network_id)
+      else:
+
+        # some old DB won't have info table (hence no network), init one with default value)
+        hostname = request.headers.get('Host', '').split(':')[0]
+
+        info = {'name': hostname.split('.')[0],
+                'domain'     : hostname,
+                'auth_google': 'on'}
+
+        api.update_network_info(network_id, info)
+
+        network = api.get_network_by_hostname(hostname)
+
       resp = {'title': 'Network Configuration',
               'body': render_template('networks.html',
                                       mode='edit',

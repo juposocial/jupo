@@ -115,7 +115,7 @@
             <li><a href='/user/{{ owner.id }}/update_profile' class='popup'>Account Settings</a></li>
 
             {% if owner.is_admin() == True %}
-              <li><a href='/network/{{ network["_id"] }}/config' class='popup'>Network Configuration</a></li>
+              <li><a href='/network/{% if not network["_id"] %}0{% else %}{{ network["_id"] }}{% endif %}/config' class='popup'>Network Configuration</a></li>
             {% endif %}
 
             <li>
