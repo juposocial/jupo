@@ -1688,9 +1688,15 @@ def update_network_info(network_id, info):
   #if not user_id:
   #  return False
 
-  db.info.update({'_id': ObjectId(network_id)}, {'$set': info})
+  if network_id is not None:
+    db.info.update({'_id': ObjectId(network_id)}, {'$set': info})
+    return True
+  else:
+    new_id = new_id()
+    info['_id'] = new_id
+    db.info.insert(info)
 
-  return True
+    return new_id
 
 def update_user_info(session_id, info):
   db_name = get_database_name()
