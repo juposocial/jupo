@@ -1757,8 +1757,8 @@ def contacts():
 
 
 @app.route("/networks", methods=['OPTIONS'])
-@app.route('/networks/<string:network_id>/update', methods=['POST'])
-@app.route("/networks/<string:network_id>/<view>", methods=['OPTIONS', 'GET'])
+@app.route('/network/<string:network_id>/update', methods=['POST'])
+@app.route("/network/<string:network_id>/<view>", methods=['OPTIONS', 'GET'])
 @login_required
 @line_profile
 def networks(network_id=None, view=None):

@@ -6073,7 +6073,12 @@ def get_db_names(email):
 def new_network(db_name, organization_name, description=None):
   if is_exists(db_name=db_name):
     return False
-  
+
+  if description is None:
+    description = "This network is dedicated to your organization.<br/> " \
+                  "Share files, discuss projects, and get work done faster<br/>" \
+                  "Want to try it ? Just sign in :)"
+
   info = {'domain': db_name.replace('_', '.'),
           'name': organization_name,
           'description': description,
