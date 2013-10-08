@@ -14,7 +14,8 @@ Vagrant.configure("2") do |config|
   config.vm.provision :shell, :inline => $script
 
   config.vm.network :forwarded_port, guest: 80, host: 8080      # nginx
-#  config.vm.network :forwarded_port, guest: 9000, host: 9000    # python
+  config.vm.network :forwarded_port, guest: 9000, host: 9001    # python
+  config.vm.network :forwarded_port, guest: 9002, host: 9002    # python
   config.vm.network :forwarded_port, guest: 6379, host: 6379    # redis-server
   config.vm.network :forwarded_port, guest: 27017, host: 27017  # mongodb
   config.vm.network :forwarded_port, guest: 11211, host: 11211  # memcached

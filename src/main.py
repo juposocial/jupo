@@ -968,7 +968,8 @@ def google_login():
       # session.clear()
 
     # validate email
-    if (email is None) or (not is_google_apps_email(email)):
+#     if (email is None) or (not is_google_apps_email(email)):
+    if (email is None):
       # resp = Response(render_template('landing_page.html', 
       #                                    msg='Email is blank or not provided by Google App. Please check again'))
       flash('Email is blank or not provided by Google App. Please check again')
@@ -2626,6 +2627,8 @@ def news_feed(page=1):
 @line_profile
 def feed_actions(feed_id=None, action=None, 
                  message_id=None, domain=None, comment_id=None):
+  import pdb
+  pdb.set_trace()
   session_id = session.get("session_id")
 #  if message_id:
 #    message_id = '%s@%s' % (message_id, domain)
@@ -3293,6 +3296,7 @@ def notifications():
                            network=network,
                            unread_messages=unread_messages,
                            notifications=notifications)
+    
     resp = {'body': body,
             'title': 'Notifications'}
     

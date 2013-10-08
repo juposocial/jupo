@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <head>
+      <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+      <script src="http://cdn.sockjs.org/sockjs-0.3.min.js"></script>
+    </head>
+    <script>
+      function openCustomURLinIFrame(src) {
+        var rootElm = document.documentElement;
+        var newFrameElm = document.createElement("IFRAME");
+        newFrameElm.setAttribute("src", src);
+        rootElm.appendChild(newFrameElm);
+        newFrameElm.parentNode.removeChild(newFrameElm);
+      }
+
+      function notificationCounter($url_push_to_mobile) {
+        var conn = new SockJS('http://jupo.com:8091/push');
+        var url = "jupo://" + JSON.stringify(info);
+        conn.onmessage = function(e) {
+          openCustomURLinIFrame(url);
+        }
+      }
+
+      {% if type_push_mobile == 'login_google' %}
+        calliOSFunction({{ url_push_to_mobile | safe }});
+      {% endif %}
+
+      {% if type_push_mobile == 'news_feed' %}
+        notificationCounter({{ url_push_to_mobile | safe }});
+      {% endif %}
+
+    </script>
+    <a href="jupo://toast">Show toast!</a>
+    <a href="jupo://showdialog">Show dialog!</a>
+  </body>
+</html>
+

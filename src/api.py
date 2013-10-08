@@ -1034,7 +1034,7 @@ def invite(session_id, email, group_id=None, msg=None, db_name=None):
   db.owner.update({'_id': user_id}, {'$addToSet': {'google_contacts': email}})
     
   return True
-  
+
 def complete_profile(code, name, password, gender, avatar):  
   db_name = get_database_name()
   db = DATABASE[db_name]
@@ -1970,11 +1970,14 @@ def get_unread_notifications(session_id, db_name=None):
   cache.set(key, results, namespace=user_id)
   return results
   
-def get_notifications(session_id, limit=25):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
+def get_notifications(session_id, limit=25, **kwargs):
+  if kwargs.has_key('db_name'):
+    db_name = kwargs.get('db_name')
+  else:
+    db_name = get_database_name()
+    
+  db = DATABASE[db_name] 
+  user_id = get_user_id(session_id, db_name=db_name)
   
   key = 'notifications'
   out = cache.get(key, namespace=user_id)
