@@ -466,14 +466,15 @@ def get_database_names():
 def get_database_name():
   db_name = None
   if request:
-    hostname = request.headers.get('Host').split(':')[0]
-      
-    if hostname == settings.PRIMARY_DOMAIN:
+    hostname = request.headers.get('Host')
+
+    if hostname:
       network = request.cookies.get('network')
+
       if network and not hostname.startswith(network):
         hostname = network + '.' + settings.PRIMARY_DOMAIN
-        
-    db_name = hostname.lower().strip().replace('.', '_')
+
+      db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
   if not db_name:
     db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
@@ -1678,6 +1679,22 @@ def is_group(_id, db_name=None):
   
   cache.set(key, 0)
   return False
+
+def update_network_info(network_id, info):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  #user_id = get_user_id(session_id)
+  #if not user_id:
+  #  return False
+
+  if network_id != "0":
+    db.info.update({'_id': ObjectId(network_id)}, {'$set': info})
+    return True
+  else:
+    info['timestamp'] = utctime()
+    db.info.insert(info)
+    return False
 
 def update_user_info(session_id, info):
   db_name = get_database_name()
@@ -6060,10 +6077,16 @@ def get_db_names(email):
 def new_network(db_name, organization_name, description=None):
   if is_exists(db_name=db_name):
     return False
-  
+
+  if description is None:
+    description = "This network is dedicated to your organization.<br/> " \
+                  "Share files, discuss projects, and get work done faster<br/>" \
+                  "Want to try it ? Just sign in :)"
+
   info = {'domain': db_name.replace('_', '.'),
           'name': organization_name,
           'description': description,
+          'auth_google': 'on', # activate Google authentication for new network by default
           'timestamp': utctime()}
   DATABASE[db_name].info.insert(info)
   key = 'db_names'
@@ -6091,6 +6114,24 @@ def get_network_admin_ids(db_name=None):
   if users:
     return [i['_id'] for i in users]
   return [get_first_user_id(db_name)]
+
+def get_network_by_id(network_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  network = db.info.find_one({'_id': ObjectId(network_id)})
+
+  return network
+
+def get_network_by_hostname(hostname):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  network = db.info.find_one({'domain': hostname})
+
+  print "DEBUG - in get_network_by_name - network found = " + str(network)
+
+  return network
 
 @line_profile
 def get_network_info(db_name):
@@ -6150,7 +6191,10 @@ def get_networks(user_id, user_email=None):
     
   out = sorted(networks_list, 
                key=sortkeypicker(['-unread_notifications', 
-                                  'name', '-timestamp']))
+                                  'name']))
+  #out = sorted(networks_list,
+  #             key=sortkeypicker(['-unread_notifications',
+  #                                'name', '-timestamp']))
   cache.set(key, out, namespace=user_id)
   return out
 
