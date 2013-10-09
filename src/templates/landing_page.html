@@ -109,7 +109,8 @@
               <div id="google-authentication">
                 <h2>Getting Start</h2>
                 <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-lg btn-social btn-google"><i class="icon-google-plus-sign"></i> Sign in with Google App Account </a>
-                {% if (not network_info.auth_facebook)  %}
+                
+                {% if not network_info.auth_facebook %}
                   <ul class="google-apps-features">
                     <li><i class="icon-check"></i> Access your contacts in no time</li>
                     <li><i class="icon-check"></i> Leverage Google Apps add-on</li>

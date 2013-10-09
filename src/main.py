@@ -1781,7 +1781,7 @@ def networks(network_id=None, view=None):
 
         info = {'name': hostname.split('.')[0],
                 'domain'     : hostname,
-                'auth_google': 'on'}
+                'auth_google': True}
 
         api.update_network_info(network_id, info)
 

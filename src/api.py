@@ -6128,24 +6128,26 @@ def get_network_by_hostname(hostname):
   db = DATABASE[db_name]
 
   network = db.info.find_one({'domain': hostname})
-
-  print "DEBUG - in get_network_by_name - network found = " + str(network)
-
+  
+  if network:
+    if 'auth_facebook' not in network:
+      network['auth_facebook'] = True
+    
+    if 'auth_google' not in network:
+      network['auth_google'] = True
+    
+    if 'auth_normal' not in network:
+      network['auth_normal'] = True
+  
   return network
 
 @line_profile
 def get_network_info(db_name):
-  key = '%s:info' % db_name
-  info = cache.get(key)
-  if info is not None:
-    return info 
-  
   if db_name == settings.PRIMARY_DOMAIN.replace('.', '_'):
     info = {'name': 'Jupo', 'timestamp': 0}
   else:
     info = DATABASE[db_name].info.find_one()
     
-  cache.set(key, info)
   return info
 
 @line_profile
