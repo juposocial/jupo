@@ -663,6 +663,11 @@ img.micro-avatar {
   word-wrap: break-word;
   z-index: 2;
   position: fixed;
+  
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 #welcome-box {
@@ -1846,6 +1851,11 @@ form input#add-members {
 
 div#right-sidebar div.header {
   padding: 7px 10px 5px 8px;
+  
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
   /*  border-top: 1px solid rgba(229, 229, 229, 0.75);*/
 }
 
@@ -6438,6 +6448,11 @@ article .file-attachment .title.image-name a {
   -webkit-box-shadow: 0 4px 12px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 250px rgba(255, 255, 255, .1);
   -moz-box-shadow: 0 4px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.5), 0 0 250px rgba(255, 255, 255, .1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 250px rgba(255, 255, 255, .1);
+  
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 #popup .content #page-header {
