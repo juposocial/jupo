@@ -466,14 +466,15 @@ def get_database_names():
 def get_database_name():
   db_name = None
   if request:
-    hostname = request.headers.get('Host').split(':')[0]
-      
-    if hostname == settings.PRIMARY_DOMAIN:
+    hostname = request.headers.get('Host')
+
+    if hostname:
       network = request.cookies.get('network')
+
       if network and not hostname.startswith(network):
         hostname = network + '.' + settings.PRIMARY_DOMAIN
-        
-    db_name = hostname.lower().strip().replace('.', '_')
+
+      db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
   if not db_name:
     db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
@@ -1687,9 +1688,13 @@ def update_network_info(network_id, info):
   #if not user_id:
   #  return False
 
-  db.info.update({'_id': ObjectId(network_id)}, {'$set': info})
-
-  return True
+  if network_id != "0":
+    db.info.update({'_id': ObjectId(network_id)}, {'$set': info})
+    return True
+  else:
+    info['timestamp'] = utctime()
+    db.info.insert(info)
+    return False
 
 def update_user_info(session_id, info):
   db_name = get_database_name()
@@ -6072,7 +6077,12 @@ def get_db_names(email):
 def new_network(db_name, organization_name, description=None):
   if is_exists(db_name=db_name):
     return False
-  
+
+  if description is None:
+    description = "This network is dedicated to your organization.<br/> " \
+                  "Share files, discuss projects, and get work done faster<br/>" \
+                  "Want to try it ? Just sign in :)"
+
   info = {'domain': db_name.replace('_', '.'),
           'name': organization_name,
           'description': description,
@@ -6181,7 +6191,10 @@ def get_networks(user_id, user_email=None):
     
   out = sorted(networks_list, 
                key=sortkeypicker(['-unread_notifications', 
-                                  'name', '-timestamp']))
+                                  'name']))
+  #out = sorted(networks_list,
+  #             key=sortkeypicker(['-unread_notifications',
+  #                                'name', '-timestamp']))
   cache.set(key, out, namespace=user_id)
   return out
 

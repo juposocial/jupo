@@ -1757,8 +1757,8 @@ def contacts():
 
 
 @app.route("/networks", methods=['OPTIONS'])
-@app.route('/networks/<string:network_id>/update', methods=['POST'])
-@app.route("/networks/<string:network_id>/<view>", methods=['OPTIONS', 'GET'])
+@app.route('/network/<string:network_id>/update', methods=['POST'])
+@app.route("/network/<string:network_id>/<view>", methods=['OPTIONS', 'GET'])
 @login_required
 @line_profile
 def networks(network_id=None, view=None):
@@ -1768,10 +1768,25 @@ def networks(network_id=None, view=None):
     abort(400)
     
   owner = api.get_user_info(user_id)
-  network = api.get_network_by_id(network_id)
 
-  if view in ['edit', 'config']:
+
+  if view in ['config']:
     if request.method == "OPTIONS":
+      if network_id != "0": # got network
+        network = api.get_network_by_id(network_id)
+      else:
+
+        # some old DB won't have info table (hence no network), init one with default value)
+        hostname = request.headers.get('Host', '').split(':')[0]
+
+        info = {'name': hostname.split('.')[0],
+                'domain'     : hostname,
+                'auth_google': 'on'}
+
+        api.update_network_info(network_id, info)
+
+        network = api.get_network_by_hostname(hostname)
+
       resp = {'title': 'Network Configuration',
               'body': render_template('networks.html',
                                       mode='edit',
@@ -1786,14 +1801,13 @@ def networks(network_id=None, view=None):
     name = request.form.get('name')
     description = request.form.get('description')
 
-    auth_normal = request.form.get('auth_normal')
-    auth_google = request.form.get('auth_google')
-    auth_facebook = request.form.get('auth_facebook')
+    auth_normal = True if request.form.get('auth_normal') else False
+    auth_facebook = True if request.form.get('auth_facebook') else False
 
     info = {'name': name,
             'description': description,
             'auth_normal': auth_normal,
-            'auth_google': auth_google,
+            'auth_google': True,
             'auth_facebook': auth_facebook}
 
     #fid = request.form.get('fid')
@@ -3493,7 +3507,6 @@ class NetworkNameDispatcher(object):
     items = path.lstrip('/').split('/', 1)
 
     if '.' in items[0] and api.is_domain_name(items[0]):  # is domain name
-
       # save user network for later use
       # session['subnetwork'] = items[0]
 
