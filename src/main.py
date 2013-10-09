@@ -1802,14 +1802,13 @@ def networks(network_id=None, view=None):
     name = request.form.get('name')
     description = request.form.get('description')
 
-    auth_normal = request.form.get('auth_normal')
-    auth_google = request.form.get('auth_google')
-    auth_facebook = request.form.get('auth_facebook')
+    auth_normal = True if request.form.get('auth_normal') else False
+    auth_facebook = True if request.form.get('auth_facebook') else False
 
     info = {'name': name,
             'description': description,
             'auth_normal': auth_normal,
-            'auth_google': auth_google,
+            'auth_google': True,
             'auth_facebook': auth_facebook}
 
     #fid = request.form.get('fid')

@@ -29,15 +29,15 @@
       <h2>Authentication Settings</h2>
       <ul class="field-set">
         <li class="field field-checkbox" for="auth_google">
-            <label title="Google authenticaiton">Google authentication</label>
-            <input {% if network.auth_google == 'on' %}checked="checked"{% endif %} class="input-checkbox" id="auth_google" name="auth_google" type="checkbox" onclick="return false">
+            <label title="Google authenticaiton" for='auth_google'>Google authentication</label>
+            <input {% if network.auth_google == 'on' %}checked="checked"{% endif %} class="input-checkbox" id="auth_google" name="auth_google" type="checkbox" disabled="disabled" checked="checked">
         </li>
         <li class="field field-checkbox" for="auth_facebook">
-            <label title="Facebook authenticaiton">Facebook authentication</label>
+            <label title="Facebook authenticaiton" for='auth_facebook'>Facebook authentication</label>
             <input {% if network.auth_facebook == 'on' %}checked="checked"{% endif %} class="input-checkbox" id="auth_facebook" name="auth_facebook" type="checkbox">
         </li>
         <li class="field field-checkbox" for="auth_normal">
-            <label title="Normal authenticaiton">Normal authentication (email/password)</label>
+            <label title="Normal authenticaiton" for='auth_normal'>Normal authentication (email/password)</label>
             <input {% if network.auth_normal == 'on' %}checked="checked"{% endif %} class="input-checkbox" id="auth_normal" name="auth_normal" type="checkbox">
         </li>
       </ul>

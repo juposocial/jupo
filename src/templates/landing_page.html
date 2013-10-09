@@ -129,16 +129,16 @@
                 {% endif %}
 
                 <!-- not all network will support FB authentication -->
-                {% if network_info.auth_facebook == 'on' and network_info.auth_google == 'on'  %}
+                {% if network_info.auth_facebook and network_info.auth_google %}
                   <p class="form-links">
                     You can also enjoy Jupo with these options below...
                   </p>
 
                   <div class="form-group">
-                    {% if network_info.auth_facebook == 'on' %}
+                    {% if network_info.auth_facebook %}
                       <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social btn-fb pull-left"><i class="icon-facebook"></i> Facebook Account</a>
                     {% endif %}
-                    {% if network_info.auth_google == 'on' %}
+                    {% if network_info.auth_google %}
                       <a href="/oauth/google?domain={{ domain }}&network={{ network }}" title="" class="btn btn-social pull-right"><i class="icon-google-plus"></i> Google Account</a>
                     {% endif %}
                   </div>
@@ -147,7 +147,7 @@
               <!-- oAuth buttons | END -->
 
               <!-- not all network will support FB authentication -->
-              {% if network_info.auth_normal == 'on' %}
+              {% if network_info.auth_normal %}
                 <div id="jupo-login" class="form-group form-group-hasslide">
 
                   <div class="btn-group-social">
