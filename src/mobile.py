@@ -41,13 +41,15 @@ if settings.SENTRY_DSN:
   
 oauth = OAuth()
 
+
+
 @app.route('/oauth/google', methods=['GET'])
 def google_login():
   network = request.args.get('network', 'meta.jupo.com') 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
   utcoffset = request.args.get('utcoffset', 0)
   return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&prompt=select_account' \
-                  % (settings.GOOGLE_REDIRECT_URI, 
+                  % (settings.GOOGLE_MOBILE_APP_REDIRECT_URI, 
                      '%s|%s|%s' % (domain, network, utcoffset), 
                      settings.GOOGLE_CLIENT_ID))
 
@@ -62,7 +64,7 @@ def google_authorized():
                        data={'code': code,
                              'client_id': settings.GOOGLE_CLIENT_ID,
                              'client_secret': settings.GOOGLE_CLIENT_SECRET,
-                             'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+                             'redirect_uri': settings.GOOGLE_MOBILE_APP_REDIRECT_URI,
                              'grant_type': 'authorization_code'})
   data = loads(resp.text)
   token_type = data.get('token_type')
@@ -74,7 +76,7 @@ def google_authorized():
                                % (token_type, access_token)})
   user = loads(resp.text)
   if 'error' in user:   # Invalid Credentials
-    abort(401)
+    abort(401, resp.text)
     
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
@@ -127,8 +129,7 @@ def google_authorized():
           'token_type': 'session',
           'unread_notifications': unread_notifications}
   
-  resp = Response(dumps(data), mimetype='application/json')
-  return resp
+  return render_template('mobile/update_sidebar.html', data=dumps(data))
 
 
 
@@ -242,88 +243,35 @@ def group(group_id=None, view='group', page=1):
   
 @app.route('/notifications', methods=['GET'])
 def notifications():
-  session_id = request.args.get('session_id')
-  network = request.args.get('network')
-  utcoffset = request.args.get('utcoffset')
+  authorization = request.headers.get('Authorization')
+  app.logger.debug(request.headers.items())
+  
+  if not authorization or not authorization.startswith('session '):
+    abort(401)
+  
+  session = SecureCookie.unserialize(authorization.split()[-1], 
+                                     settings.SECRET_KEY)
+  
+  session_id = session.get('session_id')
+  network = session.get('network')
+#   utcoffset = session.get('utcoffset')
+
   db_name = '%s_%s' % (network.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
 
-  owner = api.get_owner_info(session_id, db_name=db_name)
-  if not owner.id:
-    return redirect_to('/oauth/google')
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+    
+  owner = api.get_user_info(user_id, db_name=db_name)
   
   notifications = api.get_notifications(session_id, db_name=db_name)
-  unread_messages = api.get_unread_messages(session_id, db_name=db_name)
-  unread_messages_count = len(unread_messages)
   
   
-  body = render_template('mobile/notifications_mobile.html',
-                           owner=owner, 
-                           network=network,
-                           unread_messages=unread_messages,
-                           notifications=notifications)
-  
-  return body
-
-
-
-#===============================================================================
-# Run App
-#===============================================================================
-
-class NetworkNameDispatcher(object):
-  """
-  Convert the first part of request PATH_INFO to hostname for backward 
-  compatibility
-  
-  Eg: 
-    
-     http://jupo.com/example.com/news_feed
-     
-  -> http://example.com.jupo.com/news_feed
-  
-   
-  """
-  def __init__(self, app):
-    self.app = app
-
-  def __call__(self, environ, start_response):
-    path = environ.get('PATH_INFO', '')
-    items = path.lstrip('/').split('/', 1)
-    
-    if '.' in items[0] and api.is_domain_name(items[0]):  # is domain name
-
-      environ['HTTP_HOST'] = items[0] + '.' + settings.PRIMARY_DOMAIN
-      if len(items) > 1:
-        environ['PATH_INFO'] = '/%s' % items[1]
-      else:
-        environ['PATH_INFO'] = '/'
-      
-      return self.app(environ, start_response)
-        
-    else:
-      request = Request(environ)
-      network = request.cookies.get('network')
-      if not network:
-        return self.app(environ, start_response)
-      
-      if request.method == 'GET':
-        url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN,
-                                  network, request.path)
-        if request.query_string:
-          url += '?' + request.query_string
-          
-        response = redirect(url)
-        return response(environ, start_response)
-      
-      else:
-        environ['HTTP_HOST'] = network + '.' + settings.PRIMARY_DOMAIN
-        return self.app(environ, start_response)
-        
-      
-    
-
-app.wsgi_app = NetworkNameDispatcher(app.wsgi_app)
+  return render_template('mobile/notifications.html',
+                         owner=owner, 
+                         network=network,
+                         notifications=notifications)
 
 
 
@@ -336,9 +284,9 @@ if __name__ == "__main__":
       
     app.debug = debug
     
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9008), app)
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9009), app)
     try:
-      print 'Serving HTTP on 0.0.0.0 port 9008...'
+      print 'Serving HTTP on 0.0.0.0 port 9009...'
       server.start()
     except KeyboardInterrupt:
       print '\nGoodbye.'
