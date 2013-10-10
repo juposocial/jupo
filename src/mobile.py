@@ -17,6 +17,8 @@ from werkzeug.utils import cached_property
 from werkzeug.contrib.securecookie import SecureCookie
 from werkzeug.contrib.profiler import ProfilerMiddleware, MergeStream
 
+from datetime import datetime
+from mimetypes import guess_type
 from simplejson import dumps, loads
 
 from jinja2 import Environment
@@ -25,6 +27,7 @@ from werkzeug.contrib.cache import MemcachedCache
 import requests
 import werkzeug.serving
 
+import os
 import api
 import settings
 from app import CURRENT_APP
@@ -40,6 +43,22 @@ if settings.SENTRY_DSN:
   sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
   
 oauth = OAuth()
+
+
+
+@app.route('/public/<path:filename>')
+def public_files(filename):
+  path = os.path.join(os.path.dirname(__file__), 'public', filename)
+  if not os.path.exists(path):
+    abort(404, 'File not found')
+  filedata = open(path).read()  
+      
+  resp = Response(filedata)
+  resp.headers['Content-Length'] = len(filedata)
+  resp.headers['Content-Type'] = guess_type(filename)[0]
+  resp.headers['Cache-Control'] = 'max-age=0'
+  resp.headers['Expires'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+  return resp
 
 
 
@@ -291,6 +310,7 @@ if __name__ == "__main__":
     app.debug = debug
     
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9009), app)
+    
     try:
       print 'Serving HTTP on 0.0.0.0 port 9009...'
       server.start()

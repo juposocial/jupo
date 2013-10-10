@@ -5396,6 +5396,10 @@ section > footer .actions a.quick-stats:hover {
   text-decoration: none;
 }
 
+section > footer .actions a.quick-stats text {
+  display: none;
+}
+
 section > footer .actions a:hover time.timeago {
   color: #114495;
 }
