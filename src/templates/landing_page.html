@@ -44,7 +44,7 @@
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="#" title="Jupo" rel="home">
+        <a class="navbar-brand" href="/{{ network }}" title="Jupo" rel="home">
           {% if network != "" %}
             <span class="network-logo">{{ network }}</span>
             <!--
@@ -214,8 +214,9 @@
                     if ('{{ error_type }}' == 'auth_normal') {
                       $('#jupo-login').addClass('active');
                       $('#jupo-login input:first').focus();
-                      $( ".flash-message" ).effect( "shake" );
                     }
+
+                    $( ".flash-message" ).effect( "shake" );
                   </script>
                 {% endif %}
               {% endwith %}

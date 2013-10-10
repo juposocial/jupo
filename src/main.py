@@ -1029,16 +1029,6 @@ def google_authorized():
   code = request.args.get('code')
   domain, network = request.args.get('state').split(";")
 
-  # validate email against whitelist
-  db_name = (network + '.' + domain).replace('.', '_')
-  current_network = api.get_current_network(db_name=db_name)
-
-  auth_whitelist = []
-  if current_network is not None and 'auth_normal_whitelist' in current_network:
-    auth_whitelist = current_network['auth_normal_whitelist'].split(',')
-  # default email domain
-  auth_whitelist.append(network)
-  
   # get access_token
   url = 'https://accounts.google.com/o/oauth2/token'
   resp = requests.post(url, data={'code': code,
@@ -1058,6 +1048,17 @@ def google_authorized():
                                     % (data.get('token_type'),
                                        data.get('access_token'))})
   user = loads(resp.text)
+
+  if network != "": # sub-network, validate againts whitelist
+    # validate email against whitelist
+    db_name = (network + '.' + domain).replace('.', '_')
+    current_network = api.get_current_network(db_name=db_name)
+
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network:
+      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+    # default email domain
+    auth_whitelist.append(network)
   
   # generate user domain based on user email
   user_email = user.get('email')
@@ -1067,7 +1068,7 @@ def google_authorized():
   # with this, user network will be determined solely based on user email
   user_domain = user_email.split('@')[1]
 
-  if not user_domain in auth_whitelist:
+  if (network != "") and (not user_domain in auth_whitelist):
     flash('Your email is not allowed to login this network. Please contact network administrator for more info.')
     user_url = 'http://%s/%s?error_type=auth_google' % (settings.PRIMARY_DOMAIN, network)
     return redirect(user_url)
