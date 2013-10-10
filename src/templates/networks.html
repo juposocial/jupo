@@ -39,6 +39,9 @@
         <li class="field field-checkbox" for="auth_normal">
             <label title="Normal authenticaiton" for='auth_normal'>Normal authentication (email/password)</label>
             <input {% if network.auth_normal %}checked="checked"{% endif %} class="input-checkbox" id="auth_normal" name="auth_normal" type="checkbox">
+            <br/><br/>
+            <label>By default, we only allow email from <strong>{{ network_url }}</strong> to sign in. You can allow extra domain in below box, seperated by comma (,)</label>
+            <input class="input-text" id="auth_normal_whitelist" name="auth_normal_whitelist" value="{{ network.auth_normal_whitelist }}"></input>
         </li>
       </ul>
 
