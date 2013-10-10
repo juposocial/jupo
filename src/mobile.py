@@ -187,7 +187,8 @@ def get_user_info():
   
 @app.route('/news_feed')
 @app.route('/news_feed/page<int:page>')
-def news_feed(page=1):
+@app.route("/feed/<int:feed_id>")
+def news_feed(page=1, feed_id=None):
   session = request.headers.get('X-Session')
   if not session:
     authorization = request.headers.get('Authorization')
@@ -213,17 +214,26 @@ def news_feed(page=1):
   
   owner = api.get_user_info(user_id, db_name=db_name)
   
-  feeds = api.get_feeds(session_id, page=page, db_name=db_name)
+  if feed_id:
+    mode = 'view'
+    title = 'Post'
+    feeds = [api.get_feed(session_id, feed_id, db_name=db_name)]
+  else:
+    mode = None
+    title = 'News Feed'
+    feeds = api.get_feeds(session_id, page=page, db_name=db_name)
   
   return render_template('mobile/news_feed.html', owner=owner,
+                                                  mode=mode,
+                                                  title=title, 
                                                   view='news_feed', 
-                                                  title='News Feed', 
                                                   settings=settings,
                                                   feeds=feeds)
+  
 
-
-@app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
-def group(group_id=None, view='group', page=1):
+@app.route("/everyone")
+@app.route("/group/<int:group_id>")
+def group(group_id='public', view='group', page=1):
   session = request.headers.get('X-Session')
   if not session:
     authorization = request.headers.get('Authorization')
@@ -252,8 +262,11 @@ def group(group_id=None, view='group', page=1):
   if not group.id:
     abort(401)
     
-  feeds = api.get_feeds(session_id, group_id,
-                        page=page, db_name=db_name)
+  if group_id == 'public':
+    feeds = api.get_public_posts(session_id, page=page, db_name=db_name)
+  else:
+    feeds = api.get_feeds(session_id, group_id,
+                          page=page, db_name=db_name)
   
   return render_template('mobile/group.html', 
                           feeds=feeds, 

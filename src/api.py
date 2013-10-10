@@ -2840,8 +2840,9 @@ def undo_remove(session_id, feed_id):
   return feed_id
 
 @line_profile
-def get_feed(session_id, feed_id, group_id=None):
-  db_name = get_database_name()
+def get_feed(session_id, feed_id, group_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   info = db.stream.find_one({'_id': long(feed_id),
@@ -2864,8 +2865,8 @@ def get_feed(session_id, feed_id, group_id=None):
     if group_id and group_id in info['viewers']:
       return Feed(info, db_name=db_name)
     else:
-      user_id = get_user_id(session_id)
-      viewers = get_group_ids(user_id)
+      user_id = get_user_id(session_id, db_name=db_name)
+      viewers = get_group_ids(user_id, db_name=db_name)
       viewers.append(user_id)
       viewers.append('public')
       for i in viewers:
@@ -2890,8 +2891,9 @@ def unread_count(session_id, timestamp):
   return feeds + docs
 
 @line_profile
-def get_public_posts(session_id=None, user_id=None, page=1):
-  db_name = get_database_name()
+def get_public_posts(session_id=None, user_id=None, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if user_id:
@@ -3174,6 +3176,7 @@ def get_direct_messages(session_id, page=1):
                            .limit(5)
   return [Feed(i, db_name=db_name) for i in feeds]
   
+  
 @line_profile
 def get_feeds(session_id, group_id=None, page=1, 
               limit=settings.ITEMS_PER_PAGE, include_archived_posts=False, **kwargs):
@@ -3236,6 +3239,7 @@ def get_feeds(session_id, group_id=None, page=1,
   cache.set(key, feeds, 3600, user_id)
   return feeds
 
+
 @line_profile
 def get_unread_feeds(session_id, timestamp, group_id=None):
   db_name = get_database_name()
@@ -3257,6 +3261,7 @@ def get_unread_feeds(session_id, timestamp, group_id=None):
 #  feeds = list(feeds)
 #  feeds.sort(key=lambda k: k.get('last_updated'), reverse=True)
   return [Feed(i, db_name=db_name) for i in feeds]
+
 
 @line_profile
 def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):

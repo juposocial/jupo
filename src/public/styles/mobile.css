@@ -45,7 +45,6 @@ section header img {
 
 .tapped {
   color: #3A79F6 !important;
-  text-shadow: 0 0 4px rgba(58, 121, 246, 0.5);
 }
 
 .hidden {
@@ -65,7 +64,7 @@ section {
 }
 
 section header {
-  padding: 0 0 5px 47px;
+  padding: 0 0 12px 47px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -89,7 +88,7 @@ section > header time {
 }
 
 section > article {
-  padding: 5px 0 5px;
+  padding: 0 0 5px;
   overflow: hidden;
   line-height: 22px;
   color: #2d2d2d;
@@ -124,6 +123,7 @@ section > footer div.actions a.quick-stats span.read-receipts {
 section > footer div.actions a.quick-stats text {
   display: inline;
   margin-right: 5px;
+  font-size: 12px;
 }
 
 section > footer div.actions a.quick-stats {
@@ -145,8 +145,9 @@ section > footer > .actions {
 
 section footer div.actions a {
   color: #5E5E5E;
-  margin: 12px 8px;
+  margin: 12px 7px;
   display: inline-block;
+  font-size: 12px;
 }
 
 section footer div.actions a.tapped {
@@ -154,7 +155,7 @@ section footer div.actions a.tapped {
 }
 
 section footer div.actions div.lfloat a:first-child {
-  padding-left: 8px;
+  padding-left: 9px;
 }
 
 section > footer div.actions a.quick-stats text {
@@ -188,13 +189,17 @@ img.small-avatar {
   margin: 0;
 }
 
+ul.comments {
+  font-size: 13px;
+}
+
 ul.comments div.comments-list > li:first-child {
   border-top: 1px solid #e9e9e9;
-  padding-top: 13px;
+  padding-top: 10px;
 }
 
 ul.comments li.comment {
-  padding: 5px 15px;
+  padding: 2px 15px;
   margin-bottom: 5px;
   min-height: 35px;
   word-wrap: break-word;
