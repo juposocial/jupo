@@ -1029,16 +1029,6 @@ def google_authorized():
   code = request.args.get('code')
   domain, network = request.args.get('state').split(";")
 
-  # validate email against whitelist
-  db_name = (network + '.' + domain).replace('.', '_')
-  current_network = api.get_current_network(db_name=db_name)
-
-  auth_whitelist = []
-  if current_network is not None and 'auth_normal_whitelist' in current_network:
-    auth_whitelist = current_network['auth_normal_whitelist'].split(',')
-  # default email domain
-  auth_whitelist.append(network)
-  
   # get access_token
   url = 'https://accounts.google.com/o/oauth2/token'
   resp = requests.post(url, data={'code': code,
@@ -1058,6 +1048,17 @@ def google_authorized():
                                     % (data.get('token_type'),
                                        data.get('access_token'))})
   user = loads(resp.text)
+
+  if network != "": # sub-network, validate againts whitelist
+    # validate email against whitelist
+    db_name = (network + '.' + domain).replace('.', '_')
+    current_network = api.get_current_network(db_name=db_name)
+
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network:
+      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+    # default email domain
+    auth_whitelist.append(network)
   
   # generate user domain based on user email
   user_email = user.get('email')
@@ -1067,7 +1068,7 @@ def google_authorized():
   # with this, user network will be determined solely based on user email
   user_domain = user_email.split('@')[1]
 
-  if not user_domain in auth_whitelist:
+  if (network != "") and (not user_domain in auth_whitelist):
     flash('Your email is not allowed to login this network. Please contact network administrator for more info.')
     user_url = 'http://%s/%s?error_type=auth_google' % (settings.PRIMARY_DOMAIN, network)
     return redirect(user_url)
@@ -1161,6 +1162,10 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   def facebook_authorized(resp):
     domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
     network = request.args.get('network')
+
+    # validate email domain against whitelist
+    db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
+    current_network = api.get_current_network(db_name=db_name)
     
     if resp is None:
       return 'Access denied: reason=%s error=%s' % (request.args['error_reason'],
@@ -1174,6 +1179,19 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     while retry_count < 3:
       try:
         me = facebook.get('/me')
+
+        email = me.data.get('email')
+
+        auth_whitelist = []
+        if current_network is not None and 'auth_normal_whitelist' in current_network:
+          auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+        # default email domain
+        auth_whitelist.append(network)
+
+        if not email.split('@')[1] in auth_whitelist:
+          flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
+          user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
+          return redirect(user_url)
         break
       except:
         retry_count += 1
@@ -1230,7 +1248,9 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
       url = url + 'everyone?getting_started=1'
 
     resp = redirect(url)
-    resp.delete_cookie('network')
+    # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
+    resp.set_cookie('network', network)
+    
     return resp
   
   
