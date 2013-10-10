@@ -168,51 +168,41 @@ def get_user_info():
   return resp
 
   
-@app.route('/news_feed', methods=['GET'])
+@app.route('/news_feed')
+@app.route('/news_feed/page<int:page>')
 def news_feed(page=1):
-  session_id = request.args.get('session_id')
-  network = request.args.get('network')
-  utcoffset = request.args.get('utcoffset')
-  filter = request.args.get('filter', 'default')
+  session = request.headers.get('X-Session')
+  if not session:
+    authorization = request.headers.get('Authorization')
+    app.logger.debug(request.headers.items())
+    
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    session = authorization.split()[-1]
   
+  session = SecureCookie.unserialize(session, settings.SECRET_KEY)
+  
+  session_id = session.get('session_id')
+  network = session.get('network')
+#   utcoffset = session.get('utcoffset')
+
   db_name = '%s_%s' % (network.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
+
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
   
-  view = 'news_feed'
-  title = "Jupo"
+  owner = api.get_user_info(user_id, db_name=db_name)
   
-  owner = api.get_owner_info(session_id, db_name=db_name)
-  if not owner.id:
-    return redirect_to('/oauth/google')
+  feeds = api.get_feeds(session_id, page=page, db_name=db_name)
   
-  feeds = api.get_feeds(session_id, page=page, 
-                          include_archived_posts=False, db_name=db_name)
-  
-  
-  pinned_posts = api.get_pinned_posts(session_id) \
-                     if filter == 'default' else None
-  
-  
-  
-  suggested_friends = api.get_friend_suggestions(owner.to_dict())
-  coworkers = api.get_coworkers(session_id)
-  browser = api.Browser(request.headers.get('User-Agent'))
-  category = None
-  
-  body = render_template('mobile/news_feed_mobile.html', 
-                             owner=owner,
-                             view=view, 
-                             title=title, 
-                             filter=filter,
-                             browser=browser,
-                             category=category,
-                             coworkers=coworkers,
-                             suggested_friends=suggested_friends,
-                             pinned_posts=pinned_posts,
-                             settings=settings,
-                             feeds=feeds)
-  
-  return body
+  return render_template('mobile/news_feed.html', owner=owner,
+                                                  view='news_feed', 
+                                                  title='News Feed', 
+                                                  settings=settings,
+                                                  feeds=feeds)
 
 
 @app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
@@ -253,16 +243,19 @@ def group(group_id=None, view='group', page=1):
                           view=view)
   
   
-@app.route('/notifications', methods=['GET'])
+@app.route('/notifications')
 def notifications():
-  authorization = request.headers.get('Authorization')
-  app.logger.debug(request.headers.items())
+  session = request.headers.get('X-Session')
+  if not session:
+    authorization = request.headers.get('Authorization')
+    app.logger.debug(request.headers.items())
+    
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    session = authorization.split()[-1]
   
-  if not authorization or not authorization.startswith('session '):
-    abort(401)
-  
-  session = SecureCookie.unserialize(authorization.split()[-1], 
-                                     settings.SECRET_KEY)
+  session = SecureCookie.unserialize(session, settings.SECRET_KEY)
   
   session_id = session.get('session_id')
   network = session.get('network')
