@@ -214,8 +214,9 @@
                     if ('{{ error_type }}' == 'auth_normal') {
                       $('#jupo-login').addClass('active');
                       $('#jupo-login input:first').focus();
-                      $( ".flash-message" ).effect( "shake" );
                     }
+
+                    $( ".flash-message" ).effect( "shake" );
                   </script>
                 {% endif %}
               {% endwith %}
