@@ -730,7 +730,9 @@ def authentication(action=None):
     # default email domain
     auth_whitelist.append(network)
 
-    if not email.split('@')[1] in auth_whitelist:
+    # only validate if there is more than 1 item in auth_whitelist
+    # (meaning user keyed in something in the whitelist textbox)
+    if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
       flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
       user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
       return redirect(user_url)
@@ -828,7 +830,9 @@ def authentication(action=None):
     # default email domain
     auth_whitelist.append(network)
 
-    if not email.split('@')[1] in auth_whitelist:
+    # only validate if there is more than 1 item in auth_whitelist
+    # (meaning user keyed in something in the whitelist textbox)
+    if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
       flash('Your email is not allowed to sign up this network. Please contact network administrator for more info.')
       user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
       return redirect(user_url)
@@ -1068,7 +1072,9 @@ def google_authorized():
   # with this, user network will be determined solely based on user email
   user_domain = user_email.split('@')[1]
 
-  if (network != "") and (not user_domain in auth_whitelist):
+  # only validate if there is more than 1 item in auth_whitelist
+  # (meaning user keyed in something in the whitelist textbox)
+  if len(auth_whitelist) > 1 and (not user_domain in auth_whitelist):
     flash('Your email is not allowed to login this network. Please contact network administrator for more info.')
     user_url = 'http://%s/%s?error_type=auth_google' % (settings.PRIMARY_DOMAIN, network)
     return redirect(user_url)
@@ -1188,7 +1194,9 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
         # default email domain
         auth_whitelist.append(network)
 
-        if not email.split('@')[1] in auth_whitelist:
+        # only validate if there is more than 1 item in auth_whitelist
+        # (meaning user keyed in something in the whitelist textbox)
+        if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
           flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
           user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
           return redirect(user_url)
@@ -1250,7 +1258,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     resp = redirect(url)
     # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
     resp.set_cookie('network', network)
-    
+
     return resp
   
   
