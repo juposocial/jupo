@@ -2840,8 +2840,9 @@ def undo_remove(session_id, feed_id):
   return feed_id
 
 @line_profile
-def get_feed(session_id, feed_id, group_id=None):
-  db_name = get_database_name()
+def get_feed(session_id, feed_id, group_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   info = db.stream.find_one({'_id': long(feed_id),

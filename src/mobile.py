@@ -205,6 +205,40 @@ def news_feed(page=1):
                                                   feeds=feeds)
 
 
+@app.route("/feed/<int:feed_id>", methods=['GET', 'OPTIONS'])
+def feed_actions(feed_id=None, action=None, 
+                 message_id=None, domain=None, comment_id=None):
+  authorization = request.headers.get('Authorization')
+  app.logger.debug(request.headers.items())
+  
+  if not authorization or not authorization.startswith('session '):
+    abort(401)
+  
+  session = SecureCookie.unserialize(authorization.split()[-1], 
+                                     settings.SECRET_KEY)
+  
+  session_id = session.get('session_id')
+  network = session.get('network')
+#   utcoffset = session.get('utcoffset')
+
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+  
+  owner = api.get_user_info(user_id, db_name=db_name)
+  
+  feed = api.get_feed(session_id, feed_id, db_name=db_name)
+  return render_template('mobile/feed.html',
+                             view='news_feed',
+                             mode='view',
+                             owner=owner,
+                             feed=feed)
+  
+  
+
 @app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
 def group(group_id=None, view='group', page=1):
   authorization = request.headers.get('Authorization')
@@ -289,7 +323,7 @@ if __name__ == "__main__":
       
     app.debug = debug
     
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9009), app)
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
     try:
       print 'Serving HTTP on 0.0.0.0 port 9009...'
       server.start()
