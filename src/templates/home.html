@@ -369,6 +369,9 @@
     window.intercomSettings = {
       // TODO: The current logged in user's email address.
       email: "{{ owner.email }}",
+      network: "{{ network_url }}",
+      server: "{{ server }}",
+      user_type: "{% if owner.is_admin() == True %}admin{% else %}member{% endif %}",
       // TODO: The current logged in user's sign-up date as a Unix timestamp.
       created_at: {{ owner.created_at }},
       app_id: "7e4f0ed896cd548b9f3a1c6d12d8aa468ba44f6c"

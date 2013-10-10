@@ -115,6 +115,9 @@ def render_homepage(session_id, title, **kwargs):
   
   hostname = request.headers.get('Host')
 
+  hostname_short = request.headers.get('Host', '').split(':')[0]
+  network = hostname_short[:(len(hostname_short) - len(settings.PRIMARY_DOMAIN) - 1)]
+
   #logo text based on subdomain (user-specific network)
   logo_text = hostname.split('.')[0]
 
@@ -138,6 +141,8 @@ def render_homepage(session_id, title, **kwargs):
                                   debug=settings.DEBUG,
                                   logo_text=logo_text,
                                   domain=hostname,
+                                  network_url=network,
+                                  server=settings.PRIMARY_DOMAIN,
                                   request=request,
                                   settings=settings,
                                   **kwargs))
