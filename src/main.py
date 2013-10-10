@@ -724,8 +724,11 @@ def authentication(action=None):
     db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
     current_network = api.get_current_network(db_name=db_name)
 
-    auth_whitelist = current_network['auth_normal_whitelist'].split(',')
-    auth_whitelist.append(network) # default email domain
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network:
+      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+    # default email domain
+    auth_whitelist.append(network)
 
     if not email.split('@')[1] in auth_whitelist:
       flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
@@ -819,8 +822,11 @@ def authentication(action=None):
     db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
     current_network = api.get_current_network(db_name=db_name)
 
-    auth_whitelist = current_network['auth_normal_whitelist'].split(',')
-    auth_whitelist.append(network) # default email domain
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network:
+      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+    # default email domain
+    auth_whitelist.append(network)
 
     if not email.split('@')[1] in auth_whitelist:
       flash('Your email is not allowed to sign up this network. Please contact network administrator for more info.')
@@ -1027,9 +1033,11 @@ def google_authorized():
   db_name = (network + '.' + domain).replace('.', '_')
   current_network = api.get_current_network(db_name=db_name)
 
-  # whitelist = current_network['auth_normal_whitelist'].split(',')
-  auth_whitelist = current_network['auth_normal_whitelist'].split(',')
-  auth_whitelist.append(network) # default email domain
+  auth_whitelist = []
+  if current_network is not None and 'auth_normal_whitelist' in current_network:
+    auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+  # default email domain
+  auth_whitelist.append(network)
   
   # get access_token
   url = 'https://accounts.google.com/o/oauth2/token'
