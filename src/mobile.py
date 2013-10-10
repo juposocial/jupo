@@ -187,7 +187,8 @@ def get_user_info():
   
 @app.route('/news_feed')
 @app.route('/news_feed/page<int:page>')
-def news_feed(page=1):
+@app.route("/feed/<int:feed_id>")
+def news_feed(page=1, feed_id=None):
   session = request.headers.get('X-Session')
   if not session:
     authorization = request.headers.get('Authorization')
@@ -213,46 +214,21 @@ def news_feed(page=1):
   
   owner = api.get_user_info(user_id, db_name=db_name)
   
-  feeds = api.get_feeds(session_id, page=page, db_name=db_name)
+  if feed_id:
+    mode = 'view'
+    title = 'Post'
+    feeds = [api.get_feed(session_id, feed_id, db_name=db_name)]
+  else:
+    mode = None
+    title = 'News Feed'
+    feeds = api.get_feeds(session_id, page=page, db_name=db_name)
   
   return render_template('mobile/news_feed.html', owner=owner,
+                                                  mode=mode,
+                                                  title=title, 
                                                   view='news_feed', 
-                                                  title='News Feed', 
                                                   settings=settings,
                                                   feeds=feeds)
-
-
-@app.route("/feed/<int:feed_id>", methods=['GET', 'OPTIONS'])
-def feed_actions(feed_id=None, action=None, 
-                 message_id=None, domain=None, comment_id=None):
-  authorization = request.headers.get('Authorization')
-  app.logger.debug(request.headers.items())
-  
-  if not authorization or not authorization.startswith('session '):
-    abort(401)
-  
-  session = SecureCookie.unserialize(authorization.split()[-1], 
-                                     settings.SECRET_KEY)
-  
-  session_id = session.get('session_id')
-  network = session.get('network')
-#   utcoffset = session.get('utcoffset')
-
-  db_name = '%s_%s' % (network.replace('.', '_'), 
-                       settings.PRIMARY_DOMAIN.replace('.', '_'))
-  
-  user_id = api.get_user_id(session_id, db_name=db_name)
-  if not user_id:
-    abort(401)
-  
-  owner = api.get_user_info(user_id, db_name=db_name)
-  
-  feed = api.get_feed(session_id, feed_id, db_name=db_name)
-  return render_template('mobile/feed.html',
-                             view='news_feed',
-                             mode='view',
-                             owner=owner,
-                             feed=feed)
   
   
 

@@ -19,7 +19,7 @@
         
       {% autoescape on %} 
       
-          {{ feeds | render("feed", owner, view, mobile=True) }}
+          {{ feeds | render("feed", owner, view, mode, mobile=True) }}
           
       {% endautoescape %}
         

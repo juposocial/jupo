@@ -56,7 +56,7 @@
     {% if owner.id %}
     
     
-      {% if not mode %}
+      {% if not mode or mobile %}
       <li class='write-a-comment'>
         
         <img src='{{ owner.avatar }}' class='small-avatar lfloat'>
@@ -69,6 +69,7 @@
       </li>
       {% endif %}
       
+      {% if not mobile %}
       <li class="new-comment {% if not mode %}hidden{% endif %}">
           <form id='new-comment-{{ item.id }}' class="new-comment" action="/feed/{{ item.id }}/comment" method="POST">
             <a href="/user/{{ owner.id }}" class='async lfloat' data-user-id='{{ owner.id }}'>
@@ -94,7 +95,6 @@
               <div class="attachments"></div>
               
             
-              {% if not mobile %}
               <script type="text/javascript">
               
               
@@ -186,11 +186,11 @@
                   });
               
               </script>
-              {% endif %}
               
   
             </footer>
           </form>
       </li>    
+      {% endif %}
     {% endif %}
 </ul>
