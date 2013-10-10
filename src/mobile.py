@@ -241,6 +241,8 @@ def group(group_id=None, view='group', page=1):
   
   
   
+  
+  
 @app.route('/notifications', methods=['GET'])
 def notifications():
   authorization = request.headers.get('Authorization')
