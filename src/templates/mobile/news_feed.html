@@ -1,34 +1,35 @@
 <!DOCTYPE HTML>
 <head>
-  
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   
   <link rel="stylesheet" href="/public/styles/mobile.css">
-  
 </head>
 
-
-  
 <body>
   <ul id="stream">
-      {% if feeds == [] %}
+      {% if not feeds %}
+      
         <span class="empty">Nothing here</span>
-      {% else %}
-   
         
+      {% else %}
+  
         
       {% autoescape on %} 
+      
           {{ feeds | render("feed", owner, view, mobile=True) }}
+          
       {% endautoescape %}
         
     
       {% if feeds | length == 5 %}
+      
         {% set more_url = '/news_feed/page2' %}
-        
+
         {% include 'more.html' %}
+        
       {% endif %}
       
     {% endif %}

@@ -1,6 +1,5 @@
 <!DOCTYPE HTML>
 <head>
-  
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,11 +11,8 @@
       box-sizing: border-box;
     }
 
-    html {
-      background: #3D4046;
-    }
-
     body {
+      background: rgba(252, 252, 250, 0.6);
       margin: 0;
       padding: 0;
       font-family: Helvetica, sans-serif;
@@ -52,13 +48,13 @@
     }
 
     ul.notifications > li > a {
-      color: white;
+      color: #3d3d3d;
       text-decoration: none;
       font-size: 14px;
-      padding: 10px 5px;
+      padding: 12px 5px;
       display: block;
       padding-left: 47px;
-      border-bottom: 1px solid rgba(73, 75, 81, 0.7);
+      border-bottom: 1px solid rgba(232, 230, 227, 0.6);
       min-height: 52px;
       word-wrap: break-word;
     }
@@ -74,7 +70,7 @@
     }
 
     a.tapped {
-      background: #303138;
+      background: rgba(217, 217, 217, 0.25);
     }
 
     time {
@@ -88,7 +84,6 @@
       font-weight: bold;
     }
   </style>
-  
 </head>
 
 <body>
@@ -104,11 +99,13 @@
       {% autoescape on %}
 
         {% for title, items in notifications.iteritems() %}
-          {#<h3>{{ title | upper }}</h3>#}
   
           {% for key, messages in items.iteritems() %}
+          
             {% if messages %}
+            
               {% include "notification.html" %}
+            
             {% endif %}
     
           {% endfor %}
