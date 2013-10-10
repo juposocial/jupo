@@ -210,10 +210,12 @@
                   {% endfor %}
 
                   <script type="text/javascript">
-                    // if there is error, most likely due to normal authentication, popup the username/password again
-                    $('#jupo-login').addClass('active');
-                    $('#jupo-login input:first').focus();
-                    $( ".flash-message" ).effect( "shake" );
+                    // if there is error, check error_type, if it's 'auth_normal' then toggle the login windows again
+                    if ('{{ error_type }}' == 'auth_normal') {
+                      $('#jupo-login').addClass('active');
+                      $('#jupo-login input:first').focus();
+                      $( ".flash-message" ).effect( "shake" );
+                    }
                   </script>
                 {% endif %}
               {% endwith %}

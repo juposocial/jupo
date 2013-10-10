@@ -6115,6 +6115,13 @@ def get_network_admin_ids(db_name=None):
     return [i['_id'] for i in users]
   return [get_first_user_id(db_name)]
 
+def get_current_network(db_name=None):
+  db = DATABASE[db_name]
+
+  network = db.info.find_one()
+
+  return network
+
 def get_network_by_id(network_id):
   db_name = get_database_name()
   db = DATABASE[db_name]
