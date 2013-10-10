@@ -70,7 +70,7 @@ def redirect(url, code=302):
   return redirect_to(url, code=code)
 
 @line_profile
-def render_homepage(session_id, title, **kwargs):  
+def render_homepage(session_id, title, **kwargs):
   """ Render homepage for signed in user """
   if session_id:
     user_id = api.get_user_id(session_id)

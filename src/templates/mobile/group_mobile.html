@@ -1,0 +1,939 @@
+<head>
+  <link rel="stylesheet" href="/public/styles/normalize.css">
+  <link rel="stylesheet" href="/public/styles/animations.css">
+  <link rel="stylesheet" href="/public/styles/icons.css">
+  <link rel="stylesheet" href="/public/styles/home.css">
+  <link rel="stylesheet" href="/public/styles/wysihtml5.css">
+  <link rel="stylesheet" href="/public/styles/jquery.notice.css">
+  <link type="text/css" rel="stylesheet" href="/public/styles/prettify.css">
+  <link rel="stylesheet" href="/public/styles/hopscotch.css">
+  <link rel="stylesheet" href="/public/styles/jquery.atwho.css">
+  <link rel="stylesheet" href="/public/styles/chat.css">
+</head>
+
+{% if mode == 'edit' %}
+  <div id="page-header" class='settings'>
+          <h2>Group Settings</h2>
+  </div>  
+  
+  <form id='settings' action='/group/{{ group.id }}/update' method='post' class='settings' enctype='multipart/form-data'>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"> 
+
+    <h2>General</h2>
+    <ul class="field-set">
+
+      <li class="field field-text">
+        <label for="name">Name</label>
+        <input class="input-text" id="name" name="name" type="text" value="{{ group.name }}">
+      </li>
+
+      <li class="field field-text">
+        <label for="description">Description</label>
+        <textarea class="input-text" id="description" name="about">{{ group.about }}</textarea>
+
+      </li>
+
+      <li class="field field-select">
+        <label for="privacy">Privacy</label>
+        <select class="input-select" id="privacy" name="privacy">
+          <option {% if group.privacy == "open" %}selected{% endif %} value="open">Public</option>
+          <option {% if group.privacy == "closed" %}selected{% endif %} value="closed">Closed</option>
+          <option {% if group.privacy == "secret" %}selected{% endif %} value="secret">Secret</option>
+        </select>
+
+      </li>
+      
+      
+
+
+
+    </ul>
+    
+    
+    <h2>Posting Permissions</h2>
+    <ul class="field-set">
+        
+            
+     
+      {% if group.privacy == 'open' %}     
+      <li class="field field-checkbox">
+          <label for='members-can-post'>Anyone can post in this group</label>
+          <input class='input-checkbox' id='members-can-post' type='radio' name='post_permission' value='members' {% if group.post_permission != 'administrators' %}checked{% endif %}>  
+      </li>
+      {% else %}
+      <li class="field field-checkbox">
+          <label for='members-can-post'>Only members can post in this group.</label>
+          <input class='input-checkbox' id='members-can-post' type='radio' name='post_permission' value='members' {% if group.post_permission != 'administrators' %}checked{% endif %}>  
+      </li>
+      
+      
+      {% endif %}
+      
+      <li class="field field-checkbox">
+        <label for='admins-can-post'>
+          Only administrators can post to the group.
+        </label>
+        <input class='input-checkbox' id='admins-can-post' type='radio' name='post_permission' value='administrators' {% if group.post_permission == 'administrators' %}checked{% endif %}/>
+        
+      </li>
+
+        
+    </ul>
+    
+    <h2>Webhook URLs</h2>
+    <ul class="field-set">
+      
+      <li class="field field-text">
+        {% if group.to_dict().gitlab_key %}
+          <label for="name">Gitlab (<a title='Click to reset' href='/group/{{ group.id }}/new_gitlab_key'>Reset</a>)</label>
+          <input class="input-text" type="text" value="http://{{ hostname }}/hooks/gitlab/{{ group.to_dict().gitlab_key }}" readonly>
+        {% else %}
+          <label for="name">Gitlab (<a title='Click to reset' href='/group/{{ group.id }}/new_gitlab_key'>Generate</a>)</label>
+          <input class="input-text" type="text" placeholder='Click Generate to get new' readonly>
+        {% endif %}
+      </li>
+      
+      
+      <li class="field field-text">
+        {% if group.to_dict().github_key %}
+          <label for="name">GitHub (<a title='Click to reset' href='/group/{{ group.id }}/new_github_key'>Reset</a>)</label>
+          <input class="input-text" type="text" value="http://{{ hostname }}/hooks/github/{{ group.to_dict().github_key }}" readonly>
+      
+        {% else %}
+          <label for="name">GitHub (<a title='Click to reset' href='/group/{{ group.id }}/new_github_key'>Generate</a>)</label>
+          <input class="input-text" type="text" placeholder='Click Generate to get new' readonly>
+        {% endif %}
+      </li>
+
+    
+    </ul>
+    
+  <footer>
+    <input type='submit' value='Save Changes' class='button'>
+  </footer>
+
+
+
+
+
+
+
+
+{#
+
+  <div id="page-header">
+          <h2>Edit Profile</h2>
+  </div>  
+  
+  <form action='/group/{{ group.id }}/update' method='post' class="new form overlay">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+  <table>
+    <tbody>
+      
+      
+      <tr id='attach' class='rfloat'>
+        <td>
+          
+          <a id='pickfile' title='Change picture...'>
+            <img id='preview' src="{{ group.logo }}" width=128 height=128>
+          </a>
+          <div id="file-container">
+            <div id="filelist"></div>
+          </div>  
+          <div id="attachments"></div>
+        </td>
+      </tr>
+      
+      <tr id='name'>
+        <td>
+          <label>Name:</label>
+          <input title="Display name" type="text" name="name" value='{{ group.name }}' class='title' />
+          
+       </td>
+     </tr>  
+
+
+     <tr>
+       <td>
+          <label>Description:</label>
+          <textarea name='about' 
+                    title="About">{{ group.about }}</textarea>
+        </td>
+      </tr>
+      
+           <tr>
+       <td> 
+          <label>Privacy:</label> 
+          <div class='privacy'>
+            <div class='radio'>
+              <input id='open-group' type='radio' name='privacy' value='open' {% if group.privacy == 'open' %}checked{% endif %} />
+              <label for='open-group'>
+                Open <i class='public-icon' title='Anyone can see the group, who is in it, and what members post.'></i>
+              </label>
+            </div>
+            
+            
+            <div class='radio'>
+              <input id='closed-group' type='radio' name='privacy' value='closed'  {% if group.privacy == 'closed' %}checked{% endif %}/>
+              <label for='closed-group'>
+                Closed <i class='lock-icon' title='Anyone can see the group and who is in it. Only members see posts.'></i>
+              </label>
+            </div>
+            <div class='radio'>
+              <input id='secret-group' type='radio' name='privacy' value='secret'  {% if group.privacy == 'secret' %}checked{% endif %}/>
+              <label for='secret-group'>
+                Hidden <i class='ghost-icon' title='Only members see the group, who is in it, and what members post.'></i>
+              </label>
+            </div>
+          </div>
+          
+          <input type='hidden' name='privacy' value='closed'>
+       </td>
+     </tr>  
+      
+      <tr id='administrators'>
+        <td>
+      
+          <label>Leaders/Administrators:</label>
+          
+          <input type='text' 
+                 name='administrators' 
+                 class='autocomplete'
+                 placeholder='Add people...'>
+        </td>
+      </tr>
+      
+      
+      
+      <tr id='members'>
+        <td>
+      
+          <label>Members:</label>
+          
+          <input type='text' 
+                 name='members' 
+                 class='autocomplete'
+                 placeholder='Add people...'>
+        </td>
+      </tr>
+      
+      <tr id='permissions'>
+        <td>
+      
+          <label>Posting Permissions:</label>   <br>  
+          {% if group.privacy == 'open' %}     
+          <div class='radio'>
+            <input id='members-can-post' type='radio' name='post_permission' value='members' {% if group.post_permission != 'administrators' %}checked{% endif %}/>
+            <label for='members-can-post'>
+              Anyone can post in this group.
+            </label>
+          </div> 
+          
+          {% else %}
+          <div class='radio'>
+            <input id='members-can-post' type='radio' name='post_permission' value='members' {% if group.post_permission != 'administrators' %}checked{% endif %}/>
+            <label for='members-can-post'>
+              Only members can post in this group.
+            </label>
+          </div> 
+          {% endif %}
+          <br>  
+          
+          <div class='radio'>
+            <input id='admins-can-post' type='radio' name='post_permission' value='administrators' {% if group.post_permission == 'administrators' %}checked{% endif %}/>
+            <label for='admins-can-post'>
+              Only administrators can post to the group.
+            </label>
+          </div>
+          
+        </td>
+      </tr>
+      
+      <tr id='web-hooks'>
+        <td>
+      
+          <label>Web hook URLs:</label>   <br>  
+          <li><a title='Click to reset' href='/group/{{ group.id }}/new_gitlab_key'>Gitlab</a>: <a>https://www.jupo.com/hooks/gitlab/{{ group.to_dict().gitlab_key }}</a></li>
+          <li><a title='Click to reset' href='/group/{{ group.id }}/new_github_key'>Github</a>: <a>https://www.jupo.com/hooks/github/{{ group.to_dict().github_key }}</a></li>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+  
+  <footer>
+    <input type='hidden' name='fid'>
+    
+    <input type='submit' value="Save Changes" class='button'>
+  </footer>
+
+
+  <script type='text/javascript'>
+  $(document).ready(function () {
+      members =  [
+                  {% for i in group.members %}
+                    {name: "{{ i.name }}", id: "{{ i.id }}"},
+                  {% endfor %}
+                 ];
+      
+      $("input[name='members']").tokenInput('/autocomplete?type=user', {
+          searchDelay: 300,
+          preventDuplicates: true,
+          queryParam: 'query',
+          hintText: 'Add people...',
+          animateDropdown: false,
+          allowEmail: true,
+          noResultsText: null,
+          searchingText: null,
+          resultsFormatter: function(item) {
+              return "<li><img class='" + item.type + "' src='" + item.avatar + "'>" + item.name + "</li>" 
+          },
+          prePopulate: members,
+       });
+      
+      administrators =  [
+                  {% for i in group.administrators %}
+                    {name: "{{ i.name }}", id: "{{ i.id }}"},
+                  {% endfor %}
+                 ];
+      
+      $("input[name='administrators']").tokenInput('/autocomplete?type=user', {
+          searchDelay: 300,
+          preventDuplicates: true,
+          queryParam: 'query',
+          hintText: 'Add people...',
+          animateDropdown: false,
+          allowEmail: true,
+          noResultsText: null,
+          searchingText: null,
+          resultsFormatter: function(item) {
+              return "<li><img class='" + item.type + "' src='" + item.avatar + "'>" + item.name + "</li>" 
+          },
+          prePopulate: administrators,
+       });
+      
+    
+    //refresh();
+  })
+</script>
+  <script type="text/javascript">
+  
+  {% set id = group.id | unique_by_timestamp %}
+  /* Avatar Upload */
+    $.global.uploader_{{ id }} = new plupload.Uploader({
+          runtimes : 'html5',
+          browse_button : 'pickfile',
+          container : 'file-container',
+          url : '/attachment/new',
+          multi_selection : false,
+          // drop_element: 'intro',
+          max_file_size : '10mb',
+          headers: {
+            'X-CSRFToken': get_cookie('_csrf_token')
+          }
+    });
+        
+    $.global.uploader_{{ id }}.bind('Init', function(up, params) {});
+    $.global.uploader_{{ id }}.init();
+    
+    
+    $.global.uploader_{{ id }}.bind('FilesAdded', function(up, files) {
+      $.global.uploader_{{ id }}.start();
+    });
+    
+    
+    $.global.uploader_{{ id }}.bind('UploadProgress', function(up, file) {
+      if(file.percent != 100) {
+        show_progress("Uploading " + file.percent + "%")
+      } else {
+        show_progress("Verifying...")
+      }
+    });
+    
+    $.global.uploader_{{ id }}.bind('Error', function(up, err) {
+        show_error();
+    });
+    
+    
+    $.global.uploader_{{ id }}.bind('FileUploaded', function(up, file, response) {
+        hide_progress();
+      
+        response = $.parseJSON(response.response)
+      
+        $('img#preview').attr('src', '/img/128/' + response.attachment_id + '.jpg');
+      
+        $('#profile-update input[name="fid"]').val(response.attachment_id);
+      
+    });
+
+  
+  </script>
+  
+
+  
+</form>
+#}
+
+{% else%}
+
+<div id="page-header">
+     
+          {% if group.id != 'public' %}     
+          <div class='rfloat actions'>
+            {% if owner.id in group.administrator_ids %}
+              <a class='popup button' href='/group/{{ group.id }}/edit'>Edit Group</a>
+            {% elif owner.id in group.member_ids %}
+              <a class='button toggle' href='/group/{{ group.id }}/unfollow' data-name='Join Group' data-href='/group/{{ group.id }}/follow'>Leave Group</a>
+            {% elif owner.id in group.pending_member_ids %}
+              <a class='toggle button' href='/group/{{ group.id }}/unfollow' data-name='Ask to Join Group' data-href='/group/{{ group.id }}/follow'>Cancel Request</a>
+            {% else %}
+              {% if group.privacy == 'open' %}
+              <a class='button toggle' href='/group/{{ group.id }}/follow' data-name='Leave Group' data-href='/group/{{ group.id }}/unfollow'>Join Group</a>
+              {% else %}
+              <a class='button toggle' href='/group/{{ group.id }}/follow' data-name='Cancel Request' data-href='/group/{{ group.id }}/unfollow'>Ask to Join Group</a>
+              {% endif %}
+            {% endif %}
+          </div>
+          {% endif %}
+          
+        {% if group.id == 'public' %}
+          <i class='public-group-icon lfloat'></i>
+        {% else %}
+          <i class='group-icon lfloat'></i>
+        {% endif %}
+        
+        <h2>
+
+              {{ group.name }}
+              
+              {% if mode == 'docs' %}
+                  - Notes
+              {% endif %}
+
+        </h2>    
+
+
+        <div class='info subtitle'>
+
+          <div class='stats'>
+            {% if group.id == 'public' %}
+            <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
+            {% elif owner.id in group.member_ids or group.privacy == 'open' %}
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.member_ids | length }} Members</a>
+            {% else %}
+            {{ group.about }}
+            {% endif %}
+          </div>    
+        </div>
+        
+</div>
+
+  {% if owner.id in group.member_ids or group.privacy == 'open' %}
+    {% if owner and (group.post_permission != 'administrators' or owner.id in group.administrator_ids) %}
+      {% include 'new.html' %}
+    {% endif%}
+  {% else %}
+    {% set view = 'members' %}
+  {% endif%}
+  
+    
+  {% if mode == 'docs' %}
+    <ul id="stream" class='group'>
+        {% if docs == [] %}
+            <span class="empty">No Docs</span>
+        {% else %}
+            {% for note in docs %}
+                {% include 'note.html' %}
+            {% endfor %}
+        {% endif %}
+    </ul>
+    
+  {% elif view == 'members' %}
+  
+    
+    <ul class='contacts'>
+      
+      <div class='title'>Members:</div>
+      
+      {% for user in group.members %}
+        <li>
+          <a href='/user/{{ user.id }}' class='async'>
+              <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+              <div class='title'>
+                {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status'></i>
+              </div>
+              
+              {% set last_online = user.last_online %}
+              {% if last_online %}
+               <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>{{ last_online | friendly_format(owner.utcoffset, short=True) }}</time>
+              {% else %}
+                &nbsp;
+              {% endif %}
+            </a>
+
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+
+  
+{#  {% if owner.id in group.member_ids or owner.id in group.administrator_ids or group.privacy == 'open' %} #} 
+  
+  {% if feeds != None or group.id == 'public' %}
+  <ul id="stream" class='group-with-nav-disabled'>
+    {% if feeds == [] %}
+      <span class="empty">
+        <span>Nothing here</span>
+      </span>
+    {% else %}
+      {% for feed in feeds %}
+        {% if feed.id not in owner.unfollow_posts %}
+            {{ feed | render("feed", owner, view, group=group) | safe }}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+      
+      {% if feeds | length == 5 %}
+        {% if group.id == 'public' %}
+          {% set more_url = '/everyone/page2' %}
+        {% else %}
+          {% set more_url = '/group/%s/page2' % group.id %}
+        {% endif %}
+        
+        {% include 'more.html' %}
+      {% endif %}
+  </ul>
+  {% else %}    
+  
+  
+    <ul class='contacts'>
+      
+      <div class='title'>Members:</div>
+      
+      {% for user in group.members %}
+        <li>
+          <a href='/user/{{ user.id }}' class='async'>
+              <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+              <div class='title'>
+                {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status'></i>
+              </div>
+              
+              {% set last_online = user.last_online %}
+              {% if last_online %}
+               <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>{{ last_online | friendly_format(owner.utcoffset, short=True) }}</time>
+              {% else %}
+                &nbsp;
+              {% endif %}
+            </a>
+
+        </li>
+      {% endfor %}
+    </ul>
+  
+  {% endif %}
+    
+   
+      
+    
+  
+  <div id="right-sidebar" class='group-sidebar'>
+      {% if owner.id and _Jupo_stats %}
+      <div class="box">
+        <div class="header">
+          <div class="title">Jupo Stats</div>
+        </div>
+        <div class="body">
+          <div class='_Jupo-stats'><span>{{ _Jupo_stats.users }}</span> users</div>
+          <div class='_Jupo-stats'><span>{{ _Jupo_stats.groups }}</span> groups</div>
+          <div class='_Jupo-stats'><span>{{ _Jupo_stats.subscribers }}</span> subscribers</div>
+        </div>
+      </div>
+      {% endif %}
+      
+
+{#      
+      <div class='box'>
+        <div class='body'>
+           <div class='stats'>
+             
+            <a href='/group/{{ group.id }}/members' class='popup gray'>{{ group.members | length }} Members</a>
+            
+            {% if group.id != 'public' and owner.id in group.member_ids %}
+             · <a href='/search?query=&type=people&ref=group-{{ group.id }}' class='popup'>Add people</a>
+             · <a href='/search?query=&type=email&ref=group-{{ group.id }}' class='popup'>Invite by Email</a>
+            {% endif %}
+          </div>
+          
+        </div>
+      </div>
+#}      
+      
+      <div class="box">
+        <div class="header">
+          <div class="title">About {{ group.name }}</div>
+        </div>
+        <div class="body">
+          <div class='intro'>
+            {% if group.about %}
+              {{ group.about | autolink | safe }}
+              <br>
+            
+            {% elif group.id == 'public' %}
+              Public posts from everyone
+              <br>
+            {% endif%}
+            
+            {% if group.id == 'public' %}
+            <a href='/people' class='popup'>{{ group.members_count }} People</a>
+            {% else %}
+            <a href='/group/{{ group.id }}/members' class='popup'>{{ group.members_count }} Members</a>
+            {% endif %}
+            
+            
+            <br>
+            Moderators:
+            {% for user in group.administrators %}
+              <a href='/user/{{ user.id }}' class='async'>{{ user.name }}</a>{% if loop.index < group.administrator_ids | length %}, {% endif %}
+            {% endfor %}
+            
+            {% if group.id == 'public' %}
+               <br>
+               <a id="invite_url" href='/invite' class='popup'>Invite friends to Jupo</a>
+            {% elif owner.id in group.member_ids or group.privacy == 'open' %}
+               <br>
+               <a href='/search?query=&type=people&ref=group-{{ group.id }}' class='popup'>Add people</a>
+             · <a href='/invite?group_id={{ group.id }}' class='popup'>Invite by Email</a>
+            {% endif %}
+            
+            
+          </div>
+        </div>
+      </div>
+      
+      {% if owner.id in group.administrator_ids and group.pending_member_ids %}
+      <div class="box">
+        <div class="header">
+          <div class="title">Requests ({{ group.pending_member_ids | length }})</div>
+        </div>
+        <div class="body">
+          <ul class='pending-members'>
+          {% for user in group.pending_members %}
+            <li class='user'>
+              <a href='/user/{{ user.id }}' class='async'>
+                <img class='small-avatar lfloat' src='{{ user.avatar }}'>
+              </a>
+              <a href='/user/{{ user.id }}' class='async username'>
+                {{ user.name }}
+              </a>
+              
+              <div class='info'>
+                <a class='accept' href='/group/{{ group.id }}/add_member?user_id={{ user.id }}'>Accept</a>
+              · <a class='reject' href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}'>Reject</a>
+              </div>
+            </li>
+          {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% endif %}
+      
+{#      
+      {% if owner.id in group.administrator_ids %}
+      <div class="box">
+        <div class="header">
+          <div class="title">Add People to Group</div>
+        </div>
+        <div class="body">
+            <form action='/invite' method='post' id='invite'>
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <input type='email' name='email' placeholder='Email Address' required>
+              <input type='hidden' name='group_id' value='{{ group.id }}'>
+              <span class='rfloat gray'>&nbsp;</span>
+            </form>
+        </div>
+      </div>
+      {% endif %}
+#}
+
+{#      
+    {% if owner.id in group.member_ids %}
+    <div class="box">
+      <div class="header">
+        <div class="actions rfloat"><a href="#!/group/{{ group.id }}/events" class='overlay'>See All</a></div>
+        <div class="title">Upcoming Events</div>
+      </div>
+      <div class="body">
+        <ul class='events'>
+          {% for event in upcoming_events %}
+          <li>
+            <a href='#!/feed/{{ event.id }}' class='overlay'>
+              <i class="events-icon"></i>&nbsp; {{ event.name }}
+              <span class='gray rfloat'>(<time class='timeago' title='{{ event.when | friendly_format(owner.utcoffset) }}' datetime='{{ event.when | isoformat(owner.utcoffset) }}'>{{ event.when | friendly_format(owner.utcoffset, short=True) }}</time>)</span>
+            </a>
+          </li>
+          {% endfor %}
+          <li>
+            <a href='#!/event/new' class='overlay'>
+              <i class="events-icon"></i>&nbsp; Create new event...
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+#}
+
+
+  
+  
+
+      {#
+      <div class="box">
+        <div class="header">
+          <div class="actions rfloat"><a href='#'>See All</a></div>
+          <div class="title">Members</div>
+        </div>
+        <div class="body">
+          <ul class='members'>
+            {% for member in group.members %}
+            <li>
+              <a href='/user/{{ member.id }}' class="async" title="{{ member.name }}">
+                <img src='{{ member.avatar }}' />
+              </a>
+            </li>
+            {% endfor %}
+            
+          </ul>
+                  
+          <form>
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type='text' id='add-members' placeholder='Add users to this group'>
+          </form>
+        </div>
+      </div>
+      #}
+      
+      {#
+      <div class="box">
+        <div class="header">
+          <div class="actions rfloat"><a href='#'>See All</a></div>
+          <div class="title">Member Activities</div>
+        </div>
+        <div class="body">
+          <ul>
+          {% for user in group.members %}
+            <li>
+              <a href='/user/{{ user.id }}' class='async'>
+              <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+                {{ user.name }}<br>
+                {% if user.last_online %}
+                <time class='timeago' title='{{ user.last_online | friendly_format(owner.utcoffset) }}' datetime='{{ user.last_online | isoformat(owner.utcoffset) }}'>{{ user.last_online | friendly_format(owner.utcoffset, short=True) }}</time>
+                {% else %}
+                &nbsp;
+                {% endif %}
+              </a>
+            </li>
+          {% endfor %}
+          </ul>
+        </div>
+      </div>
+      #}
+      
+      
+{% if group.highlight_ids %}
+<div class="box">
+  <div class="header">
+    <div class="title">
+      <a href='/group/{{ group.id }}/docs' class='async' title='See All Notes'>Highlights</a>
+    </div>
+  </div>
+  <div class="body" id='notes'>
+    <ul>
+      {% for note in group.highlights %}
+      <li>
+        <a class='async' href='/note/{{ note.id }}?group_id={{ group.id }}' title='{{ note.title | clean | replace("'", "\'") }}'>
+          <div class='title'>{{ note.title | clean | truncate(75, True) }}</div>
+          <time class='timeago' title='{{ note.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ note.timestamp | isoformat(owner.utcoffset) }}'>{{ note.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+        </a>
+      </li>
+      {% endfor %}
+    
+    </ul>
+  </div>
+</div>    
+        
+  
+{% else %}
+<div class="box">
+  <div class="header">
+    <div class="actions rfloat">
+      <a href='#!/note/new?group_id={{ group.id }}' class='overlay'>+ New Note</a>
+    </div>
+    <div class="title">
+      <a href='/group/{{ group.id }}/docs' class='async' title='See All Notes'>Recent Notes</a>
+    </div>
+  </div>
+  <div class="body" id='notes'>
+    
+    {% set recent_notes = group.recent_notes %}
+    {% if recent_notes %}
+      
+      {% cache "recent_notes:%s:%s" % (group.id, recent_notes[0].timestamp) %}
+      <ul>
+          {% for doc in recent_notes %}
+          <li>
+            <a class='async' href='/note/{{ doc.id }}?group_id={{ group.id }}' title='{{ doc.title | clean | replace("'", "\'") }}'>
+              <div class='title'>{{ doc.title | clean | truncate(75, True) }}</div>
+              <time class='timeago' title='{{ doc.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ doc.timestamp | isoformat(owner.utcoffset) }}'>{{ doc.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+            </a>
+          </li>
+          {% endfor %}
+      </ul>
+      {% endcache %}
+    
+    {% else %}
+        <span class='intro'>
+          No notes yet.
+          <a class='overlay' href='#!/note/new?group_id={{ group.id }}'>Write a note</a>  
+        </span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}  
+
+
+
+    {% set recent_files = group.recent_files %}
+    
+    {% if recent_files %}
+      {% set last_ts = recent_files[0].timestammp %}
+    {% else %}
+      {% set last_ts = 0 %}
+    {% endif %}
+    
+    {% cache "recent_files:%s:%s" % (group.id, last_ts) %}
+    <div class="box">
+      <div class="header">
+    
+        <div class="actions rfloat">
+          <a href="/files?group_id={{ group.id }}" class='async'>+ New File</a>
+        </div>
+        <div class="title">
+          <a href='/group/{{ group.id }}/files' class='async' title='See All Files'>Recent Files</a>
+        </div>
+      </div>
+      <div class="body">
+    
+      {% if recent_files %}
+        <ul class='attachments'>
+          {% for attachment in group.recent_files[:5] %}
+          <li class='attachment'>
+            <a href='/attachment/{{ attachment.id }}?rel={{ attachment.rel }}' target='_blank' download='{{ attachment.name }}'> <img src='{{ attachment.icon }}' height=32 class='lfloat'/>
+            <div class="title">
+              {{ attachment.name | truncate(22, True) }}
+            </div>
+            <div class="info">
+              <time class='timeago' title='{{ attachment.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ attachment.timestamp | isoformat(owner.utcoffset) }}'>
+                {{ attachment.timestamp | friendly_format(owner.utcoffset, short=True) }}
+              </time>
+            </div> </a>
+    
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <span class='intro'>
+          No files yet.
+          <a class='async' href='/files?group_id={{ group.id }}'>Upload a file</a>  
+        </span>
+      {% endif %}
+      </div>
+    </div>
+    {% endcache %}
+
+
+    {% if group.id != 'public' %}      
+      
+      {% set recently_viewed = group.recently_viewed %}
+      
+      {% if recently_viewed %}
+        {% set last_ts = recently_viewed[0].timestamp %}
+      {% else %}
+        {% set last_ts = 0 %}
+      {% endif %}
+      
+      {% cache "recently_viewed:%s:%s:%s" % (owner.id, group.id, last_ts) %}
+      <div class="box">
+        <div class="header">
+          <div class="title">Recently Viewed</div>
+        </div>
+        <div class="body" id='owners'>
+          <ul>
+          {% for record in recently_viewed %}
+            <li>
+              <a href='/user/{{ record.user.id }}' class='async'>
+              <img class='small-avatar lfloat' src='{{ record.user.avatar }}' />
+                <div class='title'>{{ record.user.name }}</div>
+                <time class='timeago' title='{{ record.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ record.timestamp | isoformat(owner.utcoffset) }}'>{{ record.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+              </a>
+            </li>
+          {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% endcache %}
+    {% else %}
+    
+      
+      {% cache "new_members:%s:%s:%s" % (owner.id, group.id, group.members_count) %}
+      <div class="box">
+        <div class="header">
+          <div class="title">New Members</div>
+        </div>
+        <div class="body" id='owners'>
+          <ul>
+          {% for user in group.members[:5] %}
+            <li>
+              <a href='/user/{{ user.id }}' class='async'>
+              <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+                <div class='title'>{{ user.name }}</div>
+                <time class='timeago' title='{{ user.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ user.timestamp | isoformat(owner.utcoffset) }}'>{{ user.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+              </a>
+            </li>
+          {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% endcache %}
+      
+    {% endif %}    
+
+      
+      {#
+      <div class="box">
+        <div class="header">
+          <div class="actions rfloat"><a href='#'>Learn more</a></div>
+          <div class="title">List Suggestions</div>
+        </div>
+        <div class="body">
+        </div>
+      </div>
+      
+      <div class="box">
+        <div class="header">
+          <div class="actions rfloat"><a href='#'>See All</a></div>
+          <div class="title">Reference Groups</div>
+        </div>
+        <div class="body">
+        </div>
+      </div>
+      #}
+      
+  </div>
+  {% endif %}
+  
+
+{% endif %}
+

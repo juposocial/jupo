@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script>
+    
+      function open_custom_url_in_iframe(src) {
+        var rootElm = document.documentElement;
+        var newFrameElm = document.createElement("iframe");
+        newFrameElm.setAttribute("src", src);
+        rootElm.appendChild(newFrameElm);
+        newFrameElm.parentNode.removeChild(newFrameElm);
+      }
+
+      open_custom_url_in_iframe('jupo://{{ data | safe }}');
+
+      
+    </script>
+  </body>
+</html>
