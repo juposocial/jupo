@@ -1,0 +1,54 @@
+  
+    {% if feeds != None or group.id == 'public' %}
+		<ul id="stream" class='group-with-nav-disabled'>
+    {% if feeds == [] %}
+      <span class="empty">
+        <span>Nothing here</span>
+      </span>
+    {% else %}
+      {% for feed in feeds %}
+        {% if feed.id not in owner.unfollow_posts %}
+            {{ feed | render("feed", owner, view, group=group) | safe }}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+      
+      {% if feeds | length == 5 %}
+        {% if group.id == 'public' %}
+          {% set more_url = '/everyone/page2' %}
+        {% else %}
+          {% set more_url = '/group/%s/page2' % group.id %}
+        {% endif %}
+        
+        {% include 'more.html' %}
+      {% endif %}
+  </ul>
+    {% else %}    
+  
+  	<ul class='contacts'>
+      
+      <div class='title'>Members:</div>
+      
+      {% for user in group.members %}
+        <li>
+          <a href='/user/{{ user.id }}' class='async'>
+              <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+              <div class='title'>
+                {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status'></i>
+              </div>
+              
+              {% set last_online = user.last_online %}
+              {% if last_online %}
+               <time class='timeago' title='{{ last_online | friendly_format(owner.utcoffset) }}' datetime='{{ last_online | isoformat(owner.utcoffset) }}'>{{ last_online | friendly_format(owner.utcoffset, short=True) }}</time>
+              {% else %}
+                &nbsp;
+              {% endif %}
+            </a>
+
+        </li>
+      {% endfor %}
+    </ul>
+  
+    {% endif %}
+
+
