@@ -2,7 +2,7 @@
 <head>
   
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <style>
@@ -11,6 +11,10 @@
       -webkit-box-sizing: border-box;
       -moz-box-sizing: border-box;
       box-sizing: border-box;
+    }
+    
+    html {
+      background: #3D4046;
     }
 
     body {
@@ -50,13 +54,14 @@
     }
 
     ul.notifications > li > a {
-      color: #333;
+      color: white;
       text-decoration: none;
       font-size: 14px;
       padding: 12px 15px;
       display: block;
       padding-left: 66px;
-      border-bottom: 1px solid #f1f1f1;
+      border-bottom: 1px solid rgba(73, 75, 81, 0.7);
+      min-height: 70px;
     }
     
     ul.notifications > li > a > p {
@@ -70,7 +75,7 @@
     }
     
     a.tapped {
-      background: whitesmoke;
+      background: #303138;
     }
 
     time {
