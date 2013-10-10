@@ -45,7 +45,7 @@ oauth = OAuth()
 
 @app.route('/oauth/google', methods=['GET'])
 def google_login():
-  network = request.args.get('network', 'meta.jupo.com') 
+  network = request.args.get('network', 'jupo.com') 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
   utcoffset = request.args.get('utcoffset', 0)
   return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&prompt=select_account' \
@@ -117,8 +117,7 @@ def google_authorized():
   groups = []
   for group in api.get_groups(session_id, db_name=db_name, limit=5):
     groups.append({'name': group.name,
-                   'link': 'http://%s/group/%s' \
-                           % (settings.PRIMARY_DOMAIN, group.id)})
+                   'link': '/group/%s' % group.id})
     
   data = {'id': user_id,
           'name': user.name,
@@ -154,8 +153,7 @@ def get_user_info():
   groups = []
   for group in api.get_groups(session_id, db_name=db_name):
     groups.append({'name': group.name,
-                   'link': 'http://%s/group/%s' \
-                           % (settings.PRIMARY_DOMAIN, group.id)})
+                   'link': '/group/%s' % group.id})
     
   data = {'id': user.id,
           'name': user.name,
@@ -207,14 +205,17 @@ def news_feed(page=1):
 
 @app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
 def group(group_id=None, view='group', page=1):
-  authorization = request.headers.get('Authorization')
-  app.logger.debug(request.headers.items())
+  session = request.headers.get('X-Session')
+  if not session:
+    authorization = request.headers.get('Authorization')
+    app.logger.debug(request.headers.items())
+    
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    session = authorization.split()[-1]
   
-  if not authorization or not authorization.startswith('session '):
-    abort(401)
-  
-  session = SecureCookie.unserialize(authorization.split()[-1], 
-                                     settings.SECRET_KEY)
+  session = SecureCookie.unserialize(session, settings.SECRET_KEY)
   
   session_id = session.get('session_id')
   network = session.get('network')
