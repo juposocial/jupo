@@ -11,9 +11,9 @@
       -moz-box-sizing: border-box;
       box-sizing: border-box;
     }
-    
+
     html {
-      
+
       background: #D3D5DB;
     }
 
@@ -21,6 +21,7 @@
       margin: 0;
       padding: 0;
       font-family: Helvetica, sans-serif;
+      font-size: 14px;
       -webkit-overflow-scrolling: touch;
       -webkit-transform: translateZ(0);
       -webkit-user-select: none;
@@ -43,8 +44,10 @@
       float: right;
     }
 
-    img {
+img {
       border-radius: 50px;
+}
+    section header img {
       margin-right: 10px;
       margin-top: 3px;
       margin-left: -54px;
@@ -53,26 +56,26 @@
     }
 
     .tapped {
-      background: #303138;
+      color: #545B68 !important;
     }
 
     .hidden {
       display: none;
     }
 
+    ul#stream li.feed {
+      position: relative;
+    }
 
- ul#stream li.feed {
-   position: relative;
- }
     section {
       padding: 15px 15px 0;
       background-color: white;
       border-radius: 1px;
-      margin: 20px;
+      margin: 15px 10px;
     }
 
     section header {
-      padding: 3px 35px 7px 47px;
+      padding: 3px 0 7px 47px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -81,37 +84,41 @@
 
     section > header a {
       color: #141722;
+      font-weight: bold;
     }
+
     section > header time {
       font-size: 12px;
       color: #9A9DA3;
+      font-weight: normal;
     }
+
     section > article {
       padding: 5px 0 5px;
       overflow: hidden;
       line-height: 22px;
-      color: #37404e;
+      color: #141722;
     }
 
     section > footer {
       margin: 7px -15px 0;
-      color: #4e5665;
+      color: #141722;
       background: #FAFAFA;
     }
 
     section > footer > .actions {
       padding: 10px;
       overflow: hidden;
-      font-size: 14px;
       border-top: 1px solid #e9e9e9;
       white-space: nowrap;
       font-weight: bold;
       color: #9A9DA3;
+      font-size: 12px;
     }
 
     section footer div.actions a {
       color: #9A9DA3;
-      margin: 0 7px;
+      margin: 0 6px;
     }
 
     section div.options {
@@ -126,7 +133,7 @@
 
     li.feed > a {
       position: absolute;
-      margin: 16px 10px 10px 35px;
+      margin: 15px 10px 10px 25px;
     }
 
     li.feed > a > img {
@@ -140,55 +147,82 @@
       width: 50px;
       height: 50px;
       box-shadow: 0 1px 3px rgba(0,0,0,.1);
-    }img.small-avatar {
-width: 30px;
-height: 30px;
-margin-right: 7px;
-margin-top: 1px;
-box-shadow: 0 1px 3px rgba(0,0,0,.1);
-}
+    }
+    img.small-avatar {
+      width: 30px;
+      height: 30px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      margin: 0;
+    }
+
+    ul.comments div.comments-list > li:first-child {
+      border-top: 1px solid #e9e9e9;
+      padding-top: 13px;
+    }
+
+    ul.comments li.comment {
+      padding: 5px 15px;
+      margin-bottom: 5px;
+      min-height: 35px;
+    }
+
+    ul.comments li.comment a {
+      color: #141722;
+    }
+
+    ul.comments li.comment div.footer {
+      font-size: 12px;
+      margin-top: 3px;
+      color: #9A9DA3;
+    }
+
+    ul.comments li.comment div.footer a {
+      color: #9A9DA3;
+    }
+    ul.comments div.message, ul.comments div.footer, ul.comments footer {
+      margin-left: 38px !important;
+      margin-right: 15px;
+      line-height: 16px;
+    }
+
+    ul.comments div.message, ul.comments div.footer, ul.comments footer {
+      margin-left: 38px !important;
+      margin-right: 15px;
+      line-height: 16px;
+    }
+
+    ul.comments li.write-a-comment {
+      padding: 7px 15px;
+      min-height: 30px;
+      margin-top: -8px;
+    }
+
+    ul.comments li.write-a-comment a.reply {
+      background: white;
+      display: block;
+      margin: 1px 4px 5px 38px;
+      line-height: 28px;
+      padding-left: 10px;
+      height: 30px;
+      border: 1px solid #E9E9E9;
+      color: #9A9DA3;
+      cursor: text;
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    ul.comments a.time {
+      color: rgba(137,145,156,0.9);
+    }
     
-    ul.comments div.comments-list>li:first-child {
-border-top: 1px solid rgba(196,205,224,0.4);
+    ul.comments li.action {
+padding: 7px 5px 7px 15px;
 }
 
-ul.comments li.comment {
-padding: 0 10px;
-margin-bottom: 5px;
-min-height: 35px;
-}
-
-ul.comments div.message, ul.comments div.footer, ul.comments footer {
-margin-left: 38px!important;
-margin-right: 15px;
-line-height: 16px;
-}
-
-ul.comments div.message, ul.comments div.footer, ul.comments footer {
-margin-left: 38px!important;
-margin-right: 15px;
-line-height: 16px;
-}
-
-ul.comments li.write-a-comment {
-border-bottom: 1px solid rgba(255,255,255,0.25);
-border-top: 1px solid transparent;
-padding: 7px 10px;
-min-height: 30px;
-margin-top: -8px;
-}
-
-ul.comments li.write-a-comment a.reply {
-background: white;
-display: block;
-margin: 1px 4px 5px 38px;
-padding: 5px 7px 0;
-height: 23px;
-border: 1px solid rgba(196,205,224,0.6);
+ul.comments li.action .view-previous-comments .rfloat {
 color: rgba(137,145,156,0.9);
-cursor: text;
-text-decoration: none;
-box-shadow: inset 0 1px 3px -1px #ddd;
+margin-right: 19px;
+display: none;
 }
 
   </style>
@@ -203,49 +237,15 @@ box-shadow: inset 0 1px 3px -1px #ddd;
         <span class="empty">Nothing here</span>
       {% else %}
    
-      {% if pinned_posts %}
-          {% for feed in pinned_posts %}   
-            {% if owner.id in feed.pinned_by %}  
-              {% autoescape on %}  
-                {{ feed | render("feed", owner, view, mode) }}
-              {% endautoescape %}
-            {% endif %}
-          {% endfor %}
-          
-          {% for feed in feeds %}        
-            {% if feed.id not in owner.unfollow_posts and owner.id not in feed.pinned_by %}
-              {% autoescape on %} 
-                {{ feed | render("feed", owner, view) }} 
-              {% endautoescape %}
-            {% endif %}
-          {% endfor %}
         
-      {% else %}
-      
-        {% if filter and filter != 'default' %}
         
-          {% for feed in feeds %}
-            {% if feed.id not in owner.unfollow_posts and owner.id not in feed.pinned_by %}
-              {% include 'feed.html' %}
-            {% endif %}
-          {% endfor %}
-          
-        {% else %}
+      {% autoescape on %} 
+          {{ feeds | render("feed", owner, view) }}
+      {% endautoescape %}
         
-          {% autoescape on %} 
-              {{ feeds | render("feed", owner, view) }}
-          {% endautoescape %}
-          
-        {% endif %}
-        
-      {% endif %}
     
       {% if feeds | length == 5 %}
-        {% if filter %}
-          {% set more_url = '/news_feed/page2?filter=%s' % filter %}
-        {% else %}
-          {% set more_url = '/news_feed/page2' %}
-        {% endif %}
+        {% set more_url = '/news_feed/page2' %}
         
         {% include 'more.html' %}
       {% endif %}

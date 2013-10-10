@@ -289,7 +289,7 @@ if __name__ == "__main__":
       
     app.debug = debug
     
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9009), app)
     try:
       print 'Serving HTTP on 0.0.0.0 port 9009...'
       server.start()
