@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+
+<head>
+  <!-- <link rel="stylesheet" href="/public/styles/normalize.css">
+  <link rel="stylesheet" href="/public/styles/animations.css">
+  <link rel="stylesheet" href="/public/styles/icons.css">
+  <link rel="stylesheet" href="/public/styles/home.css">
+  <link rel="stylesheet" href="/public/styles/wysihtml5.css">
+  <link rel="stylesheet" href="/public/styles/jquery.notice.css">
+  <link type="text/css" rel="stylesheet" href="/public/styles/prettify.css">
+  <link rel="stylesheet" href="/public/styles/hopscotch.css">
+  <link rel="stylesheet" href="/public/styles/jquery.atwho.css">
+  <link rel="stylesheet" href="/public/styles/chat.css"> -->
+</head>
+<ul id="menu" class="rfloat">
+  <ul class="dropdown-menu notifications">
+    <div class="white-bg"></div>
+    <div class="arrow-top-border"></div>
+    <div class="arrow-top"></div>
+    <ul>
+    <header>
+      {% if notifications %}
+      <a href='/notifications/mark_as_read' class='notification rfloat'>Clear New</a>
+      {% endif %}
+
+      <span class="rfloat updating hidden">Updating...</span>
+
+      <strong>Notifications</strong>
+    </header>
+
+    {% if not notifications and not unread_messages %}
+
+    <ul>
+      <span class="empty">You have no new notifications</span>
+    </ul>
+
+    {% else %}
+
+    <ul>
+
+      {% if unread_messages %}
+      {% for message in unread_messages %}
+      {% if message.sender %}
+      <li>
+        <a href='/chat/user/{{ message.sender.id }}' class='chat' data-unread-count="{{ message.unread_count }}"> <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'> <span class='username'>{{ message.sender.name }}</span> <span class='info'>{{ message.unread_count }} unread chat messages</span> </a>
+      </li>
+      {% else %}
+      {% set members = message.topic.members | exclude(owner.id) %}
+      <li>
+        <a href='/chat/topic/{{ message.topic.id }}' class='chat' data-unread-count="{{ message.unread_count }}"> <img src='{{ members[-1].avatar }}' class='lfloat small-avatar'> <span class='username'> {% for member in members %}
+          {{ member.name }}{% if loop.index <= members|length - 1 %}, {% endif %}
+          {% endfor %} </span> <span class='info'>{{ message.unread_count }} unread chat messages</span> </a>
+      </li>
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+
+      {% autoescape on %}
+
+      {% for title, items in notifications.iteritems() %}
+      <h3>{{ title | upper }}</h3>
+
+      {% for key, messages in items.iteritems() %}
+      {% if messages %}
+      {% include "notification.html" %}
+      {% endif %}
+
+      {#
+      {{ messages | render('notification', owner) }}
+      #}
+      {% endfor %}
+
+      {% endfor %}
+
+      {% endautoescape %}
+
+    </ul>
+    {% endif %}
+    </ul>
+  </ul>
+</ul>

@@ -1,0 +1,73 @@
+
+<head>
+  <!-- <link rel="stylesheet" href="/public/styles/normalize.css">
+  <link rel="stylesheet" href="/public/styles/animations.css">
+  <link rel="stylesheet" href="/public/styles/icons.css">
+  <link rel="stylesheet" href="/public/styles/home.css">
+  <link rel="stylesheet" href="/public/styles/wysihtml5.css">
+  <link rel="stylesheet" href="/public/styles/jquery.notice.css">
+  <link type="text/css" rel="stylesheet" href="/public/styles/prettify.css">
+  <link rel="stylesheet" href="/public/styles/hopscotch.css">
+  <link rel="stylesheet" href="/public/styles/jquery.atwho.css">
+  <link rel="stylesheet" href="/public/styles/chat.css"> -->
+</head>
+
+
+  
+  <ul id="stream">
+      {% if feeds == [] %}
+        <span class="empty">Nothing here</span>
+      {% else %}
+   
+      {% if pinned_posts %}
+          {% for feed in pinned_posts %}   
+            {% if owner.id in feed.pinned_by %}  
+              {% autoescape on %}  
+                {{ feed | render("feed", owner, view, mode) }}
+              {% endautoescape %}
+            {% endif %}
+          {% endfor %}
+          
+          {% for feed in feeds %}        
+            {% if feed.id not in owner.unfollow_posts and owner.id not in feed.pinned_by %}
+              {% autoescape on %} 
+                {{ feed | render("feed", owner, view) }} 
+              {% endautoescape %}
+            {% endif %}
+          {% endfor %}
+        
+      {% else %}
+      
+        {% if filter and filter != 'default' %}
+        
+          {% for feed in feeds %}
+            {% if feed.id not in owner.unfollow_posts and owner.id not in feed.pinned_by %}
+              {% include 'feed.html' %}
+            {% endif %}
+          {% endfor %}
+          
+        {% else %}
+        
+          {% autoescape on %} 
+              {{ feeds | render("feed", owner, view) }}
+          {% endautoescape %}
+          
+        {% endif %}
+        
+      {% endif %}
+    
+      {% if feeds | length == 5 %}
+        {% if filter %}
+          {% set more_url = '/news_feed/page2?filter=%s' % filter %}
+        {% else %}
+          {% set more_url = '/news_feed/page2' %}
+        {% endif %}
+        
+        {% include 'more.html' %}
+      {% endif %}
+      
+    {% endif %}
+  </ul>
+  
+  
+  

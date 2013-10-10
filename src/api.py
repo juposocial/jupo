@@ -1987,11 +1987,14 @@ def get_unread_notifications(session_id, db_name=None):
   cache.set(key, results, namespace=user_id)
   return results
   
-def get_notifications(session_id, limit=25):
-  db_name = get_database_name()
+def get_notifications(session_id, limit=25, **kwargs):
+  if kwargs.has_key('db_name'):
+    db_name = kwargs.get('db_name')
+  else:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   
   key = 'notifications'
   out = cache.get(key, namespace=user_id)
@@ -3131,11 +3134,15 @@ def get_emails(session_id, email_address=None, page=1):
                    .limit(settings.ITEMS_PER_PAGE)
   return [Feed(i, db_name=db_name) for i in feeds if i]
 
-def get_pinned_posts(session_id, category='default'):
-  db_name = get_database_name()
+def get_pinned_posts(session_id, category='default', **kwargs):
+  if kwargs.has_key('db_name'):
+    db_name = kwargs.get('db_name')
+  else:
+    db_name = get_database_name()
+    
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   
   key = '%s:pinned_post' % category
   namespace = user_id
@@ -3170,11 +3177,14 @@ def get_direct_messages(session_id, page=1):
   
 @line_profile
 def get_feeds(session_id, group_id=None, page=1, 
-              limit=settings.ITEMS_PER_PAGE, include_archived_posts=False):
-  db_name = get_database_name()
+              limit=settings.ITEMS_PER_PAGE, include_archived_posts=False, **kwargs):
+  if kwargs.has_key('db_name'):
+    db_name = kwargs.get('db_name')
+  else:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   key = '%s:%s:%s:%s' % (group_id, page, limit, include_archived_posts)
   out = cache.get(key, user_id)
   if out:
@@ -5247,7 +5257,7 @@ def get_groups(session_id, limit=None, db_name=None):
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return []
   

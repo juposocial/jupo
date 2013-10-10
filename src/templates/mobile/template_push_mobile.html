@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <head>
+      <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+      <script src="http://cdn.sockjs.org/sockjs-0.3.min.js"></script>
+    </head>
+    <script>
+    
+      function open_custom_url_in_iframe(src) {
+        var rootElm = document.documentElement;
+        var newFrameElm = document.createElement("IFRAME");
+        newFrameElm.setAttribute("src", src);
+        rootElm.appendChild(newFrameElm);
+        newFrameElm.parentNode.removeChild(newFrameElm);
+      }
+
+
+      function push_info_to_mobile($url_push_to_mobile) {
+        var url = "jupo://" + JSON.stringify($url_push_to_mobile);
+        open_custom_url_in_iframe(url);
+      }
+
+
+      push_info_to_mobile({{ info_push_to_mobile | safe }});
+      
+      
+      
+    </script>
+  </body>
+</html>
