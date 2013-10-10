@@ -717,6 +717,23 @@ def authentication(action=None):
     remote_addr = request.environ.get('REMOTE_ADDR')
 
     network = request.form.get("network")
+
+    user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network)
+
+    # validate email domain against whitelist
+    db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
+    current_network = api.get_current_network(db_name=db_name)
+
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network:
+      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+    # default email domain
+    auth_whitelist.append(network)
+
+    if not email.split('@')[1] in auth_whitelist:
+      flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
+      user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
+      return redirect(user_url)
     
     session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
 
@@ -727,16 +744,16 @@ def authentication(action=None):
       # then sign in again
       # session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
       flash('Please check your email/password.')
-      return redirect(back_to)
+      return redirect(user_url + '?error_type=auth_normal')
     elif session_id == False: # existing user, wrong password
       flash('Wrong password, please try again :)')
-      return redirect(back_to)
+      return redirect(user_url + '?error_type=auth_normal')
     elif session_id == -1:
       flash('You used this email address with Facebook login. Please try it again')
-      return redirect(back_to)
+      return redirect(user_url + '?error_type=auth_normal')
     elif session_id == -2:
       flash('You used this email address with Google login. Please try it again')
-      return redirect(back_to)
+      return redirect(user_url + '?error_type=auth_normal')
 
     app.logger.debug(session_id)
     if session_id:
@@ -753,12 +770,10 @@ def authentication(action=None):
 
       session.permanent = True
       session['session_id'] = session_id
-      if back_to:
-        resp = redirect(back_to)
-        resp.set_cookie('channel_id', api.get_channel_id(session_id)) 
-      else:
-        resp = redirect('/news_feed')  
-        resp.set_cookie('channel_id', api.get_channel_id(session_id))
+
+      # authenticate OK, now login
+      resp = redirect(user_url + '/news_feed')
+      resp.set_cookie('channel_id', api.get_channel_id(session_id))
 
       # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
       resp.set_cookie('network', network)
@@ -787,7 +802,8 @@ def authentication(action=None):
   elif request.path.endswith('sign_up'):
     network = request.form.get("network")
     back_to = request.args.get('back_to', '')
-    
+
+    user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network)
 
     if request.method == 'GET':
       welcome = request.args.get('welcome')
@@ -801,6 +817,22 @@ def authentication(action=None):
       return resp
         
     email = request.form.get('email').strip()
+
+    # validate email domain against whitelist
+    db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
+    current_network = api.get_current_network(db_name=db_name)
+
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network:
+      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+    # default email domain
+    auth_whitelist.append(network)
+
+    if not email.split('@')[1] in auth_whitelist:
+      flash('Your email is not allowed to sign up this network. Please contact network administrator for more info.')
+      user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
+      return redirect(user_url)
+
     name = request.form.get('name')
     password = request.form.get('password', '')
     
@@ -808,11 +840,11 @@ def authentication(action=None):
     if email and api.is_exists(email):
       # alerts['email'] = '"%s" is already in use.' % email
       flash('Email is already in use')
-      return redirect(back_to)
+      return redirect(user_url + '?error_type=auth_normal')
     if len(password) < 6:
       # alerts['password'] = 'Your password must be at least 6 characters long.'
       flash('Your password must be at least 6 characters long.')
-      return redirect(back_to)
+      return redirect(user_url + '?error_type=auth_normal')
     
     # input error, redirect to login page
     if alerts.keys():
@@ -843,16 +875,17 @@ def authentication(action=None):
         session['session_id'] = session_id
         
         user_id = api.get_user_id(session_id)
+        user_info = api.get_user_info(user_id)
         user_domain = network if network else email.split('@', 1)[-1]
-        
-        user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
           
         if api.is_admin(user_id):
-          resp = redirect('/groups')
+          user_url = '/groups'
         elif user_info.id:
           user_url += '/news_feed'
         else: # new user
           user_url += '/everyone?getting_started=1&first_login=1'
+
+        resp = redirect(user_url)
 
         # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
         resp.set_cookie('network', network)
@@ -860,7 +893,7 @@ def authentication(action=None):
         return resp
       else:
         flash('Please check your email/password.')
-        return redirect(back_to)
+        return redirect(user_url + '?error_type=auth_normal')
       
   elif request.path.endswith('sign_out'):
     # token = session.get('oauth_google_token')
@@ -995,6 +1028,16 @@ def google_login():
 def google_authorized():
   code = request.args.get('code')
   domain, network = request.args.get('state').split(";")
+
+  # validate email against whitelist
+  db_name = (network + '.' + domain).replace('.', '_')
+  current_network = api.get_current_network(db_name=db_name)
+
+  auth_whitelist = []
+  if current_network is not None and 'auth_normal_whitelist' in current_network:
+    auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+  # default email domain
+  auth_whitelist.append(network)
   
   # get access_token
   url = 'https://accounts.google.com/o/oauth2/token'
@@ -1020,9 +1063,14 @@ def google_authorized():
   user_email = user.get('email')
   if not user_email or '@' not in user_email:
     return redirect('/')
-  
+
   # with this, user network will be determined solely based on user email
   user_domain = user_email.split('@')[1]
+
+  if not user_domain in auth_whitelist:
+    flash('Your email is not allowed to login this network. Please contact network administrator for more info.')
+    user_url = 'http://%s/%s?error_type=auth_google' % (settings.PRIMARY_DOMAIN, network)
+    return redirect(user_url)
 
   # if network = '', user logged in from homepage --> determine network based on user email address
   # if network != '', user logged in from sub-network page --> let authenticate user with that sub-network
@@ -1777,13 +1825,13 @@ def networks(network_id=None, view=None):
 
   if view in ['config']:
     if request.method == "OPTIONS":
+      hostname = request.headers.get('Host', '').split(':')[0]
+      network_url = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+
       if network_id != "0": # got network
         network = api.get_network_by_id(network_id)
       else:
-
         # some old DB won't have info table (hence no network), init one with default value)
-        hostname = request.headers.get('Host', '').split(':')[0]
-
         info = {'name': hostname.split('.')[0],
                 'domain'     : hostname,
                 'auth_google': True}
@@ -1797,6 +1845,7 @@ def networks(network_id=None, view=None):
                                       mode='edit',
                                       view='config',
                                       network=network,
+                                      network_url=network_url,
                                       owner=owner)}
       return Response(dumps(resp), mimetype='application/json')
     else:
@@ -1807,11 +1856,14 @@ def networks(network_id=None, view=None):
     description = request.form.get('description')
 
     auth_normal = True if request.form.get('auth_normal') else False
+    auth_normal_whitelist = request.form.get('auth_normal_whitelist')
     auth_facebook = True if request.form.get('auth_facebook') else False
+
 
     info = {'name': name,
             'description': description,
             'auth_normal': auth_normal,
+            'auth_normal_whitelist': auth_normal_whitelist,
             'auth_google': True,
             'auth_facebook': auth_facebook}
 
@@ -2502,6 +2554,7 @@ def home():
     
     email = request.args.get('email')
     message = request.args.get('message')
+    error_type = request.args.get('error_type')
     network_info = api.get_network_by_hostname(hostname)
 
     resp = Response(render_template('landing_page.html',
@@ -2511,6 +2564,7 @@ def home():
                                     network=network,
                                     network_info=network_info,
                                     network_exist=network_exist,
+                                    error_type=error_type,
                                     message=message))
     
     back_to = request.args.get('back_to', '')
@@ -2581,6 +2635,8 @@ def news_feed(page=1):
   view = 'news_feed'
   title = "Jupo"
   hostname = request.headers.get('Host').split(':')[0]
+  network_url = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+
   if hostname != settings.PRIMARY_DOMAIN:
     network_info = api.get_network_info(hostname.replace('.', '_'))
     if network_info and network_info.has_key('name'):
@@ -2632,7 +2688,8 @@ def news_feed(page=1):
       coworkers = api.get_coworkers(session_id)
       browser = api.Browser(request.headers.get('User-Agent'))
       
-      body = render_template('news_feed.html', 
+      body = render_template('news_feed.html',
+                             network_url=network_url,
                              owner=owner,
                              view=view, 
                              title=title, 
