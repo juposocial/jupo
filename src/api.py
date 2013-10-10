@@ -2891,8 +2891,9 @@ def unread_count(session_id, timestamp):
   return feeds + docs
 
 @line_profile
-def get_public_posts(session_id=None, user_id=None, page=1):
-  db_name = get_database_name()
+def get_public_posts(session_id=None, user_id=None, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if user_id:

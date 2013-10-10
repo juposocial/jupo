@@ -230,10 +230,10 @@ def news_feed(page=1, feed_id=None):
                                                   settings=settings,
                                                   feeds=feeds)
   
-  
 
-@app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
-def group(group_id=None, view='group', page=1):
+@app.route("/everyone")
+@app.route("/group/<int:group_id>")
+def group(group_id='public', view='group', page=1):
   session = request.headers.get('X-Session')
   if not session:
     authorization = request.headers.get('Authorization')
@@ -262,8 +262,11 @@ def group(group_id=None, view='group', page=1):
   if not group.id:
     abort(401)
     
-  feeds = api.get_feeds(session_id, group_id,
-                        page=page, db_name=db_name)
+  if group_id == 'public':
+    feeds = api.get_public_posts(session_id, page=page, db_name=db_name)
+  else:
+    feeds = api.get_feeds(session_id, group_id,
+                          page=page, db_name=db_name)
   
   return render_template('mobile/group.html', 
                           feeds=feeds, 
