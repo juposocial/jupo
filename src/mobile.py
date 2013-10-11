@@ -3,19 +3,12 @@
 
 from raven.contrib.flask import Sentry
  
-from flask import (Flask, request, 
-                   render_template, render_template_string,
-                   redirect, abort,
-                   url_for, session, g, flash,
-                   make_response, Response)
-from flask_sslify import SSLify
-from flask.ext.oauth import OAuth
+from flask import (request, render_template, 
+                   redirect, abort, session, Response)
 from flask.ext.seasurf import SeaSurf
 from flask.ext.assets import Bundle, Environment as WebAssets
 from werkzeug.wrappers import Request, BaseRequest
-from werkzeug.utils import cached_property
 from werkzeug.contrib.securecookie import SecureCookie
-from werkzeug.contrib.profiler import ProfilerMiddleware, MergeStream
 
 from datetime import datetime
 from mimetypes import guess_type
@@ -30,7 +23,7 @@ import werkzeug.serving
 import os
 import api
 import settings
-from app import CURRENT_APP
+from app import CURRENT_APP, render
 
 
 requests.adapters.DEFAULT_RETRIES = 3
@@ -42,8 +35,6 @@ assets = WebAssets(app)
 if settings.SENTRY_DSN:
   sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
   
-oauth = OAuth()
-
 
 
 @app.route('/public/<path:filename>')
@@ -62,7 +53,7 @@ def public_files(filename):
 
 
 
-@app.route('/oauth/google', methods=['GET'])
+@app.route('/oauth/google')
 def google_login():
   network = request.args.get('network', 'jupo.com') 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
@@ -125,10 +116,10 @@ def google_authorized():
   
   unread_notifications = api.get_unread_notifications_count(session_id,
                                                             db_name=db_name)
-  session = SecureCookie({"session_id": session_id, 
-                          "network": network,
-                          "utcoffset": utcoffset}, 
-                         settings.SECRET_KEY)
+  session['session_id'] = session_id
+  session['network'] = network
+  session['utcoffset'] = utcoffset
+  session.permanent = True
   
   # Get user info
   user_id = api.get_user_id(session_id, db_name=db_name)
@@ -148,21 +139,26 @@ def google_authorized():
           'unread_notifications': unread_notifications}
   
   return render_template('mobile/update_ui.html', data=dumps(data))
-
+  
 
 @app.route('/get_user_info')
 def get_user_info():
-  authorization = request.headers.get('Authorization')
-  
-  if not authorization or not authorization.startswith('session '):
-    abort(401)
-  
-  session = SecureCookie.unserialize(authorization.split()[-1], 
-                                     settings.SECRET_KEY)
-  
-  session_id = session.get('session_id')
-  network = session.get('network')
-  utcoffset = session.get('utcoffset')
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  network = data.get('network')
+  utcoffset = data.get('utcoffset')
+
   db_name = '%s_%s' % (network.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
   
@@ -184,25 +180,25 @@ def get_user_info():
   return resp
 
   
-@app.route('/news_feed')
-@app.route('/news_feed/page<int:page>')
-@app.route("/feed/<int:feed_id>")
+@app.route('/news_feed', methods=['GET', 'OPTIONS'])
+@app.route('/news_feed/page<int:page>', methods=['GET', 'OPTIONS'])
+@app.route("/feed/<int:feed_id>", methods=['GET', 'OPTIONS'])
 def news_feed(page=1, feed_id=None):
-  session = request.headers.get('X-Session')
-  if not session:
+  if session and session.get('session_id'):
+    data = session
+  else:
     authorization = request.headers.get('Authorization')
-    app.logger.debug(request.headers.items())
-    
     if not authorization or not authorization.startswith('session '):
       abort(401)
       
-    session = authorization.split()[-1]
-  
-  session = SecureCookie.unserialize(session, settings.SECRET_KEY)
-  
-  session_id = session.get('session_id')
-  network = session.get('network')
-#   utcoffset = session.get('utcoffset')
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  network = data.get('network')
+#   utcoffset = data.get('utcoffset')
 
   db_name = '%s_%s' % (network.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
@@ -222,32 +218,42 @@ def news_feed(page=1, feed_id=None):
     title = 'News Feed'
     feeds = api.get_feeds(session_id, page=page, db_name=db_name)
   
-  return render_template('mobile/news_feed.html', owner=owner,
-                                                  mode=mode,
-                                                  title=title, 
-                                                  view='news_feed', 
-                                                  settings=settings,
-                                                  feeds=feeds)
+  if request.method == 'GET':
+    return render_template('mobile/news_feed.html', owner=owner,
+                                                    mode=mode,
+                                                    title=title, 
+                                                    view='news_feed', 
+                                                    settings=settings,
+                                                    feeds=feeds)
+  else:   
+    posts = [render(feeds, "feed", owner, 
+                    viewport='news_feed', mode=mode, mobile=True)]
+    if len(feeds) != 5:
+      posts.append(render_template('more.html', more_url=None))
+    else:
+      posts.append(render_template('more.html', 
+                                   more_url='/news_feed/page%d' % (page+1)))
+    return ''.join(posts)
   
 
-@app.route("/everyone")
-@app.route("/group/<int:group_id>")
+@app.route("/everyone", methods=['GET', 'OPTIONS'])
+@app.route("/group/<int:group_id>", methods=['GET', 'OPTIONS'])
 def group(group_id='public', view='group', page=1):
-  session = request.headers.get('X-Session')
-  if not session:
+  if session and session.get('session_id'):
+    data = session
+  else:
     authorization = request.headers.get('Authorization')
-    app.logger.debug(request.headers.items())
-    
     if not authorization or not authorization.startswith('session '):
       abort(401)
       
-    session = authorization.split()[-1]
-  
-  session = SecureCookie.unserialize(session, settings.SECRET_KEY)
-  
-  session_id = session.get('session_id')
-  network = session.get('network')
-#   utcoffset = session.get('utcoffset')
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  network = data.get('network')
+#   utcoffset = data.get('utcoffset')
 
   db_name = '%s_%s' % (network.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
@@ -272,26 +278,27 @@ def group(group_id='public', view='group', page=1):
                           group=group,
                           owner=owner,
                           settings=settings,
+                          request=request,
                           view=view)
   
   
-@app.route('/notifications')
+@app.route('/notifications', methods=['GET', 'OPTIONS'])
 def notifications():
-  session = request.headers.get('X-Session')
-  if not session:
+  if session and session.get('session_id'):
+    data = session
+  else:
     authorization = request.headers.get('Authorization')
-    app.logger.debug(request.headers.items())
-    
     if not authorization or not authorization.startswith('session '):
       abort(401)
       
-    session = authorization.split()[-1]
-  
-  session = SecureCookie.unserialize(session, settings.SECRET_KEY)
-  
-  session_id = session.get('session_id')
-  network = session.get('network')
-#   utcoffset = session.get('utcoffset')
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  network = data.get('network')
+#   utcoffset = data.get('utcoffset')
 
   db_name = '%s_%s' % (network.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
@@ -304,12 +311,11 @@ def notifications():
   
   notifications = api.get_notifications(session_id, db_name=db_name)
   
-  
   return render_template('mobile/notifications.html',
                          owner=owner, 
                          network=network,
+                         request=request,
                          notifications=notifications)
-
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+{% if request.method != 'OPTIONS' %}
 <!DOCTYPE HTML>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -83,11 +84,35 @@
     span.username {
       font-weight: bold;
     }
+    
+    div.loading {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: #FDFDFC;
+      opacity: 0;
+      display: none;
+    }
+    
+    div.loading img {
+      position: absolute;
+      left: 50%;
+      top: 240px;
+      width: 24px;
+      height: 24px;
+      margin-left: -12px;
+    }
+    
+
   </style>
 </head>
 
 <body>
   <ul class="notifications">
+
+{% endif %}
 
   {% if not notifications %}
 
@@ -115,7 +140,13 @@
       {% endautoescape %}
 
   {% endif %}
+  
+{% if request.method != 'OPTIONS' %}
   </ul>
+  
+  <div class='loading'>
+    <img src='/public/images/mobile/spinner.gif'>
+  </div>
   
   <script src='/public/scripts/zepto.min.js'></script>
   <script src='/public/scripts/touch.js'></script>
@@ -129,28 +160,47 @@
       newFrameElm.parentNode.removeChild(newFrameElm);
     }
   
-  
-  
-    $('a').on('touchstart', function(e){
-      $(this).addClass('tapped');
-    });
-    
-    $('a').on('touchend', function(e){
-      $(this).removeClass('tapped');
-    });
-   
-    $('a').on('tap', function(e){
-      e.preventDefault();
+    function reload() {
+      $('div.loading').show().animate({opacity: 1}, 20);
+      $.ajax({
+        type: 'OPTIONS',
+        url: window.location.href,
+        success: function(data) {
+          $('ul.notifications').html(data);
+          
+          $('div.loading').animate({opacity: 0}, 20, function () {
+            $(this).hide();
+          });
+          
+          console.log('refresh: done');
+        }
+      });
+    }
+
+        
+    $(document).ready(function() {
+      $('ul.notifications').on('touchstart', 'a', function(e){
+        $(this).addClass('tapped');
+      });
       
-      var url = $(this).attr('href').substring(2);
-      var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
-      console.log(url);
-      console.log('jupo://open_link?data=' + data);
-      
-      open_custom_url_in_iframe('jupo://open_link?data=' + data);
-      
-            
-      return false;
+      $('ul.notifications').on('touchend', 'a', function(e){
+        $(this).removeClass('tapped');
+      });
+     
+      $('ul.notifications').on('tap', 'a', function(e){
+        e.preventDefault();
+        
+        var url = $(this).attr('href').substring(2);
+        var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
+        console.log(url);
+        console.log('jupo://open_link?data=' + data);
+        
+        open_custom_url_in_iframe('jupo://open_link?data=' + data);
+        
+              
+        return false;
+      });
     });
   </script>
 </body>
+{% endif %}

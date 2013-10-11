@@ -21,7 +21,7 @@ body {
   tap-highlight-color: rgba(0,0,0,0);
 }
 
-ul#stream, ul.comments {
+ul.stream, ul.comments {
   margin: 0;
   padding: 0;
   list-style-type: none;
@@ -51,7 +51,7 @@ section header img {
   display: none;
 }
 
-ul#stream li.feed {
+ul.stream li.feed {
   position: relative;
 }
 
@@ -279,3 +279,24 @@ li.more section a {
   display: block;
   padding: 10px;
 }
+
+div.loading {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: #FDFDFC;
+  opacity: 0;
+  display: none;
+}
+
+div.loading img {
+  position: absolute;
+  left: 50%;
+  top: 240px;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+}
+
