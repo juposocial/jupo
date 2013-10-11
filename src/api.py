@@ -44,6 +44,7 @@ from lib import encode_url
 from lib.url import extract_urls
 from lib.hot_ranking import get_score
 from lib.pbkdf2 import pbkdf2_bin # From https://github.com/mitsuhiko/python-pbkdf2
+from lib.string_tools import slugify_ext
 
 from gridfs import GridFS, NoFile
 from bson.binary import Binary
@@ -866,8 +867,28 @@ def notify_me(email):
                                upsert=True)
   send_mail_queue.enqueue(send_mail, email, mail_type='thanks', db_name=db_name)
   return True
-  
 
+# for example :
+# group name  --> "Test tieng Viet"
+# slug        --> test-tieng-viet
+# search DB: find groud by slug
+def get_group_id_from_group_slug(slug, db_name=None):
+  if not slug:
+    return False
+
+  db = DATABASE[db_name]
+
+  # find group by slug
+  if slug != 'public':
+    record = db.owner.find_one({'slug': slug})
+
+    if record:
+      group_id = record['_id']
+      return group_id
+    else:
+      return None
+  else:
+    return 'public'
 
 
 
@@ -2563,15 +2584,21 @@ def new_post_from_email(message_id, receivers, sender,
           
   return True
 
-def new_feed(session_id, message, viewers, 
-             attachments=[], facebook_access_token=None):
-  db_name = get_database_name()
+def new_feed(session_id, message, viewers,
+             attachments=[], facebook_access_token=None, target_db_name=None, html=None):
+
+  # usually when users visit this page, Jupo can detect DB name based on hostname
+  # however, for processing email, it runs by itself --> no hostname --> manually provide target_db_name
+  if target_db_name is not None:
+    db_name = target_db_name
+  else:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not message:
     return False
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
     
@@ -2592,7 +2619,7 @@ def new_feed(session_id, message, viewers,
       if str(i).isdigit():
         _viewers.add(long(i))
       elif validate_email(i):
-        _viewers.add(get_user_id_from_email_address(i))
+        _viewers.add(get_user_id_from_email_address(i, db_name=db_name))
         # TODO: send mail thông báo cho post owner nếu địa chỉ mail không tồn tại
       else:
         continue
@@ -2624,6 +2651,7 @@ def new_feed(session_id, message, viewers,
   
   ts = utctime()
   info = {'message': message,
+          'html': html,
           '_id': new_id(),
           'owner': user_id,
           'viewers': list(viewers),
@@ -2673,7 +2701,7 @@ def new_feed(session_id, message, viewers,
   user_ids = set()
   for i in viewers:
     if is_group(i):
-      member_ids = get_group_member_ids(i)
+      member_ids = get_group_member_ids(i, db_name=db_name)
       for id in member_ids:
         user_ids.add(id)
     else:
@@ -2840,9 +2868,19 @@ def undo_remove(session_id, feed_id):
   return feed_id
 
 @line_profile
-def get_feed(session_id, feed_id, group_id=None, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
+def get_html_in_comment(session_id, feed_id, comment_id):
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+  info = db.stream.find_one({'_id': long(feed_id)})
+  comments = info.get('comments')
+  for comment in comments:
+    if comment.get('_id') == comment_id:
+      return comment.get('html')
+  return None
+
+@line_profile
+def get_feed(session_id, feed_id, group_id=None):
+  db_name = get_database_name()
   db = DATABASE[db_name]
   
   info = db.stream.find_one({'_id': long(feed_id),
@@ -3394,7 +3432,7 @@ def mark_cancelled(session_id, task_id):
 # Comment Actions --------------------------------------------------------------
 
 def new_comment(session_id, message, ref_id, 
-                attachments=None, reply_to=None, from_addr=None, db_name=None):
+                attachments=None, reply_to=None, from_addr=None, db_name=None, html=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -3410,6 +3448,7 @@ def new_comment(session_id, message, ref_id,
   comment = {'_id': new_id(),
              'owner': user_id,
              'message': message,
+             'html': html,
              'timestamp': ts}    
   
   files = []
@@ -3517,15 +3556,15 @@ def new_comment(session_id, message, ref_id,
       push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
       
       
-#       if user_id != id and id not in mentions:
-#         # send email notification
-#         u = get_user_info(id)
-#         if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
-#           if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
-#             send_mail_queue.enqueue(send_mail, u.email, 
-#                                     mail_type='new_comment', 
-#                                     user_id=user_id, post=info, 
-#                                     db_name=db_name)
+      if user_id != id and id not in mentions:
+        # send email notification
+        u = get_user_info(id)
+        if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
+          if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
+            send_mail_queue.enqueue(send_mail, u.email,
+                                    mail_type='new_comment',
+                                    user_id=user_id, post=info,
+                                    db_name=db_name)
   
   urls = extract_urls(message)
   if urls:
@@ -4768,7 +4807,8 @@ def new_group(session_id, name, privacy="closed", about=None):
           'last_updated': utctime(),
           'members': [user_id],
           'leaders': [user_id],
-          'name': name, 
+          'name': name,
+          'slug': slugify_ext(name),
           'privacy': privacy,
           '_id': new_id()}
   if about:
@@ -4800,7 +4840,16 @@ def update_group_info(session_id, group_id, info):
   if info.has_key('members'):
     info['members'] = [long(i) for i in info.get('members')]
   
-  db.owner.update({'leaders': user_id, 
+  # generate slug based on name
+  if info.has_key('name'):
+    info['slug'] = slugify_ext(info['name'])
+
+  # generate network based on hostname and settings.PRIMARY_DOMAIN
+  hostname = request.headers.get('Host', '').split(':')[0]
+  network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+  info['network'] = network
+
+  db.owner.update({'leaders': user_id,
                    '_id': long(group_id)}, {'$set': info})
   key = '%s:groups' % user_id
   cache.delete(key)
@@ -6173,10 +6222,10 @@ def get_network_info(db_name):
 
 @line_profile
 def get_networks(user_id, user_email=None):
-  key = 'networks'
-  out = cache.get(key, namespace=user_id)
-  if out is not None:
-    return out
+  #key = 'networks'
+  #out = cache.get(key, namespace=user_id)
+  #if out is not None:
+  #  return out
   
   
   def sortkeypicker(keynames):
@@ -6218,7 +6267,7 @@ def get_networks(user_id, user_email=None):
   #out = sorted(networks_list,
   #             key=sortkeypicker(['-unread_notifications',
   #                                'name', '-timestamp']))
-  cache.set(key, out, namespace=user_id)
+  # cache.set(key, out, namespace=user_id)
   return out
 
 PRIMARY_IP = socket.gethostbyname(settings.PRIMARY_DOMAIN)

@@ -18,6 +18,7 @@ from PIL import ImageDraw
 from PIL import ImageFont
 
 import StringIO
+from lib.string_tools import slugify_ext
 
 class Model:
   def __init__(self, info, db_name=None):
@@ -247,6 +248,8 @@ class Model:
   
   def is_email(self):
     if self.info and self.info.has_key('message_id'):
+      return True
+    if self.info and self.info.get('html'):
       return True
   
   def to_dict(self):
@@ -564,6 +567,10 @@ class Comment(Model):
       return self.info.get('new_message')
     else:
       return self.info.get('message')
+
+  @property
+  def html(self):
+    return self.info.get('html')
     
   @property
   def original_message(self):
@@ -835,6 +842,21 @@ class Group(Model):
   @property
   def name(self):
     return self.info.get('name')
+
+  # network based on db_name and settings.PRIMARY_DOMAIN
+  @property
+  def network(self):
+    return self.info.get('network')
+
+  @property
+  def slug(self):
+    return slugify_ext(self.info.get('name'))
+
+  @property
+  def posting_email(self):
+    # format : group-[network domain]-[group name]@reply.jupo.com
+    # TODO : support different email domains, right now fixed to reply.jupo.com
+    return "group-" + str(self.network.replace('.', '-')) + "." + str(self.slug) + "@reply.jupo.com"
   
   @property
   def logo(self):    
@@ -1053,7 +1075,11 @@ class Feed(Model):
     
   @property
   def raw_message(self):
-    return self.info.get('message')    
+    return self.info.get('message')
+
+  @property
+  def html(self):
+    return self.info.get('html')
       
   @property
   def message(self):

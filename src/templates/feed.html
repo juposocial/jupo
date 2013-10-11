@@ -427,6 +427,9 @@
               {% if mode != 'view' %}
                   <div>
                     {{ summary | nl2br | safe }}
+                    {% if feed.html %}
+                      <a class="view_html" class='fontsize-11px' href='/feed/{{ feed.id }}/view_html'>See mail</a>
+                    {% endif %}
                   </div>
                 
                   {% if content_without_emoticon | length > summary_without_emoticon | length + 3 %}

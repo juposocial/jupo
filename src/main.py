@@ -2174,7 +2174,16 @@ def group(group_id=None, view='group', page=1):
       return resp
     
   
-  group = api.get_group_info(session_id, group_id)  
+  group = api.get_group_info(session_id, group_id)
+
+  # populate group.network if needed, for legacy groups (that got no field named 'network')
+  if group.network is None:
+    # update network right away - support legacy
+    api.update_group_info(session_id, group_id, info=dict())
+
+    # refresh the group
+    group = api.get_group_info(session_id, group_id)
+
   if view == 'edit':
     resp = {'title': 'Group Settings',
             'body': render_template('group.html',
@@ -2267,8 +2276,10 @@ def group(group_id=None, view='group', page=1):
       else:
 #        upcoming_events = api.get_upcoming_events(session_id, group_id)
       
-        
-        resp = {'title': group.name, 
+
+
+
+        resp = {'title': group.name,
                 'body': render_template('group.html', 
                                         feeds=feeds, 
                                         group=group,
@@ -2769,6 +2780,8 @@ def news_feed(page=1):
 @app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
 @app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
 @app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
+@app.route("/feed/<int:feed_id>/view_html", methods=["OPTIONS", "POST"])
+@app.route("/feed/<int:feed_id>/<int:comment_id>/view_comment_html", methods=["OPTIONS", "POST"])
 @line_profile
 def feed_actions(feed_id=None, action=None, 
                  message_id=None, domain=None, comment_id=None):
@@ -2864,6 +2877,18 @@ def feed_actions(feed_id=None, action=None,
                              owner=owner,
                              feed=feed)
     
+
+  elif request.path.endswith('/view_html'):
+    feed = api.get_feed(session_id, feed_id)
+    body = feed.html.replace('\n',' ')
+    json = dumps({'body':body, 'title':'view_html'})
+    return Response(json, content_type='application/json')
+
+  elif request.path.endswith('view_comment_html'):
+    body = api.get_html_in_comment(session_id, feed_id, comment_id)
+    json = dumps({'body':body, 'title':'view_html'})
+    return Response(json, content_type='application/json')
+
   elif request.path.endswith('/reshare'):
     if request.method == 'GET':
       return render_template('reshare.html', feed_id=feed_id)

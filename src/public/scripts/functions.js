@@ -1753,7 +1753,21 @@ function open_in_popup_mode(href, data) {
       success: function(resp) {
         hide_loading();
         // $('html').addClass('no-scroll');
-        $('#popup .content').html(resp.body);
+        if (resp.title == 'view_html'){
+          var div_frame = $('<div class="form_email_html"></div>');
+          var frame = $('<iframe sandbox="" style="border: 0px" width="100%" height="100%" scrolling="auto"></iframe>');
+          frame.attr('srcdoc', resp.body);
+          div_frame.append(frame);
+          $('#popup .background').empty();
+          $('#popup .background').append(div_frame);
+          $('#popup').remove('content');
+          // var result = '<iframe seamless sandbox="allow-forms allow-same-origin" srcdoc="' + resp.body + '"></iframe>';
+          // console.log(resp.body);
+          // $('#popup .content').html(result);
+        }
+        else{
+          $('#popup .content').html(resp.body);
+        }
         $('#popup').removeClass('hidden');
         refresh('#popup');
         return false;

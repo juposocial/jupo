@@ -405,6 +405,12 @@
         <div class='info subtitle'>
 
           <div class='stats'>
+            {% if group.id != 'public' %}
+              <span class='gray'>
+                <a href='mailto:{{ group.posting_email }}' target='_blank' class='gray'>{{ group.posting_email }}</a> <br/>
+              </span>
+            {% endif %}
+
             {% if group.id == 'public' %}
             <a href='/people' class='popup gray'>{{ group.members_count }} People</a>
             {% elif owner.id in group.member_ids or group.privacy == 'open' %}

@@ -63,7 +63,10 @@ def extract_urls(text):
           and middle.count(closing) == middle.count(opening) + 1):
           middle = middle[:-len(closing)]
           trail = closing + trail
-      
+
+      if ">" in middle:
+        middle = middle[0:middle.find(">")]
+
       if simple_url_re.match(middle) or simple_url_2_re.match(middle):
         urls.append(smart_urlquote(middle))
 

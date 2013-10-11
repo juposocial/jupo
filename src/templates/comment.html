@@ -192,7 +192,10 @@
       {% if comment.reply_src %}
         · <a href='#comment-{{ comment.reply_to }}' class='reply-to' title='In reply to {{ comment.reply_src.owner.name }}: "{{ comment.reply_src.message | clean | truncate(60) }}"'><i class='reply-icon'></i></a>
       {% endif %}
-      
+
+      {% if comment.html %}
+        · <a class="view_html" href='/feed/{{ feed.id }}/{{ comment.id }}/view_comment_html'>View</a>
+      {% endif %}
        
     {% if owner.id %}   
       {% if owner.id not in comment.liked_user_ids %}
