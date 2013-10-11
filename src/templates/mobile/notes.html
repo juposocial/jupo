@@ -1,0 +1,37 @@
+<head>
+  <link rel="stylesheet" href="/public/styles/normalize.css">
+  <link rel="stylesheet" href="/public/styles/animations.css">
+  <link rel="stylesheet" href="/public/styles/icons.css">
+  <link rel="stylesheet" href="/public/styles/home.css">
+  <link rel="stylesheet" href="/public/styles/wysihtml5.css">
+  <link rel="stylesheet" href="/public/styles/jquery.notice.css">
+  <link type="text/css" rel="stylesheet" href="/public/styles/prettify.css">
+  <link rel="stylesheet" href="/public/styles/hopscotch.css">
+  <link rel="stylesheet" href="/public/styles/jquery.atwho.css">
+  <link rel="stylesheet" href="/public/styles/chat.css">
+</head>
+  
+  <ul id="stream" class='notes'>
+      {% if notes == [] %}
+          <span class="empty">
+            Write about whatever you want.
+          </span>
+      {% else %}            
+          {% for note in notes %}
+            {% autoescape on %}
+              {{ note | render("note", owner, view, request=request)}}
+            {% endautoescape %}
+          {% endfor %}
+              
+          {% if notes | length == 5 %}
+            {% if category %}
+                {% set more_url = '/notes/' + category + '/page2' %}
+            {% else %}
+                {% set more_url = '/notes/page2' %}
+            {% endif %}
+            
+            {% include 'more.html' %}
+          {% endif %}
+      {% endif %}
+  </ul>
+

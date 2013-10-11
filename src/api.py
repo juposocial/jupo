@@ -3965,8 +3965,9 @@ def get_docs_count(group_id):
                          'version': {"$ne": None}}).count()
 
 
-def get_notes(session_id, group_id=None, limit=5, page=1):
-  db_name = get_database_name()
+def get_notes(session_id, group_id=None, limit=5, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
@@ -3998,8 +3999,9 @@ def get_notes(session_id, group_id=None, limit=5, page=1):
   return [Note(i) for i in notes]
     
 
-def get_reference_notes(session_id, limit=10, page=1):
-  db_name = get_database_name()
+def get_reference_notes(session_id, limit=10, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)

@@ -274,8 +274,52 @@ def group(group_id='public', view='group', page=1):
                           owner=owner,
                           settings=settings,
                           view=view)
+
+@app.route("/notes", methods=['GET', 'OPTIONS'])
+@app.route("/notes/page<int:page>", methods=['GET', 'OPTIONS'])
+def notes(page=1):
+  view = 'notes'
+  session = request.headers.get('X-Session')
+  if not session:
+    authorization = request.headers.get('Authorization')
+    app.logger.debug(request.headers.items())
+    
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    session = authorization.split()[-1]
   
+  session = SecureCookie.unserialize(session, settings.SECRET_KEY)
   
+  session_id = session.get('session_id')
+  network = session.get('network')
+  
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+  
+  owner = api.get_user_info(user_id, db_name=db_name)
+  
+  title = "Notes"
+  notes = api.get_notes(session_id, page=page, 
+                        db_name=db_name)
+  if page == 1:
+    reference_notes = api.get_reference_notes(session_id, 10,
+                                              db_name=db_name)
+  else:
+    reference_notes = []
+    
+  return render_template('mobile/notes.html', 
+                          view=view,  
+                          title=title, 
+                          owner=owner,
+                          request=request,
+                          reference_notes=reference_notes,
+                          notes=notes)
+
 @app.route('/notifications')
 def notifications():
   session = request.headers.get('X-Session')
