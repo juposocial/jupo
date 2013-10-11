@@ -1,0 +1,23 @@
+
+{% if groups %}
+<ul class='groups'>
+    {% for group in groups %}      
+      {% if group.privacy in ['open', 'closed'] or owner.id in group.member_ids %}
+      <li>
+         <a href="/group/{{ group.id }}" class='async' rel='group-{{ group.id }}' title='{{ group.name }}'>
+           
+          <i class="group-icon"></i>
+          <span>{{ group.name | truncate(25, True) }}</span>
+        
+          <div class='info'>
+            <span class=''>{{ group.members | length }} members</span>
+          </div>
+        </a>
+      </li>
+      {% endif %}
+    {% endfor %}
+    
+</ul>
+{% endif %}
+
+

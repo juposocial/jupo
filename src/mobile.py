@@ -233,6 +233,7 @@ def news_feed(page=1, feed_id=None):
 
 @app.route("/everyone")
 @app.route("/group/<int:group_id>")
+@app.route("/groups")
 def group(group_id='public', view='group', page=1):
   session = request.headers.get('X-Session')
   if not session:
@@ -256,8 +257,16 @@ def group(group_id='public', view='group', page=1):
   user_id = api.get_user_id(session_id, db_name=db_name)
   if not user_id:
     abort(401)
-  
   owner = api.get_user_info(user_id, db_name=db_name)
+  
+  if request.path.startswith('/groups'):
+    groups = api.get_groups(session_id, db_name=db_name)
+    return render_template('mobile/groups.html', 
+                            view='groups',
+                            owner=owner,
+                            groups=groups)
+    
+  
   group = api.get_group_info(session_id, group_id, db_name=db_name)
   if not group.id:
     abort(401)
