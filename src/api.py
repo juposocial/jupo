@@ -467,18 +467,22 @@ def get_database_name():
   db_name = None
   if request:
     hostname = request.headers.get('Host')
+    # print "DEBUG - in get_database_name - hostname = " + str(hostname)
 
     if hostname:
       network = request.cookies.get('network')
 
-      if network and not hostname.startswith(network):
-        hostname = network + '.' + settings.PRIMARY_DOMAIN
+      #if network and not hostname.startswith(network):
+      #  hostname = network + '.' + settings.PRIMARY_DOMAIN
 
       db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
+      # print "DEBUG - in get_database_name - db_name = " + str(db_name)
   if not db_name:
+    print "DEBUG - in get_database_name - can't find db_name @.@"
     db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
   db_names = get_database_names()
+  # print "DEBUG - in get_database_name - db_names = " + str(db_names)
   if db_name not in db_names:
     # Ensure indexes
     DATABASE[db_name].owner.ensure_index('session_id', background=True)
@@ -500,6 +504,7 @@ def get_database_name():
     DATABASE[db_name].url.ensure_index('url', background=True)
 #    DATABASE[db_name].hashtag.ensure_index('name', background=True)
 
+  # print "DEBUG - in get_database_name - about to return db_name = " + str(db_name)
   return db_name
 
 def get_url_info(url, db_name=None):
@@ -642,10 +647,11 @@ def get_friend_suggestions(user_info):
   return users
 
 def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
+  print "DEBUG - in get_user_id - session_id = " + str(session_id)
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
-  
+
   if not session_id and not facebook_id and not email:
     return None
   
@@ -653,6 +659,7 @@ def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
       % (db_name, session_id if session_id \
                              else facebook_id if facebook_id else email)
   user_id = cache.get(key)
+  print "DEBUG - in get_user_id - user_id from cache = " + str(user_id)
   if user_id:
     return user_id
   
@@ -663,12 +670,34 @@ def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
     user = db.owner.find_one({"facebook_id": facebook_id}, {'_id': True})
   else:
     user = db.owner.find_one({"session_id": session_id}, {'_id': True})
+    print "DEBUG - in get_user_id - user from Mongo, db = " + db_name + ", searched by session_id = " + str(session_id) + " - user = " + str(user)
   
   if user:
     user_id = user.get("_id")
     cache.set(key, user_id)
     return user_id
     
+# to search session_id cross-network (same email, still)
+def get_session_id_by_email(email, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+
+
+  user = db.owner.find_one({"email": email}, {'session_id': True,
+                                                    'password': True})
+  if not user:
+    return False
+
+  if user.has_key('session_id'):
+    return user.get("session_id")
+
+  elif not user.has_key('password'): # user chưa tồn tại, tạo tạm 1 session_id
+    session_id = hashlib.md5('%s|%s' % (user_id, utctime())).hexdigest()
+    db.owner.update({'_id': user['_id']},
+                          {'$set': {'session_id': session_id}})
+    return session_id
+
 def get_session_id(user_id, db_name=None):
   if not db_name:
     db_name = get_database_name()
@@ -6206,8 +6235,11 @@ def get_networks(user_id, user_email=None):
     if info:
       user_id = get_user_id(email=user_email, db_name=db_name)
       info['unread_notifications'] = get_unread_notifications_count(user_id, db_name=db_name)
-      info['domain'] = db_name.replace('_', '.')
-      info['url'] = 'http://%s/' % info['domain']
+      # info['domain'] = db_name.replace('_', '.')
+      if 'domain' in info:
+        hostname = info['domain']
+        network_url = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+        info['url'] = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network_url)
       
       networks_list.append(info)
     
