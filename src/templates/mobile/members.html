@@ -1,0 +1,71 @@
+<!-- <head>
+  <link rel="stylesheet" href="/public/styles/normalize.css">
+  <link rel="stylesheet" href="/public/styles/animations.css">
+  <link rel="stylesheet" href="/public/styles/icons.css">
+  <link rel="stylesheet" href="/public/styles/home.css">
+  <link rel="stylesheet" href="/public/styles/wysihtml5.css">
+  <link rel="stylesheet" href="/public/styles/jquery.notice.css">
+  <link type="text/css" rel="stylesheet" href="/public/styles/prettify.css">
+  <link rel="stylesheet" href="/public/styles/hopscotch.css">
+  <link rel="stylesheet" href="/public/styles/jquery.atwho.css">
+  <link rel="stylesheet" href="/public/styles/chat.css">
+</head> -->
+
+<ul class='people'>
+  {% set users = group.members %}
+  {% if users %}
+    {% for user in users %}
+      {% if user.is_registered() %}
+    
+        <li>
+          {% if group.id == 'public' and owner.is_admin() %}
+          
+              {% if user.is_admin() %}
+                <a class='button toggle' href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}' data-name='Make Admin' data-href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}'>Remove as Admin</a>
+              {% else %}
+                <a class='button toggle' href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}' data-name='Remove as Admin' data-href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}'>Make Admin</a>
+              {% endif %} 
+            
+          {% elif group.id == 'public' or user.id == owner.id %}
+            {% if user.id == owner.id and group.id != 'public' and (user.id not in group.administrator_ids or group.administrator_ids | length > 1) %}
+              <a class='button toggle sign' href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}' title='Leave group' data-href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' data-title='Join group' data-name='+'>×</a>
+            {% endif %}
+            <a class='button async' href='/user/{{ user.id }}'>View Profile</a>
+          {% else %}
+            {% if owner.id in group.administrator_ids %}
+              <a class='button toggle sign' href='/group/{{ group.id }}/remove_member?user_id={{ user.id }}' title='Remove user from group' data-href='/group/{{ group.id }}/add_member?user_id={{ user.id }}' data-title='Add user to group' data-name='+'>×</a>
+              
+              {% if user.id in group.administrator_ids %}
+                <a class='button toggle' href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}' data-name='Make Admin' data-href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}'>Remove as Admin</a>
+              {% else %}
+                <a class='button toggle' href='/group/{{ group.id }}/make_admin?user_id={{ user.id }}' data-name='Remove as Admin' data-href='/group/{{ group.id }}/remove_as_admin?user_id={{ user.id }}'>Make Admin</a>
+              {% endif %} 
+            
+            {% else %}
+              <a class='button async' href='/user/{{ user.id }}'>View Profile</a>
+            {% endif %}
+            
+            
+          {% endif %}
+          
+          <img class='small-avatar lfloat' src='{{ user.avatar }}'>
+      
+          <a href='/user/{{ user.id }}' class='async user'>{{ user.name }}</a>
+          <i class='{{ user.status }}  user-{{ user.id }}-status'></i>
+          <br>
+          
+          {% if group.id == 'public' %}
+          <time class='timeago' title='{{ user.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ user.timestamp | isoformat(owner.utcoffset) }}'>
+            {{ user.timestamp | friendly_format(owner.utcoffset, short=True) }}
+          </time>
+          {% else %}
+          <span class="email">{{ user.email }}</span>
+          {% endif %}
+
+        </li>
+    
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</ul>
+
