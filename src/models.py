@@ -534,6 +534,18 @@ class User(Model):
   @property
   def networks(self):
     out = api.get_networks(self.id, self.email)
+    for network in out:
+      if 'domain' in network:
+        hostname = network['domain']
+        db_name = hostname.replace('.', '_')
+
+        # get session if any
+        latest_session_id = api.get_session_id_by_email(email=self.email, db_name=db_name)
+        # print "DEBUG - in models - field networks - db_name = " + str(db_name) + " and user_id = " + str(self.id) + " -> session_id = " + str(latest_session_id)
+
+        if latest_session_id and latest_session_id != False:
+          network["latest_session_id"] = latest_session_id
+
     return out if out else []
     
     

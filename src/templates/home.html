@@ -93,7 +93,8 @@
                 {% for network in networks[:3] %}
                   {% if network.domain != domain %}
                   <li>
-                    <a href='{{ network.url }}?session_id={{ owner.session_id }}' target='_blank'>
+                    <a href='{{ network.url }}{% if network.latest_session_id %}?session_id={{ network.latest_session_id }}{% endif %}'>
+                    <!--<a href='{{ network.url }}' target='_blank'>-->
                       <span class='unread  {% if network.unread_notifications == 0 %}grey{% endif %}'>{{ network.unread_notifications }}</span> {{ network.name }} 
                     </a>
                   </li>
