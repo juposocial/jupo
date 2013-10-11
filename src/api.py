@@ -3917,8 +3917,9 @@ def restore_doc(session_id, doc_id, revision):
   doc_id = update_note(session_id, doc_id, doc.get('content'), doc.get('tags'))
   return doc_id
 
-def get_note(session_id, note_id, version=None):
-  db_name = get_database_name()
+def get_note(session_id, note_id, version=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   info = db.stream.find_one({'_id': long(note_id),

@@ -1,0 +1,162 @@
+<head>
+  <link rel="stylesheet" href="/public/styles/normalize.css">
+  <link rel="stylesheet" href="/public/styles/animations.css">
+  <link rel="stylesheet" href="/public/styles/icons.css">
+  <link rel="stylesheet" href="/public/styles/home.css">
+  <link rel="stylesheet" href="/public/styles/wysihtml5.css">
+  <link rel="stylesheet" href="/public/styles/jquery.notice.css">
+  <link type="text/css" rel="stylesheet" href="/public/styles/prettify.css">
+  <link rel="stylesheet" href="/public/styles/hopscotch.css">
+  <link rel="stylesheet" href="/public/styles/jquery.atwho.css">
+  <link rel="stylesheet" href="/public/styles/chat.css">
+</head>
+
+  
+<li id="post-{{ note.id }}" class="note feed {% if note.is_official() %}official{% endif %} {% if request.path.startswith('/u') %}single{% endif %}"> 
+
+
+{% if mode == 'view' %}
+  {% set viewers = note.viewers | exclude(note.owner.id) %}  
+  
+  <a href='/user/{{ note.owner.id }}' class='async' data-user-id='{{ note.owner.id }}'>
+    <img src='{{ note.owner.avatar }}' class="medium-avatar">
+  </a>
+
+{% endif %}
+
+    
+<i class='spine-pointer'></i>
+<section>
+    <header>      
+      {% if owner.id %}
+      <div class='rfloat options'>       
+        
+        
+        <a class='settings-icon dropdown-menu-icon'></a>
+        <ul class='dropdown-menu hidden'>
+          <div class="arrow-top-border"></div>
+          <div class="arrow-top"></div>
+          <li><a href='/note/{{ note.id }}?full' target='_blank'>Pop-out</a></li>
+          
+          {% if not note.read_receipt_ids and not note.is_official() %}
+          <li><a href="/feed/{{ note.id }}/remove" class="remove confirm">Remove this note</a></li>
+          {% endif %}
+        </ul>
+        
+        
+      </div>
+              
+      {% endif %}
+
+      
+      <div class="title">
+        <a {% if owner.id %}class="async" href="/note/{{ note.id }}"{% endif %}>{% autoescape on %}{{ note.title }}{% endautoescape %}</a>
+        <br>
+        <a href='/note/{{ note.id }}' class='async time'>
+          <span class='saved'>Saved</span> <time class='timeago' title='{{ note.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ note.timestamp | isoformat(owner.utcoffset) }}'>{{ note.timestamp | friendly_format(owner.utcoffset, short=True) }}</time>
+        </a>
+        
+        
+        
+            
+
+        {% if owner %}
+          {% if not viewers %}
+             <span class='viewers' title="Shared with: No one">
+               <i class="lock-icon"></i>
+             </span>
+          {% elif note.is_public() %}
+             <span class='viewers' title="Shared with: Public">
+              <i class="public-icon"></i>
+             </span>
+          {% else %}
+             <span class='viewers' title="Shared with: {% for user in viewers %}{{ user.name }}{% if loop.index != viewers | length %}, {% endif %}{% endfor %}">
+              <i class="friends-icon"></i>
+             </span>
+          {% endif %}
+          
+        {% endif %}
+        
+        
+      </div>
+      
+    </header>
+    <article class='note'>
+        
+      {% if mode == 'view' %}
+        {% autoescape on %}
+           {{ note.content | sanitize | fix_unclosed_tags }}
+        {% endautoescape %}        
+        
+        {% if note.attachments %}
+          <br> 
+          {% for file in note.attachments %}
+            <i class='attach-icon'></i>
+            <a href='/attachment/{{ file.id }}?rel={{ note.id }}' target='_blank' title="{{ file.name }}" download="{{ file.name }}">{{ file.name | truncate(50, True)}}</a>
+            <br>  
+          {% endfor %}
+        {% endif %}
+      {% endif %}
+    </article>
+    <footer>              
+      {% if owner.id %}
+      <div class='actions'>
+        <div class='rfloat'>
+           {% set read_receipts = note.seen_by %}         
+           <a href='/feed/{{ note.id }}/read_receipts' class="quick-stats popup" title='{% include "read_receipts.html" %}'>
+            {% if note.comments_count != 0 or read_receipts | length != 0 or note.liked_user_ids | length != 0 %}
+              
+              <span class='comments {% if note.comments_count == 0 %}hidden{% endif %}'>
+                <i class="comment-icon"></i>
+                <span class='comment-count'>{{ note.comments_count }}</span>
+              </span>
+              
+              <span class='read-receipts {% if read_receipts | length == 0 %}hidden{% endif %}'>
+                <i class="receipt-icon"></i>
+                <span class='read-receipts-count'>{{ read_receipts | length }}</span>
+              </span>
+              
+              
+              <span class='likes {% if note.liked_user_ids | length == 0 %}hidden{% endif %}'>
+                <i class='like-icon'></i> 
+                <span class='likes-count'>{{ note.liked_user_ids | length }}</span>
+              </span>
+            {% else %}
+              &nbsp;
+            {% endif %}
+            
+           </a>
+        </div>
+        
+        <div class='lfloat'>      
+          
+          <a href="#!/note/{{ note.id }}/edit" class="overlay">Edit Note</a>
+           
+          {% if not note.is_official() %}
+           {% set diff = note.diff %}
+               · <a href="/note/{{ note.id }}/last_changes" class='async' title="{{ diff['additions'] }} additions & {{ diff['deletions'] }} deletions">See Last Changes</a>
+           
+           {% else %}
+           · <span class='green'> ✔ Official</span>
+           {% endif %}
+
+
+          · <a href='/feed/{{ note.id }}/reshare' class='forward'>Share</a>
+          {% if mode == 'view' %}  
+             · <a class="reply" rel="#{{ note.id }}-comments">Comment</a>
+          {% else %}
+             · <a class="async" href='/note/{{ note.id }}#comments'>Comment</a>
+          {% endif %}    
+        </div>    
+        
+      </div>
+      {% endif %}
+
+      {% if mode == 'view' %}     
+            {% set item = note %}
+            {% include 'comments.html' %}
+      {% endif %}      
+    </footer>
+  </section>
+</li>
+
