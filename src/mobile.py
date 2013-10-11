@@ -193,14 +193,14 @@ def news_feed(page=1, feed_id=None):
   if not session:
     authorization = request.headers.get('Authorization')
     app.logger.debug(request.headers.items())
-    
+     
     if not authorization or not authorization.startswith('session '):
       abort(401)
-      
+       
     session = authorization.split()[-1]
-  
+   
   session = SecureCookie.unserialize(session, settings.SECRET_KEY)
-  
+   
   session_id = session.get('session_id')
   network = session.get('network')
 #   utcoffset = session.get('utcoffset')
@@ -275,7 +275,47 @@ def group(group_id='public', view='group', page=1):
                           settings=settings,
                           view=view)
   
+
+@app.route('/like/<int:item_id>', methods=['GET', 'POST'])
+@app.route('/unlike/<int:item_id>', methods=['GET', 'POST'])
+def like(item_id):
+  session = request.headers.get('X-Session')
+  if not session:
+    authorization = request.headers.get('Authorization')
+    app.logger.debug(request.headers.items())
+     
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+       
+    session = authorization.split()[-1]
+   
+  session = SecureCookie.unserialize(session, settings.SECRET_KEY)
+   
+  session_id = session.get('session_id')
+  network = session.get('network')
+
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
   
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+  
+  owner = api.get_user_info(user_id, db_name=db_name)
+  post_id = item_id
+    
+  if request.path.startswith('/like/'):
+    is_ok = api.like(session_id, item_id, 
+                     post_id, db_name=db_name)
+  else:
+    is_ok = api.unlike(session_id, item_id, post_id,
+                       db_name=db_name)
+  if is_ok:  
+    return 'OK'
+  else:
+    return 'Error'
+
+
 @app.route('/notifications')
 def notifications():
   session = request.headers.get('X-Session')

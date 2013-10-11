@@ -42,4 +42,66 @@ $(document).ready(function() {
     });
     return false;
   });
+  
+  $('#stream').on('click', 'a.toggle', function() {
+    var new_class = $(this).data('class');
+    var new_href = $(this).data('href');
+    var new_name = $(this).data('name');
+    var new_title = $(this).data('title');
+    var href = $(this).attr('href');
+
+    if (new_class != undefined) {
+      $(this).data('class', $(this).attr('class'));
+    }
+    $(this).data('name', $(this).html());
+    $(this).data('href', href);
+    $(this).data('title', $(this).attr('title'));
+
+    if (new_class != undefined) {
+      $(this).attr('class', new_class.replace('toggle', '') + ' toggle');
+    }
+    $(this).html(new_name);
+    $(this).attr('href', new_href);
+    $(this).attr('title', new_title);
+    
+    if (href.indexOf('/like') != -1) {
+      likes = $(this).next('span.likes');
+      counter_id = '#' + likes.children('span.counter').attr('id');
+      incr(counter_id, 1);
+      
+      if ($(counter_id).html() != '0') {
+        likes.removeClass('hidden');
+      } else {
+        likes.addClass('hidden');
+      }
+
+    } else if (href.indexOf('/unlike') != -1) {
+      likes = $(this).next('span.likes');
+      counter_id = '#' + likes.children('span.counter').attr('id');
+      incr(counter_id, -1);
+      
+      if ($(counter_id).html() != '0') {
+        likes.removeClass('hidden');
+      } else {
+        likes.addClass('hidden');
+      }
+    }
+
+    if (href != '#') {
+      $.ajax({
+        type: "POST",
+        headers: {
+          'X-CSRFToken': get_cookie('_csrf_token')
+        },
+        url: href,
+        success: function(resp) {
+          return false;
+        }
+      });
+    }
+    return false;
+    
+    
+  });
+  
 });

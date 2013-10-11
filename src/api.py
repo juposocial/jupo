@@ -5903,11 +5903,12 @@ def clear_html_cache(post_id):
     
     
 
-def like(session_id, item_id, post_id=None):
-  db_name = get_database_name()
+def like(session_id, item_id, post_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
   
@@ -5960,11 +5961,12 @@ def like(session_id, item_id, post_id=None):
   
   return True
 
-def unlike(session_id, item_id, post_id=None):
-  db_name = get_database_name()
+def unlike(session_id, item_id, post_id=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
   
