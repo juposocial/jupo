@@ -11,7 +11,7 @@
         newFrameElm.parentNode.removeChild(newFrameElm);
       }
 
-      open_custom_url_in_iframe('jupo://{{ data | safe }}');
+      open_custom_url_in_iframe('jupo://update_ui?data={{ data | b64encode }}');
 
       
     </script>

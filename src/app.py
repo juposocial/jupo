@@ -72,6 +72,7 @@ CURRENT_APP.jinja_env.filters['remove_groups'] = filters.remove_groups
 CURRENT_APP.jinja_env.filters['to_embed_code'] = filters.to_embed_code
 CURRENT_APP.jinja_env.filters['parse_json'] = filters.parse_json
 CURRENT_APP.jinja_env.filters['urlencode'] = urllib.quote
+CURRENT_APP.jinja_env.filters['b64encode'] = filters.b64encode
 
 CURRENT_APP.url_map.converters['uuid'] = UUIDConverter
 CURRENT_APP.url_map.converters['regex'] = RegexConverter
@@ -93,18 +94,18 @@ FILE_TEMPLATE = CURRENT_APP.jinja_env.get_template('file.html')
 COMMENT_TEMPLATE = CURRENT_APP.jinja_env.get_template('comment.html')
 
 @line_profile
-def render(info, post_type, owner, viewport=None, mode=None, **kwargs): 
+def render(info, post_type, owner, viewport=None, mode=None, mobile=False, **kwargs): 
   if isinstance(info, list):
     return ''.join([_render(i, post_type, owner, 
-                            viewport, mode, **kwargs) \
+                            viewport, mode, mobile, **kwargs) \
                     for i in info])
   else:
     return _render(info, post_type, owner, 
-                   viewport, mode, **kwargs)
+                   viewport, mode, mobile, **kwargs)
 
 
 @line_profile
-def _render(info, post_type, owner, viewport, mode=None, **kwargs):  
+def _render(info, post_type, owner, viewport, mode=None, mobile=False, **kwargs):  
   
   if post_type == 'comment':
     return COMMENT_TEMPLATE.render(comment=info, 
@@ -147,6 +148,9 @@ def _render(info, post_type, owner, viewport, mode=None, **kwargs):
     key = post_type
     namespace = owner_id
     
+  if mobile:
+    key += ':mobile'
+    
   html = cache.get(key, namespace)
   hit = False
   if not html:
@@ -154,16 +158,20 @@ def _render(info, post_type, owner, viewport, mode=None, **kwargs):
       html = NOTE_TEMPLATE.render(note=info, 
                                   owner=owner, 
                                   view=viewport, 
-                                  mode=mode, **kwargs)
+                                  mode=mode, 
+                                  mobile=mobile,
+                                  **kwargs)
     elif post_type == 'file':
       html = FILE_TEMPLATE.render(file=info, 
                                   owner=owner, 
                                   view=viewport, 
+                                  mobile=mobile,
                                   mode=mode, **kwargs)
     else:
       html = FEED_TEMPLATE.render(feed=info, 
                                   owner=owner, 
                                   view=viewport, 
+                                  mobile=mobile,
                                   mode=mode, **kwargs)
     
     cache.set(key, html, 86400, namespace)

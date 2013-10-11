@@ -38,22 +38,22 @@
       float: right;
     }
 
-    img {
+    ul.notifications img {
       border-radius: 50px;
       margin-right: 7px;
-      margin-top: 3px;
-      margin-left: -37px;
-      width: 30px;
-      height: 30px;
+      margin-top: 2px;
+      margin-left: -43px;
+      width: 36px;
+      height: 36px;
     }
 
     ul.notifications > li > a {
       color: #3d3d3d;
       text-decoration: none;
       font-size: 14px;
-      padding: 12px 5px;
+      padding: 12px 10px;
       display: block;
-      padding-left: 47px;
+      padding-left: 54px;
       border-bottom: 1px solid rgba(232, 230, 227, 0.6);
       min-height: 52px;
       word-wrap: break-word;
@@ -117,8 +117,20 @@
   {% endif %}
   </ul>
   
-  <script src='http://zeptojs.com/zepto.min.js'></script>
+  <script src='/public/scripts/zepto.min.js'></script>
+  <script src='/public/scripts/touch.js'></script>
   <script>
+  
+    function open_custom_url_in_iframe(src) {
+      var rootElm = document.documentElement;
+      var newFrameElm = document.createElement("iframe");
+      newFrameElm.setAttribute("src", src);
+      rootElm.appendChild(newFrameElm);
+      newFrameElm.parentNode.removeChild(newFrameElm);
+    }
+  
+  
+  
     $('a').on('touchstart', function(e){
       $(this).addClass('tapped');
     });
@@ -130,7 +142,13 @@
     $('a').on('tap', function(e){
       e.preventDefault();
       
-      // do your thing
+      var url = $(this).attr('href').substring(2);
+      var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
+      console.log(url);
+      console.log('jupo://open_link?data=' + data);
+      
+      open_custom_url_in_iframe('jupo://open_link?data=' + data);
+      
             
       return false;
     });

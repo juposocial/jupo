@@ -147,8 +147,7 @@ def google_authorized():
           'token_type': 'session',
           'unread_notifications': unread_notifications}
   
-  return render_template('mobile/update_sidebar.html', data=dumps(data))
-
+  return render_template('mobile/update_ui.html', data=dumps(data))
 
 
 @app.route('/get_user_info')

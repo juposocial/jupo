@@ -1,3 +1,13 @@
+
+  
+function open_custom_url_in_iframe(src) {
+  var rootElm = document.documentElement;
+  var newFrameElm = document.createElement("iframe");
+  newFrameElm.setAttribute("src", src);
+  rootElm.appendChild(newFrameElm);
+  newFrameElm.parentNode.removeChild(newFrameElm);
+}
+
 $(document).ready(function() {
   
   
@@ -8,15 +18,25 @@ $(document).ready(function() {
   $('a').on('touchend', function(e){
     $(this).removeClass('tapped');
   });
- 
-  $('a').on('tap', function(e){
+  
+  $('ul#stream li.feed a').on('tap', function(e){
+    e.preventDefault();
+  });
+
+  
+  $('ul#stream li.feed').on('tap', function(e){
     e.preventDefault();
     
-    // do your thing
+    var url = $(this).attr('id').replace('post-', '/feed/');
+    var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
+    console.log(url);
+    console.log('jupo://open_link?data=' + data);
+    
+    open_custom_url_in_iframe('jupo://open_link?data=' + data);
+    
           
     return false;
   });
-  
   
   // Disable embeded youtube videos
   $('section iframe').remove();

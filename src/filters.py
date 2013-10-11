@@ -3,6 +3,7 @@
 #@PydevCodeAnalysisIgnore
 import re
 import api
+import base64
 import textwrap
 import calendar
 import lxml.html
@@ -21,6 +22,12 @@ from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 from lib import emoji
 
 months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
+
+
+
+
+def b64encode(text):
+  return base64.b64encode(text)
 
 
 def last_starred_user(following_users, starred_list):
@@ -718,7 +725,7 @@ def unmunge(html):
       cache.set(key, out, namespace="filters")
     return out
   return html
-
+  
 
 def to_text(html):
   try:
