@@ -1074,7 +1074,7 @@ def google_authorized():
 
   # only validate if there is more than 1 item in auth_whitelist
   # (meaning user keyed in something in the whitelist textbox)
-  if len(auth_whitelist) > 1 and (not user_domain in auth_whitelist):
+  if network != "" and len(auth_whitelist) > 1 and (not user_domain in auth_whitelist):
     flash('Your email is not allowed to login this network. Please contact network administrator for more info.')
     user_url = 'http://%s/%s?error_type=auth_google' % (settings.PRIMARY_DOMAIN, network)
     return redirect(user_url)
