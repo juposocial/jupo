@@ -10,22 +10,25 @@ function open_custom_url_in_iframe(src) {
 
 
 function reload() {
-  $('div.loading').show().animate({opacity: 1}, 20);
   $.ajax({
     type: 'OPTIONS',
+    async: false,
     url: window.location.href,
     success: function(data) {
       $('body > ul.stream').html(data);
       
       refresh();
       
-      $('div.loading').animate({opacity: 0}, 20, function () {
-        $(this).hide();
+      $('body').animate({scrollTop: 0}, 100, 'swing', function() { 
+         console.log("Finished animating");
       });
       
+      open_custom_url_in_iframe('jupo://hide_loading_indicator');
       console.log('refresh: done');
     }
   });
+  return true;
+  
 }
 
 function refresh() {
@@ -79,6 +82,18 @@ $(document).ready(function() {
         refresh();
       }
     });
+    return false;
+  });
+  
+  $('body').on("click", 'a', function(e) {
+    e.preventDefault();
+    
+    var url = $(this).attr('href');
+    var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
+    console.log('jupo://open_link?data=' + data);
+    
+    open_custom_url_in_iframe('jupo://open_link?data=' + data);
+    
     return false;
   });
 });
