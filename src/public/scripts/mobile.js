@@ -12,7 +12,7 @@ function open_custom_url_in_iframe(src) {
 function reload() {
   $.ajax({
     type: 'OPTIONS',
-    async: false,
+    async: true,
     url: window.location.href,
     success: function(data) {
       $('body > ul.stream').html(data);

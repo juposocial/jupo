@@ -1,4 +1,3 @@
-{% if request.method != 'OPTIONS' %}
 <!DOCTYPE HTML>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -25,109 +24,54 @@
       tap-highlight-color: rgba(0,0,0,0);
     }
 
-    ul.notifications {
+    ul.groups {
       margin: 0;
       padding: 0;
       list-style-type: none;
-    }
-
-    .lfloat {
-      float: left;
     }
 
     .rfloat {
       float: right;
     }
 
-    ul.notifications img {
-      border-radius: 50px;
-      margin-right: 7px;
-      margin-top: 2px;
-      margin-left: -43px;
-      width: 36px;
-      height: 36px;
-    }
-
-    ul.notifications > li > a {
+    ul.groups > li > a {
+      display: block;
       color: #3d3d3d;
       text-decoration: none;
       font-size: 14px;
-      padding: 12px 10px;
-      display: block;
-      padding-left: 54px;
+      padding: 12px 15px;
       border-bottom: 1px solid rgba(232, 230, 227, 0.6);
-      min-height: 52px;
       word-wrap: break-word;
     }
-
-    ul.notifications > li > a > p {
-      padding: 0;
-      margin: 0;
-      display: inline;
-    }
-
-    a.unread {
-      font-weight: bold;
+    
+    ul.groups > li > a > span {
+      color: #999;
+      font-size: 12px;
+      line-height: 16px;
     }
 
     a.tapped {
       background: rgba(217, 217, 217, 0.25);
     }
 
-    time {
-      font-size: 11px;
-      color: #999;
-      margin-top: 3px;
-      font-weight: normal;
-    }
-
-    span.username {
-      font-weight: bold;
-    }
-    
 
   </style>
 </head>
-
 <body>
-  <ul class="notifications">
-
-{% endif %}
-
-  {% if not notifications %}
-
-      <span class="empty">You have no new notifications</span>
-
-
-  {% else %}
-
-      {% autoescape on %}
-
-        {% for title, items in notifications.iteritems() %}
-  
-          {% for key, messages in items.iteritems() %}
-          
-            {% if messages %}
-            
-              {% include "notification.html" %}
-            
-            {% endif %}
-    
-          {% endfor %}
-  
-        {% endfor %}
-
-      {% endautoescape %}
-
-  {% endif %}
-  
-{% if request.method != 'OPTIONS' %}
+  <ul class='groups'>
+      {% for group in groups %}      
+        <li>
+           <a href="/group/{{ group.id }}" title='{{ group.name }}'>
+              {{ group.name | truncate(25, True) }}
+              <span class='rfloat'>{{ group.members | length }} members</span>
+          </a>
+        </li>
+      {% endfor %}
   </ul>
-  
   <script src='/public/scripts/zepto.min.js'></script>
   <script src='/public/scripts/touch.js'></script>
   <script>
-  
+    
     function open_custom_url_in_iframe(src) {
       var rootElm = document.documentElement;
       var newFrameElm = document.createElement("iframe");
@@ -136,43 +80,25 @@
       newFrameElm.parentNode.removeChild(newFrameElm);
     }
     
-    function reload() {
-      $.ajax({
-        type: 'OPTIONS',
-        async: true,
-        url: window.location.href,
-        success: function(data) {
-          $('ul.notifications').html(data);
-          
-          refresh();
-          
-          $('body').animate({scrollTop: 0}, 100, 'swing', function() { 
-             console.log("Finished animating");
-          });
-          
-          open_custom_url_in_iframe('jupo://hide_loading_indicator');
-          console.log('refresh: done');
-        }
-      });
-      return true;
-      
-    }
-
-        
     $(document).ready(function() {
-      $('ul.notifications').on('touchstart', 'a', function(e){
+      $('ul.groups').on('touchstart', 'a', function(e){
         $(this).addClass('tapped');
       });
       
-      $('ul.notifications').on('touchend', 'a', function(e){
+      $('ul.groups').on('touchend', 'a', function(e){
         $(this).removeClass('tapped');
       });
+      
+      $('ul.groups').on('click', 'a', function(e){
+        e.preventDefault();
+        return false;
+      });
      
-      $('ul.notifications').on('tap', 'a', function(e){
+      $('ul.groups').on('tap', 'a', function(e){
         e.preventDefault();
         
         var url = $(this).attr('href').substring(2);
-        var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
+        var data = btoa(JSON.stringify({'title': 'Group', 'url': url}));
         console.log(url);
         console.log('jupo://open_link?data=' + data);
         
@@ -184,4 +110,5 @@
     });
   </script>
 </body>
-{% endif %}
+
+
