@@ -85,26 +85,6 @@
       font-weight: bold;
     }
     
-    div.loading {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      left: 0;
-      background: #FDFDFC;
-      opacity: 0;
-      display: none;
-    }
-    
-    div.loading img {
-      position: absolute;
-      left: 50%;
-      top: 240px;
-      width: 24px;
-      height: 24px;
-      margin-left: -12px;
-    }
-    
 
   </style>
 </head>
@@ -144,10 +124,6 @@
 {% if request.method != 'OPTIONS' %}
   </ul>
   
-  <div class='loading'>
-    <img src='/public/images/mobile/spinner.gif'>
-  </div>
-  
   <script src='/public/scripts/zepto.min.js'></script>
   <script src='/public/scripts/touch.js'></script>
   <script>
@@ -159,22 +135,27 @@
       rootElm.appendChild(newFrameElm);
       newFrameElm.parentNode.removeChild(newFrameElm);
     }
-  
+    
     function reload() {
-      $('div.loading').show().animate({opacity: 1}, 20);
       $.ajax({
         type: 'OPTIONS',
+        async: true,
         url: window.location.href,
         success: function(data) {
           $('ul.notifications').html(data);
           
-          $('div.loading').animate({opacity: 0}, 20, function () {
-            $(this).hide();
+          refresh();
+          
+          $('body').animate({scrollTop: 0}, 100, 'swing', function() { 
+             console.log("Finished animating");
           });
           
+          open_custom_url_in_iframe('jupo://hide_loading_indicator');
           console.log('refresh: done');
         }
       });
+      return true;
+      
     }
 
         
