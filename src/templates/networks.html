@@ -63,7 +63,7 @@
   <ul>
     {% for network in owner.networks %}
     <li>
-      <a href="{{ network.url }}?session_id={{ owner.session_id }}" target="_blank"> 
+      <a href="{{ network.url }}{% if network.latest_session_id %}?session_id={{ network.latest_session_id }}{% endif %}">
         {% if network.unread_notifications %}
           ({{ network.unread_notifications }})
         {% endif %}

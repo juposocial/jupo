@@ -65,8 +65,11 @@ csrf = SeaSurf(app)
 oauth = OAuth()
     
 def redirect(url, code=302):
-  if not url.startswith('http') and request.cookies.get('network'):
-    url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
+
+  #if not url.startswith('http') and request.cookies.get('network'):
+  #  print "DEBUG - in redirect - url = " + str(url)
+  #  print "DEBUG - in redirect - network in cookie = " + str(request.cookies.get('network'))
+  #  url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
   return redirect_to(url, code=code)
 
 @line_profile
@@ -1577,6 +1580,7 @@ def public_files(filename):
 
 
 @app.route("/favicon.ico")
+@app.route("/<domain>/favicon.ico")
 def favicon():
   path = os.path.join(os.path.dirname(__file__), 'public', 'favicon.ico')
   filedata = open(path).read()
@@ -2525,38 +2529,39 @@ def messages(user_id=None, topic_id=None, action=None):
 @line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
-  
-  session_id = request.args.get('session_id')
-  
-  network = ""
+  db_name=hostname.replace('.', '_')
+
+  # for sub-network, network = mp3.com
+  # for homepage, network = ''
+  network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
   network_exist = 1
-
-  if hostname != settings.PRIMARY_DOMAIN:
-    # used to 404 if network doesn't exist. now we switch to customized landing page for them (even if network doesn't exist yet)
-    if not api.is_exists(db_name=hostname.replace('.', '_')):
-      network_exist = 0
-    network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
-    if not api.is_domain_name(network):
-      network = hostname
-
-    if session_id:
-      session.permanent = True
-      session['session_id'] = request.args.get('session_id')
-
-      return redirect('/news_feed')
   
-  session_id = session.get("session_id")
+  # get session_id with this priority
+  # check from GET parameter 'code', for invitation link
+  # check from GET parameter 'session_id', for in-app redirect
+  # check from session, for the rest
+  if request.args.get('code'):
+    session_id = request.args.get('code')
+  elif request.args.get('session_id'):
+    session_id = request.args.get('session_id')
+  else:
+    session_id = session.get("session_id")
+
+  ## save to session
+  #if session_id:
+  #  session.permanent = True
+  #  session['session_id'] = session_id
+
+  # get user info based on session_id
   user_id = api.get_user_id(session_id)
 
-  if not user_id:
-    code = request.args.get('code')
-    user_id = api.get_user_id(code)
-    
-    if code and not user_id:
+  # check invitation link (request that get 'code' parameter)
+  if request.args.get('code'):
+    # invalid invitation code ?
+    if not user_id:
       flash('Invitation is invalid. Please check again')
       return redirect('http://' + settings.PRIMARY_DOMAIN)
-
-    if user_id and not session_id:
+    else:
       session['session_id'] = code
       owner = api.get_user_info(user_id)
 
@@ -2564,49 +2569,73 @@ def home():
                render_template('profile_setup.html',
                                  owner=owner, jupo_home=settings.PRIMARY_DOMAIN,
                                  code=code, user_id=user_id)
-             )
+           )
 
       # set the network here so that api.get_database_name() knows which network calls it
       network = owner.email_domain
-      
+
       resp.set_cookie('network', owner.email_domain)
+      return resp
+  else:
+    # this is to handle sub-network because the hostname now is already mp3.com.jupo.com
+
+    # authentication OK, redirect to /news_feed
+    if user_id:
+      # network = request.cookies.get('network')
+      if network != "":
+        # used to 404 if network doesn't exist. now we switch to customized landing page for them (even if network doesn't exist yet)
+        if not api.is_exists(db_name):
+          network_exist = 0
+
+        # TODO: what's this ???
+        #if not api.is_domain_name(network):
+        #  network = hostname
+
+        resp = redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN, network))
+      else:
+        resp = redirect('http://%s/news_feed' % (settings.PRIMARY_DOMAIN))
+
+      # set network to cookie so that redirect knows which network to forward (!!)
+      resp.set_cookie('network', network)
+      session['session_id'] = session_id
+
+      # clear current network info (cookies, sessions), so that the routing to new network doesn't get mixed up
+      # resp.delete_cookie('redirect_to')
+      # session.pop('session_id')
+
+      print "DEBUG - in home() - about to redirect to news_feed. current network = " + str(network)
+      return resp
+    else:
+      pass
+      #try:
+      #  session.pop('session_id')
+      #except KeyError:
+      #  pass
+
+      email = request.args.get('email')
+      message = request.args.get('message')
+      error_type = request.args.get('error_type')
+      network_info = api.get_network_by_hostname(hostname)
+
+      if session_id:
+        flash('Session is invalid. Please check again')
+      resp = Response(render_template('landing_page.html',
+                                      email=email,
+                                      settings=settings,
+                                      domain=settings.PRIMARY_DOMAIN,
+                                      network=network,
+                                      network_info=network_info,
+                                      network_exist=network_exist,
+                                      error_type=error_type,
+                                      message=message))
+
+      back_to = request.args.get('back_to', '')
+      if back_to:
+        resp.set_cookie('redirect_to', back_to)
+
       return resp
 
 
-  
-  if not session_id or not user_id:
-    try:
-      session.pop('session_id')
-    except KeyError:
-      pass
-    
-    email = request.args.get('email')
-    message = request.args.get('message')
-    error_type = request.args.get('error_type')
-    network_info = api.get_network_by_hostname(hostname)
-
-    resp = Response(render_template('landing_page.html',
-                                    email=email,
-                                    settings=settings,
-                                    domain=settings.PRIMARY_DOMAIN,
-                                    network=network,
-                                    network_info=network_info,
-                                    network_exist=network_exist,
-                                    error_type=error_type,
-                                    message=message))
-    
-    back_to = request.args.get('back_to', '')
-    if back_to:
-      resp.set_cookie('redirect_to', back_to)
-    
-    return resp
-  else:
-    network = request.cookies.get('network')
-    if network:
-      return redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN,
-                                                  network))
-    else:
-      return redirect('http://%s/news_feed' % (settings.PRIMARY_DOMAIN))
       
       
 @app.route("/news_feed", methods=["GET", "OPTIONS"])
@@ -2617,7 +2646,11 @@ def home():
 #@login_required
 @line_profile
 def news_feed(page=1):
+  # import pdb
+  # pdb.set_trace()
+
   session_id = session.get("session_id")
+  print "DEBUG - just enter news_feed - session_id got from session = " + str(session_id)
     
   if request.path.endswith('archive_from_here'):
     ts = float(request.args.get('ts', api.utctime()))
@@ -2626,19 +2659,23 @@ def news_feed(page=1):
     
   app.logger.debug(api.get_database_name())
   app.logger.debug(session_id)
-  user_id = api.get_user_id(session_id)
+
+  user_id = api.get_user_id(session_id=session_id)
+  app.logger.debug("user_id found = " + str(user_id))
   if not user_id:
     resp = Response(render_template('landing_page.html',
                                     settings=settings,
                                     domain=settings.PRIMARY_DOMAIN))
     return resp
   
-  if user_id and request.cookies.get('redirect_to'):
-    redirect_to = request.cookies.get('redirect_to')
-    if redirect_to != request.url:
-      resp = redirect(request.cookies.get('redirect_to'))
-      resp.delete_cookie('redirect_to')
-      return resp
+  #if user_id and request.cookies.get('redirect_to'):
+  #  print "DEBUG - in news_feed - invalid user_id - redirect to " + str(request.cookies.get('redirect_to'))
+  #  redirect_to = request.cookies.get('redirect_to')
+  #  if redirect_to != request.url:
+  #    resp = redirect(request.cookies.get('redirect_to'))
+  #    resp.delete_cookie('redirect_to')
+  #    print "DEBUG - in news_feed - redirect to last known place"
+  #    return resp
   
   
   # Bắt user dùng facebook phải invite friends trước khi dùng ứng dụng
@@ -3601,6 +3638,7 @@ class NetworkNameDispatcher(object):
       # session['subnetwork'] = items[0]
 
       environ['HTTP_HOST'] = items[0] + '.' + settings.PRIMARY_DOMAIN
+
       if len(items) > 1:
         environ['PATH_INFO'] = '/%s' % items[1]
       else:
