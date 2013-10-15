@@ -65,11 +65,9 @@ csrf = SeaSurf(app)
 oauth = OAuth()
     
 def redirect(url, code=302):
-
-  #if not url.startswith('http') and request.cookies.get('network'):
-  #  print "DEBUG - in redirect - url = " + str(url)
-  #  print "DEBUG - in redirect - network in cookie = " + str(request.cookies.get('network'))
-  #  url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
+  if not url.startswith('http') and request.cookies.get('network'):
+  # if request.cookies.get('network'):
+    url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
   return redirect_to(url, code=code)
 
 @line_profile
