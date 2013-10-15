@@ -65,11 +65,9 @@ csrf = SeaSurf(app)
 oauth = OAuth()
     
 def redirect(url, code=302):
-
-  #if not url.startswith('http') and request.cookies.get('network'):
-  #  print "DEBUG - in redirect - url = " + str(url)
-  #  print "DEBUG - in redirect - network in cookie = " + str(request.cookies.get('network'))
-  #  url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
+  if not url.startswith('http') and request.cookies.get('network'):
+  # if request.cookies.get('network'):
+    url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
   return redirect_to(url, code=code)
 
 @line_profile
@@ -729,7 +727,8 @@ def authentication(action=None):
 
     auth_whitelist = []
     if current_network is not None and 'auth_normal_whitelist' in current_network:
-      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
     # default email domain
     auth_whitelist.append(network)
 
@@ -829,7 +828,8 @@ def authentication(action=None):
 
     auth_whitelist = []
     if current_network is not None and 'auth_normal_whitelist' in current_network:
-      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
     # default email domain
     auth_whitelist.append(network)
 
@@ -937,7 +937,10 @@ def authentication(action=None):
 
     cache.delete(key)
 
-    resp = redirect('/')
+    network = api.get_network_by_current_hostname(hostname)
+    user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network)
+
+    resp = redirect(user_url)
     resp.delete_cookie('network')
     resp.delete_cookie('channel_id')
     resp.delete_cookie('new_user')
@@ -1063,7 +1066,9 @@ def google_authorized():
 
     auth_whitelist = []
     if current_network is not None and 'auth_normal_whitelist' in current_network:
-      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
+
     # default email domain
     auth_whitelist.append(network)
   
@@ -1193,7 +1198,8 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
 
         auth_whitelist = []
         if current_network is not None and 'auth_normal_whitelist' in current_network:
-          auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+          # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+          auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
         # default email domain
         auth_whitelist.append(network)
 
@@ -2533,7 +2539,8 @@ def home():
 
   # for sub-network, network = mp3.com
   # for homepage, network = ''
-  network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+  network = api.get_network_by_current_hostname(hostname)
+
   network_exist = 1
   
   # get session_id with this priority
@@ -2577,8 +2584,6 @@ def home():
       resp.set_cookie('network', owner.email_domain)
       return resp
   else:
-    # this is to handle sub-network because the hostname now is already mp3.com.jupo.com
-
     # authentication OK, redirect to /news_feed
     if user_id:
       # network = request.cookies.get('network')
@@ -2606,7 +2611,7 @@ def home():
       print "DEBUG - in home() - about to redirect to news_feed. current network = " + str(network)
       return resp
     else:
-      pass
+      #pass
       #try:
       #  session.pop('session_id')
       #except KeyError:
@@ -2617,8 +2622,10 @@ def home():
       error_type = request.args.get('error_type')
       network_info = api.get_network_by_hostname(hostname)
 
-      if session_id:
-        flash('Session is invalid. Please check again')
+      # if session_id:
+      #   flash('Session is invalid. Please check again')
+      print "DEBUG - in home() - about to render homepage - hostname = " + str(hostname)
+      print "DEBUG - in home() - about to render homepage - network = " + str(network)
       resp = Response(render_template('landing_page.html',
                                       email=email,
                                       settings=settings,
