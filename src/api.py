@@ -6165,6 +6165,14 @@ def get_current_network(db_name=None):
 
   return network
 
+def get_network_by_current_hostname(hostname=None):
+  if len(hostname) > len(settings.PRIMARY_DOMAIN):
+    network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+  else:
+    network = ""
+
+  return network
+
 def get_network_by_id(network_id):
   db_name = get_database_name()
   db = DATABASE[db_name]

@@ -937,7 +937,10 @@ def authentication(action=None):
 
     cache.delete(key)
 
-    resp = redirect('/')
+    network = api.get_network_by_current_hostname(hostname)
+    user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network)
+
+    resp = redirect(user_url)
     resp.delete_cookie('network')
     resp.delete_cookie('channel_id')
     resp.delete_cookie('new_user')
@@ -2533,10 +2536,7 @@ def home():
 
   # for sub-network, network = mp3.com
   # for homepage, network = ''
-  if len(hostname) > len(settings.PRIMARY_DOMAIN):
-    network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
-  else:
-    network = ""
+  network = api.get_network_by_current_hostname(hostname)
 
   network_exist = 1
   
@@ -2619,8 +2619,8 @@ def home():
       error_type = request.args.get('error_type')
       network_info = api.get_network_by_hostname(hostname)
 
-      if session_id:
-        flash('Session is invalid. Please check again')
+      # if session_id:
+      #   flash('Session is invalid. Please check again')
       print "DEBUG - in home() - about to render homepage - hostname = " + str(hostname)
       print "DEBUG - in home() - about to render homepage - network = " + str(network)
       resp = Response(render_template('landing_page.html',
