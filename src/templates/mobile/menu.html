@@ -12,7 +12,7 @@
     }
 
     body {
-      background: rgba(252, 252, 250, 0.6);
+      background: whitesmoke;
       margin: 0;
       padding: 0;
       font-family: Helvetica, sans-serif;
@@ -24,64 +24,87 @@
       tap-highlight-color: rgba(0,0,0,0);
     }
 
-    ul.groups {
+    ul.networks, ul.apps, ul.settings {
       margin: 0;
       padding: 0;
       list-style-type: none;
+      margin-bottom: 30px;
+      border-top: 1px solid rgba(232, 230, 227, 0.6);
     }
 
     .rfloat {
       float: right;
     }
 
-    ul.groups > li > a {
-      display: block;
-      color: #333;
-      text-decoration: none;
+    ul.apps > li > a,
+    ul.settings > li > a {
+ display: block;
+color: #3d3d3d;
+background: white;
+text-decoration: none;
+font-size: 16px;
+padding: 14px 20px;
+border-bottom: 1px solid rgba(232, 230, 227, 0.6);
+word-wrap: break-word;
     }
     
-    ul.groups li a text {
-      font-size: 16px;
-      word-wrap: break-word;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      padding: 14px 20px 14px 0;
-      border-bottom: 1px solid rgba(232, 230, 227, 0.6);
-      display: block;
+    ul.networks {
+      
+padding: 10px;
+overflow: hidden;
     }
     
+    ul.networks > li > a > span {
+      font-size: 28px;
+display: block;
+    }
+    
+    
+    ul.networks > li > a {
+display: inline-block;
+width: 134px;
+height: 74px;
+font-size: 14px;
+text-align: center;
+float: left;
+background: white;
+text-decoration: none;
+margin: 7px;
+color: #333;
+padding: 10px;
+font-weight: bold;
+border: 1px solid rgba(232, 230, 227, 0.6);
+    }
+
     a.tapped {
       background: rgba(217, 217, 217, 0.25);
-    }
-    
-    ul.groups li img {
-      margin: 10px 12px 12px 15px;
-      width: 24px;
-      height: 24px;
-      opacity: .85;
-      float: left;
     }
 
 
   </style>
 </head>
 <body>
-  <ul class='groups'>  
-      <li>
-         <a href="/everyone">
-            <img src='/public/images/mobile/group.png'>
-            <text>Everyone</text>
-        </a>
-      </li>
-      {% for group in groups %}      
+  <ul class='networks'>
+      {% for network in owner.networks %}      
         <li>
-           <a href="/group/{{ group.id }}">
-              <img src='/public/images/mobile/group.png'>
-              <text>{{ group.name }}</text>
+          <a href='{{ network.url }}{% if network.latest_session_id %}?session_id={{ network.latest_session_id }}{% endif %}'>
+            <span class='unread {% if network.unread_notifications == 0 %}grey{% endif %}'>{{ network.unread_notifications }}</span>
+            {{ network.name }} 
           </a>
         </li>
       {% endfor %}
+  </ul>
+  <ul class='apps'>
+    <li>
+      <a>Notes</a>
+      <a>Files</a>
+    </li>
+  </ul>
+  <ul class='settings'>
+    <li>
+      <a>Account Settings</a>
+      <a>Sign Out</a>
+    </li>
   </ul>
   <script src='/public/scripts/zepto.min.js'></script>
   <script src='/public/scripts/touch.js'></script>
