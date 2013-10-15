@@ -2533,7 +2533,11 @@ def home():
 
   # for sub-network, network = mp3.com
   # for homepage, network = ''
-  network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+  if len(hostname) > len(settings.PRIMARY_DOMAIN):
+    network = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+  else:
+    network = ""
+
   network_exist = 1
   
   # get session_id with this priority
@@ -2577,8 +2581,6 @@ def home():
       resp.set_cookie('network', owner.email_domain)
       return resp
   else:
-    # this is to handle sub-network because the hostname now is already mp3.com.jupo.com
-
     # authentication OK, redirect to /news_feed
     if user_id:
       # network = request.cookies.get('network')
@@ -2606,7 +2608,7 @@ def home():
       print "DEBUG - in home() - about to redirect to news_feed. current network = " + str(network)
       return resp
     else:
-      pass
+      #pass
       #try:
       #  session.pop('session_id')
       #except KeyError:
@@ -2619,6 +2621,8 @@ def home():
 
       if session_id:
         flash('Session is invalid. Please check again')
+      print "DEBUG - in home() - about to render homepage - hostname = " + str(hostname)
+      print "DEBUG - in home() - about to render homepage - network = " + str(network)
       resp = Response(render_template('landing_page.html',
                                       email=email,
                                       settings=settings,

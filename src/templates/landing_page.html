@@ -75,7 +75,7 @@
   </header>
 
   <div class="site-content">
-    {% if network %}
+    {% if network and network != "" %}
     <div class="jumbotron network-page">
     <div class="inner">
       <div class="container">
@@ -403,7 +403,7 @@
 		!(function($) {
       // random number that will change after 300 seconds (5 mins)
       var randomNumber = (Math.round((new Date().getTime()/1000)/300) % 3) + 1;
-      var imageUrl = 'http://jupo.localhost.com/public/assets/img/head-' + randomNumber + '.jpg';
+      var imageUrl = 'http://{{ domain }}/public/assets/img/head-' + randomNumber + '.jpg';
 
       $('div.network-page').first().css('background-image', 'url("' + imageUrl + '")');
 
