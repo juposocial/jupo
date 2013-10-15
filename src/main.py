@@ -727,7 +727,8 @@ def authentication(action=None):
 
     auth_whitelist = []
     if current_network is not None and 'auth_normal_whitelist' in current_network:
-      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
     # default email domain
     auth_whitelist.append(network)
 
@@ -827,7 +828,8 @@ def authentication(action=None):
 
     auth_whitelist = []
     if current_network is not None and 'auth_normal_whitelist' in current_network:
-      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
     # default email domain
     auth_whitelist.append(network)
 
@@ -1064,7 +1066,9 @@ def google_authorized():
 
     auth_whitelist = []
     if current_network is not None and 'auth_normal_whitelist' in current_network:
-      auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
+
     # default email domain
     auth_whitelist.append(network)
   
@@ -1194,7 +1198,8 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
 
         auth_whitelist = []
         if current_network is not None and 'auth_normal_whitelist' in current_network:
-          auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+          # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+          auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
         # default email domain
         auth_whitelist.append(network)
 
