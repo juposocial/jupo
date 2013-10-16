@@ -3071,8 +3071,9 @@ def get_focus_feeds(session_id, page=1):
                    .limit(settings.ITEMS_PER_PAGE)
   return [Feed(i, db_name=db_name) for i in feeds]
 
-def get_user_posts(session_id, user_id, page=1):
-  db_name = get_database_name()
+def get_user_posts(session_id, user_id, page=1, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = long(user_id)
@@ -3102,16 +3103,17 @@ def get_user_posts(session_id, user_id, page=1):
                                         
   return [Feed(i, db_name=db_name) for i in feeds if i]
 
-def get_user_notes(session_id, user_id, limit=3):
-  db_name = get_database_name()
+def get_user_notes(session_id, user_id, limit=3, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = long(user_id)
-  owner_id = get_user_id(session_id)
+  owner_id = get_user_id(session_id, db_name=db_name)
   if not owner_id:
     return []
-  groups_list_1 = get_group_ids(owner_id)
-  groups_list_2 = get_group_ids(user_id)
+  groups_list_1 = get_group_ids(owner_id, db_name=db_name)
+  groups_list_2 = get_group_ids(user_id, db_name=db_name)
   viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
   viewers.append('public')
 
@@ -3125,16 +3127,17 @@ def get_user_notes(session_id, user_id, limit=3):
   return [Note(i) for i in notes if i]
 
 
-def get_user_files(session_id, user_id, limit=3):
-  db_name = get_database_name()
+def get_user_files(session_id, user_id, limit=3, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = long(user_id)
-  owner_id = get_user_id(session_id)
+  owner_id = get_user_id(session_id, db_name=db_name)
   if not owner_id:
     return []
-  groups_list_1 = get_group_ids(owner_id)
-  groups_list_2 = get_group_ids(user_id)
+  groups_list_1 = get_group_ids(owner_id, db_name=db_name)
+  groups_list_2 = get_group_ids(user_id, db_name=db_name)
   viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
   viewers.append('public')
 
