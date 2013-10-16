@@ -1,0 +1,160 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Jupo: Please upgrade your browser</title>
+    <style>
+      body {
+        background: #fafafa;
+        color: #333;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+
+      header {
+        width: 565px;
+        display: block;
+        margin: 0 auto 25px;
+        text-shadow: 0 1px 0 white;
+        text-align: center;
+      }
+
+      div.downloads {
+        background: white;
+        width: 525px;
+        margin: 0 auto;
+        border: 1px solid #f2f2f2;
+        border-radius: 1px;
+      }
+
+      footer {
+        text-align: center;
+        font-size: 14px;
+        color: #444;
+        margin-top: 20px;
+        text-shadow: 0 1px 0 white;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 0;
+        color: #444;
+      }
+
+      h2 {
+        font-size: 18px;
+        margin: 0;
+      }
+      a {
+        color: #333;
+        text-decoration: none;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      a:hover > h2 {
+        text-decoration: underline;
+      }
+      a:active > h2 {
+        color: #666;
+      }
+
+      a > h2 {
+        color: #444;
+      }
+
+      a > p {
+        color: #999;
+        color: #999;
+        font-size: 13px;
+        line-height: 18px;
+        margin-top: 3px;
+      }
+
+      div.downloads a > img {
+        width: 44px;
+        position: absolute;
+        left: 20px;
+      }
+
+      div.downloads > a {
+        display: block;
+        padding: 20px 25px;
+        border-bottom: 1px solid #f2f2f2;
+        position: relative;
+        padding-left: 75px;
+        min-height: 44px;
+      }
+
+      header > p {
+        line-height: 20px;
+        margin-top: 10px;
+        font-size: 14px;
+        color: #666;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+      
+      div.downloads a.firefox h2, div.downloads a.safari h2 {
+        line-height: 40px;
+      }
+      
+      img.logo {
+        height: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href='http://jupo.com/' title='Jupo'>
+        <img src="/public/images/logo/jupo-black.png" height='100'>
+      </a>
+      <h1>Please upgrade your browser to use Jupo.</h1>
+      <p>
+        We built Jupo using the latest technology.
+        This makes Jupo faster and easier to use.
+        <br>
+        Unfortunately, your browser doesn't support those technologies.
+        <br>
+        
+        Download and install one of these great browsers and you'll be on your way.
+      </p>
+    </header>
+    <div class='downloads' title='Download Google Chrome'>
+
+      <a href='https://www.google.com/intl/en/chrome/browser/'> 
+        <img src='/public/images/chrome.png' width='44' height='44'> 
+        <h2>Install the latest version of Google Chrome</h2>
+        <p>
+          Chrome is fast and always stays up-to-date.
+        </p> 
+      </a>
+
+      <a href='http://www.google.com/chromeframe?prefersystemlevel=true' title='Download Google Chrome Frame'> 
+        <img src='/public/images/chrome-gray.png' width='44' height='44'> 
+        <h2>Can't upgrade your current browser?</h2>
+        <p>
+          Try Google Chrome Frame for free. It lets you access nearly all the
+          features without changing your current browser.
+        </p> 
+      </a>
+
+      <a href='http://www.mozilla.org/en-US/firefox/new/' title='Download Mozilla Firefox' class='firefox'> 
+        <img src='/public/images/firefox.png' width='44' height='44'> 
+        <h2>Install the latest version of Mozilla Firefox</h2> 
+      </a>
+
+      <a href='http://www.apple.com/safari/' title='Download Apple Safari' class='safari'> 
+        <img src='/public/images/safari.png' width='44' height='44'> 
+        <h2>Install the latest version of Apple Safari</h2> 
+      </a>
+    </div>
+    <footer>
+      <p>
+        Already upgraded but still having problems?
+        <a href='mailto:support@jupo.com'>Contact us</a>.
+      </p>
+    </footer>
+  </body>
+</html>
