@@ -65,8 +65,12 @@ oauth = OAuth()
     
 def redirect(url, code=302):
   if not url.startswith('http') and request.cookies.get('network'):
-  # if request.cookies.get('network'):
-    url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
+    hostname = request.headers.get('Host', '').split(':')[0]
+    network = api.get_network_by_current_hostname(hostname)
+    if network == request.cookies.get('network'):
+      url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
+    else:
+      url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, network, url)
   return redirect_to(url, code=code)
 
 @line_profile
