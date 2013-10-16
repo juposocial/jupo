@@ -267,6 +267,15 @@ div.overview div.info {
   color: #666;
 }
 
+li.more {
+  overflow: hidden;
+  margin-top: -15px;
+}
+
+li.more.tapped section a {
+  color: #3A79F6;
+}
+
 li.more section {
   padding: 0;
   text-align: center;

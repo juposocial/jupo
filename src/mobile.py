@@ -179,10 +179,40 @@ def get_user_info():
   resp = Response(dumps(data), mimetype='application/json')
   return resp
 
+
+@app.route('/menu')
+def menu():
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  network = data.get('network')
+#   utcoffset = data.get('utcoffset')
+
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+  
+  owner = api.get_user_info(user_id, db_name=db_name)
+  
+  return render_template('mobile/menu.html', owner=owner)
+  
   
 @app.route('/news_feed', methods=['GET', 'OPTIONS'])
 @app.route('/news_feed/page<int:page>', methods=['GET', 'OPTIONS'])
-@app.route("/feed/<int:feed_id>", methods=['GET', 'OPTIONS'])
+@app.route('/feed/<int:feed_id>', methods=['GET', 'OPTIONS'])
 def news_feed(page=1, feed_id=None):
   if session and session.get('session_id'):
     data = session
