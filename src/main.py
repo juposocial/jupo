@@ -51,7 +51,6 @@ import settings
 from lib.verify_email_google import is_google_apps_email
 from app import CURRENT_APP, render
 
-
 requests.adapters.DEFAULT_RETRIES = 3
 
 app = CURRENT_APP
@@ -668,7 +667,6 @@ def notify_me():
 def jobs():
   return redirect('http://bit.ly/17J9aYk')
 
-  
 @app.route("/<any(sign_in, sign_up, sign_out, forgot_password, reset_password):action>", methods=["GET", "OPTIONS", "POST"])
 def authentication(action=None):
   hostname = request.headers.get('Host')
@@ -2536,7 +2534,9 @@ def messages(user_id=None, topic_id=None, action=None):
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
   db_name=hostname.replace('.', '_')
-
+  
+  
+  
   # for sub-network, network = mp3.com
   # for homepage, network = ''
   network = api.get_network_by_current_hostname(hostname)
@@ -2656,6 +2656,8 @@ def news_feed(page=1):
   # import pdb
   # pdb.set_trace()
 
+  
+  
   session_id = session.get("session_id")
   print "DEBUG - just enter news_feed - session_id got from session = " + str(session_id)
     
