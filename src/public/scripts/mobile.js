@@ -64,6 +64,13 @@ $(document).ready(function() {
     return false;
   });
   
+  $('body').on("tap", 'li.more', function(e) {
+    e.preventDefault();
+    $(this).addClass('tapped');
+    $('a.next', $(this)).trigger('click');
+    return false;
+  });
+  
   
   $('body').on("click", 'a.next', function(e) {
     e.preventDefault();
@@ -85,7 +92,7 @@ $(document).ready(function() {
     return false;
   });
   
-  $('body').on("click", 'a', function(e) {
+  $('body').on("click", 'a:not(.next)', function(e) {
     e.preventDefault();
     
     var url = $(this).attr('href');
@@ -96,4 +103,7 @@ $(document).ready(function() {
     
     return false;
   });
+  
+    
+  
 });
