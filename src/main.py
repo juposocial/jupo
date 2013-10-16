@@ -3656,7 +3656,7 @@ class NetworkNameDispatcher(object):
     else:
       request = Request(environ)
       network = request.cookies.get('network')
-      if not network:
+      if not network or not api.is_domain_name(network):
         return self.app(environ, start_response)
 
       if request.method == 'GET':
