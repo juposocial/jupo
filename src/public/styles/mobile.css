@@ -265,6 +265,8 @@ div.overview h3 {
 div.overview div.info {
   font-size: 12px;
   color: #666;
+  margin-top: 2px;
+  line-height: 16px;
 }
 
 li.more {

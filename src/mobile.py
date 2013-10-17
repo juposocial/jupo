@@ -196,7 +196,7 @@ def user(user_id=None, page=1, view=None):
   
   session_id = data.get('session_id')
   network = data.get('network')
-  utcoffset = data.get('utcoffset')
+#   utcoffset = data.get('utcoffset')
 
   db_name = '%s_%s' % (network.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
@@ -209,7 +209,6 @@ def user(user_id=None, page=1, view=None):
 
   owner = api.get_user_info(user_id, db_name=db_name)
 
-  
   view = 'view'
   title = user.name
   if not session_id or owner.id == user.id:
@@ -218,20 +217,13 @@ def user(user_id=None, page=1, view=None):
   else:
     feeds = api.get_user_posts(session_id, user_id, 
                                page=page, db_name=db_name)
-    
-  user.recent_files = api.get_user_files(session_id, user_id=user.id, limit=3)
-  user.recent_notes = api.get_user_notes(session_id, user_id=user.id, limit=3)
-    
-  coworkers = [user]
   
-  return render_template('mobile/user.html', 
-                           view=view, 
-                           user=user,
-                           owner=owner,
-                           title=title, 
-                           settings=settings,
-                           coworkers=coworkers,
-                           feeds=feeds)
+  return render_template('mobile/user.html', view=view, 
+                                             user=user,
+                                             owner=owner,
+                                             title=title, 
+                                             settings=settings,
+                                             feeds=feeds)
         
 
 @app.route('/menu')
