@@ -320,7 +320,20 @@ def group(group_id='public', view='group', page=1):
                           request=request,
                           view=view)
   
-  
+
+@app.route('/notification', methods=['GET', 'POST'])
+@app.route('/notification/<int:ref_id>-comments', methods=['GET', 'POST'])
+@app.route('/notification/<int:id>', methods=['GET', 'POST'])
+@app.route('/notification/<int:id>/mark_as_read', methods=['GET', 'POST'])
+@app.route('/post/<int:post_id>/mark_as_read', methods=['GET', 'POST'])
+@app.route('/notifications/mark_as_read', methods=['GET', 'POST'])
+def notification():
+  url_redirect = request.args.get('continue')
+  if url_redirect:
+    return redirect(url_redirect)
+  abort(404)
+
+
 @app.route('/notifications', methods=['GET', 'OPTIONS'])
 def notifications():
   if session and session.get('session_id'):
