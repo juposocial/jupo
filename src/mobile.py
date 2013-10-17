@@ -355,6 +355,32 @@ def notifications():
                          network=network,
                          request=request,
                          notifications=notifications)
+  
+  
+@app.route('/notification/<int:notification_id>')
+@app.route('/notification/<int:ref_id>-comments')
+def notification(notification_id=None, ref_id=None):
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  
+  
+  if notification_id:
+    api.mark_notification_as_read(session_id, notification_id)
+  elif ref_id:
+    api.mark_notification_as_read(session_id, ref_id=ref_id)
+  
+  return redirect(request.args.get('continue'))
 
 
 if __name__ == "__main__":

@@ -144,8 +144,6 @@
         success: function(data) {
           $('ul.notifications').html(data);
           
-          refresh();
-          
           $('body').animate({scrollTop: 0}, 100, 'swing', function() { 
              console.log("Finished animating");
           });
