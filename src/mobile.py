@@ -179,6 +179,60 @@ def get_user_info():
   resp = Response(dumps(data), mimetype='application/json')
   return resp
 
+@app.route('/user/<int:user_id>', methods=['GET', 'OPTIONS'])
+@app.route('/user/<int:user_id>/page<int:page>', methods=['GET', 'OPTIONS'])
+def user(user_id=None, page=1, view=None):
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+  
+  session_id = data.get('session_id')
+  network = data.get('network')
+  utcoffset = data.get('utcoffset')
+
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  
+  user = api.get_user_info(user_id, db_name=db_name)
+
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+
+  owner = api.get_user_info(user_id, db_name=db_name)
+
+  
+  view = 'view'
+  title = user.name
+  if not session_id or owner.id == user.id:
+    feeds = api.get_public_posts(user_id=user.id, page=page,
+                                 db_name=db_name)
+  else:
+    feeds = api.get_user_posts(session_id, user_id, 
+                               page=page, db_name=db_name)
+    
+  user.recent_files = api.get_user_files(session_id, user_id=user.id, limit=3)
+  user.recent_notes = api.get_user_notes(session_id, user_id=user.id, limit=3)
+    
+  coworkers = [user]
+  
+  return render_template('mobile/user.html', 
+                           view=view, 
+                           user=user,
+                           owner=owner,
+                           title=title, 
+                           settings=settings,
+                           coworkers=coworkers,
+                           feeds=feeds)
+        
 
 @app.route('/menu')
 def menu():
