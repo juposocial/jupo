@@ -108,7 +108,7 @@ $(document).ready(function() {
     return value;
   }
   
-  $('ul.stream').on('touchend', 'a.toggle' ,function(e){
+  $('ul.stream').on('touchend', 'a.toggle', function(e){
     
     var new_class = $(this).data('class');
     var new_href = $(this).data('href');
