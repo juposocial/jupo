@@ -208,8 +208,8 @@ def user(user_id=None, page=1, view=None):
     abort(401)
 
   owner = api.get_user_info(user_id, db_name=db_name)
-
   view = 'view'
+  mode = 'view'
   title = user.name
   if not session_id or owner.id == user.id:
     feeds = api.get_public_posts(user_id=user.id, page=page,
@@ -217,14 +217,24 @@ def user(user_id=None, page=1, view=None):
   else:
     feeds = api.get_user_posts(session_id, user_id, 
                                page=page, db_name=db_name)
-  
-  return render_template('mobile/user.html', view=view, 
-                                             user=user,
-                                             owner=owner,
-                                             title=title, 
-                                             settings=settings,
-                                             feeds=feeds)
-        
+  if page == 1:
+    return render_template('mobile/user.html', view=view, 
+                                               user=user,
+                                               owner=owner,
+                                               title=title, 
+                                               settings=settings,
+                                               feeds=feeds)
+  else:
+    posts = [render(feeds, 'feed', owner,
+                    viewport='view', mode=mode, mobile=True)]
+    if len(feeds) != 5:
+      posts.append(render_template('more.html', more_url=None))
+    else:
+      posts.append(render_template('more.html',
+                                   more_url='/user/%s/page%d' \
+                                   % (user_id, page+1)))
+    return ''.join(posts)
+
 
 @app.route('/menu')
 def menu():
