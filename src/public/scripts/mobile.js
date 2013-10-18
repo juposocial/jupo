@@ -72,6 +72,7 @@ $(document).ready(function() {
   });
   
   
+  
   $('body').on("click", 'a.next', function(e) {
     e.preventDefault();
     
@@ -92,6 +93,81 @@ $(document).ready(function() {
     return false;
   });
   
+  function incr(id, value) {
+    var item = $(id);
+    var value = typeof (value) != 'undefined' ? value : 1;
+    if (item.html() == '...') {
+        return false;
+      }
+      value = parseInt(item.html()) + parseInt(value);
+      item.html(value);
+      if (value != 0) {
+        item.show();
+      }
+      
+    return value;
+  }
+  
+  $('ul.stream').on('touchend', 'a.toggle' ,function(e){
+    
+    var new_class = $(this).data('class');
+    var new_href = $(this).data('href');
+    var new_name = $(this).data('name');
+    var new_title = $(this).data('title');
+    var href = $(this).attr('href');
+
+    if (new_class != undefined) {
+      $(this).data('class', $(this).attr('class'));
+    }
+    $(this).data('name', $(this).html());
+    $(this).data('href', href);
+    $(this).data('title', $(this).attr('title'));
+
+    if (new_class != undefined) {
+      $(this).attr('class', new_class.replace('toggle', '') + ' toggle');
+    }
+    $(this).html(new_name);
+    $(this).attr('href', new_href);
+    $(this).attr('title', new_title);
+    
+    if (href.indexOf('/like') != -1) {
+      likes = $(this).next('span.likes');
+      counter_id = '#' + likes.children('span.counter').attr('id');
+      incr(counter_id, 1);
+      
+      if ($(counter_id).html() != '0') {
+        likes.removeClass('hidden');
+      } else {
+        likes.addClass('hidden');
+      }
+
+    } else if (href.indexOf('/unlike') != -1) {
+      likes = $(this).next('span.likes');
+      counter_id = '#' + likes.children('span.counter').attr('id');
+      incr(counter_id, -1);
+      
+      if ($(counter_id).html() != '0') {
+        likes.removeClass('hidden');
+      } else {
+        likes.addClass('hidden');
+      }
+    }
+
+    if (href != '#') {
+      $.ajax({
+        url: href,
+        type: 'POST',
+        success: function(resp) {
+          console.log(resp);
+          return false;
+        }
+      });
+    }
+    
+    e.stopPropagation();
+    return false;
+  });
+  
   $('body').on("click", 'a:not(.next)', function(e) {
     e.preventDefault();
     
@@ -103,7 +179,5 @@ $(document).ready(function() {
     
     return false;
   });
-  
-    
-  
+
 });
