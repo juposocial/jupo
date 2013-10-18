@@ -313,6 +313,7 @@ def news_feed(page=1, feed_id=None):
   
 
 @app.route("/everyone", methods=['GET', 'OPTIONS'])
+@app.route("/everyone/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route("/group/<int:group_id>", methods=['GET', 'OPTIONS'])
 @app.route("/groups")
 def group(group_id='public', view='group', page=1):
