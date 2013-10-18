@@ -108,7 +108,8 @@ $(document).ready(function() {
     return value;
   }
   
-  $('ul.stream').on('touchend', 'a.toggle', function(e){
+  $('ul.stream').on('tap', 'a.toggle', function(e) {
+    e.preventDefault();
     
     var new_class = $(this).data('class');
     var new_href = $(this).data('href');
@@ -119,6 +120,7 @@ $(document).ready(function() {
     if (new_class != undefined) {
       $(this).data('class', $(this).attr('class'));
     }
+    
     $(this).data('name', $(this).html());
     $(this).data('href', href);
     $(this).data('title', $(this).attr('title'));
@@ -168,8 +170,12 @@ $(document).ready(function() {
     return false;
   });
   
-  $('body').on("click", 'a:not(.next)', function(e) {
+  $('body').on("click", 'a', function(e) {
     e.preventDefault();
+    
+    if ($(this).hasClass('next') || $(this).hasClass('toggle')) {
+      return false;
+    } 
     
     var url = $(this).attr('href');
     var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
