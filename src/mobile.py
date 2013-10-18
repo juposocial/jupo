@@ -179,6 +179,52 @@ def get_user_info():
   resp = Response(dumps(data), mimetype='application/json')
   return resp
 
+@app.route('/user/<int:user_id>', methods=['GET', 'OPTIONS'])
+@app.route('/user/<int:user_id>/page<int:page>', methods=['GET', 'OPTIONS'])
+def user(user_id=None, page=1, view=None):
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+  
+  session_id = data.get('session_id')
+  network = data.get('network')
+#   utcoffset = data.get('utcoffset')
+
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  
+  user = api.get_user_info(user_id, db_name=db_name)
+
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+
+  owner = api.get_user_info(user_id, db_name=db_name)
+
+  view = 'view'
+  title = user.name
+  if not session_id or owner.id == user.id:
+    feeds = api.get_public_posts(user_id=user.id, page=page,
+                                 db_name=db_name)
+  else:
+    feeds = api.get_user_posts(session_id, user_id, 
+                               page=page, db_name=db_name)
+  
+  return render_template('mobile/user.html', view=view, 
+                                             user=user,
+                                             owner=owner,
+                                             title=title, 
+                                             settings=settings,
+                                             feeds=feeds)
+        
 
 @app.route('/menu')
 def menu():
@@ -355,8 +401,58 @@ def notifications():
                          network=network,
                          request=request,
                          notifications=notifications)
+
+@app.route("/feed/<int:feed_id>/<action>", methods=["GET", "POST"])
+def feed_actions(feed_id=None, action=None, 
+                 message_id=None, domain=None, comment_id=None):
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  network = data.get('network')
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
   
-  
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+    
+  owner = api.get_user_info(user_id, db_name=db_name)
+  if action == 'comment':
+    message = request.form.get('message', '')
+    if not message:
+      abort(403)
+    reply_to = []
+    attachments = []
+    from_addr = []
+    info = api.new_comment(session_id, 
+                           message, feed_id, attachments, 
+                           reply_to=reply_to,
+                           from_addr=from_addr,
+                           db_name=db_name)
+    
+    if not info:
+      abort(400)
+    
+    item = {'id': feed_id}
+    html = render_template('comment.html', 
+                           comment=info,
+                           prefix='feed',
+                           item=item,
+                           owner=owner)
+    
+    return html
+
+
 @app.route('/notification/<int:notification_id>')
 @app.route('/notification/<int:ref_id>-comments')
 def notification(notification_id=None, ref_id=None):

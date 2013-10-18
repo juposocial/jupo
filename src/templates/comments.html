@@ -56,19 +56,24 @@
     {% if owner.id %}
     
     
-      {% if not mode or mobile %}
-      <li class='write-a-comment'>
-        
-        <img src='{{ owner.avatar }}' class='small-avatar lfloat'>
-        
-        {% if owner.id %}
-        <a class="reply" rel="#{{ item.id }}-comments">Write a comment</a>
-        {% else %}
-        <a href='/?back_to=/feed/{{ item.id }}#comments' class="sign-in-to-write-a-comment">Write a comment</a>
-        {% endif %}
-      </li>
+      {% if not mode and not mobile %}
+        <li class='write-a-comment'>
+          <img src='{{ owner.avatar }}' class='small-avatar lfloat'>
+          {% if owner.id %}
+            <a class="reply" rel="#{{ item.id }}-comments">Write a comment</a>
+          {% else %}
+            <a href='/?back_to=/feed/{{ item.id }}#comments' class="sign-in-to-write-a-comment">Write a comment</a>
+          {% endif %}
+        </li>
       {% endif %}
-      
+      {% if mobile %}
+        <li class='write-a-comment'>
+          <form id='new-comment-{{ item.id }}' class="new-comment" action="/feed/{{ item.id }}/comment" method="POST">
+            <img src='{{ owner.avatar }}' class='small-avatar lfloat'>
+            <textarea class="mention" name="message" placeholder="Write a comment"></textarea>
+          </form>
+        </li>
+      {% endif %}
       {% if not mobile %}
       <li class="new-comment {% if not mode %}hidden{% endif %}">
           <form id='new-comment-{{ item.id }}' class="new-comment" action="/feed/{{ item.id }}/comment" method="POST">
