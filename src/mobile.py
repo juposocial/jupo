@@ -128,7 +128,6 @@ def google_authorized():
   for group in api.get_groups(session_id, db_name=db_name, limit=5):
     groups.append({'name': group.name,
                    'link': '/group/%s' % group.id})
-    
   data = {'id': user_id,
           'name': user.name,
           'avatar': user.avatar,
@@ -266,16 +265,14 @@ def news_feed(page=1, feed_id=None):
     authorization = request.headers.get('Authorization')
     if not authorization or not authorization.startswith('session '):
       abort(401)
-      
+       
     data = SecureCookie.unserialize(authorization.split()[-1], 
                                     settings.SECRET_KEY)
     if not data:
       abort(401)
-    
+     
   session_id = data.get('session_id')
   network = data.get('network')
-#   utcoffset = data.get('utcoffset')
-
   db_name = '%s_%s' % (network.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
 
@@ -366,7 +363,46 @@ def group(group_id='public', view='group', page=1):
                           settings=settings,
                           request=request,
                           view=view)
+
+@app.route('/like/<int:item_id>', methods=['GET', 'POST'])
+@app.route('/unlike/<int:item_id>', methods=['GET', 'POST'])
+def like(item_id):
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+       
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+     
+  session_id = data.get('session_id')
+  network = data.get('network')
+  utcoffset = data.get('utcoffset')
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
   
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+   
+  owner = api.get_user_info(user_id, db_name=db_name)
+  post_id = item_id
+    
+  if request.path.startswith('/like/'):
+    is_ok = api.like(session_id, item_id, 
+                     post_id, db_name=db_name)
+  else:
+    is_ok = api.unlike(session_id, item_id, post_id,
+                       db_name=db_name)
+  if is_ok:  
+    return 'OK'
+  else:
+    return 'Error'  
+
   
 @app.route('/notifications', methods=['GET', 'OPTIONS'])
 def notifications():
