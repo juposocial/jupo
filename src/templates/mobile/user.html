@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+  <link rel="stylesheet" href="/public/styles/mobile.css">
+</head>
+
+<body>
+  <div class='overview'>
+    <h3>{{ user.name }}</h3>
+    <div class='info'>
+      Member of {{ user.groups_count }} Group{% if user.groups_count != 1%}s{% endif %}<br>
+      Last Activity: {{ user.last_online | friendly_format(owner.utcoffset, short=True) }}
+    </div>
+  </div>
+
+  <ul class="stream">
+    {% if not feeds %}
+      <span class="empty">Nothing here</span>
+    {% else %}
+
+    {% autoescape on %}
+      {{ feeds | render("feed", owner, view, mode, mobile=True) }}
+    {% endautoescape %}
+
+    {% endif %}
+
+    {% if feeds | length == 5 %}
+      {% set more_url = '/user/%s/page2' % user.id %}
+      {% include 'more.html' %}
+    {% endif %}
+  </ul>
+
+
+  <script src='/public/scripts/zepto.min.js'></script>
+  <script src='/public/scripts/touch.js'></script>
+  <script src='/public/scripts/mobile.js'></script>
+
+</body>
