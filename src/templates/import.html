@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!--[if (IE 8)&!(IEMobile)]><html class="no-js lt-ie9" lang="en"><![endif]-->
+<!--[if (IE 9)]><html class="no-js ie9" lang="en"><![endif]-->
+<!--[if gt IE 8]><!--> <html lang="en-US"> <!--<![endif]-->
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Jupo - Importer</title>
+  <link href="/public/assets/css/style.css" rel="stylesheet">
+  <link href="/public/assets/css/font-awesome.css" rel="stylesheet">
+  <!--[if (lt IE 9) & (!IEMobile)]>
+  <link href="/public/assets/css/ie8.css" rel="stylesheet">
+  <![endif]-->
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
+  <script src="/public/assets/js/modernizr.js"></script>
+
+  <link rel="shortcut icon" href="/public/assets/img/favicon.ico">
+
+</head>
+<body class="homepage">
+<div class="container">
+
+<div class="import">
+  <div class="rfloat">
+  </div>
+  <h3>Intro</h2>
+  <p>
+    We currently support importing data (posts, comments, users) from Facebook (with more to come)
+  </p>
+  <hr/>
+  <h3 class="text-info">Step 1 - Authenticate</h3>
+  <div class='social-login'>
+    <!--<a href='http://jupo.localhost.com/oauth/facebook?domain=jupo.localhost.com&network=mp3.com&is_import=true' class='facebook-button'> <i class='fb-icon'></i> <span> Import from Facebook </span></a>-->
+    <a href='http://jupo.localhost.com/oauth/facebook?domain=jupo.localhost.com&network=mp3.com&action=import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Authenticate with Facebook </span> </a>
+  </div>
+  <form action="/oauth/facebook/authorized_import_step_2">
+  {% if source_facebook_groups %}
+    <h3 class="text-info">Step 2 - Select source Facebook group to import</h3>
+      <select name="source_facebook_group_id">
+      {% for facebook_group in source_facebook_groups %}
+        <option value="{{ facebook_group['id'] }}">{{ facebook_group['name'] }}</option>
+      {% endfor %}
+      </select>
+  {% endif %}
+
+  {% if target_jupo_groups %}
+    <h3 class="text-info">Step 3 - Select target Jupo group to import</h3>
+      <select name="target_jupo_group_id">
+      {% for jupo_group in target_jupo_groups %}
+        <option value="{{ jupo_group['id'] }}">{{ jupo_group['name'] }}</option>
+      {% endfor %}
+      </select>
+  {% endif %}
+
+  {% if source_facebook_groups and target_jupo_groups %}
+    <h3 class="text-info">Step 4 - Select import options</h3>
+    <div class="checkbox">
+      <label>
+        <input type="checkbox" name="import_comment_likes">Import likes of comments ? This will take more time
+      </label>
+    </div>
+    <br/>
+
+    <input type="hidden" name="domain" value="{{ domain }}"/>
+    <input type="hidden" name="network" value="{{ network }}"/>
+    <button type="submit" class="btn btn-primary">Import</button>
+    <p>Please note that this task will be run in the background and we will notify you once it's finished :)</p>
+
+  {% endif %}
+  </form>
+
+</div>
+</div>
+</body>
+</html>

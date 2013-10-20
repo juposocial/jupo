@@ -647,7 +647,6 @@ def get_friend_suggestions(user_info):
   return users
 
 def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
-  print "DEBUG - in get_user_id - session_id = " + str(session_id)
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -659,7 +658,6 @@ def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
       % (db_name, session_id if session_id \
                              else facebook_id if facebook_id else email)
   user_id = cache.get(key)
-  print "DEBUG - in get_user_id - user_id from cache = " + str(user_id)
   if user_id:
     return user_id
   
@@ -670,7 +668,6 @@ def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
     user = db.owner.find_one({"facebook_id": facebook_id}, {'_id': True})
   else:
     user = db.owner.find_one({"session_id": session_id}, {'_id': True})
-    print "DEBUG - in get_user_id - user from Mongo, db = " + db_name + ", searched by session_id = " + str(session_id) + " - user = " + str(user)
   
   if user:
     user_id = user.get("_id")
@@ -2593,7 +2590,7 @@ def new_post_from_email(message_id, receivers, sender,
   return True
 
 def new_feed(session_id, message, viewers, 
-             attachments=[], facebook_access_token=None):
+             attachments=[], facebook_access_token=None, updated_time=None, created_time=None):
   db_name = get_database_name()
   db = DATABASE[db_name]
   
@@ -2657,8 +2654,8 @@ def new_feed(session_id, message, viewers,
           'owner': user_id,
           'viewers': list(viewers),
           'hashtags': hashtags,
-          'timestamp': ts,
-          'last_updated': ts}
+          'timestamp': created_time if created_time else ts,
+          'last_updated': updated_time if updated_time else ts}
   if files:
     info['attachments'] = files
   
@@ -3426,7 +3423,7 @@ def mark_cancelled(session_id, task_id):
 # Comment Actions --------------------------------------------------------------
 
 def new_comment(session_id, message, ref_id, 
-                attachments=None, reply_to=None, from_addr=None, db_name=None):
+                attachments=None, reply_to=None, from_addr=None, db_name=None, updated_time=None, created_time=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -3442,7 +3439,7 @@ def new_comment(session_id, message, ref_id,
   comment = {'_id': new_id(),
              'owner': user_id,
              'message': message,
-             'timestamp': ts}    
+             'timestamp': created_time if created_time else ts}
   
   files = []
   if attachments:
@@ -3493,7 +3490,7 @@ def new_comment(session_id, message, ref_id,
   
   
   
-  info['last_updated'] = ts
+  info['last_updated'] = updated_time if updated_time else ts
   info['archived_by'] = []
   viewers.extend(mentions)
   viewers.append(info['owner'])
@@ -4529,6 +4526,33 @@ def new_file(session_id, attachment_id, viewers=None):
     cache.clear(user_id)
   
   return file_id
+
+def add_dummy_user(name, fb_id, avatar=None):
+  _id = new_id()
+
+  # generate dummy email based on name (to generate avatar based on initials)
+  email = name.replace(' ', '.') + "@jupo.com"
+
+  code = hashlib.md5(email + settings.SECRET_KEY).hexdigest()
+
+  db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  # check for existing user (using fb_id)
+  existing_user = db.owner.find_one({'fb_id': fb_id})
+
+  if existing_user:
+    return existing_user['session_id']
+  else:
+    db.owner.insert({'_id': _id,
+                     'fb_id': fb_id,
+                     'name': name,
+                     'email': email,
+                     'avatar': avatar,
+                     'timestamp': utctime(),
+                     'session_id': code})
+
+    return code
 
 def add_viewers(viewers, ref_id):
   db_name = get_database_name()
