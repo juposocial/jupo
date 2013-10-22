@@ -61,7 +61,14 @@ from boto.s3.connection import S3Connection
 from rq import Queue, use_connection
 from validate_email import validate_email
 
+import dateutil.parser as dateparser
+from facebook import GraphAPI
+import urllib
+from urlparse import urlparse
+import inspect
+
 from flask import request
+from flask import session
 
 try:
   from collections import OrderedDict as odict
@@ -123,6 +130,7 @@ invite_queue = Queue('invite')
 send_mail_queue = Queue('send_mail')
 move_to_s3_queue = Queue('move_to_s3')
 notification_queue = Queue('notification')
+importer_queue = Queue('importer')
 
 
 def send_mail(to_addresses, subject=None, body=None, mail_type=None, 
@@ -478,7 +486,8 @@ def get_database_name():
       db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
       # print "DEBUG - in get_database_name - db_name = " + str(db_name)
   if not db_name:
-    print "DEBUG - in get_database_name - can't find db_name @.@"
+    # print "DEBUG - in get_database_name - can't find db_name @.@ - caller is " + str(inspect.stack()[1][3])
+
     db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
   
   db_names = get_database_names()
@@ -647,6 +656,7 @@ def get_friend_suggestions(user_info):
   return users
 
 def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
+  # print "DEBUG - in get_user_id - caller is " + str(inspect.stack()[1][3])
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -766,6 +776,146 @@ def s3write(filename, filedata, overwrite=True, content_type=None):
       return True
     except Exception:
       continue
+
+def import_facebook(session_id, domain, network, facebook_token, source_facebook_group_id, target_jupo_group_id, import_comment_likes):
+  facebook_import = GraphAPI(facebook_token)
+
+  db_name = (network + '.' + domain).replace('.', '_')
+
+  groups = facebook_import.get('/me/groups')
+  # print "DEBUG - in import_facebook - groups = " + str(groups)
+
+  for group in groups['data']:
+    # 369148883154342 Joom group
+    # 153841081324271 Launch group
+    if group['id'] == source_facebook_group_id:
+      counter_group_paging = 0
+
+      next_feeds_page = ''
+      while counter_group_paging < 20 :
+
+        if counter_group_paging == 0:
+          # first time
+          current_group_feeds = facebook_import.get(group['id'] + '/feed')
+        else:
+          # subsequent times, use pagination retrieved from FB
+          # parsed_url = urlparse(next_feeds_page)
+          # end_point = parsed_url[2][1:]
+          # params = dict(ss.split('=') for ss in parsed_url[4].split('&'))
+          # params.pop('access_token', None)
+
+          print "DEBUG - in api.import_facebook - next_feeds_page 2nd+ time = " + str(next_feeds_page)
+
+          resp = requests.get(next_feeds_page)
+          print "DEBUG - in api.import_facebook - resp 2nd+ time = " + str(resp)
+          print "DEBUG - in api.import_facebook - resp 2nd+ time = " + str(resp.text)
+          current_group_feeds = resp.json()
+          print "DEBUG - in api.import_facebook - current_group_feeds = " + str(current_group_feeds)
+
+        next_feeds_page = current_group_feeds['paging']['next']
+        print "DEBUG - in api.import_facebook - next_feeds_page general = " + str(next_feeds_page)
+        counter = 0
+
+        for post in current_group_feeds['data']:
+          if counter < 5000:
+            # create dummy user if needed
+            # print str(post)
+
+            user_fb_id = post['from']['id']
+
+            poster_session_id = check_user_exist_by_fb_id(user_fb_id, db_name)
+
+            # only query user and add if they don't exists in our DB - save 1 query here
+            if not poster_session_id:
+              print "DEBUG - in api.import_facebook - user_fb_id = " + str(user_fb_id)
+              poster = facebook_import.get(user_fb_id)
+              print "DEBUG - in api.import_facebook - poster = " + str(poster)
+              poster_username = poster['username']
+              poster_avatar_url = 'http://graph.facebook.com/' + poster_username + '/picture'
+
+              poster_session_id = add_dummy_user(name=poster['name'], fb_id=user_fb_id, avatar=poster_avatar_url, db_name=db_name)
+
+            attachment = []
+
+            if post['type'] == 'photo':
+              image_url = post['picture'].replace('_s', '_o')
+              image_name = (image_url.split('//')[1]).split('/')[-1]
+
+              # print "DEBUG - in import from FB - image_name = " + str(image_name)
+              attached_photo_id = new_attachment(poster_session_id, image_name, urllib.urlopen(image_url).read(), db_name)
+
+              attachment.append(str(attached_photo_id))
+
+
+            if 'message' in post:
+              # print str(post['message'])
+
+              # import feed
+              new_feed_id = new_feed(poster_session_id,
+                             post['message'],
+                             #['public'],
+                             [target_jupo_group_id],
+                             attachment,
+                             None,
+                             float(dateparser.parse(post['updated_time']).strftime('%s.%f')),
+                             float(dateparser.parse(post['created_time']).strftime('%s.%f')),
+                             db_name,
+                             "True")
+
+              # import like
+              if 'likes' in post:
+                for l in post['likes']['data']:
+                  like_user_fb_id = l['id']
+                  like_user_session_id = add_dummy_user(name=l['name'], fb_id=like_user_fb_id, db_name=db_name)
+
+                  like(like_user_session_id, new_feed_id, new_feed_id, db_name, "True")
+
+              # import comment (if any)
+              if 'comments' in post:
+                for comment in post['comments']['data']:
+                  # print str(comment)
+                  comment_user_fb_id = comment['from']['id']
+
+                  comment_poster_session_id = check_user_exist_by_fb_id(user_fb_id, db_name)
+
+                  if not comment_poster_session_id:
+                    comment_poster = facebook_import.get(comment_user_fb_id)
+                    comment_poster_username = comment_poster['username']
+                    comment_poster_avatar_url = 'http://graph.facebook.com/' + comment_poster_username + '/picture'
+
+                    comment_poster_session_id = add_dummy_user(name=comment['from']['name'], fb_id=comment_user_fb_id, avatar=comment_poster_avatar_url, db_name=db_name)
+
+                  new_comment_obj = new_comment(session_id=comment_poster_session_id, message=comment['message'], ref_id=new_feed_id,
+                  attachments=None, reply_to=None, from_addr=None, db_name=db_name, updated_time=None, created_time=float(dateparser.parse(comment['created_time']).strftime('%s.%f')), is_import="True")
+
+                  # import like comment
+                  if import_comment_likes == 'true':
+                    current_comment = facebook_import.get(post['id'] + '_' + comment['id'] + '?fields=likes')
+                    # print str(vars(current_comment))
+                    # print str(current_comment.data)
+                    if 'likes' in current_comment:
+                      for like_comment in current_comment['likes']['data']:
+                        like_comment_user_fb_id = like_comment['id']
+                        like_comment_user_session_id = add_dummy_user(name=like_comment['name'], fb_id=like_comment_user_fb_id)
+
+                        like(like_comment_user_session_id, new_comment_obj.id, new_feed_id, db_name, "True")
+
+
+
+            counter = counter + 1
+
+        counter_group_paging = counter_group_paging + 1
+
+  # notification
+  current_user_id = get_user_id(session_id=session_id, db_name=db_name)
+
+  notification_queue.enqueue(new_notification,
+                               session_id, current_user_id,
+                               'import_completed',
+                               None, None, db_name=db_name)
+
+  return "True"
+
 
 
 def move_to_s3(fid, db_name=None):
@@ -1681,6 +1831,7 @@ def get_coworker_ids(user_id, db_name=None):
   
 
 def is_group(_id, db_name=None):
+  print "DEBUG - in is_group - caller is " + str(inspect.stack()[1][3])
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -1977,7 +2128,7 @@ def get_unread_notifications(session_id, db_name=None):
                                         'is_unread': True})\
                                  .sort('timestamp', -1)
 
-  offset = get_utcoffset(user_id)
+  offset = get_utcoffset(user_id, db_name)
   notifications = [Notification(i, offset, db_name) for i in notifications]
       
   results = odict()
@@ -2031,7 +2182,7 @@ def get_notifications(session_id, limit=25, db_name=None):
                                  .sort('timestamp', -1)\
                                  .limit(limit)
 
-  offset = get_utcoffset(user_id)
+  offset = get_utcoffset(user_id, db_name)
   notifications = [Notification(i, offset, db_name) for i in notifications]
   results = odict()
   
@@ -2118,14 +2269,15 @@ def mark_all_notifications_as_read(session_id):
   return True
 
 def mark_notification_as_read(session_id, notification_id=None, 
-                              ref_id=None, type=None, ts=None):
-  db_name = get_database_name()
+                              ref_id=None, type=None, ts=None, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not ts:
     ts = utctime()
     
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id=session_id, db_name=db_name)
   if notification_id:
     db.notification.update({'receiver': user_id, 
                             '_id': long(notification_id)},
@@ -2147,8 +2299,9 @@ def mark_notification_as_read(session_id, notification_id=None,
   return True
 
 # Feed/Stream/Focus Actions ----------------------------------------------------
-def mark_as_read(session_id, post_id):
-  db_name = get_database_name()
+def mark_as_read(session_id, post_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   post = get_feed(session_id, post_id)
@@ -2180,7 +2333,7 @@ def mark_as_read(session_id, post_id):
     for i in viewers:
       if i == 'public':
         continue
-      if is_group(i):
+      if is_group(i, db_name):
         member_ids = get_group_member_ids(i)
         for id in member_ids:
           user_ids.add(long(id))
@@ -2192,7 +2345,7 @@ def mark_as_read(session_id, post_id):
       push_queue.enqueue(publish, _id, 'read-receipts', record, db_name=db_name)
     
     # update notification
-    mark_notification_as_read(session_id, ref_id=post_id)
+    mark_notification_as_read(session_id=session_id, ref_id=post_id, db_name=db_name)
     
     unread_notifications_count = get_unread_notifications_count(user_id,
                                                                 db_name=db_name)
@@ -2250,8 +2403,9 @@ def unpin(session_id, feed_id):
   clear_html_cache(feed_id)  
   return feed_id
 
-def update_hashtag(tags):
-  db_name = get_database_name()
+def update_hashtag(tags, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not isinstance(tags, list):
@@ -2590,14 +2744,15 @@ def new_post_from_email(message_id, receivers, sender,
   return True
 
 def new_feed(session_id, message, viewers, 
-             attachments=[], facebook_access_token=None, updated_time=None, created_time=None):
-  db_name = get_database_name()
+             attachments=[], facebook_access_token=None, updated_time=None, created_time=None, db_name=None, is_import=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   if not message:
     return False
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id=session_id, db_name=db_name)
   if not user_id:
     return False
     
@@ -2644,7 +2799,7 @@ def new_feed(session_id, message, viewers,
   
   if not isinstance(message, dict): # system message
     hashtags = get_hashtags(message)
-    update_hashtag(hashtags)
+    update_hashtag(hashtags, db_name)
   else:
     hashtags = []
   
@@ -2672,34 +2827,35 @@ def new_feed(session_id, message, viewers,
   
   
   # send notification
-  for id in viewers:
-    if not is_group(id) and id != user_id:
-      notification_queue.enqueue(new_notification, 
-                                 session_id, id, 'message', 
-                                 ref_id=info.get('_id'), db_name=db_name)
-      push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
+  if not is_import:
+    for id in viewers:
+      if not is_group(id, db_name) and id != user_id:
+        notification_queue.enqueue(new_notification,
+                                   session_id, id, 'message',
+                                   ref_id=info.get('_id'), db_name=db_name)
+        push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
 
-      # send email
-      u = get_user_info(id)
-      
-      if u.email and 'share_posts' not in u.disabled_notifications and '@' in u.email and (u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180)):
-        send_mail_queue.enqueue(send_mail, u.email, mail_type='new_post',
-                                user_id=user_id, post=info, db_name=db_name)
+        # send email
+        u = get_user_info(user_id=id, db_name=db_name)
 
-    elif id == user_id:
-      push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
-    else: # set group last_updated time
-      db.owner.update({'_id': id},
-                      {'$set': {'last_updated': utctime()}})
-      push_queue.enqueue(publish, user_id, 
-                         '%s|unread-feeds' % id, info, db_name=db_name)
+        if u.email and 'share_posts' not in u.disabled_notifications and '@' in u.email and (u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180)):
+          send_mail_queue.enqueue(send_mail, u.email, mail_type='new_post',
+                                  user_id=user_id, post=info, db_name=db_name)
+
+      elif id == user_id:
+        push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
+      else: # set group last_updated time
+        db.owner.update({'_id': id},
+                        {'$set': {'last_updated': utctime()}})
+        push_queue.enqueue(publish, user_id,
+                           '%s|unread-feeds' % id, info, db_name=db_name)
 
       
   # clear wsgimiddleware cache
   user_ids = set()
   for i in viewers:
-    if is_group(i):
-      member_ids = get_group_member_ids(i)
+    if is_group(i, db_name):
+      member_ids = get_group_member_ids(i, db_name)
       for id in member_ids:
         user_ids.add(id)
     else:
@@ -2710,8 +2866,9 @@ def new_feed(session_id, message, viewers,
   return info['_id']
 
 
-def set_viewers(session_id, feed_id, viewers):
-  db_name = get_database_name()
+def set_viewers(session_id, feed_id, viewers, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
@@ -2729,7 +2886,7 @@ def set_viewers(session_id, feed_id, viewers):
                                          {'$set': {'viewers': viewers}})
   if not feed:
     return False
-  new_users = [i for i in viewers if not is_group(i) and i not in feed['viewers']]
+  new_users = [i for i in viewers if not is_group(i, db_name) and i not in feed['viewers']]
   for i in new_users:
     if i != user_id:
       notification_queue.enqueue(new_notification, 
@@ -3423,7 +3580,7 @@ def mark_cancelled(session_id, task_id):
 # Comment Actions --------------------------------------------------------------
 
 def new_comment(session_id, message, ref_id, 
-                attachments=None, reply_to=None, from_addr=None, db_name=None, updated_time=None, created_time=None):
+                attachments=None, reply_to=None, from_addr=None, db_name=None, updated_time=None, created_time=None, is_import=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -3471,25 +3628,26 @@ def new_comment(session_id, message, ref_id,
   info = db.stream.find_one({'_id': long(ref_id)})
   if not info:
     return False
-  
+
   owner_id = info.get('owner')
   viewers = info.get('viewers')
-  
+
   new_mentions = [i for i in mentions if i not in viewers and i != user_id]
 
-  if user_id != owner_id:
-    notification_queue.enqueue(new_notification, 
-                               session_id, owner_id, 'comment', 
-                               ref_id=ref_id, comment_id=comment['_id'], db_name=db_name)
-    
-  db.stream.update({"_id": long(ref_id)}, 
+  if not is_import:
+    if user_id != owner_id:
+      notification_queue.enqueue(new_notification,
+                                 session_id, owner_id, 'comment',
+                                 ref_id=ref_id, comment_id=comment['_id'], db_name=db_name)
+
+  db.stream.update({"_id": long(ref_id)},
                    {"$push": {"comments": comment},
                     "$addToSet": {'viewers': {"$each": mentions}},
                     "$set": {'last_updated': ts},
                     '$unset': {'archived_by': 1}})
-  
-  
-  
+
+
+
   info['last_updated'] = updated_time if updated_time else ts
   info['archived_by'] = []
   viewers.extend(mentions)
@@ -3499,62 +3657,66 @@ def new_comment(session_id, message, ref_id,
     info['comments'].append(comment)
   else:
     info['comments'] = [comment]
-    
-  # TODO: reply to notification?
-    
-  
-  for uid in mentions:
-    if uid != user_id:
-      notification_queue.enqueue(new_notification, 
-                                 session_id, uid, 'mention', 
-                                 ref_id=ref_id, comment_id=comment['_id'], db_name=db_name)
-      u = get_user_info(uid)
-      if u.email and 'mentions' not in u.disabled_notifications:
-        send_mail_queue.enqueue(send_mail, u.email, 
-                                mail_type='mentions', 
-                                user_id=user_id, post=info, 
-                                db_name=db_name)
-    
-  
-  receivers = [info.get('owner')]
-  if info.get('comments'):
-    for i in info.get('comments'):
-      if i.get('owner') != user_id and i.get('owner') not in mentions and i.get('owner') not in receivers:
-        receivers.append(i.get('owner'))
-        notification_queue.enqueue(new_notification, 
-                                   session_id, 
-                                   i.get('owner'), 
-                                   'comment', 
-                                   ref_id=ref_id, 
-                                   comment_id=comment['_id'], 
-                                   db_name=db_name)
-        
-  owner = get_user_info(user_id)
-  if owner.email and '@' in owner.email and 'comments' not in owner.disabled_notifications and user_id not in mentions:
-    if owner.status == 'offline' or (owner.status == 'away' and utctime() - owner.last_online > 180):
-      send_mail_queue.enqueue(send_mail, owner.email, 
-                              mail_type='new_comment', 
-                              user_id=user_id, post=info, 
-                              db_name=db_name)
 
-  for id in info['viewers']:
-    cache.clear(id)
-    if is_group(id):
-      push_queue.enqueue(publish, user_id, 
-                         '%s|unread-feeds' % id, info, db_name=db_name)
-    else:
-      push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
-      
-      
-#       if user_id != id and id not in mentions:
-#         # send email notification
-#         u = get_user_info(id)
-#         if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
-#           if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
-#             send_mail_queue.enqueue(send_mail, u.email, 
-#                                     mail_type='new_comment', 
-#                                     user_id=user_id, post=info, 
-#                                     db_name=db_name)
+  # TODO: reply to notification?
+
+
+  if not is_import:
+    for uid in mentions:
+      if uid != user_id:
+        notification_queue.enqueue(new_notification,
+                                   session_id, uid, 'mention',
+                                   ref_id=ref_id, comment_id=comment['_id'], db_name=db_name)
+        u = get_user_info(user_id=uid, db_name=db_name)
+        if u.email and 'mentions' not in u.disabled_notifications:
+          send_mail_queue.enqueue(send_mail, u.email,
+                                  mail_type='mentions',
+                                  user_id=user_id, post=info,
+                                  db_name=db_name)
+
+
+  receivers = [info.get('owner')]
+  if not is_import:
+    if info.get('comments'):
+      for i in info.get('comments'):
+        if i.get('owner') != user_id and i.get('owner') not in mentions and i.get('owner') not in receivers:
+          receivers.append(i.get('owner'))
+          notification_queue.enqueue(new_notification,
+                                     session_id,
+                                     i.get('owner'),
+                                     'comment',
+                                     ref_id=ref_id,
+                                     comment_id=comment['_id'],
+                                     db_name=db_name)
+
+  owner = get_user_info(user_id=user_id, db_name=db_name)
+  if not is_import:
+    if owner.email and '@' in owner.email and 'comments' not in owner.disabled_notifications and user_id not in mentions:
+      if owner.status == 'offline' or (owner.status == 'away' and utctime() - owner.last_online > 180):
+        send_mail_queue.enqueue(send_mail, owner.email,
+                                mail_type='new_comment',
+                                user_id=user_id, post=info,
+                                db_name=db_name)
+
+  if not is_import:
+    for id in info['viewers']:
+      cache.clear(id)
+      if is_group(id, db_name):
+        push_queue.enqueue(publish, user_id,
+                           '%s|unread-feeds' % id, info, db_name=db_name)
+      else:
+        push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
+
+
+  #       if user_id != id and id not in mentions:
+  #         # send email notification
+  #         u = get_user_info(id)
+  #         if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
+  #           if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
+  #             send_mail_queue.enqueue(send_mail, u.email,
+  #                                     mail_type='new_comment',
+  #                                     user_id=user_id, post=info,
+  #                                     db_name=db_name)
   
   urls = extract_urls(message)
   if urls:
@@ -3565,12 +3727,13 @@ def new_comment(session_id, message, ref_id,
                       message, viewers, is_comment=True, db_name=db_name)
   
   # upate unread notifications
-  mark_notification_as_read(session_id, ref_id=ref_id)
-  
-  unread_notifications_count = get_unread_notifications_count(user_id,
-                                                              db_name=db_name)
-  push_queue.enqueue(publish, user_id, 'unread-notifications', 
-                     unread_notifications_count, db_name=db_name)
+  if not is_import:
+    mark_notification_as_read(session_id=session_id, ref_id=ref_id, db_name=db_name)
+
+    unread_notifications_count = get_unread_notifications_count(user_id,
+                                                                db_name=db_name)
+    push_queue.enqueue(publish, user_id, 'unread-notifications',
+                       unread_notifications_count, db_name=db_name)
   
   
   clear_html_cache(ref_id)
@@ -4428,8 +4591,9 @@ def get_viewers(post_id):
   return []
   
   
-def get_fid(md5_hash):
-  db_name = get_database_name()
+def get_fid(md5_hash, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   datastore = GridFS(db)
   
@@ -4439,8 +4603,9 @@ def get_fid(md5_hash):
   except NoFile:
     return None
   
-def new_attachment(session_id_or_user_id, filename, filedata):
-  db_name = get_database_name()
+def new_attachment(session_id_or_user_id, filename, filedata, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   datastore = GridFS(db)
   
@@ -4452,14 +4617,14 @@ def new_attachment(session_id_or_user_id, filename, filedata):
   or session_id_or_user_id.isdigit():
     user_id = long(session_id_or_user_id)
   else:
-    user_id = get_user_id(session_id_or_user_id)
+    user_id = get_user_id(session_id_or_user_id, db_name=db_name)
     if not user_id:
       return False
   md5_hash = hashlib.md5(filedata).hexdigest()
   content_type = mimetypes.guess_type(filename)[0]
   if not content_type:
     content_type = 'application/octet-stream'
-  fid = get_fid(md5_hash)
+  fid = get_fid(md5_hash, db_name)
   if not fid and not is_s3_file(filename):
     fid = datastore.put(filedata, 
                         content_type=content_type,
@@ -4527,7 +4692,15 @@ def new_file(session_id, attachment_id, viewers=None):
   
   return file_id
 
-def add_dummy_user(name, fb_id, avatar=None):
+def check_user_exist_by_fb_id(fb_id, db_name=None):
+  db = DATABASE[db_name]
+  existing_user = db.owner.find_one({'fb_id': fb_id})
+  if existing_user:
+    return existing_user['session_id']
+  else:
+    return None
+
+def add_dummy_user(name, fb_id, avatar=None, db_name=None):
   _id = new_id()
 
   # generate dummy email based on name (to generate avatar based on initials)
@@ -4535,24 +4708,17 @@ def add_dummy_user(name, fb_id, avatar=None):
 
   code = hashlib.md5(email + settings.SECRET_KEY).hexdigest()
 
-  db_name = get_database_name()
   db = DATABASE[db_name]
 
-  # check for existing user (using fb_id)
-  existing_user = db.owner.find_one({'fb_id': fb_id})
+  db.owner.insert({'_id': _id,
+                   'fb_id': fb_id,
+                   'name': name,
+                   'email': email,
+                   'avatar': avatar,
+                   'timestamp': utctime(),
+                   'session_id': code})
 
-  if existing_user:
-    return existing_user['session_id']
-  else:
-    db.owner.insert({'_id': _id,
-                     'fb_id': fb_id,
-                     'name': name,
-                     'email': email,
-                     'avatar': avatar,
-                     'timestamp': utctime(),
-                     'session_id': code})
-
-    return code
+  return code
 
 def add_viewers(viewers, ref_id):
   db_name = get_database_name()
@@ -5959,12 +6125,12 @@ def clear_html_cache(post_id):
     
     
 
-def like(session_id, item_id, post_id=None, db_name=None):
+def like(session_id, item_id, post_id=None, db_name=None, is_import=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id, db_name=db_name)
+  user_id = get_user_id(session_id=session_id, db_name=db_name)
   if not user_id:
     return False
   
@@ -5982,34 +6148,36 @@ def like(session_id, item_id, post_id=None, db_name=None):
   viewers = record.get('viewers', [])
   viewers.append(user_id)
   
-  if post_id == item_id:  # like post
-    
-    likes = [get_user_info(i) for i in  get_liked_user_ids(post_id)]
-    record['likes'] = likes
-    for uid in viewers:
-      push_queue.enqueue(publish, uid, 'likes', record, db_name=db_name)
-    
-    if record['owner'] != user_id:
-      notification_queue.enqueue(new_notification, 
-                                 session_id, 
-                                 record['owner'], 
-                                 'like', post_id, db_name=db_name)
-  else: # comment like
-    for comment in record['comments']:
-      if comment['_id'] == item_id:
-        if user_id != comment['owner']:
-          notification_queue.enqueue(new_notification, 
-                                     session_id, 
-                                     comment['owner'], 
-                                     'like', post_id, 
-                                     comment_id=comment['_id'], 
-                                     db_name=db_name)
-        break
-    
-    likes = [get_user_info(i) for i in  get_liked_user_ids(item_id)]
-    comment['likes'] = likes
-    for uid in viewers:
-      push_queue.enqueue(publish, uid, 'like-comment', comment, db_name=db_name)
+
+  if not is_import:
+    if post_id == item_id:  # like post
+
+      likes = [get_user_info(user_id=i, db_name=db_name) for i in  get_liked_user_ids(post_id, db_name)]
+      record['likes'] = likes
+      for uid in viewers:
+        push_queue.enqueue(publish, uid, 'likes', record, db_name=db_name)
+
+      if record['owner'] != user_id:
+        notification_queue.enqueue(new_notification,
+                                   session_id,
+                                   record['owner'],
+                                   'like', post_id, db_name=db_name)
+    else: # comment like
+      for comment in record['comments']:
+        if comment['_id'] == item_id:
+          if user_id != comment['owner']:
+            notification_queue.enqueue(new_notification,
+                                       session_id,
+                                       comment['owner'],
+                                       'like', post_id,
+                                       comment_id=comment['_id'],
+                                       db_name=db_name)
+          break
+
+      likes = [get_user_info(user_id=i, db_name=db_name) for i in  get_liked_user_ids(item_id, db_name)]
+      comment['likes'] = likes
+      for uid in viewers:
+        push_queue.enqueue(publish, uid, 'like-comment', comment, db_name=db_name)
         
     
   clear_html_cache(post_id)

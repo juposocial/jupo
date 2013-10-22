@@ -55,7 +55,9 @@ import settings
 from lib.verify_email_google import is_google_apps_email
 from app import CURRENT_APP, render
 
+import pickle
 import dateutil.parser as dateparser
+from facebook import FacebookAPI, GraphAPI
 
 requests.adapters.DEFAULT_RETRIES = 3
 
@@ -1151,42 +1153,33 @@ def google_authorized():
   return resp 
     
 if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
-  facebook = oauth.remote_app('facebook',
-      base_url='https://graph.facebook.com/',
-      request_token_url=None,
-      access_token_url='/oauth/access_token',
-      authorize_url='https://www.facebook.com/dialog/oauth',
-      consumer_key=settings.FACEBOOK_APP_ID,
-      consumer_secret=settings.FACEBOOK_APP_SECRET,
-      request_token_params={'scope': 'email'}
-  )
-  
+  f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
+                client_secret=settings.FACEBOOK_APP_SECRET)
+
   @app.route('/oauth/facebook')
   def facebook_login():
-    if not facebook:
-      abort(501)
-
     # for normal sign up/sign in, action = 'authenticate'
-    # for import data, action = 'import'
+    # for import data, action = 'import_step_1'
     action = request.args.get('action')
 
     domain = settings.PRIMARY_DOMAIN
 
     if (action == 'import_step_1'):
-      callback_url = 'http://%s/oauth/facebook/authorized_import_step_1?action=import_step_1' % domain
+      f.redirect_uri = 'http://%s/oauth/facebook/authorized_import_step_1' % domain
+
+      auth_url = f.get_auth_url(scope=['email', 'user_groups'])
     else:
-      callback_url = url_for('facebook_authorized',
+      f.redirect_uri = url_for('facebook_authorized',
                              domain=request.args.get('domain', settings.PRIMARY_DOMAIN),
                              network=request.args.get('network'),
                              is_import=request.args.get('is_import'),
                              _external=True)
 
-    app.logger.debug(callback_url)
-    # if we need to import stuffs (e.g. groups) then ask for more permission
-    if (action == 'import_step_1'):
-      return facebook_import.authorize(callback=callback_url)
-    else:
-      return facebook.authorize(callback=callback_url)
+      auth_url = f.get_auth_url(scope=['email'])
+
+    app.logger.debug(auth_url)
+
+    return redirect_to(auth_url)
 
   @app.route('/import', methods=["GET"])
   @line_profile
@@ -1199,11 +1192,6 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     message= ""
 
     # initialize
-    #if 'source_facebook_groups' not in session:
-    #  session['source_facebook_groups'] = None
-    #if 'target_jupo_groups' not in session:
-    #  session['target_jupo_groups'] = None
-
     if 'source_facebook_groups' in session:
       source_facebook_groups = session['source_facebook_groups']
     else:
@@ -1214,8 +1202,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     else:
       target_jupo_groups = None
 
-    print "DEBUG - in /import - session['target_jupo_groups'] = " + str(session['target_jupo_groups'])
-
+    # print "DEBUG - in /import - session['target_jupo_groups'] = " + str(session['target_jupo_groups'])
     resp = Response(render_template('import.html',
                                     email=email,
                                     settings=settings,
@@ -1230,8 +1217,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     return resp
 
   @app.route('/oauth/facebook/authorized_import_step_1')
-  @facebook_import.authorized_handler
-  def facebook_authorized_import_step_1(resp):
+  def facebook_authorized_import_step_1():
     domain = settings.PRIMARY_DOMAIN
     network = request.cookies.get('network')
 
@@ -1239,18 +1225,16 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     db_name = (network + '.' + domain).replace('.', '_')
     current_network = api.get_current_network(db_name=db_name)
 
-    if resp is None:
-      return 'Access denied: reason=%s error=%s' % (request.args['error_reason'],
-                                                    request.args['error_description'])
-    session['facebook_access_token'] = (resp['access_token'], '')
+    code = request.args['code']
+    access_token = f.get_access_token(code)
+    session['facebook_access_token'] = access_token['access_token']
 
-    # me = facebook_import.get('/me')
-    # get source Facebook groups
+    facebook = GraphAPI(access_token['access_token'])
     groups = facebook.get('/me/groups')
 
     returned_facebook_groups = []
 
-    for group in groups.data['data']:
+    for group in groups['data']:
       returned_facebook_groups.append({'id': group['id'], 'name': group['name']})
 
     session['source_facebook_groups'] = returned_facebook_groups
@@ -1273,135 +1257,23 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     domain = settings.PRIMARY_DOMAIN
     network = request.cookies.get('network')
 
-    db_name = (network + '.' + domain).replace('.', '_')
-    current_network = api.get_current_network(db_name=db_name)
-
-    # session['facebook_access_token'] = (resp['access_token'], '')
-    me = facebook_import.get('/me')
-
-    #email = me.data.get('email')
-
-    groups = facebook.get('/me/groups')
-
-    session_id = session['session_id']
     source_facebook_group_id = request.args.get('source_facebook_group_id')
     target_jupo_group_id = request.args.get('target_jupo_group_id')
     import_comment_likes = request.args.get('import_comment_likes')
 
-    for group in groups.data['data']:
-      # print group['name']
-      # print group['id']
-      # demo
-      # 369148883154342 Joom group
-      # 153841081324271 Launch group
-      if group['id'] == source_facebook_group_id:
-        current_group = facebook.get(group['id'])
-        current_group_feeds = facebook.get(group['id'] + '/feed')
-        # print str(current_group_feeds.data)
-        # process posts
-        counter = 0
-        for post in current_group_feeds.data['data']:
-          if counter < 3:
-            # create dummy user if needed
-            print str(post)
-
-            user_fb_id = post['from']['id']
-            poster = facebook.get(user_fb_id)
-            poster_username = poster.data['username']
-            poster_avatar_url = 'http://graph.facebook.com/' + poster_username + '/picture'
-
-            print str(poster_avatar_url)
-
-            poster_session_id = api.add_dummy_user(name=poster.data['name'], fb_id=user_fb_id, avatar=poster_avatar_url)
-
-            attachment = []
-
-            if post['type'] == 'photo':
-              image_url = post['picture'].replace('_s', '_o')
-              image_name = (image_url.split('//')[1]).split('/')[-1]
-
-              # print "DEBUG - in import from FB - image_name = " + str(image_name)
-              attached_photo_id = api.new_attachment(poster_session_id, image_name, urllib.urlopen(image_url).read())
-              # print "DEBUG - in import from FB - attached_photo_id = " + str(attached_photo_id)
-
-              attachment.append(str(attached_photo_id))
-
-
-            if 'message' in post:
-              # print str(post['message'])
-
-              # import feed
-              new_feed_id = api.new_feed(poster_session_id,
-                             post['message'],
-                             #['public'],
-                             [target_jupo_group_id],
-                             attachment,
-                             None,
-                             float(dateparser.parse(post['updated_time']).strftime('%s.%f')),
-                             float(dateparser.parse(post['created_time']).strftime('%s.%f')))
-
-              # import like
-              if 'likes' in post:
-                for like in post['likes']['data']:
-                  like_user_fb_id = like['id']
-                  like_user_session_id = api.add_dummy_user(name=like['name'], fb_id=like_user_fb_id)
-
-                  api.like(like_user_session_id, new_feed_id, new_feed_id)
-
-              # import comment (if any)
-              if 'comments' in post:
-                for comment in post['comments']['data']:
-                  # print str(comment)
-                  comment_user_fb_id = comment['from']['id']
-
-                  comment_poster = facebook.get(comment_user_fb_id)
-                  comment_poster_username = comment_poster.data['username']
-                  comment_poster_avatar_url = 'http://graph.facebook.com/' + comment_poster_username + '/picture'
-
-                  comment_poster_session_id = api.add_dummy_user(name=comment['from']['name'], fb_id=comment_user_fb_id, avatar=comment_poster_avatar_url)
-
-                  new_comment = api.new_comment(session_id=comment_poster_session_id, message=comment['message'], ref_id=new_feed_id,
-                  attachments=None, reply_to=None, from_addr=None, db_name=None, updated_time=None, created_time=float(dateparser.parse(comment['created_time']).strftime('%s.%f')))
-
-                  # import like comment
-                  if import_comment_likes == 'true':
-                    current_comment = facebook.get(post['id'] + '_' + comment['id'] + '?fields=likes')
-                    print str(vars(current_comment))
-                    print str(current_comment.data)
-                    if 'likes' in current_comment.data:
-                      for like_comment in current_comment.data['likes']['data']:
-                        like_comment_user_fb_id = like_comment['id']
-                        like_comment_user_session_id = api.add_dummy_user(name=like_comment['name'], fb_id=like_comment_user_fb_id)
-
-                        api.like(like_comment_user_session_id, new_comment.id, new_feed_id)
-
-
-
-            counter = counter + 1
-
-
-    friends = facebook.get('/me/friends?limit=5000')
-
-    facebook_id = me.data['id']
-    friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
-
-    # generate db_name based on full URL ( e.g. gmail.com.jupo.com)
-    db_name = (network + "." + domain).lower().strip().replace('.', '_')
-
-    user_info = api.get_user_info(email=me.data.get('email'), db_name=db_name)
+    api.importer_queue.enqueue_call(func=api.import_facebook,
+                             args=(session['session_id'], domain, network, session['facebook_access_token'],
+                                   source_facebook_group_id, target_jupo_group_id, import_comment_likes),
+                             timeout=6000)
 
     # support subdir ( domain/network )
+
     url = 'http://%s/%s/' % (domain, network)
-
     resp = redirect(url)
-
-    # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
-    resp.set_cookie('network', network)
 
     return resp
 
   @app.route('/oauth/facebook/authorized')
-  @facebook.authorized_handler
   def facebook_authorized(resp):
     domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
     network = request.args.get('network')
@@ -1498,13 +1370,6 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     resp.set_cookie('network', network)
 
     return resp
-  
-  
-  @facebook.tokengetter
-  def get_facebook_token():
-    return session.get('facebook_access_token')
-  
-  
 
 @app.route('/reminders', methods=['GET', 'OPTIONS', 'POST'])
 @app.route('/reminder/new', methods=["POST"])

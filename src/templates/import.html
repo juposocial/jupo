@@ -34,7 +34,7 @@
   <h3 class="text-info">Step 1 - Authenticate</h3>
   <div class='social-login'>
     <!--<a href='http://jupo.localhost.com/oauth/facebook?domain=jupo.localhost.com&network=mp3.com&is_import=true' class='facebook-button'> <i class='fb-icon'></i> <span> Import from Facebook </span></a>-->
-    <a href='http://jupo.localhost.com/oauth/facebook?domain=jupo.localhost.com&network=mp3.com&action=import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Authenticate with Facebook </span> </a>
+    <a href='http://{{ domain }}/oauth/facebook?domain={{ domain }}&network={{ network }}&action=import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Authenticate with Facebook </span> </a>
   </div>
   <form action="/oauth/facebook/authorized_import_step_2">
   {% if source_facebook_groups %}
