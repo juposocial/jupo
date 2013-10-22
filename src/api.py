@@ -830,7 +830,12 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
               print "DEBUG - in api.import_facebook - user_fb_id = " + str(user_fb_id)
               poster = facebook_import.get(user_fb_id)
               print "DEBUG - in api.import_facebook - poster = " + str(poster)
-              poster_username = poster['username']
+
+              if 'username' in poster:
+                poster_username = poster['username']
+              else:
+                poster_username = user_fb_id
+
               poster_avatar_url = 'http://graph.facebook.com/' + poster_username + '/picture'
 
               poster_session_id = add_dummy_user(name=poster['name'], fb_id=user_fb_id, avatar=poster_avatar_url, db_name=db_name)
@@ -880,7 +885,12 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
 
                   if not comment_poster_session_id:
                     comment_poster = facebook_import.get(comment_user_fb_id)
-                    comment_poster_username = comment_poster['username']
+
+                    if 'username' in comment_poster:
+                      comment_poster_username = comment_poster['username']
+                    else:
+                      comment_poster_username = comment_user_fb_id
+
                     comment_poster_avatar_url = 'http://graph.facebook.com/' + comment_poster_username + '/picture'
 
                     comment_poster_session_id = add_dummy_user(name=comment['from']['name'], fb_id=comment_user_fb_id, avatar=comment_poster_avatar_url, db_name=db_name)
