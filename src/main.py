@@ -1154,7 +1154,8 @@ def google_authorized():
     
 if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
-                client_secret=settings.FACEBOOK_APP_SECRET)
+                client_secret=settings.FACEBOOK_APP_SECRET,
+                redirect_uri='')
 
   @app.route('/oauth/facebook')
   def facebook_login():
