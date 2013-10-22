@@ -881,7 +881,7 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
                   # print str(comment)
                   comment_user_fb_id = comment['from']['id']
 
-                  comment_poster_session_id = check_user_exist_by_fb_id(user_fb_id, db_name)
+                  comment_poster_session_id = check_user_exist_by_fb_id(comment_user_fb_id, db_name)
 
                   if not comment_poster_session_id:
                     comment_poster = facebook_import.get(comment_user_fb_id)
