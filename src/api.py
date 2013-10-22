@@ -2814,12 +2814,12 @@ def new_feed(session_id, message, viewers,
   if files:
     info['attachments'] = files
   
-  if not isinstance(message, dict): # system message
-    urls = extract_urls(message)
-    if urls:
-      info['urls'] = urls
-      for url in urls:
-        crawler_queue.enqueue(get_url_description, url, db_name=db_name)
+  #if not isinstance(message, dict): # system message
+  #  urls = extract_urls(message)
+  #  if urls:
+  #    info['urls'] = urls
+  #    for url in urls:
+  #      crawler_queue.enqueue(get_url_description, url, db_name=db_name)
       
   db.stream.insert(info)
   
@@ -3718,10 +3718,10 @@ def new_comment(session_id, message, ref_id,
   #                                     user_id=user_id, post=info,
   #                                     db_name=db_name)
   
-  urls = extract_urls(message)
-  if urls:
-    for url in urls:
-      crawler_queue.enqueue(get_url_description, url, db_name=db_name)
+  #urls = extract_urls(message)
+  #if urls:
+  #  for url in urls:
+  #    crawler_queue.enqueue(get_url_description, url, db_name=db_name)
       
   index_queue.enqueue(update_index, ref_id, 
                       message, viewers, is_comment=True, db_name=db_name)
