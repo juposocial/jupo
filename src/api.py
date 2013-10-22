@@ -1831,7 +1831,7 @@ def get_coworker_ids(user_id, db_name=None):
   
 
 def is_group(_id, db_name=None):
-  print "DEBUG - in is_group - caller is " + str(inspect.stack()[1][3])
+  # print "DEBUG - in is_group - caller is " + str(inspect.stack()[1][3])
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
