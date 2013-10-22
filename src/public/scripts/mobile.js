@@ -54,6 +54,11 @@ $(document).ready(function() {
     e.preventDefault();
     
     var url = $(this).attr('id').replace('post-', '/feed/');
+    
+    if (url == window.location.pathname) {
+      return false;
+    }
+    
     var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
     console.log(url);
     console.log('jupo://open_link?data=' + data);
