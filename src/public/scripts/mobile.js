@@ -60,6 +60,20 @@ $(document).ready(function() {
     
     open_custom_url_in_iframe('jupo://open_link?data=' + data);
     
+    return false;
+  });  
+  
+  $('body').on('tap', 'div.overview[data-href]', function(e){
+    e.preventDefault();
+    
+    var url = $(this).data('href');
+    var title = $(this).data('title');
+    var data = btoa(JSON.stringify({'title': title, 'url': url}));
+    console.log(url);
+    console.log('jupo://open_link?data=' + data);
+    
+    open_custom_url_in_iframe('jupo://open_link?data=' + data);
+    
           
     return false;
   });

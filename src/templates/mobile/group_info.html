@@ -1,0 +1,255 @@
+<!DOCTYPE HTML>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <style>
+    * {
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: rgba(252, 252, 250, 0.6);
+      margin: 0;
+      padding: 0;
+      font-family: Helvetica, sans-serif;
+      -webkit-overflow-scrolling: touch;
+      -webkit-transform: translateZ(0);
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      tap-highlight-color: rgba(0,0,0,0);
+    }
+
+    ul.people {
+      margin: 0;
+      padding: 0;
+      list-style-type: none;
+      border-top: 1px solid rgba(232, 230, 227, 0.6);
+      margin-top: 15px;
+    }
+
+    .lfloat {
+      float: left;
+    }
+
+    .rfloat {
+      float: right;
+    }
+
+    ul.people img.small-avatar {
+      border-radius: 50px;
+      margin-left: -43px;
+      width: 36px;
+      height: 36px;
+    }
+
+    ul.people > a {
+      color: #3d3d3d;
+      text-decoration: none;
+      font-size: 14px;
+      padding: 12px 10px;
+      display: block;
+      padding-left: 54px;
+      border-bottom: 1px solid rgba(232, 230, 227, 0.6);
+      min-height: 60px;
+      word-wrap: break-word;
+    }
+
+    ul.people a.tapped {
+      background: rgba(217, 217, 217, 0.25);
+    }
+
+    time {
+      font-size: 11px;
+      color: #999;
+      margin-top: 3px;
+      font-weight: normal;
+    }
+
+    span.user {
+      color: #3D3D3D;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    span.email {
+      color: #999;
+      font-size: 12px;
+    }
+
+    a.button {
+      display: none;
+    }
+
+    div.overview {
+      padding: 15px 15px 0;
+    }
+    
+    div.overview h3 {
+      margin: 0;
+    }
+    
+    div.overview div.info {
+      font-size: 12px;
+      color: #666;
+      margin-top: 2px;
+      line-height: 16px;
+    }
+
+    a.leave-group {
+      font-size: 14px;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+      padding: 10px 10px;
+      color: white;
+      margin-top: 10px;
+      margin-bottom: 5px;
+      border-radius: 3px;
+      box-shadow: inset 0 -1px 0 #2C3E50;
+      background-color: #3F5063;
+      background-image: -webkit-linear-gradient(top,transparent,transparent);
+      border: 1px solid transparent;
+      border-bottom-color: #2C3E50;
+    }
+    
+    a.leave-group.tapped {
+      box-shadow: none;
+      border-bottom-color: #3F5063;
+      color: #ccc;
+    }
+  </style>
+</head>
+
+<body>
+  <div class='overview'>
+    <h3>{{ group.name }}</h3>
+    <div class='info'>
+        {{ group.member_ids | length }} Members
+    </div>
+    
+    <a class='leave-group' href='/group/{{ group.id }}/unfollow'>Leave Group</a>
+  </div>
+
+<ul class='people'>
+  {% set users = group.members %}
+  {% if users %}
+    {% for user in users %}
+      {% if user.is_registered() %}
+    
+        <a href='/user/{{ user.id }}'>
+          <img class='small-avatar lfloat' src='{{ user.avatar }}'>
+      
+          <span href='/user/{{ user.id }}' class='async user'>{{ user.name }}</span>
+          <i class='{{ user.status }}  user-{{ user.id }}-status'></i>
+          <br>
+          
+          {% if group.id == 'public' %}
+          <time class='timeago' title='{{ user.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ user.timestamp | isoformat(owner.utcoffset) }}'>
+            {{ user.timestamp | friendly_format(owner.utcoffset, short=True) }}
+          </time>
+          {% else %}
+          <span class="email">{{ user.email }}</span>
+          {% endif %}
+
+        </a>
+    
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  </ul>
+  
+  <script src='/public/scripts/zepto.min.js'></script>
+  <script src='/public/scripts/touch.js'></script>
+  <script>
+  
+    function open_custom_url_in_iframe(src) {
+      var rootElm = document.documentElement;
+      var newFrameElm = document.createElement("iframe");
+      newFrameElm.setAttribute("src", src);
+      rootElm.appendChild(newFrameElm);
+      newFrameElm.parentNode.removeChild(newFrameElm);
+    }
+    
+    function reload() {
+      $.ajax({
+        type: 'OPTIONS',
+        async: true,
+        url: window.location.href,
+        success: function(data) {
+          $('ul.people').html(data);
+          
+          $('body').animate({scrollTop: 0}, 100, 'swing', function() { 
+             console.log("Finished animating");
+          });
+          
+          open_custom_url_in_iframe('jupo://hide_loading_indicator');
+          console.log('refresh: done');
+        }
+      });
+      return true;
+      
+    }
+
+        
+    $(document).ready(function() {
+      $('ul.people').on('touchstart', 'a', function(e){
+        $(this).addClass('tapped');
+      });
+      
+      $('ul.people').on('touchend', 'a', function(e){
+        $(this).removeClass('tapped');
+      });
+      
+      $('div.overview').on('touchstart', 'a', function(e){
+        $(this).addClass('tapped');
+      });
+      
+      $('div.overview').on('touchend', 'a', function(e){
+        $(this).removeClass('tapped');
+      });
+      
+      $('div.overview').on('tap', 'a', function(e) {
+        e.preventDefault();
+        
+        var _this = $(this);
+        
+        var url = _this.attr('href');
+        $.get(url, function() {
+          if (url.indexOf('/unfollow') == -1) {
+            _this.attr('href', url.replace('/follow', '/unfollow'));
+            _this.html('Leave Group');
+          } else {
+            _this.attr('href', url.replace('/unfollow', '/follow'));
+            _this.html('Join Group');
+          }
+        });
+        return false;
+        
+      });
+     
+      $('ul.people').on('tap', 'a', function(e){
+        e.preventDefault();
+        
+        var url = $(this).attr('href');
+        var data = btoa(JSON.stringify({'title': 'User', 'url': url}));
+        console.log(url);
+        console.log('jupo://open_link?data=' + data);
+        
+        open_custom_url_in_iframe('jupo://open_link?data=' + data);
+        
+              
+        return false;
+      });
+      
+      $('body').on('click', 'a', function(e) {
+        e.preventDefault();
+        return false;
+      });
+    });
+  </script>
+</body>

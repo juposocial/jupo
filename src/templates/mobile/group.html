@@ -45,7 +45,7 @@
       
         <li>
           <a href='/user/{{ user.id }}' class='async'>
-              <img class='small-avatar lfloat' src='{{ user.avatar }}' />
+              <img class='small-avatar lfloat' src='{{ user.avatar }}' >
               <div class='title'>
                 {{ user.name }} <i class='{{ user.status }} user-{{ user.id }}-status'></i>
               </div>
@@ -78,7 +78,8 @@
 </head>
 
 <body>
-  <div class='overview'>
+  <div class='overview' data-href='/group/{{ group.id }}/info' data-title='Info'>
+    <img src='/public/images/mobile/arrow_right.png' width='16' height='16' class='rfloat'>
     <h3>{{ group.name }}</h3>
     <div class='info'>
         {{ group.member_ids | length }} Members

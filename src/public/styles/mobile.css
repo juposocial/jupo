@@ -4,6 +4,7 @@
 
 html {
   background: #D9D9D9;
+  /*background: #EDF0F2;*/
 }
 
 body {
@@ -58,7 +59,7 @@ section {
   background-color: white;
   border-radius: 2px;
   margin: 15px 10px;
-  box-shadow: 0 1px 3px #BDBDBD;
+  box-shadow: 0 0 1px #BDBDBD;
 }
 
 section header {
@@ -76,6 +77,9 @@ section > header a {
 
 section > article img {
   max-width: 100%;
+}
+
+section div.file-attachment.image {
   margin-top: 10px;
 }
 
@@ -260,6 +264,11 @@ div.overview {
 
 div.overview h3 {
   margin: 0;
+}
+
+div.overview img {
+  margin-top: 10px;
+  opacity: .8;
 }
 
 div.overview div.info {

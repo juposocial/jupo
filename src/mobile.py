@@ -322,8 +322,9 @@ def news_feed(page=1, feed_id=None):
 @app.route("/everyone", methods=['GET', 'OPTIONS'])
 @app.route("/everyone/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route("/group/<int:group_id>", methods=['GET', 'OPTIONS'])
+@app.route("/group/<int:group_id>/<action>")
 @app.route("/groups")
-def group(group_id='public', view='group', page=1):
+def group(group_id='public', action='group', page=1):
   if session and session.get('session_id'):
     data = session
   else:
@@ -350,13 +351,22 @@ def group(group_id='public', view='group', page=1):
   
   if request.path.startswith('/groups'):
     groups = api.get_groups(session_id, db_name=db_name)
-    return render_template('mobile/groups.html', 
-                            view='groups',
-                            owner=owner,
-                            groups=groups)
+    return render_template('mobile/groups.html', view='groups',
+                                                 owner=owner,
+                                                 groups=groups)
     
   
   group = api.get_group_info(session_id, group_id, db_name=db_name)
+  
+  if action == 'info':
+    return render_template('mobile/group_info.html', group=group, owner=owner)
+  elif action == 'follow':
+    api.join_group(session_id, group_id)
+    return 'OK'
+  elif action == 'unfollow':
+    api.leave_group(session_id, group_id)
+    return 'OK'
+  
   if not group.id:
     abort(401)
     
@@ -372,7 +382,7 @@ def group(group_id='public', view='group', page=1):
                           owner=owner,
                           settings=settings,
                           request=request,
-                          view=view)
+                          view='group')
 
 @app.route('/like/<int:item_id>', methods=['GET', 'POST'])
 @app.route('/unlike/<int:item_id>', methods=['GET', 'POST'])
