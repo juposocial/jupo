@@ -46,11 +46,11 @@
       </select>
   {% endif %}
 
-  {% if target_jupo_groups %}
+  {% if source_facebook_groups and target_jupo_groups %}
     <h3 class="text-info">Step 3 - Select target Jupo group to import</h3>
       <select name="target_jupo_group_id">
       {% for jupo_group in target_jupo_groups %}
-        <option value="{{ jupo_group['id'] }}">{{ jupo_group['name'] }}</option>
+        <option value="{{ jupo_group.id }}">{{ jupo_group.name }}</option>
       {% endfor %}
       </select>
   {% endif %}

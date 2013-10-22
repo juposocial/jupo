@@ -1154,8 +1154,7 @@ def google_authorized():
     
 if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
   f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
-                client_secret=settings.FACEBOOK_APP_SECRET,
-                redirect_uri='')
+                client_secret=settings.FACEBOOK_APP_SECRET)
 
   @app.route('/oauth/facebook')
   def facebook_login():
@@ -1198,10 +1197,9 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     else:
       source_facebook_groups = None
 
-    if 'target_jupo_groups' in session:
-      target_jupo_groups = session['target_jupo_groups']
-    else:
-      target_jupo_groups = None
+    # get target Jupo groups of current user
+    session_id = session['session_id']
+    target_jupo_groups = api.get_groups(session_id=session_id)
 
     # print "DEBUG - in /import - session['target_jupo_groups'] = " + str(session['target_jupo_groups'])
     resp = Response(render_template('import.html',
@@ -1240,16 +1238,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
 
     session['source_facebook_groups'] = returned_facebook_groups
 
-    # get target Jupo groups of current user
-    session_id = session['session_id']
-    user_groups = api.get_groups(session_id=session_id)
 
-    returned_jupo_groups = []
-
-    for group in user_groups:
-      returned_jupo_groups.append({'id': group.id, 'name': group.name})
-
-    session['target_jupo_groups'] = returned_jupo_groups
 
     return redirect('/import')
 
