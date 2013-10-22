@@ -9,7 +9,8 @@
 </head>
 
 <body>
-  <div class='overview'>
+  <div class='overview' data-href='/user/{{ user.id }}/info'>
+    <img src='/public/images/mobile/arrow_right.png' width='16' height='16' class='rfloat'>
     <h3>{{ user.name }}</h3>
     <div class='info'>
       Member of {{ user.groups_count }} Group{% if user.groups_count != 1%}s{% endif %}<br>

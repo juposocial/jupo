@@ -180,7 +180,8 @@ def get_user_info():
 
 @app.route('/user/<int:user_id>', methods=['GET', 'OPTIONS'])
 @app.route('/user/<int:user_id>/page<int:page>', methods=['GET', 'OPTIONS'])
-def user(user_id=None, page=1, view=None):
+@app.route('/user/<int:user_id>/<action>', methods=['GET'])
+def user(user_id=None, page=1, action=None):
   if session and session.get('session_id'):
     data = session
   else:
@@ -207,6 +208,17 @@ def user(user_id=None, page=1, view=None):
     abort(401)
 
   owner = api.get_user_info(user_id, db_name=db_name)
+    
+  if action == 'info':
+    return render_template('mobile/user_info.html', user=user, owner=owner)
+  elif action == 'follow':
+    api.follow(session_id, user_id)
+    return 'OK'
+  elif action == 'unfollow':
+    api.unfollow(session_id, user_id)
+    return 'OK'
+  
+  
   view = 'view'
   mode = 'view'
   title = user.name

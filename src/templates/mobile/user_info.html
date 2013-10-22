@@ -24,7 +24,7 @@
       tap-highlight-color: rgba(0,0,0,0);
     }
 
-    ul.people {
+    ul.groups {
       margin: 0;
       padding: 0;
       list-style-type: none;
@@ -40,14 +40,14 @@
       float: right;
     }
 
-    ul.people img.small-avatar {
+    ul.groups img.small-avatar {
       border-radius: 50px;
       margin-left: -43px;
       width: 36px;
       height: 36px;
     }
 
-    ul.people > a {
+    ul.groups > a {
       color: #3d3d3d;
       text-decoration: none;
       font-size: 14px;
@@ -59,7 +59,7 @@
       word-wrap: break-word;
     }
 
-    ul.people a.tapped {
+    ul.groups a.tapped {
       background: rgba(217, 217, 217, 0.25);
     }
 
@@ -70,13 +70,13 @@
       font-weight: normal;
     }
 
-    span.user {
+    ul.groups span.name {
       color: #3D3D3D;
       text-decoration: none;
       font-weight: bold;
     }
 
-    span.email {
+    ul.groups span.info {
       color: #999;
       font-size: 12px;
     }
@@ -100,7 +100,7 @@
       line-height: 16px;
     }
 
-    a.leave-group {
+    a.button {
       font-size: 14px;
       text-decoration: none;
       display: block;
@@ -117,7 +117,7 @@
       border-bottom-color: #2C3E50;
     }
     
-    a.leave-group.tapped {
+    a.button.tapped {
       box-shadow: none;
       border-bottom-color: #3F5063;
       color: #ccc;
@@ -127,38 +127,41 @@
 
 <body>
   <div class='overview'>
-    <h3>{{ group.name }}</h3>
+    <h3>{{ user.name }}</h3>
     <div class='info'>
-        {{ group.member_ids | length }} Members
+      Member of {{ user.groups_count }} Group{% if user.groups_count != 1%}s{% endif %}<br>
+      Last Activity: {{ user.last_online | friendly_format(owner.utcoffset, short=True) }}<br>
+      {% if user.phone %}
+        Phone: {{ user.phone }}<br>
+      {% endif %}
+      
+      {% if user.birthday.year %}
+        Born: {{ user.birthday.year }}<br>
+      {% endif %}
+      
+      {% if user.gender %}
+        Sex: {{ user.gender }}
+      {% endif %}
     </div>
     
-    <a class='leave-group' href='/group/{{ group.id }}/unfollow'>Leave Group</a>
+    <a class='button' href='/user/{{ user.id }}/follow'>Add Contact</a>
   </div>
 
-<ul class='people'>
-  {% set users = group.members %}
-  {% if users %}
-    {% for user in users %}
-      {% if user.is_registered() %}
+<ul class='groups'>
+  {% set groups = user.groups %}
+  {% if groups %}
+    {% for group in groups %}
     
-        <a href='/user/{{ user.id }}'>
-          <img class='small-avatar lfloat' src='{{ user.avatar }}'>
+        <a href='/group/{{ group.id }}'>
+          <img class='small-avatar lfloat' src='{{ group.logo }}'>
       
-          <span class='user'>{{ user.name }}</span>
-          <i class='{{ user.status }} user-{{ user.id }}-status'></i>
+          <span class='name'>{{ group.name }}</span>
           <br>
           
-          {% if group.id == 'public' %}
-          <time class='timeago' title='{{ user.timestamp | friendly_format(owner.utcoffset) }}' datetime='{{ user.timestamp | isoformat(owner.utcoffset) }}'>
-            {{ user.timestamp | friendly_format(owner.utcoffset, short=True) }}
-          </time>
-          {% else %}
-          <span class="email">{{ user.email }}</span>
-          {% endif %}
+          <span class="info">{{ group.members_count }} members</span>
 
         </a>
     
-      {% endif %}
     {% endfor %}
   {% endif %}
   </ul>
@@ -181,7 +184,7 @@
         async: true,
         url: window.location.href,
         success: function(data) {
-          $('ul.people').html(data);
+          $('ul.groups').html(data);
           
           $('body').animate({scrollTop: 0}, 100, 'swing', function() { 
              console.log("Finished animating");
@@ -197,11 +200,11 @@
 
         
     $(document).ready(function() {
-      $('ul.people').on('touchstart', 'a', function(e){
+      $('ul.groups').on('touchstart', 'a', function(e){
         $(this).addClass('tapped');
       });
       
-      $('ul.people').on('touchend', 'a', function(e){
+      $('ul.groups').on('touchend', 'a', function(e){
         $(this).removeClass('tapped');
       });
       
@@ -222,21 +225,21 @@
         $.get(url, function() {
           if (url.indexOf('/unfollow') == -1) {
             _this.attr('href', url.replace('/follow', '/unfollow'));
-            _this.html('Leave Group');
+            _this.html('Remove Contact');
           } else {
             _this.attr('href', url.replace('/unfollow', '/follow'));
-            _this.html('Join Group');
+            _this.html('Add Contact');
           }
         });
         return false;
         
       });
      
-      $('ul.people').on('tap', 'a', function(e){
+      $('ul.groups').on('tap', 'a', function(e){
         e.preventDefault();
         
         var url = $(this).attr('href');
-        var data = btoa(JSON.stringify({'title': 'User', 'url': url}));
+        var data = btoa(JSON.stringify({'title': 'Group', 'url': url}));
         console.log(url);
         console.log('jupo://open_link?data=' + data);
         
