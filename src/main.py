@@ -1161,6 +1161,7 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     # for normal sign up/sign in, action = 'authenticate'
     # for import data, action = 'import_step_1'
     action = request.args.get('action')
+    network = request.args.get('network')
 
     domain = settings.PRIMARY_DOMAIN
 
@@ -1169,11 +1170,11 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
 
       auth_url = f.get_auth_url(scope=['email', 'user_groups'])
     else:
-      f.redirect_uri = url_for('facebook_authorized',
-                             domain=request.args.get('domain', settings.PRIMARY_DOMAIN),
-                             network=request.args.get('network'),
-                             is_import=request.args.get('is_import'),
-                             _external=True)
+      f.redirect_uri = 'http://%s/oauth/facebook/authorized?domain=%s&network=%s' % (domain, domain, network)
+      #f.redirect_uri = url_for('facebook_authorized',
+      #                       domain=domain,
+      #                       network=request.args.get('network'),
+      #                       _external=True)
 
       auth_url = f.get_auth_url(scope=['email'])
 
@@ -1196,6 +1197,10 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
       source_facebook_groups = session['source_facebook_groups']
     else:
       source_facebook_groups = None
+
+    # check for logged in session
+    if 'session_id' not in session:
+      return redirect('http://%s/' % (settings.PRIMARY_DOMAIN))
 
     # get target Jupo groups of current user
     session_id = session['session_id']
@@ -1264,86 +1269,65 @@ if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
     return resp
 
   @app.route('/oauth/facebook/authorized')
-  def facebook_authorized(resp):
+  def facebook_authorized():
     domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
     network = request.args.get('network')
 
-    # validate email domain against whitelist
     db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
     current_network = api.get_current_network(db_name=db_name)
-    
-    if resp is None:
-      return 'Access denied: reason=%s error=%s' % (request.args['error_reason'],
-                                                    request.args['error_description'])
-    session['facebook_access_token'] = (resp['access_token'], '')
+
+    code = request.args['code']
+    access_token = f.get_access_token(code)
+    session['facebook_access_token'] = access_token['access_token']
+
+    facebook = GraphAPI(access_token['access_token'])
     
     if request.args.get('fb_source') == 'notification':
       return redirect('/')
-    
-    retry_count = 0
-    while retry_count < 3:
-      try:
-        me = facebook.get('/me')
 
-        email = me.data.get('email')
+    me = facebook.get('/me')
+    print "DEBUG - in facebook_authorized - me retrieved from Facebook API = " + str(me)
+    email = me['email']
+    facebook_id = me['id']
 
-        auth_whitelist = []
-        if current_network is not None and 'auth_normal_whitelist' in current_network:
-          # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
-          auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
-        # default email domain
-        auth_whitelist.append(network)
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network:
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
+    # default email domain
+    auth_whitelist.append(network)
 
-        # only validate if there is more than 1 item in auth_whitelist
-        # (meaning user keyed in something in the whitelist textbox)
-        if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
-          flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
-          user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
-          return redirect(user_url)
-        break
-      except:
-        retry_count += 1
-        sleep(1)
-        
-    retry_count = 0
-    while retry_count < 3:    
-      try:
-        friends = facebook.get('/me/friends?limit=5000')
-        break
-      except:
-        retry_count += 1
-        sleep(1)
-    
-    facebook_id = me.data['id']
-    friend_ids = [i['id'] for i in friends.data['data'] if isinstance(i, dict)]
+    # only validate if there is more than 1 item in auth_whitelist
+    # (meaning user keyed in something in the whitelist textbox)
+    if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
+      flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
+      user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
+      return redirect(user_url)
+
+    friends = facebook.get('%s/friends' % facebook_id)
+    friend_ids = [i['id'] for i in friends['data'] if isinstance(i, dict)]
+
+    user_info = api.get_user_info(email=email, db_name=db_name)
   
-    # generate db_name based on full URL ( e.g. gmail.com.jupo.com)
-    db_name = (network + "." + domain).lower().strip().replace('.', '_')
-    
-    user_info = api.get_user_info(email=me.data.get('email'), db_name=db_name)
-  
-    session_id = api.sign_in_with_facebook(email=me.data.get('email'), 
-                                           name=me.data.get('name'), 
-                                           gender=me.data.get('gender'), 
+    session_id = api.sign_in_with_facebook(email=email,
+                                           name=me.get('name'),
+                                           gender=me.get('gender'),
                                            avatar='https://graph.facebook.com/%s/picture' % facebook_id, 
-                                           link=me.data.get('link'),
-                                           locale=me.data.get('locale'), 
-                                           timezone=me.data.get('timezone'), 
-                                           verified=me.data.get('verified'), 
+                                           link=me.get('link'),
+                                           locale=me.get('locale'),
+                                           timezone=me.get('timezone'),
+                                           verified=me.get('verified'),
                                            facebook_id=facebook_id,
                                            facebook_friend_ids=friend_ids,
                                            db_name=db_name)
     
-    if db_name:
-      email = me.data.get('email')
-      if email:
-        db_names = api.get_db_names(email)
-        if db_name not in db_names:
-          api.add_db_name(email, db_name)
-        
-        for db in db_names:
-          if db != db_name:
-            api.update_session_id(email, session_id, db)
+
+    db_names = api.get_db_names(email)
+    if db_name not in db_names:
+      api.add_db_name(email, db_name)
+
+    for db in db_names:
+      if db != db_name:
+        api.update_session_id(email, session_id, db)
           
     # support subdir ( domain/network )
     url = 'http://%s/%s/' % (domain, network)
@@ -2634,9 +2618,7 @@ def messages(user_id=None, topic_id=None, action=None):
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
   db_name=hostname.replace('.', '_')
-  
-  
-  
+
   # for sub-network, network = mp3.com
   # for homepage, network = ''
   network = api.get_network_by_current_hostname(hostname)
@@ -2680,9 +2662,6 @@ def home():
 
       # set the network here so that api.get_database_name() knows which network calls it
       network = owner.email_domain
-
-      resp.set_cookie('network', owner.email_domain)
-      return resp
   else:
     # authentication OK, redirect to /news_feed
     if user_id:
@@ -2700,16 +2679,11 @@ def home():
       else:
         resp = redirect('http://%s/news_feed' % (settings.PRIMARY_DOMAIN))
 
-      # set network to cookie so that redirect knows which network to forward (!!)
-      resp.set_cookie('network', network)
       session['session_id'] = session_id
 
       # clear current network info (cookies, sessions), so that the routing to new network doesn't get mixed up
       # resp.delete_cookie('redirect_to')
       # session.pop('session_id')
-
-      print "DEBUG - in home() - about to redirect to news_feed. current network = " + str(network)
-      return resp
     else:
       #pass
       #try:
@@ -2740,11 +2714,9 @@ def home():
       if back_to:
         resp.set_cookie('redirect_to', back_to)
 
-      return resp
+  resp.set_cookie('network', network)
+  return resp
 
-
-      
-      
 @app.route("/news_feed", methods=["GET", "OPTIONS"])
 @app.route("/news_feed/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route('/archived', methods=['GET', 'OPTIONS'])
