@@ -792,7 +792,7 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
       counter_group_paging = 0
 
       next_feeds_page = ''
-      while counter_group_paging < 20 :
+      while counter_group_paging < 20 and next_feeds_page != 'finished' :
 
         if counter_group_paging == 0:
           # first time
@@ -812,8 +812,12 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
           current_group_feeds = resp.json()
           print "DEBUG - in api.import_facebook - current_group_feeds = " + str(current_group_feeds)
 
-        next_feeds_page = current_group_feeds['paging']['next']
-        print "DEBUG - in api.import_facebook - next_feeds_page general = " + str(next_feeds_page)
+        if 'paging' in current_group_feeds:
+          next_feeds_page = current_group_feeds['paging']['next']
+        else:
+          next_feeds_page = 'finished'
+
+        # print "DEBUG - in api.import_facebook - next_feeds_page general = " + str(next_feeds_page)
         counter = 0
 
         for post in current_group_feeds['data']:
