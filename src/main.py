@@ -1151,199 +1151,208 @@ def google_authorized():
   resp = redirect(user_url)  
   resp.set_cookie('network', user_domain)
   return resp 
-    
-if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
-  f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
-                client_secret=settings.FACEBOOK_APP_SECRET)
 
-  @app.route('/oauth/facebook')
-  def facebook_login():
-    # for normal sign up/sign in, action = 'authenticate'
-    # for import data, action = 'import_step_1'
-    action = request.args.get('action')
-    network = request.args.get('network')
+@app.route('/oauth/facebook')
+def facebook_login():
+  # for normal sign up/sign in, action = 'authenticate'
+  # for import data, action = 'import_step_1'
+  action = request.args.get('action')
+  network = request.args.get('network')
 
-    domain = settings.PRIMARY_DOMAIN
+  domain = settings.PRIMARY_DOMAIN
 
-    if (action == 'import_step_1'):
-      f.redirect_uri = 'http://%s/oauth/facebook/authorized_import_step_1' % domain
+  if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
+    f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
+                  client_secret=settings.FACEBOOK_APP_SECRET)
 
-      auth_url = f.get_auth_url(scope=['email', 'user_groups'])
-    else:
-      f.redirect_uri = 'http://%s/oauth/facebook/authorized?domain=%s&network=%s' % (domain, domain, network)
-      #f.redirect_uri = url_for('facebook_authorized',
-      #                       domain=domain,
-      #                       network=request.args.get('network'),
-      #                       _external=True)
+  if (action == 'import_step_1'):
+    f.redirect_uri = 'http://%s/oauth/facebook/authorized_import_step_1' % domain
 
-      auth_url = f.get_auth_url(scope=['email'])
+    auth_url = f.get_auth_url(scope=['email', 'user_groups'])
+  else:
+    f.redirect_uri = 'http://%s/oauth/facebook/authorized?domain=%s&network=%s' % (domain, domain, network)
+    #f.redirect_uri = url_for('facebook_authorized',
+    #                       domain=domain,
+    #                       network=network,
+    #                       _external=True)
 
-    app.logger.debug(auth_url)
+    auth_url = f.get_auth_url(scope=['email'])
 
-    return redirect_to(auth_url)
+  app.logger.debug(auth_url)
 
-  @app.route('/import', methods=["GET"])
-  @line_profile
-  def import_data():
-    email = ""
-    domain = settings.PRIMARY_DOMAIN
-    network = request.cookies.get('network')
-    network_info = ""
-    network_exist = ""
-    message= ""
+  return redirect_to(auth_url)
 
-    # initialize
-    if 'source_facebook_groups' in session:
-      source_facebook_groups = session['source_facebook_groups']
-    else:
-      source_facebook_groups = None
+@app.route('/import', methods=["GET"])
+@line_profile
+def import_data():
+  email = ""
+  domain = settings.PRIMARY_DOMAIN
+  network = request.cookies.get('network')
+  network_info = ""
+  network_exist = ""
+  message= ""
 
-    # check for logged in session
-    if 'session_id' not in session:
-      return redirect('http://%s/' % (settings.PRIMARY_DOMAIN))
+  # initialize
+  if 'source_facebook_groups' in session:
+    source_facebook_groups = session['source_facebook_groups']
+  else:
+    source_facebook_groups = None
 
-    # get target Jupo groups of current user
-    session_id = session['session_id']
-    target_jupo_groups = api.get_groups(session_id=session_id)
+  # check for logged in session
+  if 'session_id' not in session:
+    return redirect('http://%s/' % (settings.PRIMARY_DOMAIN))
 
-    # print "DEBUG - in /import - session['target_jupo_groups'] = " + str(session['target_jupo_groups'])
-    resp = Response(render_template('import.html',
-                                    email=email,
-                                    settings=settings,
-                                    domain=settings.PRIMARY_DOMAIN,
-                                    network=network,
-                                    network_info=network_info,
-                                    network_exist=network_exist,
-                                    source_facebook_groups=source_facebook_groups,
-                                    target_jupo_groups=target_jupo_groups,
-                                    message=message))
+  # get target Jupo groups of current user
+  session_id = session['session_id']
+  target_jupo_groups = api.get_groups(session_id=session_id)
 
-    return resp
+  # print "DEBUG - in /import - session['target_jupo_groups'] = " + str(session['target_jupo_groups'])
+  resp = Response(render_template('import.html',
+                                  email=email,
+                                  settings=settings,
+                                  domain=settings.PRIMARY_DOMAIN,
+                                  network=network,
+                                  network_info=network_info,
+                                  network_exist=network_exist,
+                                  source_facebook_groups=source_facebook_groups,
+                                  target_jupo_groups=target_jupo_groups,
+                                  message=message))
 
-  @app.route('/oauth/facebook/authorized_import_step_1')
-  def facebook_authorized_import_step_1():
-    domain = settings.PRIMARY_DOMAIN
-    network = request.cookies.get('network')
+  return resp
 
-    # validate email domain against whitelist
-    db_name = (network + '.' + domain).replace('.', '_')
-    current_network = api.get_current_network(db_name=db_name)
+@app.route('/oauth/facebook/authorized_import_step_1')
+def facebook_authorized_import_step_1():
+  domain = settings.PRIMARY_DOMAIN
+  network = request.cookies.get('network')
 
-    code = request.args['code']
-    access_token = f.get_access_token(code)
-    session['facebook_access_token'] = access_token['access_token']
+  if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
+    f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
+                  client_secret=settings.FACEBOOK_APP_SECRET,
+                  redirect_uri='http://%s/oauth/facebook/authorized_import_step_1' % domain)
 
-    facebook = GraphAPI(access_token['access_token'])
-    groups = facebook.get('/me/groups')
+  # validate email domain against whitelist
+  db_name = (network + '.' + domain).replace('.', '_')
 
-    returned_facebook_groups = []
+  code = request.args['code']
+  access_token = f.get_access_token(code)
+  session['facebook_access_token'] = access_token['access_token']
 
-    for group in groups['data']:
-      returned_facebook_groups.append({'id': group['id'], 'name': group['name']})
+  facebook = GraphAPI(access_token['access_token'])
+  groups = facebook.get('/me/groups')
 
-    session['source_facebook_groups'] = returned_facebook_groups
+  returned_facebook_groups = []
+
+  for group in groups['data']:
+    returned_facebook_groups.append({'id': group['id'], 'name': group['name']})
+
+  session['source_facebook_groups'] = returned_facebook_groups
 
 
 
-    return redirect('/import')
+  return redirect('/import')
 
-  @app.route('/oauth/facebook/authorized_import_step_2')
-  def facebook_authorized_import_step_2():
-    domain = settings.PRIMARY_DOMAIN
-    network = request.cookies.get('network')
+@app.route('/oauth/facebook/authorized_import_step_2')
+def facebook_authorized_import_step_2():
+  domain = settings.PRIMARY_DOMAIN
+  network = request.cookies.get('network')
 
-    source_facebook_group_id = request.args.get('source_facebook_group_id')
-    target_jupo_group_id = request.args.get('target_jupo_group_id')
-    import_comment_likes = request.args.get('import_comment_likes')
+  source_facebook_group_id = request.args.get('source_facebook_group_id')
+  target_jupo_group_id = request.args.get('target_jupo_group_id')
+  import_comment_likes = request.args.get('import_comment_likes')
 
-    api.importer_queue.enqueue_call(func=api.import_facebook,
-                             args=(session['session_id'], domain, network, session['facebook_access_token'],
-                                   source_facebook_group_id, target_jupo_group_id, import_comment_likes),
-                             timeout=6000)
+  api.importer_queue.enqueue_call(func=api.import_facebook,
+                           args=(session['session_id'], domain, network, session['facebook_access_token'],
+                                 source_facebook_group_id, target_jupo_group_id, import_comment_likes),
+                           timeout=6000)
 
-    # support subdir ( domain/network )
+  # support subdir ( domain/network )
 
-    url = 'http://%s/%s/' % (domain, network)
-    resp = redirect(url)
+  url = 'http://%s/%s/' % (domain, network)
+  resp = redirect(url)
 
-    return resp
+  return resp
 
-  @app.route('/oauth/facebook/authorized')
-  def facebook_authorized():
-    domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
-    network = request.args.get('network')
+@app.route('/oauth/facebook/authorized')
+def facebook_authorized():
+  domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+  network = request.args.get('network')
 
-    db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
-    current_network = api.get_current_network(db_name=db_name)
+  db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
+  current_network = api.get_current_network(db_name=db_name)
 
-    code = request.args['code']
-    access_token = f.get_access_token(code)
-    session['facebook_access_token'] = access_token['access_token']
+  if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
+    f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
+                  client_secret=settings.FACEBOOK_APP_SECRET,
+                  redirect_uri='http://%s/oauth/facebook/authorized?domain=%s&network=%s' % (domain, domain, network))
 
-    facebook = GraphAPI(access_token['access_token'])
-    
-    if request.args.get('fb_source') == 'notification':
-      return redirect('/')
+  code = request.args['code']
+  access_token = f.get_access_token(code)
+  session['facebook_access_token'] = access_token['access_token']
 
-    me = facebook.get('/me')
-    print "DEBUG - in facebook_authorized - me retrieved from Facebook API = " + str(me)
-    email = me['email']
-    facebook_id = me['id']
+  facebook = GraphAPI(access_token['access_token'])
 
-    auth_whitelist = []
-    if current_network is not None and 'auth_normal_whitelist' in current_network:
-      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
-    # default email domain
-    auth_whitelist.append(network)
+  if request.args.get('fb_source') == 'notification':
+    return redirect('/')
 
-    # only validate if there is more than 1 item in auth_whitelist
-    # (meaning user keyed in something in the whitelist textbox)
-    if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
-      flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
-      user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
-      return redirect(user_url)
+  me = facebook.get('/me')
+  print "DEBUG - in facebook_authorized - me retrieved from Facebook API = " + str(me)
+  email = me['email']
+  facebook_id = me['id']
 
-    friends = facebook.get('%s/friends' % facebook_id)
-    friend_ids = [i['id'] for i in friends['data'] if isinstance(i, dict)]
+  auth_whitelist = []
+  if current_network is not None and 'auth_normal_whitelist' in current_network:
+    auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
+  # default email domain
+  auth_whitelist.append(network)
 
-    user_info = api.get_user_info(email=email, db_name=db_name)
-  
-    session_id = api.sign_in_with_facebook(email=email,
-                                           name=me.get('name'),
-                                           gender=me.get('gender'),
-                                           avatar='https://graph.facebook.com/%s/picture' % facebook_id, 
-                                           link=me.get('link'),
-                                           locale=me.get('locale'),
-                                           timezone=me.get('timezone'),
-                                           verified=me.get('verified'),
-                                           facebook_id=facebook_id,
-                                           facebook_friend_ids=friend_ids,
-                                           db_name=db_name)
-    
+  # only validate if there is more than 1 item in auth_whitelist
+  # (meaning user keyed in something in the whitelist textbox)
+  if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
+    flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
+    user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
+    return redirect(user_url)
 
-    db_names = api.get_db_names(email)
-    if db_name not in db_names:
-      api.add_db_name(email, db_name)
+  friends = facebook.get('%s/friends' % facebook_id)
+  friend_ids = [i['id'] for i in friends['data'] if isinstance(i, dict)]
 
-    for db in db_names:
-      if db != db_name:
-        api.update_session_id(email, session_id, db)
-          
-    # support subdir ( domain/network )
-    url = 'http://%s/%s/' % (domain, network)
+  user_info = api.get_user_info(email=email, db_name=db_name)
 
-    session['session_id'] = session_id
-    session.permanent = True
+  session_id = api.sign_in_with_facebook(email=email,
+                                         name=me.get('name'),
+                                         gender=me.get('gender'),
+                                         avatar='https://graph.facebook.com/%s/picture' % facebook_id,
+                                         link=me.get('link'),
+                                         locale=me.get('locale'),
+                                         timezone=me.get('timezone'),
+                                         verified=me.get('verified'),
+                                         facebook_id=facebook_id,
+                                         facebook_friend_ids=friend_ids,
+                                         db_name=db_name)
 
-    # getting start for new user
-    if not user_info.id:
-      url = url + 'everyone?getting_started=1'
 
-    resp = redirect(url)
-    # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
-    resp.set_cookie('network', network)
+  db_names = api.get_db_names(email)
+  if db_name not in db_names:
+    api.add_db_name(email, db_name)
 
-    return resp
+  for db in db_names:
+    if db != db_name:
+      api.update_session_id(email, session_id, db)
+
+  # support subdir ( domain/network )
+  url = 'http://%s/%s/' % (domain, network)
+
+  session['session_id'] = session_id
+  session.permanent = True
+
+  # getting start for new user
+  if not user_info.id:
+    url = url + 'everyone?getting_started=1'
+
+  resp = redirect(url)
+  # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
+  resp.set_cookie('network', network)
+
+  return resp
 
 @app.route('/reminders', methods=['GET', 'OPTIONS', 'POST'])
 @app.route('/reminder/new', methods=["POST"])
