@@ -1,0 +1,139 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <style>
+      html {
+        background: #2C3036;
+        color: #E8F0F2;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Helvetica, sans-serif;
+        -webkit-overflow-scrolling: touch;
+        -webkit-transform: translateZ(0);
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: rgba(0,0,0,0);
+        tap-highlight-color: rgba(0,0,0,0);
+      }
+
+      ul, li {
+        padding: 0;
+        margin: 0;
+      }
+
+      ul {
+
+        margin-top: 20px;
+      }
+
+      li {
+        list-style: none;
+        padding: 14px 10px 14px 55px;
+      }
+
+      img {
+        position: absolute;
+        margin-left: -32px;
+        margin-top: -2px;
+        width: 20px;
+      }
+
+      h3 {
+        font-size: 16px;
+        font-weight: normal;
+        padding: 10px 10px 10px 55px;
+        margin: 0;
+      }
+      span.info {
+        font-size: 12px;
+        display: block;
+        margin-left: 55px;
+        color: #999;
+        margin-top: -10px;
+      }
+
+      div.user img.avatar {
+
+        margin-left: 8px;
+        width: 36px;
+        border-radius: 100px;
+        margin-top: 11px;
+      }
+
+      div.user h3 {
+
+        font-size: 22px;
+      }
+
+      div.user {
+
+        margin-top: 20px;
+      }
+
+      a.sign-out {
+        margin: 25px 20px;
+        border-radius: 3px;
+        bottom: 20px;
+        display: block;
+        background: #c33;
+        text-align: center;
+        padding: 12px 10px;
+      }
+      
+      li.active {
+        background: #21252B;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class='user'>
+      <img class='lfloat avatar' src='{{ owner.avatar }}'>
+      <h3>{{ owner.name }}</h3>
+      <span class='info'> {{ owner.email }} </span>
+    </div>
+    <ul>
+      <li>
+        <img class='lfloat' src='/public/images/mobile/icons/globe-512.png'>
+        Everyone
+      </li>
+      <li class='active'>
+        <img class='lfloat' src='/public/images/mobile/icons/home-512.png'>
+        News Feed
+      </li>
+    </ul>
+    <ul>
+      <h3><img class='lfloat' src='/public/images/mobile/icons/group-512.png'> Groups</h3>
+      {% for group in owner.groups %}
+      <li>
+        {{ group.name }}
+      </li>
+      {% endfor %}
+    </ul>
+    <ul>
+      <h3><img class='lfloat' src='/public/images/mobile/icons/search-512.png'> Search Jupo...</h3>
+    </ul>
+    <ul>
+      <h3><img class='lfloat' src='/public/images/mobile/icons/conference-512.png'> Change Network...</h3>
+    </ul>
+    <ul>
+      <li>
+
+        <img class='lfloat' src='/public/images/mobile/icons/settings-512.png'>
+        Account Settings
+      </li>
+      <li>
+        <img class='lfloat' src='/public/images/mobile/icons/help-512.png'>Help Center
+      </li>
+
+    </ul>
+    <a class='sign-out'>Sign Out</a>
+  </body>
+</html>
