@@ -526,7 +526,15 @@ class User(Model):
   @property
   def google_contacts(self):
     return self.info.get('google_contacts')
-
+  
+  @property
+  def link(self):
+    return self.info.get('link')
+  
+  @property
+  def verified(self):
+    return self.info.get('verified')
+  
   @property
   def google_contacts_as_obj(self):
     return [User({'_id': email, 'email': email}) for email in self.info.get('google_contacts', [])]
