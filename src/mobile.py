@@ -139,7 +139,71 @@ def google_authorized():
   
   return render_template('mobile/update_ui.html', data=dumps(data))
   
+@app.route('switch_network')
+def switch_network():
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  network = data.get('network')
+  utcoffset = data.get('utcoffset')
 
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  user = api.get_user_info(user_id, db_name=db_name)
+  
+  network = request.args.get('network')
+  if not network:
+    abort(401)
+    
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  session_id = api.sign_in_with_google(email=user.get('email'), 
+                                       name=user.get('name'), 
+                                       gender=user.get('gender'), 
+                                       avatar=user.get('picture'), 
+                                       link=user.get('link'), 
+                                       locale=user.get('locale'), 
+                                       verified=user.get('verified_email'),
+                                       google_contacts=contacts,
+                                       db_name=db_name)
+  
+  unread_notifications = api.get_unread_notifications_count(session_id,
+                                                            db_name=db_name)
+  session['session_id'] = session_id
+  session['network'] = network
+  session['utcoffset'] = utcoffset
+  session.permanent = True
+  
+  # Get user info
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  user = api.get_user_info(user_id, db_name=db_name)
+  groups = []
+  for group in api.get_groups(session_id, db_name=db_name, limit=5):
+    groups.append({'name': group.name,
+                   'link': '/group/%s' % group.id})
+  data = {'id': user_id,
+          'name': user.name,
+          'avatar': user.avatar,
+          'email': user.email,
+          'groups': groups,
+          'access_token': session.serialize(),
+          'token_type': 'session',
+          'unread_notifications': unread_notifications}
+  
+  return render_template('mobile/update_ui.html', data=dumps(data))
+  
 @app.route('/get_user_info')
 def get_user_info():
   if session and session.get('session_id'):
