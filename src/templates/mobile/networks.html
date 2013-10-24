@@ -1,0 +1,107 @@
+<!DOCTYPE HTML>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <style>
+    * {
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: rgba(252, 252, 250, 0.6);
+      margin: 0;
+      padding: 0;
+      font-family: Helvetica, sans-serif;
+      -webkit-overflow-scrolling: touch;
+      -webkit-transform: translateZ(0);
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      tap-highlight-color: rgba(0,0,0,0);
+    }
+
+    ul.networks {
+      margin: 0;
+      padding: 0;
+      list-style-type: none;
+    }
+
+    .rfloat {
+      float: right;
+    }
+
+    ul.networks > li > a {
+      display: block;
+      color: #333;
+      text-decoration: none;
+    }
+    
+    ul.networks li a text {
+      font-size: 16px;
+      word-wrap: break-word;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 14px 20px 14px 0;
+      border-bottom: 1px solid rgba(232, 230, 227, 0.6);
+      display: block;
+    }
+    
+    a.tapped {
+      background: rgba(217, 217, 217, 0.25);
+    }
+    
+    ul.networks li img {
+      margin: 10px 12px 12px 15px;
+      width: 24px;
+      height: 24px;
+      opacity: .85;
+      float: left;
+    }
+
+
+  </style>
+</head>
+<body>
+  
+  <ul class='networks'>  
+      {% for network in owner.networks %}      
+        <li>
+           <a href="/network/{{ network.domain }}">
+              <img src='/public/images/mobile/group.png'>
+              <text>{{ network.name }}</text>
+          </a>
+        </li>
+      {% endfor %}
+  </ul>
+  <script src='/public/scripts/zepto.min.js'></script>
+  <script src='/public/scripts/touch.js'></script>
+  <script>
+    
+    function open_custom_url_in_iframe(src) {
+      var rootElm = document.documentElement;
+      var newFrameElm = document.createElement("iframe");
+      newFrameElm.setAttribute("src", src);
+      rootElm.appendChild(newFrameElm);
+      newFrameElm.parentNode.removeChild(newFrameElm);
+    }
+    
+    $(document).ready(function() {
+      $('ul.networks').on('touchstart', 'a', function(e){
+        $(this).addClass('tapped');
+      });
+      
+      $('ul.networks').on('touchend', 'a', function(e){
+        $(this).removeClass('tapped');
+      });
+      
+     
+    });
+  </script>
+</body>
+
+

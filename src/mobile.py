@@ -139,7 +139,6 @@ def google_authorized():
   
   return render_template('mobile/update_ui.html', data=dumps(data))
   
-
 @app.route('/get_user_info')
 def get_user_info():
   if session and session.get('session_id'):
@@ -374,6 +373,76 @@ def group(group_id='public', view='group', page=1):
                           request=request,
                           view=view)
 
+@app.route('/networks', methods=['GET', 'POST'])
+@app.route('/network/<string:domain>', methods=['GET', 'POST'])
+def network(domain=None):
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+       
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+     
+  session_id = data.get('session_id')
+  network = data.get('network')
+  utcoffset = data.get('utcoffset')
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+  owner = api.get_user_info(user_id, db_name=db_name)
+  
+  if request.path.startswith('/networks'):
+    return render_template('mobile/networks.html', 
+                            owner=owner)
+  
+  if not domain:
+    abort(401)
+  
+  db_name = domain.replace('.', '_')
+  network = api.get_network_by_current_hostname(domain)
+  session_id = api.sign_in_with_google(email=owner.email, 
+                                       name=owner.name, 
+                                       gender=owner.gender, 
+                                       avatar=owner.avatar, 
+                                       link=owner.link, 
+                                       locale=owner.locale, 
+                                       verified=owner.verified,
+                                       google_contacts=owner.google_contacts,
+                                       db_name=db_name)
+  
+  unread_notifications = api.get_unread_notifications_count(session_id,
+                                                            db_name=db_name)
+  session['session_id'] = session_id
+  session['network'] = network
+  session['utcoffset'] = utcoffset
+  session.permanent = True
+   
+  # Get user info
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  user = api.get_user_info(user_id, db_name=db_name)
+  groups = []
+  for group in api.get_groups(session_id, db_name=db_name, limit=5):
+    groups.append({'name': group.name,
+                   'link': '/group/%s' % group.id})
+  data = {'id': user_id,
+          'name': user.name,
+          'avatar': user.avatar,
+          'email': user.email,
+          'groups': groups,
+          'access_token': session.serialize(),
+          'token_type': 'session',
+          'unread_notifications': unread_notifications}
+   
+  return render_template('mobile/update_ui.html', data=dumps(data))
+
+  
 @app.route('/like/<int:item_id>', methods=['GET', 'POST'])
 @app.route('/unlike/<int:item_id>', methods=['GET', 'POST'])
 def like(item_id):
