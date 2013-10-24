@@ -1193,18 +1193,16 @@ def import_data():
   message= ""
 
   # initialize
-  if 'source_facebook_groups' in session:
-    source_facebook_groups = session['source_facebook_groups']
-  else:
-    source_facebook_groups = None
+  #if 'source_facebook_groups' in session:
+  #  source_facebook_groups = session['source_facebook_groups']
+  #else:
+  #  source_facebook_groups = None
 
   # check for logged in session
   if 'session_id' not in session:
     return redirect('http://%s/' % (settings.PRIMARY_DOMAIN))
 
-  # get target Jupo groups of current user
-  session_id = session['session_id']
-  target_jupo_groups = api.get_groups(session_id=session_id)
+
 
   # print "DEBUG - in /import - session['target_jupo_groups'] = " + str(session['target_jupo_groups'])
   resp = Response(render_template('import.html',
@@ -1214,8 +1212,8 @@ def import_data():
                                   network=network,
                                   network_info=network_info,
                                   network_exist=network_exist,
-                                  source_facebook_groups=source_facebook_groups,
-                                  target_jupo_groups=target_jupo_groups,
+                                  # source_facebook_groups=source_facebook_groups,
+                                  # target_jupo_groups=target_jupo_groups,
                                   message=message))
 
   return resp
@@ -1245,11 +1243,21 @@ def facebook_authorized_import_step_1():
   for group in groups['data']:
     returned_facebook_groups.append({'id': group['id'], 'name': group['name']})
 
-  session['source_facebook_groups'] = returned_facebook_groups
+  # get target Jupo groups of current user
+  session_id = session['session_id']
+  target_jupo_groups = api.get_groups(session_id=session_id)
 
+  # session['source_facebook_groups'] = returned_facebook_groups
 
+  # return redirect('/import')
+  resp = Response(render_template('import.html',
+                                  settings=settings,
+                                  domain=settings.PRIMARY_DOMAIN,
+                                  network=network,
+                                  source_facebook_groups=returned_facebook_groups,
+                                  target_jupo_groups=target_jupo_groups))
 
-  return redirect('/import')
+  return resp
 
 @app.route('/oauth/facebook/authorized_import_step_2')
 def facebook_authorized_import_step_2():

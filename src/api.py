@@ -804,13 +804,9 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
           # params = dict(ss.split('=') for ss in parsed_url[4].split('&'))
           # params.pop('access_token', None)
 
-          print "DEBUG - in api.import_facebook - next_feeds_page 2nd+ time = " + str(next_feeds_page)
-
           resp = requests.get(next_feeds_page)
-          print "DEBUG - in api.import_facebook - resp 2nd+ time = " + str(resp)
-          print "DEBUG - in api.import_facebook - resp 2nd+ time = " + str(resp.text)
+
           current_group_feeds = resp.json()
-          print "DEBUG - in api.import_facebook - current_group_feeds = " + str(current_group_feeds)
 
         if 'paging' in current_group_feeds:
           next_feeds_page = current_group_feeds['paging']['next']
@@ -831,9 +827,7 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
 
             # only query user and add if they don't exists in our DB - save 1 query here
             if not poster_session_id:
-              print "DEBUG - in api.import_facebook - user_fb_id = " + str(user_fb_id)
               poster = facebook_import.get(user_fb_id)
-              print "DEBUG - in api.import_facebook - poster = " + str(poster)
 
               if 'username' in poster:
                 poster_username = poster['username']
@@ -843,6 +837,8 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
               poster_avatar_url = 'http://graph.facebook.com/' + poster_username + '/picture'
 
               poster_session_id = add_dummy_user(name=poster['name'], fb_id=user_fb_id, avatar=poster_avatar_url, db_name=db_name)
+
+            join_group(poster_session_id, target_jupo_group_id, db_name=db_name)
 
             attachment = []
 
@@ -898,6 +894,8 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
                     comment_poster_avatar_url = 'http://graph.facebook.com/' + comment_poster_username + '/picture'
 
                     comment_poster_session_id = add_dummy_user(name=comment['from']['name'], fb_id=comment_user_fb_id, avatar=comment_poster_avatar_url, db_name=db_name)
+
+                  join_group(comment_poster_session_id, target_jupo_group_id, db_name=db_name)
 
                   new_comment_obj = new_comment(session_id=comment_poster_session_id, message=comment['message'], ref_id=new_feed_id,
                   attachments=None, reply_to=None, from_addr=None, db_name=db_name, updated_time=None, created_time=float(dateparser.parse(comment['created_time']).strftime('%s.%f')), is_import="True")
@@ -5045,8 +5043,9 @@ def update_group_info(session_id, group_id, info):
   cache.delete(key)                 
   return True
 
-def join_group(session_id, group_id):
-  db_name = get_database_name()
+def join_group(session_id, group_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   user_id = get_user_id(session_id)
@@ -5604,10 +5603,11 @@ def get_group_member_ids(group_id, db_name=None):
     group = db.owner.find_one({'_id': long(group_id)}, {'members': True,
                                                         'leaders': True})
     ids = set()
-    for i in group.get('members', []):
-      ids.add(i)
-    for i in group.get('leaders', []):
-      ids.add(i)
+    if group is not None:
+      for i in group.get('members', []):
+        ids.add(i)
+      for i in group.get('leaders', []):
+        ids.add(i)
     return ids
   else:
     group_id = 'public'
