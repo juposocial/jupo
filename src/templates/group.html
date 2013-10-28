@@ -421,7 +421,7 @@
     {% if owner and (group.post_permission != 'administrators' or owner.id in group.administrator_ids) %}
       {% include 'new.html' %}
     {% endif%}
-  {% else %}
+  {% elif group.id != 'public' %}
     {% set view = 'members' %}
   {% endif%}
   

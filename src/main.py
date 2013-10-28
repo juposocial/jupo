@@ -2118,6 +2118,7 @@ def group(group_id=None, view='group', page=1):
     
   if request.path.startswith('/everyone'):
     group_id = 'public'
+    
   if request.path == '/people':
     group_id = 'public'
     view = 'members'
