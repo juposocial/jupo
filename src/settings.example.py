@@ -85,3 +85,6 @@ AVATAR_RENDERER = 'initials'
 
 # Zopim
 ZOPIM_ENABLE = False
+
+ENABLE_USERVOICE = False
+
