@@ -389,7 +389,11 @@ class User(Model):
   @property
   def gender(self):
     return self.info.get('gender')
-    
+  
+  
+  @property
+  def devices(self):
+    return self.info.get('devices')
   
   @property
   def birthday(self):
