@@ -68,16 +68,10 @@
 </head>
 <body>
   <ul class='groups'>  
-      <li>
-         <a href="/everyone">
-            <img src='/public/images/mobile/group.png'>
-            <text>Everyone</text>
-        </a>
-      </li>
       {% for group in groups %}      
         <li>
            <a href="/group/{{ group.id }}">
-              <img src='/public/images/mobile/group.png'>
+              <img src='/public/images/mobile/icons/group/group-512.png'>
               <text>{{ group.name }}</text>
           </a>
         </li>
