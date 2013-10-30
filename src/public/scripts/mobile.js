@@ -53,6 +53,10 @@ $(document).ready(function() {
   $('body').on('tap', 'ul.stream li.feed', function(e){
     e.preventDefault();
     
+    if (e.target.nodeName === 'A' || $(e.target).parent()[0].nodeName === 'A') {
+      return false;
+    }
+    
     var url = $(this).attr('id').replace('post-', '/feed/');
     
     if (url == window.location.pathname) {
@@ -191,6 +195,7 @@ $(document).ready(function() {
   
   $('body').on("click", 'a', function(e) {
     e.preventDefault();
+    e.stopPropagation();
     
     if ($(this).hasClass('next') || $(this).hasClass('toggle')) {
       return false;

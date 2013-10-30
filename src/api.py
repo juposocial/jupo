@@ -6457,8 +6457,11 @@ def get_networks(user_id, user_email=None):
       # info['domain'] = db_name.replace('_', '.')
       if 'domain' in info:
         hostname = info['domain']
-        network_url = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
-        info['url'] = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network_url)
+        domain = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+        if not is_domain_name(domain):
+          continue
+        info['domain'] = domain
+        info['url'] = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, domain)
       
       networks_list.append(info)
     

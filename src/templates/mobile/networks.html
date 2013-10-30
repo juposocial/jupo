@@ -24,7 +24,7 @@
       tap-highlight-color: rgba(0,0,0,0);
     }
 
-    ul.groups {
+    ul.networks {
       margin: 0;
       padding: 0;
       list-style-type: none;
@@ -34,13 +34,13 @@
       float: right;
     }
 
-    ul.groups > li > a {
+    ul.networks > li > a {
       display: block;
       color: #333;
       text-decoration: none;
     }
     
-    ul.groups li a text {
+    ul.networks li a text {
       font-size: 16px;
       word-wrap: break-word;
       overflow: hidden;
@@ -55,7 +55,7 @@
       background: rgba(217, 217, 217, 0.25);
     }
     
-    ul.groups li img {
+    ul.networks li img {
       margin: 10px 12px 12px 15px;
       width: 24px;
       height: 24px;
@@ -63,18 +63,46 @@
       float: left;
     }
 
+    div.info {
+      margin: 15px;
+    }
+    
+    ul.networks li span.unread-notifications {
+      font-size: 12px;
+      font-weight: bold;
+      font-family: arial;
+      line-height: 16px;
+      color: white;
+      padding: 3px 8px 2px!important;
+      border-radius: 2px;
+      background-color: #D14836;
+      background-image: -webkit-gradient(linear,left top,left bottom,from(#DD4B39),to(#D14836));
+      background-image: -webkit-linear-gradient(top,#DD4B39,#D14836);
+      position: absolute;
+      right: 20px;
+      margin-top: -2px;
+    }
 
   </style>
 </head>
 <body>
-  <ul class='groups'>  
-      {% for group in groups %}      
+  <div class='info'>
+    You are on <strong>{{ current_network }}</strong>
+  </div>
+  <ul class='networks'>  
+      {% for network in owner.networks %}    
+        {% if network.domain and network.domain != current_network %}  
         <li>
-           <a href="/group/{{ group.id }}">
-              <img src='/public/images/mobile/icons/group/group-512.png'>
-              <text>{{ group.name }}</text>
+           <a href="/network/{{ network.domain }}">
+              <img src='/public/images/mobile/icons/conference/conference-512.png'>
+              <text>{{ network.domain }}
+                {% if network.unread_notifications %}
+                <span class='unread-notifications'>{{ network.unread_notifications }}</span>
+                {% endif %}
+              </text>
           </a>
         </li>
+        {% endif %}
       {% endfor %}
   </ul>
   <script src='/public/scripts/zepto.min.js'></script>
@@ -90,32 +118,32 @@
     }
     
     $(document).ready(function() {
-      $('ul.groups').on('touchstart', 'a', function(e){
+      $('ul.networks').on('touchstart', 'a', function(e){
         $(this).addClass('tapped');
       });
       
-      $('ul.groups').on('touchend', 'a', function(e){
+      $('ul.networks').on('touchend', 'a', function(e){
         $(this).removeClass('tapped');
       });
       
-      $('ul.groups').on('click', 'a', function(e){
+      $('ul.networks').on('tap', 'a', function(e) {
         e.preventDefault();
+        $('img', $(this)).attr('src', '/public/images/mobile/spinner.gif');
+        $.ajax({
+          type: 'GET',
+          url: $(this).attr('href'),
+          success: function(data) {
+            open_custom_url_in_iframe('jupo://update_ui?data=' + data);
+          }
+        });
         return false;
       });
+      
+      $('ul.networks').on('click', 'a', function(e) {
+        e.preventDefault();
+      });
+      
      
-      $('ul.groups').on('tap', 'a', function(e){
-        e.preventDefault();
-        
-        var url = $(this).attr('href').substring(2);
-        var data = btoa(JSON.stringify({'title': 'Group', 'url': url}));
-        console.log(url);
-        console.log('jupo://open_link?data=' + data);
-        
-        open_custom_url_in_iframe('jupo://open_link?data=' + data);
-        
-              
-        return false;
-      });
     });
   </script>
 </body>
