@@ -63,19 +63,46 @@
       float: left;
     }
 
+    div.info {
+      margin: 15px;
+    }
+    
+    ul.networks li span.unread-notifications {
+      font-size: 12px;
+      font-weight: bold;
+      font-family: arial;
+      line-height: 16px;
+      color: white;
+      padding: 3px 8px 2px!important;
+      border-radius: 2px;
+      background-color: #D14836;
+      background-image: -webkit-gradient(linear,left top,left bottom,from(#DD4B39),to(#D14836));
+      background-image: -webkit-linear-gradient(top,#DD4B39,#D14836);
+      position: absolute;
+      right: 20px;
+      margin-top: -2px;
+    }
 
   </style>
 </head>
 <body>
-  
+  <div class='info'>
+    You are on <strong>{{ current_network }}</strong>
+  </div>
   <ul class='networks'>  
-      {% for network in owner.networks %}      
+      {% for network in owner.networks %}    
+        {% if network.domain and network.domain != current_network %}  
         <li>
            <a href="/network/{{ network.domain }}">
-              <img src='/public/images/mobile/group.png'>
-              <text>{{ network.name }}</text>
+              <img src='/public/images/mobile/icons/conference/conference-512.png'>
+              <text>{{ network.domain }}
+                {% if network.unread_notifications %}
+                <span class='unread-notifications'>{{ network.unread_notifications }}</span>
+                {% endif %}
+              </text>
           </a>
         </li>
+        {% endif %}
       {% endfor %}
   </ul>
   <script src='/public/scripts/zepto.min.js'></script>

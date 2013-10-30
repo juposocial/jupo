@@ -396,7 +396,7 @@ def group(group_id='public', action='group', page=1):
                           view='group')
 
 @app.route('/networks', methods=['GET', 'POST'])
-@app.route('/network/<string:domain>', methods=['GET', 'POST'])
+@app.route('/network/<domain>', methods=['GET', 'POST'])
 def network(domain=None):
   if session and session.get('session_id'):
     data = session
@@ -422,7 +422,8 @@ def network(domain=None):
   
   if request.path.startswith('/networks'):
     return render_template('mobile/networks.html', 
-                            owner=owner)
+                           current_network=network,
+                           owner=owner)
   
   if not domain:
     abort(401)
