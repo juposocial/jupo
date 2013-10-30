@@ -439,6 +439,8 @@ def network(domain=None):
                                        verified=owner.verified,
                                        google_contacts=owner.google_contacts,
                                        db_name=db_name)
+  if not session_id:
+    abort(500)
   
   unread_notifications = api.get_unread_notifications_count(session_id,
                                                             db_name=db_name)
@@ -463,7 +465,8 @@ def network(domain=None):
           'token_type': 'session',
           'unread_notifications': unread_notifications}
    
-  return render_template('mobile/update_ui.html', data=dumps(data))
+   
+  return api.b64encode(dumps(data))
 
   
 @app.route('/like/<int:item_id>', methods=['GET', 'POST'])

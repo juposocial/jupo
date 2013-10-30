@@ -126,6 +126,23 @@
         $(this).removeClass('tapped');
       });
       
+      $('ul.networks').on('tap', 'a', function(e) {
+        e.preventDefault();
+        $('img', $(this)).attr('src', '/public/images/mobile/spinner.gif');
+        $.ajax({
+          type: 'GET',
+          url: $(this).attr('href'),
+          success: function(data) {
+            open_custom_url_in_iframe('jupo://update_ui?data=' + data);
+          }
+        });
+        return false;
+      });
+      
+      $('ul.networks').on('click', 'a', function(e) {
+        e.preventDefault();
+      });
+      
      
     });
   </script>
