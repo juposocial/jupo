@@ -318,3 +318,6 @@ div.loading img {
   margin-left: -12px;
 }
 
+body > div.info {
+  margin: 15px;
+}

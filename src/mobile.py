@@ -16,6 +16,7 @@ from simplejson import dumps, loads
 
 from jinja2 import Environment
 from werkzeug.contrib.cache import MemcachedCache
+from lib.verify_email_google import is_google_apps_email
 
 import requests
 import werkzeug.serving
@@ -55,7 +56,7 @@ def public_files(filename):
 
 @app.route('/oauth/google')
 def google_login():
-  network = request.args.get('network', 'jupo.com') 
+  network = request.args.get('network', 'meta.jupo.com') 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
   utcoffset = request.args.get('utcoffset', 0)
   return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&prompt=select_account' \
@@ -88,6 +89,9 @@ def google_authorized():
   if 'error' in user:   # Invalid Credentials
     abort(401, resp.text)
     
+  email = user.get('email')
+  if is_google_apps_email(email):
+    network = email.split('@')[-1]
 
   url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
   resp = requests.get(url, headers={'Authorization': '%s %s' \
@@ -316,6 +320,7 @@ def news_feed(page=1, feed_id=None):
     return render_template('mobile/news_feed.html', owner=owner,
                                                     mode=mode,
                                                     title=title, 
+                                                    current_network=network,
                                                     view='news_feed', 
                                                     settings=settings,
                                                     feeds=feeds)
