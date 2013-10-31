@@ -8,7 +8,9 @@
     <style>
       html {
         background: #2C3036;
-        color: #82888F;
+        /*color: #82888F;
+        color: #E8F0F2;*/
+        color: #A3A9AD;
       }
 
       body {
@@ -26,11 +28,6 @@
       ul, li {
         padding: 0;
         margin: 0;
-      }
-
-      ul {
-
-        margin-top: 20px;
       }
 
       li {
@@ -51,16 +48,16 @@
         padding: 10px 10px 10px 55px;
         margin: 0;
       }
+      
       span.info {
         font-size: 12px;
         display: block;
         margin-left: 55px;
-        color: #656A70;
+        color: #6D7277;
         margin-top: -10px;
       }
 
       div.user img.avatar {
-
         margin-left: 8px;
         width: 36px;
         border-radius: 100px;
@@ -68,28 +65,38 @@
       }
 
       div.user h3 {
-
         font-size: 22px;
       }
 
       div.user {
-
-        margin-top: 20px;
+        margin: 20px 0;
       }
 
       a.sign-out {
-        margin: 25px 20px;
-        border-radius: 3px;
+        margin: 20px;
         bottom: 20px;
         display: block;
-        background: #c33;
         text-align: center;
         padding: 12px 10px;
         color: #E8F0F2;
+        border-radius: 3px;
+        box-shadow: inset 0 -1px 0 #2C3E50;
+        background-color: #3F5063;
+        background-image: -webkit-linear-gradient(top,transparent,transparent);
+        border: 1px solid transparent;
+        border-bottom-color: #2C3E50;
+        font-size: 14px;
+      }
+      
+      a.sign-out:active {
+        box-shadow: none;
+        border-bottom-color: #3F5063;
+        color: #ccc;
       }
       
       li.active {
         background: #21252B;
+        color: #E8F0F2;
       }
     </style>
   </head>
