@@ -1311,7 +1311,7 @@ def facebook_canvas():
   invited_network = 'jupo.com'
 
   # facebook_canvas_url = 'https://jupo.localhost.com/canvas/'
-  facebook_canvas_url = 'https://apps.facebook.com/' + settings.FACEBOOK_APP_ID + '/?invited_network=' + invited_network
+  facebook_canvas_url = 'https://apps.facebook.com/' + settings.FACEBOOK_APP_NAMESPACE + '/?invited_network=' + invited_network
 
   if 'oauth_token' not in decoded_signed_request:
     user_authorized = 'false'
