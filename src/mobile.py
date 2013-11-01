@@ -36,6 +36,45 @@ assets = WebAssets(app)
 if settings.SENTRY_DSN:
   sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
   
+  
+def event_stream(channel):
+  pubsub = api.PUBSUB.pubsub()
+  pubsub.subscribe(channel)
+  for message in pubsub.listen():
+    yield 'retry: 1000\ndata: %s\n\n' % message['data']
+
+@app.route('/stream')
+def stream():
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  channel_id = data.get('channel_id')
+  network = data.get('network')
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  
+  # Update utcoffset
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if user_id:
+    utcoffset = request.cookies.get('utcoffset')
+    if utcoffset:
+      api.update_utcoffset(user_id, utcoffset)
+  
+  resp = Response(event_stream(channel_id),
+                  mimetype="text/event-stream")
+  resp.headers['X-Accel-Buffering'] = 'no'
+#   resp.headers['Access-Control-Allow-Origin'] = '*'
+  return resp
 
 
 @app.route('/public/<path:filename>')
@@ -132,6 +171,7 @@ def google_authorized():
   session['session_id'] = session_id
   session['network'] = network
   session['utcoffset'] = utcoffset
+  session['channel_id'] = api.get_channel_id(session_id, db_name=db_name)
   session.permanent = True
   if device_id:
     session['device_id'] = device_id
@@ -154,6 +194,7 @@ def google_authorized():
           'unread_notifications': unread_notifications}
   
   return render_template('mobile/update_ui.html', data=dumps(data))
+
   
 
 @app.route('/logout', methods=['GET'])

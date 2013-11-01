@@ -5690,7 +5690,8 @@ def get_group_info(session_id, group_id, db_name=None):
     
   user_id = get_user_id(session_id, db_name=db_name)
   info = db.owner.find_one({"_id": group_id})
-  if info and info.get('privacy') in ['open', 'closed'] or user_id in info['members']:
+  if (info and info.get('privacy') in ['open', 'closed'])\
+  or (info and user_id in info['members']):
     if not info.has_key('recently_viewed'): # preinitialize recently_viewed arrays with nulls
       db.owner.update({'_id': group_id},
                       {'$set': 

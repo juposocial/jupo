@@ -321,3 +321,19 @@ div.loading img {
 body > div.info {
   margin: 15px;
 }
+
+
+i.like-small-icon {
+  background: url('/public/images/like_small.png');
+  width: 10px;
+  height: 9px;
+  display: inline-block;
+}
+
+ul.comments li.comment div.footer {
+  color: transparent;
+}
+
+ul.comments li.comment a.reply {
+  display: none;
+}
