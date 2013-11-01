@@ -55,6 +55,8 @@ import settings
 from lib.verify_email_google import is_google_apps_email
 from app import CURRENT_APP, render
 
+from lib.fb_helpers import parse_signed_request
+
 import pickle
 import dateutil.parser as dateparser
 from facebook import FacebookAPI, GraphAPI
@@ -1255,6 +1257,15 @@ def facebook_authorized_import_step_1():
   # session['source_facebook_groups'] = returned_facebook_groups
 
   # return redirect('/import')
+  # save Facebook contacts
+  me = facebook.get('/me')
+  print "DEBUG - in facebook_authorized_import_step_1 - my fb_id = " + str(me['id'])
+  friends = facebook.get('%s/friends' % me['id'])
+  friend_ids = [i['id'] for i in friends['data'] if isinstance(i, dict)]
+
+  user_update_info = {'facebook_friend_ids': friend_ids}
+  api.update_user_info(session_id=session_id, info=user_update_info)
+
   resp = Response(render_template('import.html',
                                   settings=settings,
                                   domain=settings.PRIMARY_DOMAIN,
@@ -1284,6 +1295,112 @@ def facebook_authorized_import_step_2():
 
   url = 'http://%s/%s/' % (domain, network)
   resp = redirect(url)
+
+  return resp
+
+@csrf.exempt
+@app.route('/canvas', methods=['POST', 'GET'])
+@app.route('/canvas/', methods=['POST', 'GET'])
+def facebook_canvas():
+  # check if user authenticated our app or not
+  signed_request = request.form.get('signed_request')
+  print "DEBUG - in facebook_canvas - signed_request = " + str(signed_request)
+  decoded_signed_request = parse_signed_request(signed_request, settings.FACEBOOK_APP_SECRET)
+  print "DEBUG - in facebook_canvas - decoded_signed_request = " + str(decoded_signed_request)
+
+  invited_network = 'jupo.com'
+
+  # facebook_canvas_url = 'https://jupo.localhost.com/canvas/'
+  facebook_canvas_url = 'https://apps.facebook.com/' + settings.FACEBOOK_APP_ID + '/?invited_network=' + invited_network
+
+  if 'oauth_token' not in decoded_signed_request:
+    user_authorized = 'false'
+
+    current_user = None
+    invited_network = None
+  else:
+    # authorized, get extra info
+    facebook = GraphAPI(decoded_signed_request['oauth_token'])
+
+    current_user = facebook.get('/me')
+
+    invited_network = request.args.get('invited_network')
+
+    user_authorized = 'true'
+
+  request_id = request.args.get('request_ids')
+
+  resp = Response(render_template('canvas_facebook.html',
+                                  fb_app_id=settings.FACEBOOK_APP_ID,
+                                  fb_app_canvas_url=facebook_canvas_url,
+                                  request_id=request_id,
+                                  user_authorized=user_authorized,
+                                  current_user=current_user,
+                                  domain=settings.PRIMARY_DOMAIN,
+                                  invited_network=invited_network))
+
+  return resp
+
+@app.route('/import_invite', methods=['POST', 'GET'])
+def import_data_invite_friends():
+  email = ""
+  domain = settings.PRIMARY_DOMAIN
+  network = request.cookies.get('network')
+  network_info = ""
+  message= ""
+
+  # initialize
+  #if 'source_facebook_groups' in session:
+  #  source_facebook_groups = session['source_facebook_groups']
+  #else:
+  #  source_facebook_groups = None
+
+  # check for logged in session
+  if 'session_id' not in session:
+    return redirect('http://%s/' % (settings.PRIMARY_DOMAIN))
+
+  session_id = session['session_id']
+  user_id = api.get_user_id(session_id=session_id)
+
+  if request.method == "GET":
+    target_contacts = api.find_target_facebook_contacts_to_invite(user_id=user_id)
+
+    resp = Response(render_template('import_invite.html',
+                                    email=email,
+                                    settings=settings,
+                                    domain=settings.PRIMARY_DOMAIN,
+                                    network=network,
+                                    network_info=network_info,
+                                    target_contacts=target_contacts,
+                                    # source_facebook_groups=source_facebook_groups,
+                                    # target_jupo_groups=target_jupo_groups,
+                                    message=message))
+  elif request.method == "POST":
+    selected_contacts = request.form.get('selectedContacts')
+
+    for contact_fb_id in selected_contacts:
+      # send notification
+      # facebook = GraphAPI(session['facebook_access_token'])
+      # facebook.post('/' + contact_fb_id + '/notifications')
+      # contact_fb_id = '670679095' # for testing only
+      print "DEBUG - in import_data_invite_friends - access_token = " + str(session['facebook_access_token'])
+      response_noti = requests.post('https://graph.facebook.com/%s/notifications?access_token=%s&href=%s&template=%s' % (contact_fb_id, '1427208454172770|QwcKzFThxruAT11P6TQTlIeDz_s', 'http://jupo.localhost.com/jupo.com', 'Hello world from Jupo' ))
+      print "DEBUG - in import_data_invite_friends - response of post noti = " + str(vars(response_noti))
+
+
+    print "DEBUG - in import_data_invite_friends - selected contacts = " + str(selected_contacts)
+
+    resp = Response(render_template('import_invite.html',
+                                    email=email,
+                                    settings=settings,
+                                    domain=settings.PRIMARY_DOMAIN,
+                                    network=network,
+                                    network_info=network_info,
+                                    target_contacts=target_contacts,
+                                    # source_facebook_groups=source_facebook_groups,
+                                    # target_jupo_groups=target_jupo_groups,
+                                    message=message))
+
 
   return resp
 

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--[if (IE 8)&!(IEMobile)]><html class="no-js lt-ie9" lang="en"><![endif]-->
+<!--[if (IE 9)]><html class="no-js ie9" lang="en"><![endif]-->
+<!--[if gt IE 8]><!--> <html lang="en-US"> <!--<![endif]-->
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Jupo - Invite Facebook contacts</title>
+  <link href="/public/assets/css/style.css" rel="stylesheet">
+  <link href="/public/assets/css/font-awesome.css" rel="stylesheet">
+  <!--[if (lt IE 9) & (!IEMobile)]>
+  <link href="/public/assets/css/ie8.css" rel="stylesheet">
+  <![endif]-->
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
+  <script src="/public/assets/js/modernizr.js"></script>
+
+</head>
+<body class="homepage">
+<div class="container">
+
+<div class="import">
+  <div class="rfloat">
+  </div>
+  <h3>Intro</h2>
+  <p>
+    Thanks for trusting Jupo with your Facebook Groups data. It's now time to invite your friends
+  </p>
+  <hr/>
+  <h3 class="text-info">Step 1 - Authenticate</h3>
+  <div class='social-login'>
+    <!--<a href='http://jupo.localhost.com/oauth/facebook?domain=jupo.localhost.com&network=mp3.com&is_import=true' class='facebook-button'> <i class='fb-icon'></i> <span> Import from Facebook </span></a>-->
+    <a href='http://{{ domain }}/oauth/facebook?domain={{ domain }}&network={{ network }}&action=import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Authenticate with Facebook </span> </a>
+  </div>
+  <form action="/import_invite" method="POST" class="form-inline" role="form">
+
+    <h3 class="text-info">Step 2 - Select Facebook contacts to invite</h3>
+
+
+      <div class="row container">
+      {% for target in target_contacts %}
+        <div class="checkbox col-md-3">
+          <label>
+            <input type="checkbox" name="selectedContacts" value="{{ target['_id'] }}"> {{ target['name'] }}
+          </label>
+        </div>
+      {% endfor %}
+      </div>
+
+
+
+
+
+  <input type="hidden" name="domain" value="{{ domain }}"/>
+  <input type="hidden" name="network" value="{{ network }}"/>
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+  <br/>
+  <button type="submit" class="btn btn-primary">Invite</button>
+
+  <p>We will send invite from Jupo app to your selected contacts</p>
+
+  </form>
+
+</div>
+</div>
+</body>
+</html>

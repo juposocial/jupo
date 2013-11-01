@@ -57,9 +57,9 @@
 
     {% elif key.startswith('import_completed:') %}
 
-      <a href='#!/notification/{{ message.id }}?continue=/user/{{ message.sender.id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+      <a href='#!/notification/{{ message.id }}?continue=http://jupo.localhost.com/jupo.com/import_invite' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
-        We just finished importing your data. Please check it out :)
+        We just finished importing your data. Want to inform your Facebook friends ? :)
       
     {% elif key.startswith('comment:') %}
       <a href='#!/notification/{{ message.ref_id }}-comments?continue=/feed/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
