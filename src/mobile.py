@@ -61,7 +61,7 @@ def google_login():
   device_token = request.args.get('device_token', None)
   device_os = request.args.get('os', None)
   if device_token == '(null)':
-    device_token = device_os = None 
+    device_token = device_os = '' 
   utcoffset = request.args.get('utcoffset', 0)
   return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&prompt=select_account' \
                   % (settings.GOOGLE_MOBILE_APP_REDIRECT_URI, 
@@ -73,7 +73,11 @@ def google_login():
 def google_authorized():
   code = request.args.get('code')
   __, network, utcoffset, device_token, device_os = request.args.get('state').split("|")
-  device_id = ('%s %s' % (device_os, device_token)).strip()                        
+  if device_token and device_os:
+    device_id = ('%s %s' % (device_os, device_token)).strip()    
+  else:
+    device_id = None                    
+ 
   # get access_token
   resp = requests.post('https://accounts.google.com/o/oauth2/token', 
                        data={'code': code,

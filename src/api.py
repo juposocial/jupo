@@ -2135,9 +2135,10 @@ def new_notification(session_id, receiver, type,
                                                               db_name=db_name)
   push_queue.enqueue(publish, receiver, 'unread-notifications', 
                      unread_notifications_count, db_name=db_name)
-  push_notification_to_mobile(sender_id=info.get('sender'), 
-                              receiver_id=receiver,
-                              info=info, db_name=db_name)
+  push_queue.enqueue(push_notification_to_mobile, 
+                     sender_id=info.get('sender'), 
+                     receiver_id=receiver,
+                     info=info, db_name=db_name)
   
   return notification_id
 
@@ -3706,20 +3707,19 @@ def new_comment(session_id, message, ref_id,
                                   user_id=user_id, post=info,
                                   db_name=db_name)
 
-
+  # TODO: user comment tren post vua share khong thay gui notification
   receivers = [info.get('owner')]
   if not is_import:
-    if info.get('comments'):
-      for i in info.get('comments'):
-        if i.get('owner') != user_id and i.get('owner') not in mentions and i.get('owner') not in receivers:
-          receivers.append(i.get('owner'))
-          notification_queue.enqueue(new_notification,
-                                     session_id,
-                                     i.get('owner'),
-                                     'comment',
-                                     ref_id=ref_id,
-                                     comment_id=comment['_id'],
-                                     db_name=db_name)
+    for i in viewers:
+      if i != user_id and i not in mentions and i not in receivers:
+        receivers.append(i)
+        notification_queue.enqueue(new_notification,
+                                   session_id,
+                                   i,
+                                   'comment',
+                                   ref_id=ref_id,
+                                   comment_id=comment['_id'],
+                                   db_name=db_name)
 
   owner = get_user_info(user_id=user_id, db_name=db_name)
   if not is_import:
@@ -7123,6 +7123,8 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
       
     
 def push_notification_to_mobile(sender_id=None, receiver_id=None, info=None, db_name=None):
+  if not settings.GOOGLE_CLOUD_MESSAGE_ID and not settings.APNS_KEY_FILE:
+    return False
   
   NOTIFICATIONS_LIST = {
                         'message': '%s shared a post with you.',
@@ -7145,15 +7147,25 @@ def push_notification_to_mobile(sender_id=None, receiver_id=None, info=None, db_
                         'new_network': 'A new network named %s is created.'
                       }
   
+  if not receiver_id:
+    return False
+    
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
+  
+  receiver = get_user_info(receiver_id, db_name=db_name)
+  devices = receiver.devices
+  if not devices:
+    return False
+  
+  
   if sender_id:
     sender = get_user_info(sender_id, db_name=db_name)
   else:
     sender = None
-  if info and receiver_id:
-    receiver = get_user_info(receiver_id, db_name=db_name)
+    
+  if info:
     type = info.get('type')
     msg = None
     
@@ -7200,31 +7212,30 @@ def push_notification_to_mobile(sender_id=None, receiver_id=None, info=None, db_
       if sender:
         msg = NOTIFICATIONS_LIST.get(type) % sender.name
       
-    devices = receiver.devices
-    if devices:
-      list_device_token_apple = []
-      list_device_token_android = []
-      for device_id in devices:
-        if device_id:
-          device_os, device_token = device_id.split(' ')
-          if device_os and device_token:
-            if device_os == 'ios':
-              list_device_token_apple.append(device_token)
-            if device_os == 'android':
-              list_device_token_android.append(device_token)
-            
-      status_push = False
       
-      if list_device_token_android:
-        status_push = push_nofitication_to_google(list_device_token=list_device_token_android,
-                                                  message=msg)
-        
-      if list_device_token_apple:
-        status_push = push_notification_to_apple(list_device_token=list_device_token_apple, 
-                                                 message=msg, counter=1)
+    list_device_token_apple = []
+    list_device_token_android = []
+    for device_id in devices:
+      if device_id:
+        device_os, device_token = device_id.split()
+        if device_os and device_token:
+          if device_os == 'ios':
+            list_device_token_apple.append(device_token)
+          if device_os == 'android':
+            list_device_token_android.append(device_token)
+          
+    status_push = False
+    
+    if list_device_token_android:
+      status_push = push_nofitication_to_google(list_device_token=list_device_token_android,
+                                                message=msg)
       
-      if status_push:
-        return True
+    if list_device_token_apple:
+      status_push = push_notification_to_apple(list_device_token=list_device_token_apple, 
+                                               message=msg, counter=1)
+    
+    if status_push:
+      return True
     
   return False
         
@@ -7237,10 +7248,14 @@ def remove_device(device_id=None, user_id=None, db_name=None):
   return False
       
 def push_notification_to_apple(list_device_token=None, message=None, counter=1):
+  if not settings.APNS_KEY_FILE:
+    return False
+  
   if list_device_token and message:
     
-    apns = APNs(use_sandbox=True, cert_file="../conf/cert_file_ios.pem", 
-                key_file='../conf/key_file_ios.pem')
+    apns = APNs(use_sandbox=True, 
+                cert_file=settings.APNS_CERT_FILE, 
+                key_file=settings.APNS_KEY_FILE)
     
     payload = Payload(alert=message, sound="default", badge=counter)
     for device_token in list_device_token:
@@ -7252,6 +7267,9 @@ def push_notification_to_apple(list_device_token=None, message=None, counter=1):
   return False
 
 def push_nofitication_to_google(list_device_token=None, message=None):
+  if not settings.GOOGLE_CLOUD_MESSAGE_ID:
+    return False
+  
   if list_device_token and message:
     data = {
             "collapse_key" : message, 

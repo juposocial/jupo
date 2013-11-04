@@ -57,8 +57,6 @@ GOOGLE_CLIENT_ID = None
 GOOGLE_CLIENT_SECRET = None
 GOOGLE_REDIRECT_URI = 'https://www.jupo.com/oauth/google/authorized'
 GOOGLE_API_KEY = None
-GOOGLE_CLOUD_MESSAGE_ID = 'AIzaSyD31j28xSC84Wbsye1-iRsIYJeVkxY5IJc'
-GOOGLE_CLOUD_MESSAGE_URL = 'https://android.googleapis.com/gcm/send'
 
 # [Login with Facebook]
 # 1. Visit https://developers.facebook.com/apps and click the 'Create New App' button.
@@ -88,4 +86,15 @@ AVATAR_RENDERER = 'initials'
 ZOPIM_ENABLE = False
 
 ENABLE_USERVOICE = False
+
+
+# Mobile push notifications
+GOOGLE_CLOUD_MESSAGE_ID = None
+GOOGLE_CLOUD_MESSAGE_URL = None
+
+APNS_KEY_FILE = None
+APNS_CERT_FILE = None
+
+
+
 
