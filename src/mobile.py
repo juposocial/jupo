@@ -433,8 +433,12 @@ def network(domain=None):
   if not domain:
     abort(401)
   
-  db_name = domain.replace('.', '_')
-  network = api.get_network_by_current_hostname(domain)
+#   db_name = domain.replace('.', '_')
+#   network = api.get_network_by_current_hostname(domain)
+  network = domain
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  
   session_id = api.sign_in_with_google(email=owner.email, 
                                        name=owner.name, 
                                        gender=owner.gender, 
