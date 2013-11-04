@@ -58,18 +58,22 @@ def public_files(filename):
 def google_login():
   network = request.args.get('network', 'meta.jupo.com') 
   domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+  device_token = request.args.get('device_token', None)
+  device_os = request.args.get('os', None)
+  if device_token == '(null)':
+    device_token = device_os = None 
   utcoffset = request.args.get('utcoffset', 0)
   return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&prompt=select_account' \
                   % (settings.GOOGLE_MOBILE_APP_REDIRECT_URI, 
-                     '%s|%s|%s' % (domain, network, utcoffset), 
+                     '%s|%s|%s|%s|%s' % (domain, network, utcoffset, device_token, device_os), 
                      settings.GOOGLE_CLIENT_ID))
 
 
 @app.route('/oauth/google/authorized')
 def google_authorized():
   code = request.args.get('code')
-  __, network, utcoffset = request.args.get('state').split("|")
-  
+  __, network, utcoffset, device_token, device_os = request.args.get('state').split("|")
+  device_id = ('%s %s' % (device_os, device_token)).strip()                        
   # get access_token
   resp = requests.post('https://accounts.google.com/o/oauth2/token', 
                        data={'code': code,
@@ -116,7 +120,8 @@ def google_authorized():
                                        locale=user.get('locale'), 
                                        verified=user.get('verified_email'),
                                        google_contacts=contacts,
-                                       db_name=db_name)
+                                       db_name=db_name,
+                                       device_id=device_id)
   
   unread_notifications = api.get_unread_notifications_count(session_id,
                                                             db_name=db_name)
@@ -124,6 +129,9 @@ def google_authorized():
   session['network'] = network
   session['utcoffset'] = utcoffset
   session.permanent = True
+  if device_id:
+    session['device_id'] = device_id
+  
   
   # Get user info
   user_id = api.get_user_id(session_id, db_name=db_name)
@@ -143,6 +151,21 @@ def google_authorized():
   
   return render_template('mobile/update_ui.html', data=dumps(data))
   
+
+@app.route('/logout', methods=['GET'])
+def sign_out():
+  device_id = session.get('device_id')
+  session_id = session.get('session_id')
+  network = session.get('network')
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if user_id:
+    api.remove_device(device_id, user_id, db_name=db_name)
+    return 'ok'
+  return 'not ok'
+
+
 @app.route('/get_user_info')
 def get_user_info():
   if session and session.get('session_id'):
@@ -616,7 +639,7 @@ if __name__ == "__main__":
       
     app.debug = debug
     
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9009), app)
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
     
     try:
       print 'Serving HTTP on 0.0.0.0 port 9009...'
