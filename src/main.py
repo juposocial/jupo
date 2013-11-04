@@ -948,6 +948,7 @@ def authentication(action=None):
     network = api.get_network_by_current_hostname(hostname)
     user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network)
 
+    # this only clear cookie for subdomain, how 'bout cookie in main domain ?
     resp = redirect(user_url)
     resp.delete_cookie('network')
     resp.delete_cookie('channel_id')
@@ -1304,40 +1305,67 @@ def facebook_authorized_import_step_2():
 def facebook_canvas():
   # check if user authenticated our app or not
   signed_request = request.form.get('signed_request')
-  print "DEBUG - in facebook_canvas - signed_request = " + str(signed_request)
   decoded_signed_request = parse_signed_request(signed_request, settings.FACEBOOK_APP_SECRET)
-  print "DEBUG - in facebook_canvas - decoded_signed_request = " + str(decoded_signed_request)
 
-  invited_network = 'jupo.com'
+  request_id = None
+  invited_network = None
+  target_contacts = None
+  request_from = None
 
-  # facebook_canvas_url = 'https://jupo.localhost.com/canvas/'
-  facebook_canvas_url = 'https://apps.facebook.com/' + settings.FACEBOOK_APP_NAMESPACE + '/?invited_network=' + invited_network
+  # fb_source = search or notification or jupo_importer
+  fb_source = request.args.get('fb_source')
+  invited_network = request.args.get('invited_network')
 
+  # authenticate with FB
   if 'oauth_token' not in decoded_signed_request:
     user_authorized = 'false'
-
-    current_user = None
-    invited_network = None
   else:
     # authorized, get extra info
     facebook = GraphAPI(decoded_signed_request['oauth_token'])
-
     current_user = facebook.get('/me')
-
-    invited_network = request.args.get('invited_network')
-
     user_authorized = 'true'
 
-  request_id = request.args.get('request_ids')
+  if fb_source == 'jupo_importer':
+    imported_jupo_group_id = request.args.get('imported_jupo_group_id')
+
+    # get target contacts to invite
+    if session and 'session_id' in session:
+      session_id = session['session_id']
+      user_id = api.get_user_id(session_id=session_id)
+
+      target_contacts = api.find_target_facebook_contacts_to_invite(user_id=user_id, group_id=imported_jupo_group_id)
+
+  # fb_source = Nil && request --> just sent invite
+  fb_request_param = request.args.get('request')
+  if not fb_source and fb_request_param:
+    fb_source = 'sent_invites'
+
+  # accept invitation
+  if fb_source == 'notification':
+    request_ids = request.args.get('request_ids').split(',')
+    print "DEBUG - in facebook_canvas - receive invite - request_ids = " + str(request_ids)
+
+    latest_request_id = request_ids[-1]
+
+    request_obj = facebook.get(latest_request_id + "_" + current_user['id'])
+    print "DEBUG - in facebook_canvas - receive invite - request_obj = " + str(request_obj)
+
+    request_from = request_obj['from']['name']
+    invited_network = request_obj['data']
+
+  facebook_canvas_url = 'https://apps.facebook.com/' + settings.FACEBOOK_APP_NAMESPACE + '/?invited_network=' + str(invited_network)
 
   resp = Response(render_template('canvas_facebook.html',
+                                  fb_source=fb_source,
                                   fb_app_id=settings.FACEBOOK_APP_ID,
                                   fb_app_canvas_url=facebook_canvas_url,
                                   request_id=request_id,
                                   user_authorized=user_authorized,
                                   current_user=current_user,
                                   domain=settings.PRIMARY_DOMAIN,
-                                  invited_network=invited_network))
+                                  target_contacts=target_contacts if target_contacts else None,
+                                  invited_network=invited_network,
+                                  request_from=request_from))
 
   return resp
 
@@ -3697,6 +3725,7 @@ def notifications():
                            owner=owner, 
                            network=network,
                            unread_messages=unread_messages,
+                           fb_app_namespace=settings.FACEBOOK_APP_NAMESPACE,
                            notifications=notifications)
     resp = {'body': body,
             'title': 'Notifications'}
@@ -3855,6 +3884,9 @@ class NetworkNameDispatcher(object):
     path = environ.get('PATH_INFO', '')
     items = path.lstrip('/').split('/', 1)
 
+    #if items[0] == 'favicon.ico':
+    #  return
+
     if '.' in items[0] and api.is_domain_name(items[0]):  # is domain name
       # save user network for later use
       # session['subnetwork'] = items[0]
@@ -3871,7 +3903,7 @@ class NetworkNameDispatcher(object):
     else:
       request = Request(environ)
       network = request.cookies.get('network')
-      if not network or not api.is_domain_name(network):
+      if not network or not api.is_domain_name(network) or (network == 'favicon.ico'):
         return self.app(environ, start_response)
 
       if request.method == 'GET':

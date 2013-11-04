@@ -1807,6 +1807,14 @@ class Notification(Model):
   
   def is_unread(self):
     return self.info.get('is_unread')
+
+  @property
+  def network(self):
+    return self.info.get('network')
+
+  @property
+  def imported_jupo_group_id(self):
+    return self.info.get('imported_jupo_group_id')
   
 
   

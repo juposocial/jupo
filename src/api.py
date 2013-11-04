@@ -926,31 +926,35 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
   # notification
   current_user_id = get_user_id(session_id=session_id, db_name=db_name)
 
+  print "DEBUG - in api.import_facebook - about to enqueue with network = " + str(network)
   notification_queue.enqueue(new_notification,
                                session_id, current_user_id,
                                'import_completed',
-                               None, None, db_name=db_name)
+                               None, None, db_name=db_name, network=network, imported_jupo_group_id=target_jupo_group_id)
 
   return "True"
 
 
 def find_target_facebook_contacts_to_invite(group_id=None, user_id=None, db_name=None):
+  db_name = 'jupo_com_jupo_localhost_com'
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
 
   current_user_info = get_user_info(user_id=user_id, db_name=db_name).info
-  # print "DEBUG - in find_target_facebook_contacts - current_user_info = " + str(current_user_info)
-  current_user_facebook_friends = current_user_info["facebook_friend_ids"]
+  if 'facebook_friend_ids' in current_user_info:
+    current_user_facebook_friends = current_user_info["facebook_friend_ids"]
+  else:
+    current_user_facebook_friends = []
 
-  group_id = "517636257270988801" # for testing only
+  # group_id = "517636257270988801" # for testing only
   group_member_ids = get_group_member_ids(group_id=group_id, db_name=db_name)
 
   target_facebook_contacts = []
 
   for member_id in group_member_ids:
     member = get_user_info(user_id=member_id, db_name=db_name).info
-    print "DEBUG - in find_target_facebook_contacts_to_invite - member = " + str(member)
+    # print "DEBUG - in find_target_facebook_contacts_to_invite - member = " + str(member)
     # first check, is this an imported user or not
     # second check, is this in current_user contacts
     if ('fb_id' in member) and member['fb_id'] in current_user_facebook_friends:
@@ -2116,11 +2120,13 @@ def is_removed(feed_id):
   return True
 
 def new_notification(session_id, receiver, type, 
-                     ref_id=None, ref_collection=None, comment_id=None, db_name=None):
+                     ref_id=None, ref_collection=None, comment_id=None, db_name=None, **kwargs):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
-  
+
+  print "DEBUG - in api.new_notification - network = " + str(kwargs.get('network'))
+
   info = {'_id': new_id(),
           'receiver': receiver,
           'ref_id': ref_id,
@@ -2128,7 +2134,9 @@ def new_notification(session_id, receiver, type,
           'comment_id': comment_id,
           'type': type,
           'is_unread': True,
-          'timestamp': utctime()}
+          'timestamp': utctime(),
+          'network': kwargs.get('network') if kwargs.has_key('network') else None,
+          'imported_jupo_group_id': kwargs.get('imported_jupo_group_id') if kwargs.has_key('imported_jupo_group_id') else None}
   
   if session_id:
     sender = get_user_id(session_id, db_name=db_name)

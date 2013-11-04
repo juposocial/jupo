@@ -57,7 +57,7 @@
 
     {% elif key.startswith('import_completed:') %}
 
-      <a href='#!/notification/{{ message.id }}?continue=http://jupo.localhost.com/jupo.com/import_invite' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+      <a href='#!/notification/{{ message.id }}?continue=https://apps.facebook.com/{{ fb_app_namespace }}/?fb_source=jupo_importer&invited_network={{ message.network }}&imported_jupo_group_id= {{ message.imported_jupo_group_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
         We just finished importing your data. Want to inform your Facebook friends ? :)
       

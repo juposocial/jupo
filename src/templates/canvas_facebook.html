@@ -7,15 +7,15 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Jupo - Welcome on Facebook</title>
-  <link href="/public/assets/css/style.css" rel="stylesheet">
-  <link href="/public/assets/css/font-awesome.css" rel="stylesheet">
+  <link href="https://{{ domain }}/public/assets/css/style.css" rel="stylesheet">
+  <link href="https://{{ domain }}/public/assets/css/font-awesome.css" rel="stylesheet">
   <!--[if (lt IE 9) & (!IEMobile)]>
   <link href="/public/assets/css/ie8.css" rel="stylesheet">
   <![endif]-->
 
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
-  <script src="/public/assets/js/modernizr.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
+  <script src="https://{{ domain }}/public/assets/js/modernizr.js"></script>
 
 </head>
 <body class="homepage">
@@ -24,23 +24,47 @@
 <div class="import">
   <div class="rfloat">
   </div>
-  <h3>Welcome to <img src="/public/assets/img/logo_dark.png"></img></h3>
+  <h3>Welcome to <img src="https://{{ domain }}/public/assets/img/logo_dark.png"></img></h3>
 
   <hr/>
 
 
-  <h3>
-    Hi <span class="text-info">{{ current_user['name'] }}</span>, thanks for accepting the request to join JUPO :)
-  </h3>
-  <p>Now you can</p>
-  <ol>
-    <li>
-      Claim your account on network <a href="http://{{ domain }}/{{ invited_network }}">{{ invited_network }}</a>  @ JUPO website
-    </li>
-    <li>
-      <a href="#" onclick="open_request_dialog()">Invite your friends to join Jupo</a>
-    </li>
-  </ol>
+  {% if fb_source == 'jupo_importer' %}
+    <h3>
+      Hi <span class="text-info">{{ current_user['name'] }}</span>, thanks for using Jupo Importer
+    </h3>
+    <p>Now you can invite your below friends (who are your Facebook contacts but not on <span class="text-info">{{ invited_network }}</span> yet) to join Jupo.</p>
+    <p>We already imported their accounts and data :) </p>
+
+    {% if target_contacts %}
+      <div class="row container">
+      {% for target in target_contacts %}
+        <div class="checkbox col-md-3">
+          <label>
+            <input type="checkbox" name="selectedContacts[]" value="{{ target['fb_id'] }}"> {{ target['name'] }}
+          </label>
+        </div>
+      {% endfor %}
+      </div>
+
+      <a href="#" class="btn btn-primary" onclick="invite_direct_contacts()">Invite</a>
+    {% endif %}
+
+  {% elif fb_source == 'sent_invites' %}
+    <h3>
+      Hi <span class="text-info">{{ current_user['name'] }}</span>, thanks for using Jupo Importer
+    </h3>
+    <p>Your invites has been sent. Now you can go back to <a href="http://{{ domain }}/{{ invited_network }}">Jupo</a> :)</p>
+
+  {% elif fb_source == 'search' or fb_source == 'notifications' or fb_source == 'notification' %}
+    <h3>
+      Hi <span class="text-info">{{ current_user['name'] }}</span>, thanks for accepting the request from <span class="text-info">{{ request_from }}</span> :)
+    </h3>
+    <p>
+      Now you can <a href="//{{ domain }}/{{ invited_network }}">claim</a> your account on network <span class="text-info">{{ invited_network }}</span> at JUPO website
+    </p>
+
+  {% endif %}
 
 
 
@@ -52,13 +76,22 @@
 
 <script type="application/javascript">
   var app_id = "{{ fb_app_id }}";
-  //var canvas_page = "https://jupo.localhost.com/canvas/";
+  //var canvas_page = "https://jupo.localhost.com/canvas/";;
   var message = "Would you like to join me in JUPO ?";
 
-  var requests_url = "https://www.facebook.com/dialog/apprequests?app_id=" + app_id + "&redirect_uri=" + '{{ fb_app_canvas_url }}' + "&message=" + message + "&scope=email";
+  var requests_url = "https://www.facebook.com/dialog/apprequests?app_id=" + app_id + "&redirect_uri=" + '{{ fb_app_canvas_url }}' + "&fb_source=sent_invites&message=" + message + "&data={{ invited_network  }}&scope=email";
 
   function open_request_dialog() {
     top.location.href=requests_url;
+  }
+
+  function invite_direct_contacts() {
+    var targetInvite = "";
+    $.each($("input[name='selectedContacts[]']:checked"), function() {
+      targetInvite = targetInvite + $(this).val() + ",";
+    });
+    //alert(targetInvite);
+     top.location.href=requests_url + "&to=" + targetInvite;
   }
 
   if ('{{ user_authorized }}' == 'false') {
