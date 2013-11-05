@@ -8,9 +8,16 @@ sys.setdefaultencoding("utf-8")
 
   
 import api
+import settings
+from raven import Client as Sentry
 from rq import Queue, Worker, Connection
+from rq.contrib.sentry import register_sentry
 
+
+SENTRY = Sentry(settings.SENTRY_DSN)
 
 with Connection(api.TASKQUEUE):
-  q = Queue(sys.argv[1])
-  Worker(q, default_result_ttl=0).work()
+  qs = map(Queue, sys.argv[1:]) or [Queue('default')]
+  w = Worker(qs, default_result_ttl=0)
+  register_sentry(SENTRY, w)
+  w.work()

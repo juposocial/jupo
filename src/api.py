@@ -60,12 +60,14 @@ from boto.s3.key import Key
 from boto.s3.connection import S3Connection
 from rq import Queue, use_connection
 from validate_email import validate_email
+from apns import APNs, Payload
 
 import dateutil.parser as dateparser
 from facebook import GraphAPI
 import urllib
 from urlparse import urlparse
 import inspect
+
 
 from flask import request
 from flask import session
@@ -1268,7 +1270,8 @@ def complete_profile(code, name, password, gender, avatar):
 
 def sign_in_with_google(email, name, gender, avatar, 
                         link, locale, verified=True, 
-                        google_contacts=None, db_name=None):
+                        google_contacts=None, db_name=None,
+                        device_id=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -1305,12 +1308,24 @@ def sign_in_with_google(email, name, gender, avatar,
         info['password'] = True
       if notify_list:
         info['google_contacts'] = google_contacts
-      db.owner.update({'_id': user.get('_id')}, {'$set': info})
+      if device_id:
+        db.owner.update({'_id': user.get('_id')}, 
+                        {'$set': info,
+                         '$addToSet': {'devices': device_id}})
+      else:
+        db.owner.update({'_id': user.get('_id')}, {'$set': info})
+      cache.delete('%s:info' % user.get('_id'))
     else:
       if notify_list:
         db.owner.update({'_id': user.get('_id')}, 
-                        {'$set': {'google_contacts': google_contacts}})
-        
+                        {'$set': {'google_contacts': google_contacts},
+                         '$addToSet': {'devices': device_id}})
+        cache.delete('%s:info' % user.get('_id'))
+      else:
+        if device_id:
+          db.owner.update({'_id': user.get('_id')}, 
+                          {'$addToSet': {'devices': device_id}})
+          cache.delete('%s:info' % user.get('_id'))
   else:
     session_id = hashlib.md5(email + str(utctime())).hexdigest()
     info = {}
@@ -1325,6 +1340,8 @@ def sign_in_with_google(email, name, gender, avatar,
     info['gender'] = gender
     info['link'] = link
     info['locale'] = locale
+    if device_id:
+      info['devices'] = [device_id]
     if google_contacts:
       info['google_contacts'] = google_contacts
       notify_list = [i for i in google_contacts if i != email]
@@ -2118,6 +2135,10 @@ def new_notification(session_id, receiver, type,
                                                               db_name=db_name)
   push_queue.enqueue(publish, receiver, 'unread-notifications', 
                      unread_notifications_count, db_name=db_name)
+  push_queue.enqueue(push_notification_to_mobile, 
+                     sender_id=info.get('sender'), 
+                     receiver_id=receiver,
+                     info=info, db_name=db_name)
   
   return notification_id
 
@@ -3686,20 +3707,19 @@ def new_comment(session_id, message, ref_id,
                                   user_id=user_id, post=info,
                                   db_name=db_name)
 
-
+  # TODO: user comment tren post vua share khong thay gui notification
   receivers = [info.get('owner')]
   if not is_import:
-    if info.get('comments'):
-      for i in info.get('comments'):
-        if i.get('owner') != user_id and i.get('owner') not in mentions and i.get('owner') not in receivers:
-          receivers.append(i.get('owner'))
-          notification_queue.enqueue(new_notification,
-                                     session_id,
-                                     i.get('owner'),
-                                     'comment',
-                                     ref_id=ref_id,
-                                     comment_id=comment['_id'],
-                                     db_name=db_name)
+    for i in viewers:
+      if i != user_id and i not in mentions and i not in receivers:
+        receivers.append(i)
+        notification_queue.enqueue(new_notification,
+                                   session_id,
+                                   i,
+                                   'comment',
+                                   ref_id=ref_id,
+                                   comment_id=comment['_id'],
+                                   db_name=db_name)
 
   owner = get_user_info(user_id=user_id, db_name=db_name)
   if not is_import:
@@ -5173,7 +5193,6 @@ def add_member(session_id, group_id, user_id):
   else:
     is_new_user = True
     
-  
   if is_approved:
     new_notification(session_id, user_id, type='approved', 
                      ref_id=group_id, ref_collection='owner', db_name=db_name)
@@ -7103,13 +7122,173 @@ def get_chat_history(session_id, user_id=None, topic_id=None, timestamp=None, db
   return [Message(i, utcoffset=utcoffset, db_name=db_name) for i in messages]
       
     
+def push_notification_to_mobile(sender_id=None, receiver_id=None, info=None, db_name=None):
+  if not settings.GOOGLE_CLOUD_MESSAGE_ID and not settings.APNS_KEY_FILE:
+    return False
+  
+  NOTIFICATIONS_LIST = {
+                        'message': '%s shared a post with you.',
+                        'mention': '%s mentioned you in a comment.',
+                        'follow': '%s is now following you.',
+                        'like': '%s likes your %s.',
+                        'update': '%s updated.',
+                        'facebook_friend_just_joined': '%s (your Facebook friend) just joined Jupo.',
+                        'google_friend_just_joined': '%s (your Google contact) just joined Jupo.',
+                        'friend_just_joined': '%s just joined Jupo. Go and say welcome to %s.',
+                        'import_completed': 'We just finished importing your data. Please check it out :).',
+                        'comment': '%s commented on a post.',
+                        'add_contact': '%s added you to %s contact list.',
+                        'make_admin': '%s made you an administrator of the %s.',
+                        'add_member': '%s added you to the group %s.',
+                        'new_user': '%s has a new user. Go and say welcome to %s.',
+                        'new_member': '%s has a new member. Go and say welcome to %s.',
+                        'approved': '%s approved your request to join the group.',
+                        'ask_to_join': '%s asked to join %s.',
+                        'new_network': 'A new network named %s is created.'
+                      }
+  
+  if not receiver_id:
+    return False
+    
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+  
+  receiver = get_user_info(receiver_id, db_name=db_name)
+  devices = receiver.devices
+  if not devices:
+    return False
   
   
+  if sender_id:
+    sender = get_user_info(sender_id, db_name=db_name)
+  else:
+    sender = None
+    
+  if info:
+    type = info.get('type')
+    msg = None
+    
+    if type == 'like' and sender:
+      if info.get('comment_id'):
+        msg = NOTIFICATIONS_LIST.get(type) % (sender.name, 'comment')
+      else:
+        msg = NOTIFICATIONS_LIST.get(type) % (sender.name, 'post')
+    
+    elif type == 'add_contact' and sender:
+      if sender.gender == 'male':
+        msg = NOTIFICATIONS_LIST.get(type) % (sender.name, 'his')
+      else:
+        msg = NOTIFICATIONS_LIST.get(type) % (sender.name, 'her')
+    
+    elif type == 'make_admin' and sender:
+      if info.get('ref_id'):
+        msg = NOTIFICATIONS_LIST.get(type) % (sender.name, 'network')
+      else:
+        msg = NOTIFICATIONS_LIST.get(type) % (sender.name, 'group')
+    
+    elif type in ['new_user', 'friend_just_joined', 'new_member'] and sender:
+      msg = NOTIFICATIONS_LIST.get(type) % (sender.name, sender.name)
+      
+    elif type in ['add_member', 'ask_to_join'] and sender:
+      record = get_record(info.get('ref_id'), 
+                              info.get('ref_collection'), 
+                              db_name=db_name)
+      
+      if record.has_key('members'):
+        detail = Group(record, db_name=db_name)
+      elif record.has_key('password'):
+        detail = User(record, db_name=db_name)
+      else:
+        detail = Feed(record, db_name=db_name)
+        
+      msg = NOTIFICATIONS_LIST.get(type) % (sender.name, detail.name)
+    
+    elif type == 'new_network':
+      network_info = get_network_info(self.ref_id)
+      msg = NOTIFICATIONS_LIST.get(type) % network_info.name
+      
+    else:
+      if sender:
+        msg = NOTIFICATIONS_LIST.get(type) % sender.name
+      
+      
+    list_device_token_apple = []
+    list_device_token_android = []
+    for device_id in devices:
+      if device_id:
+        device_os, device_token = device_id.split()
+        if device_os and device_token:
+          if device_os == 'ios':
+            list_device_token_apple.append(device_token)
+          if device_os == 'android':
+            list_device_token_android.append(device_token)
+          
+    status_push = False
+    
+    if list_device_token_android:
+      status_push = push_nofitication_to_google(list_device_token=list_device_token_android,
+                                                message=msg)
+      
+    if list_device_token_apple:
+      status_push = push_notification_to_apple(list_device_token=list_device_token_apple, 
+                                               message=msg, counter=1)
+    
+    if status_push:
+      return True
+    
+  return False
+        
 
+def remove_device(device_id=None, user_id=None, db_name=None):
+  if user_id and device_id and db_name:
+    db = DATABASE[db_name]
+    db.owner.update({'_id': long(user_id)}, {'$pull': {'devices': device_id}})
+    return True
+  return False
+      
+def push_notification_to_apple(list_device_token=None, message=None, counter=1):
+  if not settings.APNS_KEY_FILE:
+    return False
+  
+  if list_device_token and message:
+    
+    apns = APNs(use_sandbox=True, 
+                cert_file=settings.APNS_CERT_FILE, 
+                key_file=settings.APNS_KEY_FILE)
+    
+    payload = Payload(alert=message, sound="default", badge=counter)
+    for device_token in list_device_token:
+      apns.gateway_server.send_notification(device_token, payload)
+    
+    for (token_hex, fail_time) in apns.feedback_server.items():
+      return False
+    return True
+  return False
 
-
-
-
-
-
-
+def push_nofitication_to_google(list_device_token=None, message=None):
+  if not settings.GOOGLE_CLOUD_MESSAGE_ID:
+    return False
+  
+  if list_device_token and message:
+    data = {
+            "collapse_key" : message, 
+            "data" : {"data": message},
+            "registration_ids": list_device_token,
+          }
+    
+    headers = {
+               'Content-Type' : 'application/json',
+               'Authorization' : 'key=' + settings.GOOGLE_CLOUD_MESSAGE_ID,
+               }        
+    
+    result = requests.post(settings.GOOGLE_CLOUD_MESSAGE_URL, 
+                           headers=headers, data = dumps(data))
+    
+    result = loads(result.text)
+    status_push = result.get('success', None)
+    if status_push == 1:
+      return True
+  return False
+  
+  

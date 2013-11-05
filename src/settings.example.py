@@ -58,7 +58,6 @@ GOOGLE_CLIENT_SECRET = None
 GOOGLE_REDIRECT_URI = 'https://www.jupo.com/oauth/google/authorized'
 GOOGLE_API_KEY = None
 
-
 # [Login with Facebook]
 # 1. Visit https://developers.facebook.com/apps and click the 'Create New App' button.
 # 2. Fill in the App Display Name and leave the Namespace field blank.
@@ -87,4 +86,15 @@ AVATAR_RENDERER = 'initials'
 ZOPIM_ENABLE = False
 
 ENABLE_USERVOICE = False
+
+
+# Mobile push notifications
+GOOGLE_CLOUD_MESSAGE_ID = None
+GOOGLE_CLOUD_MESSAGE_URL = None
+
+APNS_KEY_FILE = None
+APNS_CERT_FILE = None
+
+
+
 
