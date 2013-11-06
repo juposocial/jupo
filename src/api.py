@@ -1393,7 +1393,7 @@ def sign_in_with_google(email, name, gender, avatar,
 def sign_in_with_facebook(email, name=None, gender=None, avatar=None, 
                           link=None, locale=None, timezone=None, 
                           verified=None, facebook_id=None, 
-                          facebook_friend_ids=None, db_name=None):
+                          facebook_friend_ids=None, db_name=None, fb_id=None):
   if not email:
     return False
 
@@ -1405,8 +1405,13 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
   
   facebook_friend_ids = list(set(facebook_friend_ids))
   
+  merge_with_imported_fb_account = False
   notify_list = []
   user = db.owner.find_one({'email': email})
+  if not user:
+    merge_with_imported_fb_account = True
+    user = db.owner.find_one({'fb_id': facebook_id})
+
   if user:
     if user.get('facebook_friend_ids'):
       notify_list = [i for i in facebook_friend_ids \
@@ -1462,6 +1467,12 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
                                  session_id, user_id, 
                                  'new_user', 
                                  None, None, db_name=db_name)
+
+  if merge_with_imported_fb_account == True:
+    notification_queue.enqueue(new_notification,
+                                 session_id, user['_id'],
+                                 'merged_facebook_account',
+                                 None, None, db_name=db_name)
       
   if notify_list:
     for i in notify_list:
@@ -1471,6 +1482,8 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
                                    session_id, user_id, 
                                    'facebook_friend_just_joined', 
                                    None, None, db_name=db_name)
+
+
   
   return session_id
   

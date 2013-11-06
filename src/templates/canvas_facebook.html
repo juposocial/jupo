@@ -61,7 +61,7 @@
       Hi <span class="text-info">{{ current_user['name'] }}</span>, thanks for accepting the request from <span class="text-info">{{ request_from }}</span> :)
     </h3>
     <p>
-      Now you can <a href="//{{ domain }}/{{ invited_network }}">claim</a> your account on network <span class="text-info">{{ invited_network }}</span> at JUPO website
+      Now you can <a href="#" onclick="claim_facebook_account('http://{{ domain }}/{{ invited_network }}">claim</a> your account on network <span class="text-info">{{ invited_network }}</span> at JUPO website
     </p>
 
   {% endif %}
@@ -92,6 +92,10 @@
     });
     //alert(targetInvite);
      top.location.href=requests_url + "&to=" + targetInvite;
+  }
+
+  function claim_facebook_account(url) {
+    top.location.href=url;
   }
 
   if ('{{ user_authorized }}' == 'false') {

@@ -60,6 +60,12 @@
       <a href='#!/notification/{{ message.id }}?continue=https://apps.facebook.com/{{ fb_app_namespace }}/?fb_source=jupo_importer&invited_network={{ message.network }}&imported_jupo_group_id= {{ message.imported_jupo_group_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
         <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
         We just finished importing your data. Want to inform your Facebook friends ? :)
+
+    {% elif key.startswith('merged_facebook_account:') %}
+
+      <a href='#!/notification/{{ message.id }}?continue=https://apps.facebook.com/{{ fb_app_namespace }}/?fb_source=jupo_importer&invited_network={{ message.network }}&imported_jupo_group_id= {{ message.imported_jupo_group_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
+        <img src='{{ message.sender.avatar }}' class='lfloat small-avatar'>
+        We merged your Facebook identity with an existing account on Jupo. Thanks for joining :)
       
     {% elif key.startswith('comment:') %}
       <a href='#!/notification/{{ message.ref_id }}-comments?continue=/feed/{{ message.ref_id }}' class='notification {% if  message.is_unread() %}unread{% endif %}'>
