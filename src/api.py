@@ -1751,8 +1751,9 @@ def get_online_coworkers(session_id):
   online = sorted(online, key=lambda k: k.name)
   return online
 
-def get_all_users(limit=1000):
-  db_name = get_database_name()
+def get_all_users(limit=1000, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
   db = DATABASE[db_name]
   
   key = '%s:all_users' % db_name
@@ -5630,7 +5631,7 @@ def get_group_member_ids(group_id, db_name=None):
     return ids
   else:
     group_id = 'public'
-    users = get_all_users()
+    users = get_all_users(db_name=db_name)
     return [user.id for user in users]
 
 
