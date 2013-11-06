@@ -840,26 +840,26 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
 
               poster_session_id = add_dummy_user(name=poster['name'], fb_id=user_fb_id, avatar=poster_avatar_url, db_name=db_name)
 
-            join_group(poster_session_id, target_jupo_group_id, db_name=db_name)
+            join_group(poster_session_id, target_jupo_group_id, db_name=db_name, is_import=True)
 
-            attachment = []
+            new_feed_id = check_feed_exist_by_fb_id(fb_id=post["id"], group_id=target_jupo_group_id, db_name=db_name)
+            if not new_feed_id:
+              print "DEBUG - in api.import_facebook - post = " + str(post)
 
-            if post['type'] == 'photo':
-              image_url = post['picture'].replace('_s', '_o')
-              image_name = (image_url.split('//')[1]).split('/')[-1]
+              attachment = []
 
-              # print "DEBUG - in import from FB - image_name = " + str(image_name)
-              attached_photo_id = new_attachment(poster_session_id, image_name, urllib.urlopen(image_url).read(), db_name)
+              if post['type'] == 'photo':
+                image_url = post['picture'].replace('_s', '_o')
+                image_name = (image_url.split('//')[1]).split('/')[-1]
 
-              attachment.append(str(attached_photo_id))
+                # print "DEBUG - in import from FB - image_name = " + str(image_name)
+                attached_photo_id = new_attachment(poster_session_id, image_name, urllib.urlopen(image_url).read(), db_name)
 
-
-            if 'message' in post:
-              # print str(post['message'])
+                attachment.append(str(attached_photo_id))
 
               # import feed
               new_feed_id = new_feed(poster_session_id,
-                             post['message'],
+                             post['message'] if 'message' in post else None,
                              #['public'],
                              [target_jupo_group_id],
                              attachment,
@@ -867,7 +867,8 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
                              float(dateparser.parse(post['updated_time']).strftime('%s.%f')),
                              float(dateparser.parse(post['created_time']).strftime('%s.%f')),
                              db_name,
-                             "True")
+                             "True",
+                             post["id"])
 
               # import like
               if 'likes' in post:
@@ -877,42 +878,46 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
 
                   like(like_user_session_id, new_feed_id, new_feed_id, db_name, "True")
 
-              # import comment (if any)
-              if 'comments' in post:
-                for comment in post['comments']['data']:
-                  # print str(comment)
-                  comment_user_fb_id = comment['from']['id']
+            # import comment (if any)
+            if 'comments' in post:
+              for comment in post['comments']['data']:
+                # print str(comment)
+                comment_user_fb_id = comment['from']['id']
 
-                  comment_poster_session_id = check_user_exist_by_fb_id(comment_user_fb_id, db_name)
+                comment_poster_session_id = check_user_exist_by_fb_id(comment_user_fb_id, db_name)
 
-                  if not comment_poster_session_id:
-                    comment_poster = facebook_import.get(comment_user_fb_id)
+                if not comment_poster_session_id:
+                  comment_poster = facebook_import.get(comment_user_fb_id)
 
-                    if 'username' in comment_poster:
-                      comment_poster_username = comment_poster['username']
-                    else:
-                      comment_poster_username = comment_user_fb_id
+                  if 'username' in comment_poster:
+                    comment_poster_username = comment_poster['username']
+                  else:
+                    comment_poster_username = comment_user_fb_id
 
-                    comment_poster_avatar_url = 'http://graph.facebook.com/' + comment_poster_username + '/picture'
+                  comment_poster_avatar_url = 'http://graph.facebook.com/' + comment_poster_username + '/picture'
 
-                    comment_poster_session_id = add_dummy_user(name=comment['from']['name'], fb_id=comment_user_fb_id, avatar=comment_poster_avatar_url, db_name=db_name)
+                  comment_poster_session_id = add_dummy_user(name=comment['from']['name'], fb_id=comment_user_fb_id, avatar=comment_poster_avatar_url, db_name=db_name)
 
-                  join_group(comment_poster_session_id, target_jupo_group_id, db_name=db_name)
+                join_group(comment_poster_session_id, target_jupo_group_id, db_name=db_name, is_import=True)
 
+                new_comment_obj = check_comment_exist_by_fb_id(feed_id=new_feed_id, fb_id=comment['id'], db_name=db_name)
+
+                if not new_comment_obj:
                   new_comment_obj = new_comment(session_id=comment_poster_session_id, message=comment['message'], ref_id=new_feed_id,
-                  attachments=None, reply_to=None, from_addr=None, db_name=db_name, updated_time=None, created_time=float(dateparser.parse(comment['created_time']).strftime('%s.%f')), is_import="True")
+                  attachments=None, reply_to=None, from_addr=None, db_name=db_name, updated_time=float(dateparser.parse(comment['created_time']).strftime('%s.%f')), created_time=float(dateparser.parse(comment['created_time']).strftime('%s.%f')), is_import="True", fb_id=comment["id"])
 
-                  # import like comment
-                  if import_comment_likes == 'true':
-                    current_comment = facebook_import.get(post['id'] + '_' + comment['id'] + '?fields=likes')
-                    # print str(vars(current_comment))
-                    # print str(current_comment.data)
-                    if 'likes' in current_comment:
-                      for like_comment in current_comment['likes']['data']:
-                        like_comment_user_fb_id = like_comment['id']
-                        like_comment_user_session_id = add_dummy_user(name=like_comment['name'], fb_id=like_comment_user_fb_id)
+                # import like comment
+                if import_comment_likes == 'on':
+                  current_comment = facebook_import.get(post['id'] + '_' + comment['id'], params={'fields':'likes'})
+                  print "DEBUG - in api.import_facebook - current_comment = " + str(current_comment)
+                  # print str(vars(current_comment))
+                  # print str(current_comment.data)
+                  if 'likes' in current_comment:
+                    for like_comment in current_comment['likes']['data']:
+                      like_comment_user_fb_id = like_comment['id']
+                      like_comment_user_session_id = add_dummy_user(name=like_comment['name'], fb_id=like_comment_user_fb_id, db_name=db_name)
 
-                        like(like_comment_user_session_id, new_comment_obj.id, new_feed_id, db_name, "True")
+                      like(like_comment_user_session_id, new_comment_obj.id, new_feed_id, db_name, "True")
 
 
 
@@ -923,14 +928,43 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
   # notification
   current_user_id = get_user_id(session_id=session_id, db_name=db_name)
 
+  print "DEBUG - in api.import_facebook - about to enqueue with network = " + str(network)
   notification_queue.enqueue(new_notification,
                                session_id, current_user_id,
                                'import_completed',
-                               None, None, db_name=db_name)
+                               None, None, db_name=db_name, network=network, imported_jupo_group_id=target_jupo_group_id)
 
   return "True"
 
 
+def find_target_facebook_contacts_to_invite(group_id=None, user_id=None, db_name=None):
+  db_name = 'jupo_com_jupo_localhost_com'
+  if not db_name:
+    db_name = get_database_name()
+  db = DATABASE[db_name]
+
+  current_user_info = get_user_info(user_id=user_id, db_name=db_name).info
+  if 'facebook_friend_ids' in current_user_info:
+    current_user_facebook_friends = current_user_info["facebook_friend_ids"]
+  else:
+    current_user_facebook_friends = []
+
+  # group_id = "517636257270988801" # for testing only
+  group_member_ids = get_group_member_ids(group_id=group_id, db_name=db_name)
+
+  target_facebook_contacts = []
+
+  for member_id in group_member_ids:
+    member = get_user_info(user_id=member_id, db_name=db_name).info
+    # print "DEBUG - in find_target_facebook_contacts_to_invite - member = " + str(member)
+    # first check, is this an imported user or not
+    # second check, is this in current_user contacts
+    if ('fb_id' in member) and member['fb_id'] in current_user_facebook_friends:
+      target_facebook_contacts.append(member)
+
+  # imported_facebook_contacts = db.owner.find({'fb_id': {'$ne': None}})
+
+  return target_facebook_contacts
 
 def move_to_s3(fid, db_name=None):
   if not db_name:
@@ -1376,7 +1410,7 @@ def sign_in_with_google(email, name, gender, avatar,
 def sign_in_with_facebook(email, name=None, gender=None, avatar=None, 
                           link=None, locale=None, timezone=None, 
                           verified=None, facebook_id=None, 
-                          facebook_friend_ids=None, db_name=None):
+                          facebook_friend_ids=None, db_name=None, fb_id=None):
   if not email:
     return False
 
@@ -1388,8 +1422,13 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
   
   facebook_friend_ids = list(set(facebook_friend_ids))
   
+  merge_with_imported_fb_account = False
   notify_list = []
   user = db.owner.find_one({'email': email})
+  if not user:
+    merge_with_imported_fb_account = True
+    user = db.owner.find_one({'fb_id': facebook_id})
+
   if user:
     if user.get('facebook_friend_ids'):
       notify_list = [i for i in facebook_friend_ids \
@@ -1445,6 +1484,12 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
                                  session_id, user_id, 
                                  'new_user', 
                                  None, None, db_name=db_name)
+
+  if merge_with_imported_fb_account == True:
+    notification_queue.enqueue(new_notification,
+                                 session_id, user['_id'],
+                                 'merged_facebook_account',
+                                 None, None, db_name=db_name)
       
   if notify_list:
     for i in notify_list:
@@ -1454,6 +1499,8 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
                                    session_id, user_id, 
                                    'facebook_friend_just_joined', 
                                    None, None, db_name=db_name)
+
+
   
   return session_id
   
@@ -2103,11 +2150,13 @@ def is_removed(feed_id):
   return True
 
 def new_notification(session_id, receiver, type, 
-                     ref_id=None, ref_collection=None, comment_id=None, db_name=None):
+                     ref_id=None, ref_collection=None, comment_id=None, db_name=None, **kwargs):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
-  
+
+  print "DEBUG - in api.new_notification - network = " + str(kwargs.get('network'))
+
   info = {'_id': new_id(),
           'receiver': receiver,
           'ref_id': ref_id,
@@ -2115,7 +2164,9 @@ def new_notification(session_id, receiver, type,
           'comment_id': comment_id,
           'type': type,
           'is_unread': True,
-          'timestamp': utctime()}
+          'timestamp': utctime(),
+          'network': kwargs.get('network') if kwargs.has_key('network') else None,
+          'imported_jupo_group_id': kwargs.get('imported_jupo_group_id') if kwargs.has_key('imported_jupo_group_id') else None}
   
   if session_id:
     sender = get_user_id(session_id, db_name=db_name)
@@ -2777,7 +2828,7 @@ def new_post_from_email(message_id, receivers, sender,
   return True
 
 def new_feed(session_id, message, viewers, 
-             attachments=[], facebook_access_token=None, updated_time=None, created_time=None, db_name=None, is_import=None):
+             attachments=[], facebook_access_token=None, updated_time=None, created_time=None, db_name=None, is_import=None, fb_id=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -2842,6 +2893,7 @@ def new_feed(session_id, message, viewers,
           'owner': user_id,
           'viewers': list(viewers),
           'hashtags': hashtags,
+          'fb_id': fb_id,
           'timestamp': created_time if created_time else ts,
           'last_updated': updated_time if updated_time else ts}
   if files:
@@ -3613,7 +3665,7 @@ def mark_cancelled(session_id, task_id):
 # Comment Actions --------------------------------------------------------------
 
 def new_comment(session_id, message, ref_id, 
-                attachments=None, reply_to=None, from_addr=None, db_name=None, updated_time=None, created_time=None, is_import=None):
+                attachments=None, reply_to=None, from_addr=None, db_name=None, updated_time=None, created_time=None, is_import=None, fb_id=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
@@ -3629,6 +3681,7 @@ def new_comment(session_id, message, ref_id,
   comment = {'_id': new_id(),
              'owner': user_id,
              'message': message,
+             'fb_id': fb_id,
              'timestamp': created_time if created_time else ts}
   
   files = []
@@ -3676,7 +3729,7 @@ def new_comment(session_id, message, ref_id,
   db.stream.update({"_id": long(ref_id)},
                    {"$push": {"comments": comment},
                     "$addToSet": {'viewers': {"$each": mentions}},
-                    "$set": {'last_updated': ts},
+                    "$set": {'last_updated': updated_time if is_import else ts},
                     '$unset': {'archived_by': 1}})
 
 
@@ -4732,6 +4785,22 @@ def check_user_exist_by_fb_id(fb_id, db_name=None):
   else:
     return None
 
+def check_feed_exist_by_fb_id(fb_id, group_id, db_name=None):
+  db = DATABASE[db_name]
+  existing_feed = db.stream.find_one({'fb_id': fb_id, 'viewers': long(group_id)})
+  if existing_feed:
+    return existing_feed['_id']
+  else:
+    return None
+
+def check_comment_exist_by_fb_id(feed_id, fb_id, db_name=None):
+  db = DATABASE[db_name]
+  existing_comment = db.stream.find_one({'_id': feed_id, 'comments.fb_id': fb_id})
+  if existing_comment:
+    return existing_comment
+  else:
+    return None
+
 def add_dummy_user(name, fb_id, avatar=None, db_name=None):
   _id = new_id()
 
@@ -5063,18 +5132,24 @@ def update_group_info(session_id, group_id, info):
   cache.delete(key)                 
   return True
 
-def join_group(session_id, group_id, db_name=None):
+def join_group(session_id, group_id, db_name=None, is_import=None):
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
   
-  user_id = get_user_id(session_id)
+  user_id = get_user_id(session_id, db_name=db_name)
   if not user_id:
     return False
   group_info = db.owner.find_one({'_id': long(group_id)})
   if not group_info:
     return False
-  
+
+  # check if user already joined group
+  group_member_info = db.owner.find_one({'_id': long(group_id),
+                                  'members': user_id})
+  if group_member_info:
+    return False
+
   key = '%s:groups' % user_id
   cache.delete(key)
   
@@ -5082,33 +5157,35 @@ def join_group(session_id, group_id, db_name=None):
   cache.delete(key)
   
   if group_info.get('privacy') == 'open':
-    db.owner.update({'_id': group_id}, 
+    db.owner.update({'_id': long(group_id)},
                           {'$addToSet': {'members': user_id}})
     
-    for user_id in group_info.get('leaders', []):
-      notification_queue.enqueue(new_notification, 
-                                 session_id, user_id, 
-                                 'new_member', 
-                                 ref_id=group_id, 
-                                 ref_collection='owner', 
-                                 db_name=db_name)
+    if is_import:
+      for user_id in group_info.get('leaders', []):
+        notification_queue.enqueue(new_notification,
+                                   session_id, user_id,
+                                   'new_member',
+                                   ref_id=group_id,
+                                   ref_collection='owner',
+                                   db_name=db_name)
     return True
   
   elif group_info.get('privacy') == 'closed':
     pending_members = group_info.get('pending_members', [])
     if user_id not in pending_members:
       pending_members.append(user_id)
-      db.owner.update({'_id': group_id}, 
+      db.owner.update({'_id': long(group_id)},
                       {'$set': {'pending_members': pending_members}})
       
       
-      for user_id in group_info.get('leaders', []):
-        notification_queue.enqueue(new_notification, 
-                                   session_id, user_id, 
-                                   'ask_to_join', 
-                                   ref_id=group_id, 
-                                   ref_collection='owner', 
-                                   db_name=db_name)
+      if is_import:
+        for user_id in group_info.get('leaders', []):
+          notification_queue.enqueue(new_notification,
+                                     session_id, user_id,
+                                     'ask_to_join',
+                                     ref_id=group_id,
+                                     ref_collection='owner',
+                                     db_name=db_name)
       
       return None
     
@@ -6477,11 +6554,8 @@ def get_networks(user_id, user_email=None):
       # info['domain'] = db_name.replace('_', '.')
       if 'domain' in info:
         hostname = info['domain']
-        domain = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
-        if not is_domain_name(domain):
-          continue
-        info['domain'] = domain
-        info['url'] = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, domain)
+        network_url = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+        info['url'] = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network_url)
       
       networks_list.append(info)
     
