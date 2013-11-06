@@ -1442,7 +1442,8 @@ $(document).ready(function(e) {
   $("nav").on("click", 'a.notification', function(e) {
     try {
       href = $(this).attr('href').split('#!')[1];
-      redirect_to = href.split('?')[1].split('=')[1];
+      //redirect_to = href.split('?')[1].split('=')[1];
+      redirect_to = href.split('?continue=')[1];
       $(this).removeClass('unread');
     } catch (err) {// mark all as read: close overlay and reset counter
       $.ajax({
