@@ -407,6 +407,7 @@ def news_feed(page=1, feed_id=None):
 @app.route("/everyone/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route("/group/<int:group_id>", methods=['GET', 'OPTIONS'])
 @app.route("/group/<int:group_id>/<action>")
+@app.route("/group/<string:group_id>/<action>")
 @app.route("/groups")
 def group(group_id='public', action='group', page=1):
   if session and session.get('session_id'):
