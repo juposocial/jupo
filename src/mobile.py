@@ -199,15 +199,27 @@ def google_authorized():
 
 @app.route('/logout', methods=['GET'])
 def sign_out():
-  device_id = session.get('device_id')
-  session_id = session.get('session_id')
-  network = session.get('network')
-  db_name = '%s_%s' % (network.replace('.', '_'), 
+  device_token = request.args.get('device_token')
+  device_os = request.args.get('os')
+  authorization = request.headers.get('Authorization')
+  if not authorization or not authorization.startswith('session '):
+    return 'not ok'
+
+  data = SecureCookie.unserialize(authorization.split()[-1],
+                                    settings.SECRET_KEY)
+  if not data:
+    return 'not ok'
+
+  network = data.get('network')
+  session_id = data.get('session_id')
+  if device_token and session_id and network:
+    device_id = '%s %s' % (device_os, device_token)
+    db_name = '%s_%s' % (network.replace('.', '_'),
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
-  user_id = api.get_user_id(session_id, db_name=db_name)
-  if user_id:
-    api.remove_device(device_id, user_id, db_name=db_name)
-    return 'ok'
+    user_id = api.get_user_id(session_id, db_name=db_name)
+    if user_id:
+      api.remove_device(device_id, user_id, db_name=db_name)
+      return 'ok'
   return 'not ok'
 
 
