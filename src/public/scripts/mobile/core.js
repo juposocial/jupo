@@ -37,6 +37,20 @@ function refresh() {
   $('section iframe').remove();
 }
 
+function new_comment(post_id, message) {
+  var url = '/feed/' + post_id + '/comment'; 
+  var comments_list_id = 'comments-' + post_id;
+  $.ajax({
+    type: "POST",
+    url: url,
+    data: {message: message},
+    success: function(resp) {
+      $('#' + comments_list_id + ' div.comments-list').append(resp);
+    }
+  });
+  return false;
+}
+
 
 $(document).ready(function() {
   
@@ -57,16 +71,21 @@ $(document).ready(function() {
       return false;
     }
     
+    var post_id = $(this).attr('id').split('-')[1];
     var url = $(this).attr('id').replace('post-', '/feed/');
+    
     
     if (url == window.location.pathname) {
       return false;
     }
     
-    var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
+    var data = btoa(JSON.stringify({'title': 'Post', 'url': url, 
+                                    'post_id': post_id,
+                                    'open_input': 0}));
+                                    
     console.log(url);
     console.log('jupo://open_link?data=' + data);
-    
+      
     open_custom_url_in_iframe('jupo://open_link?data=' + data);
     
     return false;
@@ -216,6 +235,27 @@ $(document).ready(function() {
     var data = btoa(JSON.stringify({'title': title, 'url': url}));
     console.log('jupo://open_link?data=' + data);
     
+    open_custom_url_in_iframe('jupo://open_link?data=' + data);
+    
+    return false;
+  });
+  
+  $('ul.stream').on('tap', 'a.reply', function(e) {
+    
+    var url = $(this).parents('li.feed').attr('id').replace('post-', '/feed/');
+    var post_id = $(this).parents('li.feed').attr('id').replace('post-', '');
+    
+    // if (url == window.location.pathname) {
+      // return false;
+    // }
+    
+    var data = btoa(JSON.stringify({'title': 'Post', 'url': url, 
+                                    'post_id': post_id,
+                                    'open_input': 1}));
+                                    
+    console.log(url);
+    console.log('jupo://open_link?data=' + data);
+      
     open_custom_url_in_iframe('jupo://open_link?data=' + data);
     
     return false;

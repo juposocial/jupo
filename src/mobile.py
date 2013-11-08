@@ -427,8 +427,58 @@ def news_feed(page=1, feed_id=None):
       posts.append(render_template('more.html', 
                                    more_url='/news_feed/page%d' % (page+1)))
     return ''.join(posts)
-  
 
+
+@app.route("/feed/<int:feed_id>/<action>", methods=["GET", "POST"])
+def feed_actions(feed_id=None, action=None,
+                 message_id=None, domain=None, comment_id=None):
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+
+    data = SecureCookie.unserialize(authorization.split()[-1],
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+
+  session_id = data.get('session_id')
+  network = data.get('network')
+  db_name = '%s_%s' % (network.replace('.', '_'),
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+
+  owner = api.get_user_info(user_id, db_name=db_name)
+  if action == 'comment':
+    message = request.form.get('message', '')
+    if not message:
+      abort(403)
+    reply_to = []
+    attachments = []
+    from_addr = []
+    info = api.new_comment(session_id,
+                           message, feed_id, attachments,
+                           reply_to=reply_to,
+                           from_addr=from_addr,
+                           db_name=db_name)
+
+    if not info:
+      abort(400)
+
+    item = {'id': feed_id}
+    html = render_template('comment.html',
+                           comment=info,
+                           prefix='feed',
+                           item=item,
+                           owner=owner)
+
+    return html
+    
 @app.route("/everyone", methods=['GET', 'OPTIONS'])
 @app.route("/everyone/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route("/group/<int:group_id>", methods=['GET', 'OPTIONS'])
