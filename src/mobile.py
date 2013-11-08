@@ -374,7 +374,6 @@ def news_feed(page=1, feed_id=None):
     abort(401)
   
   owner = api.get_user_info(user_id, db_name=db_name)
-  
   if feed_id:
     mode = 'view'
     title = 'Post'
