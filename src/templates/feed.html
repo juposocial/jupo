@@ -585,8 +585,10 @@
            {% endif %}
            
          
-           <a href='/feed/{{ feed.id }}/reshare' class='forward'>Share</a> ·
-           <a class="reply" rel="#{{ feed.id }}-comments">Comment</a>
+           <a href='/feed/{{ feed.id }}/reshare' class='forward'>Share</a>
+           {% if not mode %}
+             . <a class="reply" rel="#{{ feed.id }}-comments">Comment</a>
+           {% endif %}
                   
           
       </div>
