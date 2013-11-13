@@ -7263,10 +7263,10 @@ def push_notification_to_mobile(sender_id=None, receiver_id=None, info=None, db_
       else:
         msg = NOTIFICATIONS_LIST.get(type) % (sender.name, 'group')
     
-    elif type in ['new_user', 'friend_just_joined', 'new_member'] and sender:
+    elif type in ['new_user', 'friend_just_joined'] and sender:
       msg = NOTIFICATIONS_LIST.get(type) % (sender.name, sender.name)
       
-    elif type in ['add_member', 'ask_to_join'] and sender:
+    elif type in ['add_member', 'ask_to_join', 'new_member'] and sender:
       record = get_record(info.get('ref_id'), 
                               info.get('ref_collection'), 
                               db_name=db_name)
@@ -7277,8 +7277,11 @@ def push_notification_to_mobile(sender_id=None, receiver_id=None, info=None, db_
         detail = User(record, db_name=db_name)
       else:
         detail = Feed(record, db_name=db_name)
-        
-      msg = NOTIFICATIONS_LIST.get(type) % (sender.name, detail.name)
+      
+      if type == 'new_member':
+        msg = NOTIFICATIONS_LIST.get(type) % (detail.name, sender.name)
+      else:
+        msg = NOTIFICATIONS_LIST.get(type) % (sender.name, detail.name)
     
     elif type == 'new_network':
       network_info = get_network_info(self.ref_id)
