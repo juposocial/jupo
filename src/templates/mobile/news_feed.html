@@ -49,8 +49,9 @@
   <script src='/public/scripts/zepto.min.js'></script>
   <script src='/public/scripts/touch.js'></script>
   <script src='/public/scripts/mobile/core.js'></script>
-  <script src='/public/scripts/mobile/push.js'></script>
-  
+  {% if not is_android %}
+    <script src='/public/scripts/mobile/push.js'></script>
+  {% endif %}
 </body>
   
   
