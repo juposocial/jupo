@@ -308,6 +308,11 @@ def user(user_id=None, page=1, action=None):
   view = 'view'
   mode = 'view'
   title = user.name
+  is_android = False
+  device_id = session.get('device_id')
+  if device_id and 'android' in device_id:
+    is_android = True
+    
   if not session_id or owner.id == user.id:
     feeds = api.get_public_posts(user_id=user.id, page=page,
                                  db_name=db_name)
@@ -320,7 +325,8 @@ def user(user_id=None, page=1, action=None):
                                                owner=owner,
                                                title=title, 
                                                settings=settings,
-                                               feeds=feeds)
+                                               feeds=feeds,
+                                               is_android=is_android)
   else:
     posts = [render(feeds, 'feed', owner,
                     viewport='view', mode=mode, mobile=True)]
@@ -389,7 +395,11 @@ def news_feed(page=1, feed_id=None):
     abort(401)
   
   owner = api.get_user_info(user_id, db_name=db_name)
-  
+  is_android = False
+  device_id = session.get('device_id')
+  if device_id and 'android' in device_id:
+    is_android = True
+     
   if feed_id:
     mode = 'view'
     title = 'Post'
@@ -406,7 +416,8 @@ def news_feed(page=1, feed_id=None):
                                                     current_network=network,
                                                     view='news_feed', 
                                                     settings=settings,
-                                                    feeds=feeds)
+                                                    feeds=feeds,
+                                                    is_android=is_android)
   else:   
     posts = [render(feeds, "feed", owner, 
                     viewport='news_feed', mode=mode, mobile=True)]
@@ -448,12 +459,17 @@ def group(group_id='public', action='group', page=1):
   if not user_id:
     abort(401)
   owner = api.get_user_info(user_id, db_name=db_name)
-  
+  is_android = False
+  device_id = session.get('device_id')
+  if device_id and 'android' in device_id:
+    is_android = True
+    
   if request.path.startswith('/groups'):
     groups = api.get_groups(session_id, db_name=db_name)
     return render_template('mobile/groups.html', view='groups',
                                                  owner=owner,
-                                                 groups=groups)
+                                                 groups=groups,
+                                                 is_android=is_android)
     
   
   group = api.get_group_info(session_id, group_id, db_name=db_name)
