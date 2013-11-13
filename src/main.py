@@ -835,7 +835,7 @@ def authentication(action=None):
     current_network = api.get_current_network(db_name=db_name)
 
     auth_whitelist = []
-    if current_network is not None and 'auth_normal_whitelist' in current_network:
+    if current_network is not None and 'auth_normal_whitelist' in current_network and current_network['auth_normal_whitelist'] != "":
       # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
       auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
     # default email domain
