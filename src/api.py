@@ -1426,8 +1426,11 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
   notify_list = []
   user = db.owner.find_one({'email': email})
   if not user:
-    merge_with_imported_fb_account = True
     user = db.owner.find_one({'fb_id': facebook_id})
+
+    # if we can find existing user using fb_id, flag it
+    if user:
+      merge_with_imported_fb_account = True
 
   if user:
     if user.get('facebook_friend_ids'):
