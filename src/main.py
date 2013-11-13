@@ -7,7 +7,7 @@ from raven.contrib.flask import Sentry
 from flask import (Flask, request, 
                    render_template, render_template_string,
                    redirect as redirect_to, 
-                   abort, 
+                   abort,
                    url_for, session, g, flash,
                    make_response, Response)
 from flask_sslify import SSLify
@@ -734,7 +734,7 @@ def authentication(action=None):
     current_network = api.get_current_network(db_name=db_name)
 
     auth_whitelist = []
-    if current_network is not None and 'auth_normal_whitelist' in current_network:
+    if current_network is not None and 'auth_normal_whitelist' in current_network and current_network['auth_normal_whitelist'] != "":
       # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
       auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
     # default email domain
@@ -1074,7 +1074,7 @@ def google_authorized():
     current_network = api.get_current_network(db_name=db_name)
 
     auth_whitelist = []
-    if current_network is not None and 'auth_normal_whitelist' in current_network:
+    if current_network is not None and 'auth_normal_whitelist' in current_network and current_network['auth_normal_whitelist'] != "":
       # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
       auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
 
@@ -1460,7 +1460,7 @@ def facebook_authorized():
   facebook_id = me['id']
 
   auth_whitelist = []
-  if current_network is not None and 'auth_normal_whitelist' in current_network:
+  if current_network is not None and 'auth_normal_whitelist' in current_network and current_network['auth_normal_whitelist'] != "":
     auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
   # default email domain
   auth_whitelist.append(network)
