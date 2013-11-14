@@ -1333,7 +1333,9 @@ def facebook_canvas():
       session_id = session['session_id']
       user_id = api.get_user_id(session_id=session_id)
 
-      target_contacts = api.find_target_facebook_contacts_to_invite(user_id=user_id, group_id=imported_jupo_group_id)
+      db_name = (invited_network + "." + settings.PRIMARY_DOMAIN).replace('.', '_')
+
+      target_contacts = api.find_target_facebook_contacts_to_invite(user_id=user_id, group_id=imported_jupo_group_id, db_name=db_name)
 
   # fb_source = Nil && request --> just sent invite
   fb_request_param = request.args.get('request')
