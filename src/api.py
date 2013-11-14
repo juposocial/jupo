@@ -4780,7 +4780,7 @@ def new_file(session_id, attachment_id, viewers=None):
 
 def check_user_exist_by_fb_id(fb_id, db_name=None):
   db = DATABASE[db_name]
-  existing_user = db.owner.find_one({'fb_id': fb_id})
+  existing_user = db.owner.find_one({'$or': [{'fb_id': fb_id}, {'facebook_id': fb_id}]})
   if existing_user:
     return existing_user['session_id']
   else:
