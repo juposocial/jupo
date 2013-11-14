@@ -202,7 +202,16 @@ $(document).ready(function() {
     } 
     
     var url = $(this).attr('href');
-    var data = btoa(JSON.stringify({'title': 'Post', 'url': url}));
+    var title = '';
+    if (url.indexOf('/user') == 0) {
+      title = 'User';
+    } else if (url.indexOf('/group') == 0 || url.indexOf('/everyone') == 0) {
+      title = 'Group';
+    } else {
+      title = 'Post';
+    }
+    
+    var data = btoa(JSON.stringify({'title': title, 'url': url}));
     console.log('jupo://open_link?data=' + data);
     
     open_custom_url_in_iframe('jupo://open_link?data=' + data);
@@ -210,4 +219,5 @@ $(document).ready(function() {
     return false;
   });
 
+  
 });
