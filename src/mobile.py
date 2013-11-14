@@ -500,6 +500,64 @@ def group(group_id='public', action='group', page=1):
                           request=request,
                           view='group')
 
+
+@app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
+def feed_actions(feed_id=None, action=None, 
+                 message_id=None, domain=None, comment_id=None):
+  if session and session.get('session_id'):
+    data = session
+  else:
+    authorization = request.headers.get('Authorization')
+    if not authorization or not authorization.startswith('session '):
+      abort(401)
+      
+    data = SecureCookie.unserialize(authorization.split()[-1], 
+                                    settings.SECRET_KEY)
+    if not data:
+      abort(401)
+    
+  session_id = data.get('session_id')
+  network = data.get('network')
+  db_name = '%s_%s' % (network.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+  
+  user_id = api.get_user_id(session_id, db_name=db_name)
+  if not user_id:
+    abort(401)
+    
+  owner = api.get_user_info(user_id, db_name=db_name)
+  if request.path.endswith('/comments'):
+    limit = int(request.args.get('limit', 5))
+    last_comment_id = int(request.args.get('last'))
+    
+    post = api.get_feed(session_id, feed_id, db_name=db_name)
+    if not post.id:
+      abort(400)
+    
+    comments = []
+    for comment in post.comments:
+      if comment.id == last_comment_id:
+        break
+      else:
+        comments.append(comment)
+    
+    if len(comments) > limit:
+      comments = comments[-limit:]
+      
+    html = render(comments, 'comment', 
+                  owner, None, None, 
+                  item=post, hidden=True)
+    resp = {'html': html,
+            'length': len(comments),
+            'comments_count': post.comments_count}
+    
+    if comments[0].id != post.comments[0].id:
+      resp['next_url'] = '/feed/%s/comments?last=%s' \
+                          % (feed_id, comments[0].id)
+      
+    return Response(dumps(resp), mimetype='application/json')
+
+
 @app.route('/networks', methods=['GET', 'POST'])
 @app.route('/network/<domain>', methods=['GET', 'POST'])
 def network(domain=None):

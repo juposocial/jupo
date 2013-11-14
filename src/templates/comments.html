@@ -17,7 +17,7 @@
 
         <li class="action">
             <span class="comment-icon"></span>
-            <a class="view-previous-comments" {% if item.comments_count > (comments_preview_count + 5) %}href='/feed/{{ item.id }}/comments?last={{ item.comments[-comments_preview_count-5].id }}'{% endif %}>
+            <a class="view-previous-comments" {% if mobile %}rel='/feed/{{ item.id }}/comments?last={{ item.comments[-comments_preview_count-5].id }}'{% else %}{% if item.comments_count > (comments_preview_count + 5) %}href='/feed/{{ item.id }}/comments?last={{ item.comments[-comments_preview_count-5].id }}'{% endif %}{% endif %}>
               {% if item.comments_count > (5 + comments_preview_count) %}
               <span class='rfloat'>
                 Showing <span class='displayed-count'>{{ comments_preview_count }}</span> of <span class='comment-count'>{{ item.comments_count }}</span> comments
