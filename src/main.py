@@ -1292,6 +1292,15 @@ def facebook_authorized_import_step_2():
   target_jupo_group_id = request.args.get('target_jupo_group_id')
   import_comment_likes = request.args.get('import_comment_likes')
 
+  if 'new_jupo_group_name' in request.args:
+    session_id = session['session_id']
+    new_jupo_group_name = request.args.get('new_jupo_group_name')
+
+    # manual create new group
+    target_jupo_group_id = api.new_group(session_id=session_id, name=new_jupo_group_name, privacy='open', about=None)
+  else:
+    target_jupo_group_id = request.args.get('target_jupo_group_id')
+
   group_that_already_imported_this_fb_group = api.check_exist_imported_facebook_group_id_in_all_group_info(source_facebook_group_id=source_facebook_group_id)
   print "DEBUG - group_that_already_imported_this_fb_group = " + str(group_that_already_imported_this_fb_group)
 

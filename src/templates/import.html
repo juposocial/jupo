@@ -30,7 +30,7 @@
   </p>
   <hr/>
 
-  <!-- STEP 1 -->
+  <!-- STEP 1 - AUTHENTICATE -->
   <div id="importer-step-{{ current_step }}">
     {% if not facebook_access_token %}
       <h3 class="text-info">Step 1 - Authenticate and retrieve source data</h3>
@@ -55,21 +55,22 @@
       </select>
 
     <h3 class="text-info">Step 3 - Select target Jupo group to import</h3>
-      <select name="target_jupo_group_id">
-        <option value="public">Public</option>
-        {% for jupo_group in target_jupo_groups %}
-          <option value="{{ jupo_group.id }}">{{ jupo_group.name }}</option>
-        {% endfor %}
-      </select>
-
-      {% if not target_jupo_groups %}
-        <p>You haven't created any groups on your Jupo network. We will import to default public group</p>
+      {% if target_jupo_groups %}
+        <select name="target_jupo_group_id">
+          {% for jupo_group in target_jupo_groups %}
+            <option value="{{ jupo_group.id }}">{{ jupo_group.name }}</option>
+          {% endfor %}
+        </select>
+      {% else %}
+        <input type="text" name="new_jupo_group_name"></input>
+        <p>You haven't created any groups on your Jupo network. Please choose a name and we will automatically create one for you</p>
       {% endif %}
 
-    <h3 class="text-info">Step 4 - Select import options</h3>
+    <br/>
+    <h4 class="text-info">Import options</h3>
     <div class="checkbox">
       <label>
-        <input type="checkbox" name="import_comment_likes">Import likes of comments ? This will take more time
+        <input type="checkbox" name="import_comment_likes">Import likes of comments ? This will take (much) more time
       </label>
     </div>
     <br/>
