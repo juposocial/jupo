@@ -1,4425 +1,3987 @@
 #! coding: utf-8
-# pylint: disable-msg=W0311, E0611, E1101
-# @PydevCodeAnalysisIgnore
+# pylint: disable-msg=W0311, W0611, E1103, E1101
+#@PydevCodeAnalysisIgnore
 
-import os
-import re
-import sys
-import smaz
-import fcntl
-import struct
-import socket
-import base64
-import hashlib
-import logging
-import calendar
-import requests
-import mimetypes
+from raven.contrib.flask import Sentry
+ 
+from flask import (Flask, request, 
+                   render_template, render_template_string,
+                   redirect as redirect_to, 
+                   abort,
+                   url_for, session, g, flash,
+                   make_response, Response)
+from flask_sslify import SSLify
+from flask.ext.oauth import OAuth
+from flask.ext.seasurf import SeaSurf
+from flask.ext.assets import Bundle, Environment as WebAssets
+from werkzeug.wrappers import BaseRequest
+from werkzeug.utils import cached_property
+from werkzeug.contrib.securecookie import SecureCookie
+from werkzeug.contrib.profiler import ProfilerMiddleware, MergeStream
 
-from os import urandom
-from urllib import quote
-from random import shuffle
-from goose import Goose
-from smtplib import SMTP
-from unidecode import unidecode
-from email.message import Message as EmailMsg
-from email.header import Header
-from email.MIMEText import MIMEText
-from base64 import b64encode, b64decode
-from lxml.html.diff import htmldiff
-from itertools import izip
-from uuid import uuid4, UUID
-from string import capwords
-from urllib2 import urlopen
+from datetime import timedelta
+from commands import getoutput
+from mimetypes import guess_type
 from simplejson import dumps, loads
-from time import mktime
-from datetime import datetime, timedelta
-from httplib import CannotSendRequest
-from pyelasticsearch import ElasticSearch, ElasticHttpNotFoundError
-from diff_match_patch import diff_match_patch
-from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
+from time import mktime, strptime, sleep
+from urlparse import urlparse, urlunparse
+
+import urllib
+
+from jinja2 import Environment
+from werkzeug.contrib.cache import MemcachedCache
 
 from lib import cache
-from lib import encode_url
-from lib.url import extract_urls
-from lib.hot_ranking import get_score
-from lib.pbkdf2 import pbkdf2_bin # From https://github.com/mitsuhiko/python-pbkdf2
+from lib.img_utils import zoom
+from lib.json_util import default as BSON
 
-from gridfs import GridFS, NoFile
-from bson.binary import Binary
-from bson.objectid import ObjectId
-from gevent import spawn, joinall
-from pymongo import MongoClient as MongoDB
-from pymongo.son_manipulator import SON
+from helpers import extensions
+from helpers.decorators import *
+from helpers.converters import *
 
-from redis import Redis, ConnectionPool
-from memcache import Client as Memcached
-from jinja2 import Environment, FileSystemLoader
+import os
+import logging
+import requests
+import traceback
+import werkzeug.serving
+import flask_debugtoolbar
+from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 
-from boto.s3.key import Key
-from boto.s3.connection import S3Connection
-from rq import Queue, use_connection
-from validate_email import validate_email
-from apns import APNs, Payload
+import json
 
-import dateutil.parser as dateparser
-from facebook import GraphAPI
-import urllib
-from urlparse import urlparse
-import inspect
-
-
-from flask import request
-from flask import session
-
-try:
-  from collections import OrderedDict as odict
-except ImportError:
-  from ordereddict import OrderedDict as odict
-
-
-from models import (User, Group, Browser,
-                    Comment, Feed, File, Note,
-                    Version, Notification, Attachment, Reminder,
-                    URL, Result, Event, Message, Topic)
-
-import app
+import api
 import filters
 import settings
+from lib.verify_email_google import is_google_apps_email
+from app import CURRENT_APP, render
+
+from lib.fb_helpers import parse_signed_request
+
+import pickle
+import dateutil.parser as dateparser
+from facebook import FacebookAPI, GraphAPI
 
 requests.adapters.DEFAULT_RETRIES = 3
-months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
 
-# switch from the default ASCII to UTF-8 encoding
-reload(sys)
-sys.setdefaultencoding("utf-8")
-
-
-DATABASE = MongoDB(settings.MONGOD_SERVERS, use_greenlets=True)
-DATABASE['global'].user.ensure_index('email', background=True)
-DATABASE['global'].spelling_suggestion.ensure_index('keyword', background=True)
-
-INDEX = ElasticSearch('http://%s/' % settings.ELASTICSEARCH_SERVER)
-
-host, port = settings.REDIS_SERVER.split(':')
-FORGOT_PASSWORD = Redis(host=host, port=int(port), db=1)
-
-
-if settings.AWS_KEY and settings.S3_BUCKET_NAME:
-  s3_conn = S3Connection(settings.AWS_KEY, settings.AWS_SECRET, is_secure=False)
-  BUCKET = s3_conn.get_bucket(settings.S3_BUCKET_NAME)
-else:
-  BUCKET = None
-
-goose = Goose()
-dmp = diff_match_patch()
-
-host, port = settings.REDIS_PINGPONG_SERVER.split(':')
-PINGPONG = Redis(host=host, port=int(port), db=0)
-
-host, port = settings.REDIS_PUBSUB_SERVER.split(':')
-pool = ConnectionPool(host=host, port=int(port), db=0)
-PUBSUB = Redis(connection_pool=pool)
-
-host, port = settings.REDIS_TASKQUEUE_SERVER.split(':')
-TASKQUEUE = Redis(host=host, port=int(port), db=0)
-
-use_connection(TASKQUEUE)
-push_queue = Queue('push')
-index_queue = Queue('index')
-crawler_queue = Queue('urls')
-invite_queue = Queue('invite')
-send_mail_queue = Queue('send_mail')
-move_to_s3_queue = Queue('move_to_s3')
-notification_queue = Queue('notification')
-importer_queue = Queue('importer')
-
-
-def send_mail(to_addresses, subject=None, body=None, mail_type=None, 
-              user_id=None, post=None, db_name=None, **kwargs):
-  if not settings.SMTP_HOST:
-    return False
+app = CURRENT_APP
   
-  if not db_name:
-    db_name = get_database_name()
-  
-  # support subdir instead of subdomain ( jupo.com/your-net-work instead of your-network.jupo.com )
-  # domain = db_name.replace('_', '.')
-  user_domain = to_addresses.split('@')[1]
-  domain = '%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
+assets = WebAssets(app)
 
-  if mail_type == 'thanks':    
-    subject = 'Thanks for Joining the Jupo Waiting List'
-    template = app.CURRENT_APP.jinja_env.get_template('email/thanks.html')
-    body = template.render()
+if settings.SENTRY_DSN:
+  sentry = Sentry(app, dsn=settings.SENTRY_DSN, logging=False)
+  
+csrf = SeaSurf(app)
+oauth = OAuth()
     
-  elif mail_type == 'invite':
-    refs = list(set(kwargs.get('list_ref', [])))
-    ref_count = len(refs)
-    if ref_count >= 2:
-      text = kwargs.get('username')
-      if ref_count == 2:
-        text += ' and %s' % get_user_info([i for i in refs \
-                                           if i != kwargs.get('user_id')][-1],
-                                          db_name=db_name).name
-      elif ref_count == 3:
-        text += ', %s and 1 other' % \
-          (get_user_info([i for i in refs \
-                          if i != kwargs.get('user_id')][-1],
-                         db_name=db_name).name)
-      else:
-        text += ', %s and %s others' % \
-          (get_user_info([i for i in refs \
-                          if i != kwargs.get('user_id')][-1],
-                         db_name=db_name).name,
-           ref_count - 2)
-      
-      text += ' have invited you to'
-        
-      if kwargs.get('group_name'):
-        subject = "%s %s" % (text, kwargs.get('group_name'))
-      else:
-        subject = "%s Jupo" % (text)
+def redirect(url, code=302):
+  if not url.startswith('http') and request.cookies.get('network'):
+  # if request.cookies.get('network'):
+    url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, request.cookies.get('network'), url)
+  return redirect_to(url, code=code)
 
+@line_profile
+def render_homepage(session_id, title, **kwargs):
+  """ Render homepage for signed in user """
+  if session_id:
+    user_id = api.get_user_id(session_id)
+    if user_id:
+      owner = api.get_user_info(user_id)
     else:
-      if kwargs.get('group_name'):
-        subject = "%s has invited you to %s" % (kwargs.get('username'),
-                                                kwargs.get('group_name'))
-      else:
-        subject = "%s has invited you to Jupo" % (kwargs.get('username'))
-
-    template = app.CURRENT_APP.jinja_env.get_template('email/invite.html')
-    body = template.render(domain=domain, **kwargs)
+      owner = None
+  else:
+    owner = None
     
-  elif mail_type == 'forgot_password':
-    subject = 'Your password on Jupo'
-    template = app.CURRENT_APP.jinja_env.get_template('email/reset_password.html')
-    body = template.render(email=to_addresses, domain=domain, **kwargs)
-    
-  elif mail_type == 'welcome':
-    subject = 'Welcome to Jupo!'
-    body = None
-    
-  elif mail_type == 'mentions':
-    user = get_user_info(user_id, db_name=db_name)
-    post = Feed(post, db_name=db_name)
-    subject = '%s mentioned you in a comment.' % user.name
-    template = app.CURRENT_APP.jinja_env.get_template('email/new_comment.html')
-    body = template.render(domain=domain, user=user, post=post)
-    
-  elif mail_type == 'new_post':
-    user = get_user_info(user_id, db_name=db_name)
-    post = Feed(post, db_name=db_name)
-    subject = '%s shared a post with you' % user.name
-    template = app.CURRENT_APP.jinja_env.get_template('email/new_post.html')
-    body = template.render(domain=domain, email=to_addresses, user=user, post=post)
-    
-  elif mail_type == 'new_comment':
-    user = get_user_info(user_id, db_name=db_name)
-    post = Feed(post, db_name=db_name)
-    if post.is_system_message():
-      if post.message.get('action') == 'added':
-        subject = 'New comment to "%s added %s to %s group."' \
-                % (post.owner.name, 
-                   post.message.user.name, 
-                   post.message.group.name)
-      elif post.message.get('action') == 'created':
-        subject = 'New comment to "%s created %s group."' \
-                % (post.owner.name, 
-                   post.message.group.name)
-      else:
-        subject = "New comment to %s's post" % (post.owner.name)
+  if owner:
+    friends_online = [i for i in owner.contact_ids \
+                      if api.check_status(i) in ['online', 'away']]
+    friends_online = [api.get_user_info(i) for i in friends_online]
+    friends_online.sort(key=lambda k: k.last_online, reverse=True)
+    if not kwargs.has_key('groups'):
+      groups = api.get_groups(session_id, limit=3)
     else:
-      post_msg = filters.clean(post.message)
-      if len(post_msg) > 30:
-        subject = "New comment to %s's post: \"%s\"" \
-                % (post.owner.name, post_msg[:30] + '...')
-        subject = subject.decode('utf-8', 'ignore').encode('utf-8') 
-      else:
-        subject = "New comment to %s's post: \"%s\"" \
-                % (post.owner.name, post_msg) 
+      groups = kwargs.pop('groups')
     
-    template = app.CURRENT_APP.jinja_env.get_template('email/new_comment.html')
-    body = template.render(domain=domain, email=to_addresses, user=user, post=post)
+    for group in groups[:3]:
+      group.unread_posts = 0 # api.get_unread_posts_count(session_id, group.id)
     
-  
-  if to_addresses and subject and body:
-  
-    msg = MIMEText(body, 'html', _charset="UTF-8")
-    msg['Subject']= Header(subject, "utf-8")
-    msg['From'] = settings.SMTP_SENDER
-    msg['X-MC-Track'] = 'opens,clicks'
-    msg['X-MC-Tags'] = mail_type
-    msg['X-MC-Autotext'] = 'true'
+    unread_messages = api.get_unread_messages(session_id)
+#     unread_messages_count = sum([i.get('unread_count') for i in unread_messages])
+    unread_messages_count = len(unread_messages)
+    unread_notification_count = api.get_unread_notifications_count(session_id)\
+                              + unread_messages_count
     
-    
-    if post:
-      mail_id = '%s-%s' % (post.id, db_name)
-      mail_id = base64.b64encode(smaz.compress(mail_id)).replace('/', '-').rstrip('=')
-      
-      reply_to = 'post%s@%s' % (mail_id, settings.EMAIL_REPLY_TO_DOMAIN)
-      msg['Reply-To'] = Header(reply_to, "utf-8")
-      
-    MAIL = SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
-    
-    if settings.SMTP_USE_TLS is True:
-      MAIL.starttls()
-    
-    if settings.SMTP_PASSWORD:
-      MAIL.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-    
-    MAIL.sendmail(settings.SMTP_SENDER, 
-                  to_addresses, msg.as_string()) 
-    MAIL.quit()
-    
-    return True
   else:
-    return False
+    friends_online = []
+    groups = []
+    unread_messages = []
+    unread_messages_count = 0
+    unread_notification_count = 0
+  
+  if kwargs.has_key('stats'):  
+    stats = kwargs.pop('stats')
+  else: 
+    stats = {}
+    
+  
+  hostname = request.headers.get('Host')
+
+  hostname_short = request.headers.get('Host', '').split(':')[0]
+  network = hostname_short[:(len(hostname_short) - len(settings.PRIMARY_DOMAIN) - 1)]
+
+  #logo text based on subdomain (user-specific network)
+  logo_text = hostname.split('.')[0]
+
+  if hostname != settings.PRIMARY_DOMAIN:
+    network_info = api.get_network_info(hostname.replace('.', '_'))
+    if network_info and network_info.has_key('name'):
+      logo_text = network_info['name']
+      if title == 'Jupo':
+        title = logo_text
+
+  resp = Response(render_template('home.html', 
+                                  owner=owner,
+                                  network=network_info,
+                                  title=title, 
+                                  groups=groups,
+                                  friends_online=friends_online,
+                                  unread_messages=unread_messages,
+                                  unread_messages_count=unread_messages_count,
+                                  unread_notification_count=unread_notification_count,
+                                  stats=stats,
+                                  debug=settings.DEBUG,
+                                  logo_text=logo_text,
+                                  domain=hostname,
+                                  network_url=network,
+                                  server=settings.PRIMARY_DOMAIN,
+                                  request=request,
+                                  settings=settings,
+                                  **kwargs))
+  if owner:
+    resp.set_cookie('channel_id', api.get_channel_id(session_id))
+  else:
+    resp.delete_cookie('channel_id')
+  
+  # disallows rendering of the document when inside an iframe
+  # http://javascript.info/tutorial/clickjacking
+  resp.headers['X-Frame-Options'] = 'DENY'
+  return resp
+
+
+def event_stream(channel):
+  pubsub = api.PUBSUB.pubsub()
+  pubsub.subscribe(channel)
+  for message in pubsub.listen():
+    yield 'retry: 1000\ndata: %s\n\n' % message['data']
 
 #===============================================================================
-# Snowflake IDs
+# URL routing and handlers
 #===============================================================================
-SNOWFLAKE_REQUEST_URL = 'http://%s/' % settings.SNOWFLAKE_SERVER
-def new_id():
-  resp = requests.get(SNOWFLAKE_REQUEST_URL)
-  return long(resp.text)
+@app.route('/ping')
+def ping():
+  session_id = session.get('session_id')
+  if session_id:
+    api.update_pingpong_timestamp(session_id)
+  return 'pong'
 
-def is_snowflake_id(_id):
-  if not _id:
-    return False
-  elif str(_id).isdigit() and len(str(_id)) == 18:
-    return True
-  else:
-    return False
-
-def is_domain_name(host):
-  if not host:
-    return False
-  try:
-    socket.gethostbyname(host)
-    return True
-  except socket.gaierror:
-    return False
-
-def is_custom_domain(domain):
-  if settings.PRIMARY_DOMAIN not in domain:
-    return True
-  elif is_domain_name(domain[:-(len(settings.PRIMARY_DOMAIN) + 1)]):
-    return False
-  else:
-    return True
-
-#===============================================================================
-# Securely hash and check passwords using PBKDF2
-#===============================================================================
-
-# Parameters to PBKDF2. Only affect new passwords.
-SALT_LENGTH = 12
-KEY_LENGTH = 24
-HASH_FUNCTION = 'sha256'  # Must be in hashlib.
-# Linear to the hashing time. Adjust to be high but take a reasonable
-# amount of time on your server. Measure with:
-# python -m timeit -s 'import passwords as p' 'p.make_hash("something")'
-COST_FACTOR = 10000
-
-def make_hash(password):
-    """Generate a random salt and return a new hash for the password."""
-    if isinstance(password, unicode):
-        password = password.encode('utf-8')
-    salt = b64encode(urandom(SALT_LENGTH))
-    return 'PBKDF2$%s$%s$%s$%s' % (HASH_FUNCTION,
-                                   COST_FACTOR,
-                                   salt,
-                                   b64encode(pbkdf2_bin(password, 
-                                                        salt, 
-                                                        COST_FACTOR, 
-                                                        KEY_LENGTH,
-                                                        getattr(hashlib, 
-                                                                HASH_FUNCTION)
-                                                        )
-                                             )
-                                   )
-
-def check_hash(password, hash_):
-    """Check a password against an existing hash."""
-    if isinstance(password, unicode):
-        password = password.encode('utf-8')
-    algorithm, hash_function, cost_factor, salt, hash_a = hash_.split('$')
-    assert algorithm == 'PBKDF2'
-    hash_a = b64decode(hash_a)
-    hash_b = pbkdf2_bin(password, salt, int(cost_factor), len(hash_a),
-                        getattr(hashlib, hash_function))
-    assert len(hash_a) == len(hash_b)  # we requested this from pbkdf2_bin()
-    # Same as "return hash_a == hash_b" but takes a constant time.
-    # See http://carlos.bueno.org/2011/10/timing.html
-    diff = 0
-    for char_a, char_b in izip(hash_a, hash_b):
-        diff |= ord(char_a) ^ ord(char_b)
-    return diff == 0
-  
-#===============================================================================
-# Long-polling
-#===============================================================================
-HOST = PORT = None
-EVENTS = {}
-
-  
-def utctime():
-  return float(datetime.utcnow().strftime('%s.%f'))
-
-
-def friendly_format(ts, offset=0, short=False):
-  try:
-    ts = float(ts)
-  except TypeError:
-    return ts
-  
-  if offset:
-    ts = ts + int(offset)
-  
-  if short:
-    now = datetime.fromtimestamp(utctime() + int(offset))
-    ts = datetime.fromtimestamp(int(ts))
-    delta = datetime(now.year, now.month, now.day, 23, 59, 59) - ts
+@app.route('/stream')
+def stream():
+  session_id = session.get('session_id')
+  if not session_id:
+    abort(400)
     
-    if now.year - ts.year != 0:
-      text = ts.strftime('%B %d, %Y')
-    elif delta.days == 0:
-      text = 'Today at %s' % ts.strftime('%I:%M%p')
-    elif delta.days == 1:
-      text = 'Yesterday at %s' % ts.strftime('%I:%M%p')
-    elif delta.days in [2, 3]:
-      text = ts.strftime('%A at %I:%M%p')
-    else:
-      text = '%s %s at %s' % (months[ts.month], ts.day, ts.strftime('%I:%M%p'))      
-  else:
-    ts = datetime.fromtimestamp(ts)
-    text = ts.strftime('%A, %B %d, %Y at %I:%M%p')
-  
-  return text.replace(' 0', ' ').replace('AM', 'am').replace('PM', 'pm')
-
-
-def get_interface_ip(ifname):
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  return socket.inet_ntoa(fcntl.ioctl(s.fileno(),
-                                      0x8915,  # SIOCGIFADDR
-                                      struct.pack('256s', ifname[:15]))[20:24])
-
-def get_lan_ip():
-  ip = socket.gethostbyname(socket.gethostname())
-  if ip.startswith("127."):
-    interfaces = ["eth0", "eth1", "eth2",
-                  "wlan0", "wlan1", "wifi0",
-                  "ath0", "ath1", "ppp0"]
-    for ifname in interfaces:
-      try:
-        ip = get_interface_ip(ifname)
-        break
-      except IOError:
-        pass
-  return ip
-
-
-
-
-#def get_tags(content):
-#  tags = re.compile('#([A-Za-z0-9_]+)').findall(content)
-#  return [tag.lower() for tag in tags]
-  
-def sizeof(num):
-  try:
-    num = float(num)
-  except ValueError:
-    return False
-  for x in ['bytes','KB','MB','GB','TB']:
-    if num < 1000:
-      size = "%3.1f %s" % (num, x)
-      return size.replace('.0', '')
-    num /= 1024.0
-    
-def image_data_uri(filename):
-  mimetype = mimetypes.guess_type(filename)[0]
-  if os.path.exists(filename):
-    content = open(filename).read()
-  elif filename.startswith('http'):
-    content = urlopen(filename).read()
-  data = "data:%s;base64,%s" % (mimetype, 
-                                base64.encodestring(content)\
-                                .replace('\n', ''))
-  return data
-  
-def datetime_string(timestamp):
-  s = datetime.fromtimestamp(int(timestamp))\
-              .strftime('%A, %B %d, %Y at %I:%M%p')
-  s = s.replace(' 0', ' ')\
-       .replace('AM', 'am')\
-       .replace('PM', 'pm')
-  return s
-
-def isoformat(timestamp):
-  return datetime.fromtimestamp(int(timestamp)).isoformat()
-
-def get_words(text):
-  word_regex = '[a-zA-Z0-9ạảãàáâậầấẩẫăắằặẳẵóòọõỏôộổỗồốơờớợởỡ' \
-             + 'éèẻẹẽêếềệểễúùụủũưựữửừứíìịỉĩýỳỷỵỹđ]+'
-  return re.compile(word_regex, re.I).findall(text.strip().lower())
-
-def get_database_names():
-  key = 'db_names'
-  db_names = cache.get(key)
-  if not db_names:
-    db_names = DATABASE.database_names()
-    db_names = list(db_names)
-    cache.set(key, db_names)
-  return db_names if isinstance(db_names, list) else []
-
-def get_database_name():
-  db_name = None
-  if request:
-    hostname = request.headers.get('Host')
-    # print "DEBUG - in get_database_name - hostname = " + str(hostname)
-
-    if hostname:
-      network = request.cookies.get('network')
-
-      #if network and not hostname.startswith(network):
-      #  hostname = network + '.' + settings.PRIMARY_DOMAIN
-
-      db_name = hostname.split(':')[0].lower().strip().replace('.', '_')
-      # print "DEBUG - in get_database_name - db_name = " + str(db_name)
-  if not db_name:
-    # print "DEBUG - in get_database_name - can't find db_name @.@ - caller is " + str(inspect.stack()[1][3])
-
-    db_name = settings.PRIMARY_DOMAIN.replace('.', '_')
-  
-  db_names = get_database_names()
-  # print "DEBUG - in get_database_name - db_names = " + str(db_names)
-  if db_name not in db_names:
-    # Ensure indexes
-    DATABASE[db_name].owner.ensure_index('session_id', background=True)
-    DATABASE[db_name].owner.ensure_index('email', background=True)
-    DATABASE[db_name].owner.ensure_index('facebook_id', background=True)
-    DATABASE[db_name].owner.ensure_index('name', background=True)
-    DATABASE[db_name].owner.ensure_index('password', background=True)
-    DATABASE[db_name].owner.ensure_index('members', background=True)
-    DATABASE[db_name].notification.ensure_index('receiver', background=True)
-    DATABASE[db_name].notification.ensure_index('is_unread', background=True)
-    DATABASE[db_name].notification.ensure_index('timestamp', background=True)
-    
-    DATABASE[db_name].stream.ensure_index('viewers', background=True)
-    DATABASE[db_name].stream.ensure_index('last_updated', background=True)
-    DATABASE[db_name].stream.ensure_index('when', background=True)
-    DATABASE[db_name].status.ensure_index('archived_by', background=True)
-    DATABASE[db_name].stream.ensure_index('is_removed', background=True)
-    
-    DATABASE[db_name].url.ensure_index('url', background=True)
-#    DATABASE[db_name].hashtag.ensure_index('name', background=True)
-
-  # print "DEBUG - in get_database_name - about to return db_name = " + str(db_name)
-  return db_name
-
-def get_url_info(url, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  info = db.url.find_one({"url": url})
-  if info:
-    return URL(info)
-  else:
-    return URL({"url": url})
-
-
-def get_url_description(url, bypass_cache=False, db_name=None):
-  if not db_name:  
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  
-  if '.' not in url and '/' not in url:
-    return False
-  
-  
-  info = dict()
-  if not url.startswith('http'):
-    url = 'http://' + url
-    
-  url_info = db.url.find_one({'url': url})   
-  if (url_info and 
-      not bypass_cache and 
-      abs(utctime() - url_info.get('timestamp')) < 86400 * 90):  # only refresh if after 90 days
-      return url_info
-  
-  
-  mimetype = mimetypes.guess_type(url.rsplit('?', 1)[0])[0] 
-  if mimetype and mimetype.startswith('image'):
-    resp = requests.head(url, headers={'Accept-Encoding': ''})
-    info['size'] = int(resp.headers.get('content-length', 0))
-    info['content_type'] = resp.headers.get('content-type')    
-    
-  else:
-    if ('stackoverflow.com' in url or
-        'stackexchange.com' in url or 
-        'superuser.com' in url or
-        'serverfault.com' in url) and settings.HTTP_PROXY:
-      html = requests.get(url, proxies={'http': settings.HTTP_PROXY}).content
-      article = goose.extract(raw_html=html)
-    else:
-      try:
-        article = goose.extract(url=url)
-      except IOError: # stopwords for this language is not found
-        return False
-        
-    info = {'title': article.title,
-            'favicon': article.meta_favicon,
-            'tags': list(article.tags),
-            'description': article.meta_description,
-            'text': article.cleaned_text}
-    if article.top_image:
-      info['img_src'] = article.top_image.get_src()
-      info['img_bytes'] = article.top_image.bytes
-      info['img_size'] = (article.top_image.width, article.top_image.height)
-    
-  info['timestamp'] = utctime()
-  if not url_info:
-    info['url'] = url
-    info['_id'] = new_id()
-    db.url.insert(info)     
-  else:
-    db.url.update({'url': url}, {'$set': info}) 
-  return info
-
-
-# User Actions -----------------------------------------------------------------
-#def get_email(session_id, message_id):
-#  user_id = get_user_id(session_id)
-#  viewers = get_group_ids(user_id)
-#  viewers.append(user_id)
-#  
-#  message = DATABASE.stream.find_one({'message_id': message_id,
-#                                          'viewers': {'$in': viewers}})
-#  if not message:
-#    thread = DATABASE.stream.find_one({'viewers': {'$in': viewers}}
-#                                           'comments.message_id': message_id})
-#    if thread:
-#      comments = thread['comments']
-#      for comment in comments:
-#        if comment.get('message_id') == message_id:
-#          message = comment
-#          message['subject'] = thread['subject']
-#          message['body'] = comment['message']
-#          break
-#  return None
-
-  
-
-def get_friend_suggestions(user_info):
-  if not user_info.has_key('_id'):
-    return []
-  
-  user_id = user_info['_id']
-  
-  key = '%s:friends_suggestion' % user_id
-  users = cache.get(key)
-  if users is not None:
-    return users
-  
-  facebook_friend_ids = user_info.get('facebook_friend_ids', [])
-  google_contacts = user_info.get('google_contacts', [])
-  
-  contact_ids = user_info.get('contacts', [])
-    
-  user_ids = set()
-  
-  shuffle(facebook_friend_ids)
-  shuffle(google_contacts)
-  
-  checklist = facebook_friend_ids[:5]
-  checklist.extend(google_contacts[:5])
-  
-  for i in checklist:
-    if '@' in i:
-      uid = get_user_id(email=i)
-    else:
-      uid = get_user_id(facebook_id=i)
-    
-    if uid and uid not in contact_ids and uid != user_id:
-      user_ids.add(uid)
-  
-  users = []
-  for i in user_ids:
-    user = get_user_info(i)
-    if user.id not in contact_ids:
-      users.append(user)
-      if len(users) >= 5:
-        break
-      
-  cache.set(key, users)
-  
-  return users
-
-def get_user_id(session_id=None, facebook_id=None, email=None, db_name=None):
-  # print "DEBUG - in get_user_id - caller is " + str(inspect.stack()[1][3])
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-
-  if not session_id and not facebook_id and not email:
-    return None
-  
-  key = '%s:%s:uid' \
-      % (db_name, session_id if session_id \
-                             else facebook_id if facebook_id else email)
-  user_id = cache.get(key)
+  # Update utcoffset
+  user_id = api.get_user_id(session_id)
   if user_id:
-    return user_id
+    utcoffset = request.cookies.get('utcoffset')
+    if utcoffset:
+      api.update_utcoffset(user_id, utcoffset)
   
-  if email:
-    user = db.owner.find_one({"email": email.lower().strip(),
-                              "password": {"$ne": None}}, {'_id': True})
-  elif facebook_id:
-    user = db.owner.find_one({"facebook_id": facebook_id}, {'_id': True})
-  else:
-    user = db.owner.find_one({"session_id": session_id}, {'_id': True})
+  channel_id = request.cookies.get('channel_id')
+  resp = Response(event_stream(channel_id),
+                  mimetype="text/event-stream")
+  resp.headers['X-Accel-Buffering'] = 'no'
+#   resp.headers['Access-Control-Allow-Origin'] = '*'
+  return resp
+
+
+@csrf.exempt
+@app.route("/autocomplete")
+@line_profile
+def autocomplete():
+  session_id = session.get("session_id")
+  query = request.args.get('query')
+  type = request.args.get('type')
+    
+  if not query: # preload all groups & coworkers
+    owners = api.get_contacts(session_id)
+    user_ids = [i.id for i in owners]
+    for user in api.get_all_users():
+      if user.id not in user_ids:
+        user_ids.append(user.id)
+        owners.append(user)
+    
+    if type != 'user':
+      groups = api.get_groups(session_id)
+      group_ids = [i.id for i in groups]
+      owners.extend(groups)
   
-  if user:
-    user_id = user.get("_id")
-    cache.set(key, user_id)
-    return user_id
-    
-# to search session_id cross-network (same email, still)
-def get_session_id_by_email(email, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-
-
-  user = db.owner.find_one({"email": email}, {'session_id': True,
-                                                    'password': True})
-  if not user:
-    return False
-
-  if user.has_key('session_id'):
-    return user.get("session_id")
-
-  elif not user.has_key('password'): # user chưa tồn tại, tạo tạm 1 session_id
-    session_id = hashlib.md5('%s|%s' % (user_id, utctime())).hexdigest()
-    db.owner.update({'_id': user['_id']},
-                          {'$set': {'session_id': session_id}})
-    return session_id
-
-def get_session_id(user_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if str(user_id).isdigit():
-    user = db.owner.find_one({"_id": long(user_id)}, {'session_id': True,
-                                                      'password': True})
-    if not user:
-      return False
-    
-    if user.has_key('session_id'):
-      return user.get("session_id")
-    
-    elif not user.has_key('password'): # user chưa tồn tại, tạo tạm 1 session_id
-      session_id = hashlib.md5('%s|%s' % (user_id, utctime())).hexdigest()
-      db.owner.update({'_id': user['_id']}, 
-                            {'$set': {'session_id': session_id}})
-      return session_id
-
-def is_exists(email=None, db_name=None):
-  if db_name is not None:
-    if db_name in get_database_names():
-      # check further more, if there is no user yet, consider non-exist as well
-      db = DATABASE[db_name]
-      if db.owner.find_one():
-        return True
-      else:
-        return False
+      items = [{'id': 'public', 
+                'name': 'Public',
+                'avatar': '/public/images/public-group.png',
+                'type': 'group'}]
+      
+      for group in api.get_all_groups():
+        if group.id not in group_ids:
+          group_ids.append(group.id)
+          owners.append(group)
+      
     else:
-      return False
-  elif db_name == settings.PRIMARY_DOMAIN.split(':')[0].replace('.', '_'):
-    return True
+      items = []
+      
+    for i in owners:
+      if i.is_group():
+        info = {'name': i.name, 
+                'id': str(i.id), 
+                'avatar': '/public/images/group-icon2.png',
+                'type': 'group'}
+        items.append(info)
+      else:          
+        names = [i.name]  
+        for name in names:
+          info = {'name': name, 
+                  'id': str(i.id), 
+                  'avatar': i.avatar,
+                  'type': 'user'}
+          
+          items.append(info)  
+          
+      
   else:
-    db_name = get_database_name()
-    db = DATABASE[db_name]
+      
+    if type == 'user': # mentions
+      _items = api.autocomplete(session_id, query)
+      items = []
+      for item in _items:
+        if not api.is_group(item.get('id')):  # only show user, not group
+          info = api.get_user_info(item.get('id'))
+          avatar = info.avatar
+          type = 'user'
+        
+          items.append({'id': str(item.get('id')),
+                        'name': item.get('name', item.get('email')),
+                        'avatar': avatar,
+                        'type': type})
+    else:
+      _items = api.autocomplete(session_id, query)
+      items = []
+      for item in _items:
+        info = api.get_owner_info_from_uuid(item.get('id'))
+        avatar = '/public/images/group.png' if info.is_group() else info.avatar
+      
+        items.append({'id': str(item.get('id')),
+                      'name': item.get('name', item.get('email')),
+                      'avatar': avatar,
+                      'type': item.get('type')})
+      
+  return dumps(items)
+
+
+@app.route("/search", methods=['GET', 'OPTIONS', 'POST'])
+@login_required
+@line_profile
+def search():
+  t0 = api.utctime()
+
+  session_id = session.get("session_id")
+  query = request.form.get('query', request.args.get('query', '')).strip()
+  item_type = request.args.get('type')
+  page = int(request.args.get('page', 1))
+  ref_user_id = request.args.get('user')
+  
+  ref = request.args.get('ref')
+  if ref and 'group-' in ref:
+    group_id = ref.split('-')[1]
+    group = api.get_group_info(session_id, group_id)
+    if item_type == 'people':
+      title = 'Add people to group'
+    else:
+      title = 'Invite your friends'
+  elif ref == 'everyone':
+    title = 'Invite your friends'
+    group_id = group = None
+  else:
+    group_id = group = None
+    title = 'Add Contacts'
+  
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+  if ref_user_id:
+    user = api.get_user_info(ref_user_id)
+  else:
+    user = None
     
-    email = email.strip().lower()
-    user = db.owner.find_one({"email": email, 
-                              "password": {"$ne": None}}, 
-                             {'_id': True})
-    if user:
-      return True
-    return False
-
-def is_ascii(s):
-  return all(ord(c) < 128 for c in s)
-
-
-
-def s3write(filename, filedata, overwrite=True, content_type=None):
-  if not BUCKET:
-    return False
-  for __ in xrange(5):
-    try:
-      k = Key(BUCKET)
-      k.name = filename
+  if item_type in ['people', 'email']: 
       
-      # cache forever
-      headers = {'Expires': '31 December 2037 23:59:59 GMT',
-                 'Cache-Control': 'public, max-age=315360000'}
-      
-      # make avatar image (resized) public
-      if re.compile('.*_\d+.jpg$').match(filename):
-        headers['x-amz-acl'] = 'public-read'
-        headers['Content-Type'] = 'image/jpeg'
-      
-      k.set_contents_from_string(filedata, headers=headers)
-      return True
-    except Exception:
-      continue
-
-def update_imported_facebook_group_id_in_group_info(target_jupo_group_id, source_facebook_group_id, db_name):
-  db = DATABASE[db_name]
-
-  db.owner.update({'_id': long(target_jupo_group_id)},
-                    {'$addToSet': {'imported_facebook_group_ids': source_facebook_group_id}})
-
-def check_exist_imported_facebook_group_id_in_all_group_info(source_facebook_group_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-
-  db = DATABASE[db_name]
-
-  # find group (owner with email is None) that contains target_jupo_group_id
-  print "DEBUG - in check_exist_imported_facebook_group_id_in_all_group_info - db_name = " + str(db_name)
-  print "DEBUG - in check_exist_imported_facebook_group_id_in_all_group_info - source_facebook_group_id = " + str(source_facebook_group_id)
-  group = db.owner.find_one({'email': None, 'imported_facebook_group_ids': source_facebook_group_id})
-  print "DEBUG - in check_exist_imported_facebook_group_id_in_all_group_info - group = " + str(group)
-
-  return group
-
-def import_facebook(session_id, domain, network, facebook_token, source_facebook_group_id, target_jupo_group_id, import_comment_likes):
-  facebook_import = GraphAPI(facebook_token)
-
-  db_name = (network + '.' + domain).replace('.', '_')
-
-  # record this to avoid duplicate importing
-  update_imported_facebook_group_id_in_group_info(target_jupo_group_id, source_facebook_group_id, db_name)
-
-  groups = facebook_import.get('/me/groups')
-  # print "DEBUG - in import_facebook - groups = " + str(groups)
-
-  for group in groups['data']:
-    # 369148883154342 Joom group
-    # 153841081324271 Launch group
-    if group['id'] == source_facebook_group_id:
-      counter_group_paging = 0
-
-      next_feeds_page = ''
-      while counter_group_paging < 20 and next_feeds_page != 'finished' :
-
-        if counter_group_paging == 0:
-          # first time
-          current_group_feeds = facebook_import.get(group['id'] + '/feed')
+    if request.method == 'OPTIONS':
+      if query:
+        if item_type == 'people':
+          users = api.people_search(query, group_id)
+          if users:
+            users = [i for i in users \
+                     if i.id not in owner.contact_ids and i.id != owner.id]
+          else:
+            users = [i for i in api.get_coworkers(session_id) \
+                     if i.id not in group.member_ids and i.id != owner.id]
         else:
-          # subsequent times, use pagination retrieved from FB
-          # parsed_url = urlparse(next_feeds_page)
-          # end_point = parsed_url[2][1:]
-          # params = dict(ss.split('=') for ss in parsed_url[4].split('&'))
-          # params.pop('access_token', None)
-
-          resp = requests.get(next_feeds_page)
-
-          current_group_feeds = resp.json()
-
-        if 'paging' in current_group_feeds:
-          next_feeds_page = current_group_feeds['paging']['next']
+          users = [i for i in owner.google_contacts \
+                   if api.get_user_id_from_email_address(i.email) not in group.member_ids]
+          
+      elif group_id:
+        if item_type == 'email':
+          users = [i for i in owner.google_contacts \
+                   if api.get_user_id_from_email_address(i.email) not in group.member_ids]
         else:
-          next_feeds_page = 'finished'
-
-        # print "DEBUG - in api.import_facebook - next_feeds_page general = " + str(next_feeds_page)
-        counter = 0
-
-        for post in current_group_feeds['data']:
-          if counter < 5000:
-            # create dummy user if needed
-            # print str(post)
-
-            user_fb_id = post['from']['id']
-
-            poster_session_id = check_user_exist_by_fb_id(user_fb_id, db_name)
-
-            # only query user and add if they don't exists in our DB - save 1 query here
-            if not poster_session_id:
-              poster = facebook_import.get(user_fb_id)
-
-              if 'username' in poster:
-                poster_username = poster['username']
-              else:
-                poster_username = user_fb_id
-
-              poster_avatar_url = 'http://graph.facebook.com/' + poster_username + '/picture'
-
-              poster_session_id = add_dummy_user(name=poster['name'], fb_id=user_fb_id, avatar=poster_avatar_url, db_name=db_name)
-
-            join_group(poster_session_id, target_jupo_group_id, db_name=db_name, is_import=True)
-
-            new_feed_id = check_feed_exist_by_fb_id(fb_id=post["id"], group_id=target_jupo_group_id, db_name=db_name)
-            if not new_feed_id:
-              # print "DEBUG - in api.import_facebook - post = " + str(post)
-              attachment = []
-
-              if post['type'] == 'photo':
-                image_url = post['picture'].replace('_s', '_o')
-                image_name = (image_url.split('//')[1]).split('/')[-1]
-
-                # print "DEBUG - in import from FB - image_name = " + str(image_name)
-                attached_photo_id = new_attachment(poster_session_id, image_name, urllib.urlopen(image_url).read(), db_name)
-
-                attachment.append(str(attached_photo_id))
-
-              # import feed
-              new_feed_id = new_feed(poster_session_id,
-                             post['message'] if 'message' in post else None,
-                             #['public'],
-                             [target_jupo_group_id],
-                             attachment,
-                             None,
-                             float(dateparser.parse(post['updated_time']).strftime('%s.%f')),
-                             float(dateparser.parse(post['created_time']).strftime('%s.%f')),
-                             db_name,
-                             "True",
-                             post["id"])
-
-              # import like
-              if 'likes' in post:
-                for l in post['likes']['data']:
-                  like_user_fb_id = l['id']
-                  like_user_session_id = add_dummy_user(name=l['name'], fb_id=like_user_fb_id, db_name=db_name)
-
-                  like(like_user_session_id, new_feed_id, new_feed_id, db_name, "True")
-
-            # import comment (if any)
-            if 'comments' in post:
-              for comment in post['comments']['data']:
-                # print str(comment)
-                comment_user_fb_id = comment['from']['id']
-
-                comment_poster_session_id = check_user_exist_by_fb_id(comment_user_fb_id, db_name)
-
-                if not comment_poster_session_id:
-                  comment_poster = facebook_import.get(comment_user_fb_id)
-
-                  if 'username' in comment_poster:
-                    comment_poster_username = comment_poster['username']
-                  else:
-                    comment_poster_username = comment_user_fb_id
-
-                  comment_poster_avatar_url = 'http://graph.facebook.com/' + comment_poster_username + '/picture'
-
-                  comment_poster_session_id = add_dummy_user(name=comment['from']['name'], fb_id=comment_user_fb_id, avatar=comment_poster_avatar_url, db_name=db_name)
-
-                join_group(comment_poster_session_id, target_jupo_group_id, db_name=db_name, is_import=True)
-
-                new_comment_obj = check_comment_exist_by_fb_id(feed_id=new_feed_id, fb_id=comment['id'], db_name=db_name)
-
-                if not new_comment_obj:
-                  new_comment_obj = new_comment(session_id=comment_poster_session_id, message=comment['message'], ref_id=new_feed_id,
-                  attachments=None, reply_to=None, from_addr=None, db_name=db_name, updated_time=float(dateparser.parse(comment['created_time']).strftime('%s.%f')), created_time=float(dateparser.parse(comment['created_time']).strftime('%s.%f')), is_import="True", fb_id=comment["id"])
-
-                # import like comment
-                if import_comment_likes == 'on':
-                  current_comment = facebook_import.get(post['id'] + '_' + comment['id'], params={'fields':'likes'})
-                  print "DEBUG - in api.import_facebook - current_comment = " + str(current_comment)
-                  # print str(vars(current_comment))
-                  # print str(current_comment.data)
-                  if 'likes' in current_comment:
-                    for like_comment in current_comment['likes']['data']:
-                      like_comment_user_fb_id = like_comment['id']
-                      like_comment_user_session_id = add_dummy_user(name=like_comment['name'], fb_id=like_comment_user_fb_id, db_name=db_name)
-
-                      like(like_comment_user_session_id, new_comment_obj.id, new_feed_id, db_name, "True")
-
-
-
-            counter = counter + 1
-
-        counter_group_paging = counter_group_paging + 1
-
-  # notification
-  current_user_id = get_user_id(session_id=session_id, db_name=db_name)
-
-  print "DEBUG - in api.import_facebook - about to enqueue with network = " + str(network)
-  notification_queue.enqueue(new_notification,
-                               session_id, current_user_id,
-                               'import_completed',
-                               None, None, db_name=db_name, network=network, imported_jupo_group_id=target_jupo_group_id)
-
-  return "True"
-
-
-def find_target_facebook_contacts_to_invite(group_id=None, user_id=None, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-
-  current_user_info = get_user_info(user_id=user_id, db_name=db_name).info
-  if 'facebook_friend_ids' in current_user_info:
-    current_user_facebook_friends = current_user_info["facebook_friend_ids"]
-  else:
-    current_user_facebook_friends = []
-
-  # group_id = "517636257270988801" # for testing only
-  group_member_ids = get_group_member_ids(group_id=group_id, db_name=db_name)
-
-  target_facebook_contacts = []
-
-  for member_id in group_member_ids:
-    member = get_user_info(user_id=member_id, db_name=db_name).info
-    # print "DEBUG - in find_target_facebook_contacts_to_invite - member = " + str(member)
-    # first check, is this an imported user or not
-    # second check, is this in current_user contacts
-    if ('fb_id' in member) and member['fb_id'] in current_user_facebook_friends:
-      target_facebook_contacts.append(member)
-
-  # imported_facebook_contacts = db.owner.find({'fb_id': {'$ne': None}})
-
-  return target_facebook_contacts
-
-def move_to_s3(fid, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  datastore = GridFS(db)
-  t0 = utctime()
-  if (isinstance(fid, str) or isinstance(fid, unicode)) and '|' in fid:
-    filename, content_type, filedata = fid.split('|', 2)
-    is_ok = s3write(filename, filedata, True, content_type)
-  else:
-    if not isinstance(fid, ObjectId):
-      fid = ObjectId(fid)
-    f = datastore.get(fid)
-    filename = f.filename
-    is_ok = s3write(filename, f.read(), overwrite=True, content_type=f.content_type)
-    if is_ok:
-      datastore.delete(fid)
-      
-  if is_ok:
-    db['s3'].update({'name': filename}, {'$set': {'exists': True}})
-  return True
-
-
-def s3_url(filename, expires=5400, 
-           content_type='application/octet-stream', disposition_filename=None):
-  if not BUCKET:
-    return False
-  key = '%s:%s:%s:s3_url' % (filename, content_type, disposition_filename)
-  url = cache.get(key)
-  if not url:
-    k = Key(BUCKET)
-    k.name = filename
-    headers = dict()
-    headers['response-content-type'] = content_type \
-                                if content_type else 'application/octet-stream'
-    if disposition_filename:
-      if is_ascii(disposition_filename):
-        headers['response-content-disposition'] = 'attachment;filename="%s"' \
-                                                % disposition_filename
+          users = owner.contacts
+          user_ids = [i.id for i in users]
+          for user in api.get_coworkers(session_id):
+            if user.id not in user_ids:
+              user_ids.append(user.id)
+              users.append(user)
+              
+          users = [i for i in users \
+                   if i.id not in group.member_ids and i.id != owner.id]
       else:
-        headers['response-content-disposition'] = 'attachment;filename="%s"' \
-                                                % unidecode(unicode(disposition_filename))
-#         msg = EmailMsg()
-#         msg.add_header('Content-Disposition', 'attachment', 
-#                        filename=('utf-8', '', disposition_filename))
-#         headers['response-content-disposition'] = msg.values()[0].replace('"', '')
+        if item_type == 'email':
+          users = [i for i in owner.google_contacts]
+        else:
+          users = owner.contacts
+          user_ids = [i.id for i in users]
+          for user in api.get_coworkers(session_id):
+            if user.id not in user_ids:
+              user_ids.append(user.id)
+              users.append(user)
+          users = [i for i in users \
+                   if i.id not in owner.contact_ids and i.id != owner.id]
+          
+      return dumps({'title': title,
+                    'body': render_template('people_search.html',
+                                            title=title, 
+                                            mode='search',
+                                            type=item_type,
+                                            group_id=group_id,
+                                            group=group,
+                                            users=users,
+                                            query=query, 
+                                            owner=owner)})
+    else:
+      if item_type == 'people':
+        users = api.people_search(query)
+      else:
+        q = query.lower()
+        users = [i for i in owner.google_contacts \
+                 if i.email and i.email.lower().startswith(q)]
+        
+          
+      if group_id:
+        out = [i for i in users if i.email and i.id not in group.member_ids and i.id != owner.id]
+        out.extend([i for i in users if i.email and i.id != owner.id and i.id in group.member_ids])
+        users = out
+      else:
+        users = [i for i in users if i.email]
+      
+        
+      if users:
+        return ''.join(render_template('user.html', 
+                                       mode='search', 
+                                       user=user, 
+                                       group_id=group_id,
+                                       group=group,
+                                       type=item_type,
+                                       query=query,
+                                       owner=owner,
+                                       title=title) \
+                       for user in users if user.email)
+      else:
+        return "<li>Type your friend's email address</li>"
+#         if item_type == 'email':
+#           return "<li>Type your friend's email address</li>"
+#         else:
+#           return "<li>0 results found</li>"
+        
+  # search posts
+  results = api.search(session_id, query, item_type, 
+                       ref_user_id=ref_user_id, page=page)
+  if results and results.has_key('counters'):
+    hits = results.get('hits', 0)
+    total = sum([i['count'] for i in results.get('counters')])
+    counters = results['counters']
+  else:
+    hits = 0
+    total = 0
+    counters = {}
+    
+  due = api.utctime() - t0
+#   owner = api.get_owner_info(session_id)
+#   coworkers = api.get_coworkers(session_id)
+  coworkers = results['suggest']
+  
+  
+  if request.method == 'GET':
+    return render_homepage(session_id, 'Results for "%s"' % query,
+                           query=query, 
+                           type=item_type,
+                           due='%.3f' % due,
+                           total=total,
+                           hits=hits,
+                           coworkers=coworkers,
+                           user=user,
+                           view='results',
+                           page=page,
+                           counters=counters)
+
+    
+  if page == 1:
+    body = render_template('results.html', owner=owner,
+                                           query=query, 
+                                           type=item_type,
+                                           due='%.3f' % due,
+                                           total=total,
+                                           hits=hits,
+                                           coworkers=coworkers,
+                                           user=user,
+                                           view='results',
+                                           page=page,
+                                           counters=counters)
+  else:
+    posts = [render(hits, "feed", owner, 'results')]
+      
+    if len(hits) == 0:
+      posts.append(render_template('more.html', more_url=None))
+    else:
+      more_url = '/search?query=%s&page=%s' % (query, page+1)
+      if item_type:
+        more_url += '&type=%s' % item_type
+      if user:
+        more_url += '&user=%s' % user
        
-    url = k.generate_url(expires_in=expires, 
-                         method='GET', response_headers=headers)
+      posts.append(render_template('more.html', more_url=more_url))
+    return ''.join(posts)
+  
+  # TODO: render 1 lần thôi :(
+  if body.split('<ul id="stream">')[-1].split('<script>')[0].split('right-sidebar')[0].count(query) < 2:
+    spelling_suggestion = api.get_spelling_suggestion(query)
+    app.logger.debug('spelling suggestion: %s' % spelling_suggestion)
+    body = render_template('results.html', owner=owner,
+                                           spelling_suggestion=spelling_suggestion,
+                                           query=query, 
+                                           type=item_type,
+                                           due='%.3f' % due,
+                                           total=total,
+                                           hits=hits,
+                                           coworkers=coworkers,
+                                           user=user,
+                                           view='results',
+                                           counters=counters)
     
-    # expire trước 30 phút để tránh trường hợp lấy phải url cache đã expires trên S3
-    cache.set(key, url, expires - 1800)
-  return url
+  json = dumps({'title': '%s - Jupo Search' % query,
+                'body': body})
+  return Response(json, content_type='application/json')
 
-def is_s3_file(filename, db_name=None):
-  if not BUCKET:
-    return False
-  
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  key = 'is_s3_file:%s' % filename
-  status = cache.get(key)
-  
-  if status is not None:
-    return status
-  
-  # check in db
-  info = db.s3.find_one({'name': filename})
-  if info:
-    return info.get('exists')
 
-  # check via boto
-  k = Key(BUCKET)
-  k.name = filename
-  if k.exists():
-    cache.set(key, 1)
-  
-    # persitant cache
-    db.s3.insert({'name': filename, 'exists': True})
+#@app.route("/", methods=["GET", "OPTIONS"])
+@app.route('/<any(discover, starred, hot, incoming, shared_by_me):name>', methods=['GET', 'OPTIONS'])
+@app.route('/<any(discover, starred, hot, incoming, shared_by_me):name>/page<int:page>', methods=['OPTIONS'])
+def discover(name='discover', page=1):
+  code = request.args.get('code')
+  user_id = api.get_user_id(code)
+  if user_id:
+    session['session_id'] = code
+    return render_homepage(code, 'Complete Profile',
+                           code=code, user_id=user_id)
     
-    return True
+  session_id = session.get("session_id")
+  
+  
+  app.logger.debug('session_id: %s' % session_id)
+  
+  user_id = api.get_user_id(session_id)
+  
+  if user_id:
+    owner = api.get_user_info(user_id)
+    if name == 'starred':
+      category = name
+      feeds = api.get_starred_posts(session_id, page=page)
+    elif name == 'hot':
+      category = name
+      feeds = api.get_hot_posts(page=page)
+    elif name == 'shared_by_me':
+      category = name
+      feeds = api.get_shared_by_me_posts(session_id, page=page)
+    elif request.path in ['/', '/incoming', '/discover']:
+#      feeds = api.get_incoming_posts(session_id, page=page)
+      feeds = api.get_discover_posts(session_id, page=page)
+#      feeds = api.get_public_posts(session_id=session_id, page=page)
+      category = None     
+    else:
+      feeds = api.get_public_posts(session_id=session_id, page=page)
+      category = None     
   else:
-    cache.set(key, 0)
-    
-    # persitant cache
-    db.s3.insert({'name': filename, 'exists': False})
+    feeds = api.get_public_posts(session_id=session_id, page=page)
+    owner = category = None     
+    if session.has_key('session_id'):
+      session.pop('session_id')
   
-    return False
-
-def get_username(user_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  key = '%s:name' % user_id
-  name = cache.get(key)
-  if name:
-    return name
-  
-  user = db.owner.find_one({"_id": long(user_id)}, {'name': True})
-  if user:
-    cache.set(key, user.get('name'))
-    return user.get("name")
-  return None
-
-def get_user_id_from_username(username):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user = db.owner.find_one({"name": username}, {'_id': True})
-  if user:
-    user_id = user.get("_id")
-    return user_id
-  return None
-  
-
-def notify_me(email):
-  email = email.strip().lower()
-  db.waiting_list.update({"email": email}, 
-                               {"$set": {'timestamp': utctime()}},
-                               upsert=True)
-  send_mail_queue.enqueue(send_mail, email, mail_type='thanks', db_name=db_name)
-  return True
-  
+  public_groups = api.get_open_groups(limit=10) 
 
 
-
-
-def update_session_id(email, session_id, db_name):
-  email = email.strip().lower()
-  DATABASE[db_name].owner.update({'email': email},
-                        {'$set': {'session_id': session_id}})
-  return True
-  
-def sign_in(email, password, user_agent=None, remote_addr=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not email:
-    return False
-  if not password:
-    return False
-  email = email.strip().lower()
-  user = db.owner.find_one({"email": email}, {'password': True,
-                                              'salt': True,
-                                              'link': True,
-                                              'session_id': True})
-  if not user or not user.get('password'):
-    return None
-  else:
-    session_id = None
-    if user.get('password') is True:
-      # user logged in via oauth, return specific provider (based on user link)
-      oauth_provider = ""
-
-      if "facebook" in user.get("link"):
-        oauth_provider = 'Facebook'
-        return -1
-      elif "google" in user.get("link"):
-        oauth_provider = 'Google'
-        return -2
-      else:
-        return False
-    elif '$' in user.get('password'): # PBKDF2 hashing
-      ok = check_hash(password, user['password'])
-    else:  # old password hashing (sha512 + salt)
-      salt = user["salt"]
-      password = hashlib.sha512(password + salt).hexdigest()
-      ok = True if password == user["password"] else False
+  if request.method == 'OPTIONS':  
+    if page == 1:
+      menu = render_template('menu.html', 
+                             owner=owner,
+                             category=category,
+                             view='discover')
+        
+      body = render_template('discover.html', 
+                             view='discover', 
+                             category=category,
+                             public_groups=public_groups,
+                             owner=owner,
+                             title='Discover', 
+                             feeds=feeds)
       
-    if ok:
-      query = {"$push": {'history': {"user_agent": user_agent,
-                                     "remote_addr": remote_addr,
-                                     "timestamp": utctime(),
-                                     "status": "success"}}}
-      if user.has_key('session_id'):
-        session_id = user['session_id']
-      else:
-        session_id = hashlib.md5(email + str(utctime())).hexdigest()
-        query['$set'] = {'session_id': session_id}
       
-      db.owner.update({"email": email}, query)
+      json = dumps({"body": body, 
+                    "menu": menu, 
+                    "title": 'Discover'})
+    
+      resp = Response(json, mimetype='application/json')
+      return resp
     else:
-      if user_agent:
-        db.owner.update({"email": email},
-                        {"$push": 
-                         {"history": 
-                          {"user_agent": user_agent,
-                           "remote_addr": remote_addr,
-                           "timestamp": utctime(),
-                           "status": "fail"}}})
-      return False 
-
-  return session_id
-
-
-def invite(session_id, email, group_id=None, msg=None, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  user = get_user_info(user_id)
-  email = email.strip().lower()
-  code = hashlib.md5(email + settings.SECRET_KEY).hexdigest()
-  info = db.owner.find_one({'email': email}, {'password': True, 'ref': True})
-  is_new_user = True
-  list_ref = None
-  if info:
-    _id = info['_id']
-
-    # append user_id to the existing list of ObjectID in info['ref']
-    if not info.get('ref'):
-      list_ref = []
-    else:
-      if isinstance(info['ref'], list):
-        if not user_id in info['ref']:
-          info['ref'].append(user_id)
-        list_ref = info['ref']
+      posts = []
+      for feed in feeds:
+        posts.append(render(feed, "feed", owner, 'discover')) 
+      if len(feeds) == 0:
+        posts.append(render_template('more.html', more_url=None))
       else:
-        list_ref = [info['ref']]
-    
-    list_ref.append(user_id)
-    list_ref = list(set(list_ref))
-    
-    if info.get('password'):
-      actions = {'$set': {'ref': list_ref}}
-      is_new_user = False
+        posts.append(render_template('more.html', 
+                                     more_url='/%s/page%d' \
+                                     % (request.path.split('/')[1], page+1)))
+      
+      return ''.join(posts)
+  else:
+    if not user_id:
+  #    return render_homepage(session_id, 'Get work done. Faster. | Jupo', 
+  #                           view='intro')
+      return render_template('landing_page.html', 
+                             settings=settings,
+                             domain=settings.PRIMARY_DOMAIN)
     else:
-      actions = {'$set': {'ref': list_ref, 
-                          'session_id': code}}
+      return render_homepage(session_id, 'Discover', 
+                             view='discover',
+                             feeds=feeds)
+
+
+@app.route('/invite', methods=['OPTIONS', 'POST'])
+def invite():
+  session_id = session.get("session_id")
+  group_id = request.form.get('group_id', request.args.get('group_id'))
   
-    db.owner.update({'_id': _id}, actions)
-  else:
-    _id = new_id()
-    db.owner.insert({'_id': _id,
-                     'email': email,
-                     'ref': [user_id],
-                     'timestamp': utctime(),
-                     'session_id': code})
+  if request.method == 'OPTIONS':
+    user_id = api.get_user_id(session_id)
+    owner = api.get_user_info(user_id)
     
-  if str(group_id).isdigit():
-    db.owner.update({'_id': long(group_id), 'members': user_id}, 
-                    {'$addToSet': {'members': _id}})
-    group = get_group_info(session_id, group_id)
-  else:
-    group = Group({})
-  
-  if group_id:
-    status_invitation = db.activity.find_one({'sender': user_id, 
-                                              'receiver': _id, 
-                                              'group': long(group_id)}, {'timestamp': True})
+    # filter contact that *NOT* registered yet and also *NOT* received invitation
     
-  else:
-    status_invitation = db.activity.find_one({'sender': user_id, 
-                                              'receiver': _id, 
-                                              'group': {'$exists': False}}, {'timestamp': True})
-  accept_invitation = False
-  
-  if status_invitation and status_invitation.has_key('timestamp'):
-    if utctime() - status_invitation['timestamp'] >= 6*3600:
-      accept_invitation = True
-  else:
-    accept_invitation = True
+    # registered users
+    member_addrs = api.get_member_email_addresses()
+
+    # not registered but got invitation
+    invited_addrs = api.get_invited_addresses(user_id=user_id)
     
-  if accept_invitation:
-    send_mail_queue.enqueue(send_mail, email, 
-                            mail_type='invite', 
-                            code=code, 
-                            is_new_user=is_new_user,
-                            user_id=user.id,
-                            username=user.name,
-                            avatar=user.avatar,
-                            msg=msg,
-                            group_id=group.id, 
-                            group_name=group.name,
-                            db_name=db_name)
+    google_contacts = owner.google_contacts
+
+    email_addrs = []
+    if owner.google_contacts is not None:
+      email_addrs = [i for i in owner.google_contacts if (i not in member_addrs) and (i not in invited_addrs)] 
+    
     
     if group_id:
-      db.activity.update({'sender': user_id, 
-                          'receiver': _id, 
-                          'group': long(group_id)},
-                         {'$set': {'timestamp': utctime()}}, upsert=True)
+      group = api.get_group_info(session_id, group_id)
+      title = 'Invite Friends to %s group' % group.name
     else:
-      db.activity.update({'sender': user_id, 
-                          'receiver': _id, 
-                          'group': {'$exists': False}},
-                         {'$set': {'timestamp': utctime()}}, upsert=True)
-    
-  db.owner.update({'_id': user_id}, {'$addToSet': {'google_contacts': email}})
-    
-  return True
-  
-def complete_profile(code, name, password, gender, avatar):  
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  info = {}
-  info["name"] = name
-  info["password"] = make_hash(password)
-  info["verified"] = 1
-  info["gender"] = gender
-  info['avatar'] = avatar
-  info['session_id'] = hashlib.md5(code + str(utctime())).hexdigest()
-  db.owner.update({'session_id': code}, {'$set': info})
-  user_id = get_user_id(code)
-  
-  # clear old session
-  cache.delete(code)
-  cache.delete('%s:info' % user_id)
-
-  # clear memcache - otherwise get_all_members won't see this new user
-  cache.delete('%s:all_users' % db_name)
-  
-  # Send notification to friends
-  user = get_user_info(user_id)
-  
-  session_id = info['session_id']
-
-  # add this user to list of contact of referal
-  referer_id_array = user.ref
-  if referer_id_array:
-    for referer_id in referer_id_array:
-      add_to_contacts(get_session_id(referer_id), user_id)
-      add_to_contacts(session_id, referer_id)
-  
-  friends = db.owner.find({'google_contacts': user.email})
-  for user in friends:
-    notification_queue.enqueue(new_notification, 
-                               session_id, user['_id'], 
-                               'friend_just_joined', 
-                               None, None, db_name=db_name)
-  
-  return session_id
-
-def sign_in_with_google(email, name, gender, avatar, 
-                        link, locale, verified=True, 
-                        google_contacts=None, db_name=None,
-                        device_id=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  
-  if not email:
-    return False
-  
-  email = email.lower().strip()
-  
-  if not google_contacts:
-    google_contacts = []
-  
-  notify_list = []
-  user = db.owner.find_one({'email': email})
-  if user:
-    if user.get('google_contacts'):
-      notify_list = [i for i in google_contacts \
-                     if i not in user.get('google_contacts') and i != email]
-    else:
-      notify_list = [i for i in google_contacts if i != email]
-    
-    
-    session_id = user.get('session_id')
-    if not session_id:
-      session_id = hashlib.md5(email + str(utctime())).hexdigest()
-      # update avatar here as well, any other stuffs to update ?
-      if user.get('avatar'):  
-        # do not update avatar if user already had it
-        info = {'session_id': session_id}
-      else:  
-        info = {'session_id': session_id, 'avatar': avatar}
-      if not user.get('password'):
-        info['password'] = True
-      if notify_list:
-        info['google_contacts'] = google_contacts
-      if device_id:
-        db.owner.update({'_id': user.get('_id')}, 
-                        {'$set': info,
-                         '$addToSet': {'devices': device_id}})
-      else:
-        db.owner.update({'_id': user.get('_id')}, {'$set': info})
-      cache.delete('%s:info' % user.get('_id'))
-    else:
-      if notify_list:
-        db.owner.update({'_id': user.get('_id')}, 
-                        {'$set': {'google_contacts': google_contacts},
-                         '$addToSet': {'devices': device_id}})
-        cache.delete('%s:info' % user.get('_id'))
-      else:
-        if device_id:
-          db.owner.update({'_id': user.get('_id')}, 
-                          {'$addToSet': {'devices': device_id}})
-          cache.delete('%s:info' % user.get('_id'))
-  else:
-    session_id = hashlib.md5(email + str(utctime())).hexdigest()
-    info = {}
-    info["_id"] = new_id()
-    info["email"] = email
-    info["name"] = name
-    info["avatar"] = avatar
-    info["password"] = True
-    info['session_id'] = session_id
-    info["verified"] = verified
-    info["timestamp"] = utctime()
-    info['gender'] = gender
-    info['link'] = link
-    info['locale'] = locale
-    if device_id:
-      info['devices'] = [device_id]
-    if google_contacts:
-      info['google_contacts'] = google_contacts
-      notify_list = [i for i in google_contacts if i != email]
-    
-    db.owner.insert(info)
-    
-    cache.delete('%s:all_users' % db_name)
-    
-    for user_id in get_network_admin_ids(db_name):
-      notification_queue.enqueue(new_notification, 
-                                 session_id, user_id, 
-                                 'new_user', 
-                                 None, None, db_name=db_name)
-    
-
-  if notify_list:
-    for email in notify_list:
-      user = db.owner.find_one({'email': email.lower(), 
-                                'password': {'$ne': None}}, {'_id': True})
-      if user:
-        user_id = user['_id']
-        notification_queue.enqueue(new_notification, 
-                                   session_id, 
-                                   user_id, 
-                                   'google_friend_just_joined', 
-                                   None, None, 
-                                   db_name=db_name)
-  
-
-  return session_id
-
-def sign_in_with_facebook(email, name=None, gender=None, avatar=None, 
-                          link=None, locale=None, timezone=None, 
-                          verified=None, facebook_id=None, 
-                          facebook_friend_ids=None, db_name=None, fb_id=None):
-  if not email:
-    return False
-
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  email = email.lower().strip()
-  
-  facebook_friend_ids = list(set(facebook_friend_ids))
-  
-  merge_with_imported_fb_account = False
-  notify_list = []
-  user = db.owner.find_one({'email': email})
-  if not user:
-    user = db.owner.find_one({'fb_id': facebook_id})
-
-    # if we can find existing user using fb_id, flag it
-    if user:
-      merge_with_imported_fb_account = True
-
-  if user:
-    if user.get('facebook_friend_ids'):
-      notify_list = [i for i in facebook_friend_ids \
-                     if i not in user.get('facebook_friend_ids')]
-    else:
-      notify_list = facebook_friend_ids
-    
-    session_id = user.get('session_id')
-    if not session_id:
-      session_id = hashlib.md5(email + str(utctime())).hexdigest()
-      info = {'session_id': session_id}
-      if not user.get('password'):
-        info['password'] = True
-      if not user.get('facebook_id'):
-        info['facebook_id'] = facebook_id
-      if notify_list:
-        info['facebook_friend_ids'] = facebook_friend_ids
+      group = {}
+      title = None
       
-      db.owner.update({'_id': user.get('_id')}, {'$set': info})      
+    return dumps({'title': title,
+                  'body': render_template('invite.html', 
+                                          title=title,
+                                          email_addrs=email_addrs,
+                                          member_addrs=member_addrs,
+                                          invited_addrs=invited_addrs,
+                                          google_contacts=google_contacts,
+                                          group=group)})
+  else:
+    email = request.form.get('email', request.args.get('email'))
+    if email:
+      api.invite(session_id, email, group_id)
+      return ' ✔ Done '
     else:
-      if notify_list:
-        db.owner.update({'_id': user.get('_id')}, 
-                        {'$set': {'facebook_friend_ids': facebook_friend_ids}})    
+      addrs = set()
+      for k in request.form.keys():
+        if k.startswith('item-'):
+          addrs.add(request.form.get(k))
+           
+      for i in request.form.get('to', '').split(','):
+        if i:
+          addrs.add(i)
       
-    info = user
-      
-  else:
-    session_id = hashlib.md5(email + str(utctime())).hexdigest()
-    info = {}
-    info["_id"] = new_id()
-    info["email"] = email
-    info["name"] = name
-    info["avatar"] = avatar
-    info["password"] = True
-    info['session_id'] = session_id
-    info["verified"] = verified
-    info["timestamp"] = utctime()
-    info['gender'] = gender
-    info['link'] = link
-    info['locale'] = locale
-    info['timezone'] = timezone
-    info['facebook_id'] = facebook_id
-    if facebook_friend_ids:
-      info['facebook_friend_ids'] = facebook_friend_ids
-      notify_list = facebook_friend_ids
-      
-    db.owner.insert(info)
-    
-    cache.delete('%s:all_users' % db_name)
-  
-    for user_id in get_network_admin_ids(db_name):
-      notification_queue.enqueue(new_notification, 
-                                 session_id, user_id, 
-                                 'new_user', 
-                                 None, None, db_name=db_name)
-
-  if merge_with_imported_fb_account == True:
-    notification_queue.enqueue(new_notification,
-                                 session_id, user['_id'],
-                                 'merged_facebook_account',
-                                 None, None, db_name=db_name)
-      
-  if notify_list:
-    for i in notify_list:
-      user_id = get_user_id(facebook_id=i)
-      if user_id and user_id != info['_id']:
-        notification_queue.enqueue(new_notification, 
-                                   session_id, user_id, 
-                                   'facebook_friend_just_joined', 
-                                   None, None, db_name=db_name)
-
-
-  
-  return session_id
-  
-def sign_in_with_twitter():
-  pass
-  
-
-def sign_up(email, password, name, user_agent=None, remote_addr=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  email = email.strip().lower()
-  if name:
-    name = name.strip()
-  raw_password = password
-  
-  # Validation
-  if validate_email(email) is False:
-    return False
-  if len(password) < 6:
-    return False
-  
-  user = db.owner.find_one({'email': email})
-  if user and user.get('password'):
-    return False
-  
-  info = {}
-  password = make_hash(raw_password)
-  token = hashlib.md5(email + str(utctime())).hexdigest()
-  if not user:
-    info["email"] = email
-    info["name"] = name
-    info["password"] = password
-    info["verified"] = 0
-    info["token"] = token
-    info["timestamp"] = utctime()
-    info["_id"] = new_id()
-  
-    db.owner.insert(info)
-  else:
-    info['name'] = name
-    info["password"] = password
-    info["verified"] = 0
-    info["token"] = token
-    info["timestamp"] = utctime()
-    
-    db.owner.update({'email': email}, {'$set': info})
-    
-    info['_id'] = user['_id']
-    
-  cache.delete('%s:all_users' % db_name)
-  
-  session_id = sign_in(email, raw_password, user_agent, remote_addr)
-  
-  for user_id in get_network_admin_ids(db_name):
-    notification_queue.enqueue(new_notification, 
-                               session_id, user_id, 
-                               'new_user', 
-                               None, None, db_name=db_name)
-    
-    
-  # notify friends
-  friends = db.owner.find({'google_contacts': email})
-  for user in friends:
-    user_id = user['_id']
-    notification_queue.enqueue(new_notification, 
-                               session_id, 
-                               user_id, 
-                               'google_friend_just_joined', 
-                               None, None, 
-                               db_name=db_name)
-    
-  
-  
-#  subject = 'E-mail verification for the 5works Public Beta'
-#  body = render_template('email/verification.html', 
-#                         name=name, domain='jupo.comm', token=token)
-#  send_mail(email, subject, body)
-  
-  # init some data
-#   new_reminder(session_id, 'Find some contacts')
-#   new_reminder(session_id, 'Upload a profile picture (hover your name at the top right corner, click "Change Profile Picture" in drop down menu)')
-#   new_reminder(session_id, 'Hover over me and click anywhere on this line to check me off as done')
-
-  # add user to "Welcome to 5works" group
-#  db.owner.update({'_id': 340916998231818241}, 
-#                        {'$addToSet':{'members': info['_id']}})
-
-  return session_id
-
-def sign_out(session_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  cache.delete(session_id)
-  # remove last session_id
-  
-  cache.delete('%s:uid' % session_id)
-  
-  db.owner.update({"session_id": session_id}, 
-                  {"$unset": {"session_id": 1}})
-  return True
-
-def change_password(session_id, old_password, new_password):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  user = db.owner.find_one({'_id': long(user_id)}, {'password': True,
-                                                          'salt': True})
-  if user and user.get('password'):
-    if '$' in user['password']: # PBKDF2 hashing
-      ok = check_hash(old_password, user['password'])
-    else:  # old password hashing (sha512 + salt)
-      salt = user["salt"]
-      password = hashlib.sha512(old_password + salt).hexdigest()
-      ok = True if password == user["password"] else False
-    
-    if ok:
-      db.owner.update({'_id': user_id}, 
-                      {'$set': {'password': make_hash(new_password)}}, 
-                      safe=True)
-      cache.delete('%s:info' % user_id)
-      return True
-    
-def reset_password(user_id, new_password):
-  """ Be careful """
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  db.owner.update({'_id': long(user_id)}, 
-                  {'$set': {'password': make_hash(new_password)},
-                   '$unset': {'session_id': 1}}, 
-                  safe=True)
-  
-  cache.delete('%s:info' % user_id)
-  return True
-    
-
-def verify(token):
-  pass
-
-def new_verify_token(email):
-  pass
-
-def forgot_password(email):
-  db_name = get_database_name()
-  
-  user = DATABASE[db_name].owner.find_one({'email': email.strip().lower()})
-  if user:
-    temp_password = uuid4().hex
-    FORGOT_PASSWORD.set(temp_password, email)
-    FORGOT_PASSWORD.expire(temp_password, 3600)
-    send_mail_queue.enqueue(send_mail, email, mail_type='forgot_password', 
-                            temp_password=temp_password, db_name=db_name)
-    return True
-  else:
-    return False
-  
-    
-    
-def update_pingpong_timestamp(session_id):
-  user_id = get_user_id(session_id)
-  PINGPONG.set(user_id, utctime())
-  return True
-
-def get_pingpong_timestamp(user_id):
-  ts = PINGPONG.get(user_id)
-  if ts:
-    return float(ts)
-
-def set_status(session_id, status):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id, db_name=db_name)
-  if not user_id:
-    return False
-  
-  if '|' in status:
-    chat_id, _status = status.split('|')
-    user = get_user_info(user_id, db_name=db_name)
-    if _status:
-      text = user.name + ' ' + _status
-    else:
-      text = ''
-    
-    if chat_id.startswith('user-'):
-      uid = int(chat_id.split('-')[1])
-      push_queue.enqueue(publish, int(uid), 'typing-status', 
-                         {'chat_id': 'user-%s' % user_id, 'text': text}, db_name=db_name)
-    else:
-      topic_id = int(chat_id.split('-')[1])
-      topic = get_topic_info(topic_id, db_name=db_name)
-      user_ids = topic.member_ids
-    
-      for uid in user_ids:
-        if uid != user_id:
-          push_queue.enqueue(publish, int(uid), 'typing-status', 
-                             {'chat_id': chat_id, 'text': text}, db_name=db_name)
-    status = 'online'
-  else:
-    key = 'status:%s' % user_id
-    cache.set(key, status)
-    db.status.update({'user_id': user_id},
-                     {'$set': {'status': status,
-                               'timestamp': utctime()}}, upsert=True)
-    push_queue.enqueue(publish, user_id, 
-                       'friends-online', status, 
-                       db_name=db_name)
-  
-  key = '%s:status' % user_id
-  cache.set(key, status, 86400)
-  
-  key = '%s:last_online' % user_id
-  cache.delete(key)
-  return True
-
-def check_status(user_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if user_id is None:
-    return 'offline'
-  
-  user_id = long(user_id)
-  key = '%s:status' % user_id
-  status = cache.get(key)
-  if not status:
-    user = db.status.find_one({'user_id': user_id}, 
-                              {'status': True})
-    if not user:
-      status = 'offline'
-    else:
-      status = user.get('status', 'offline')
-      if status != 'offline':
-        pingpong_ts = get_pingpong_timestamp(user_id)
-        if pingpong_ts and utctime() - pingpong_ts > 150:  # lost ping pong signal > 150 secs -> offline
-          status = 'offline'
-    cache.set(key, status, 86400)
-
-  if status == 'online' and (utctime() - last_online(user_id) > 5 * 60):  # quá 5 phút mà vẫn thấy online thì chắc là lỗi rồi 
-    status = 'offline'
-  return status
-
-def is_online(user_id):
-  if check_status(user_id) == 'online':
-    return True
-  
-def last_online(user_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not is_snowflake_id(user_id):
-    return 0
-  
-  key = '%s:last_online' % user_id
-  ts = cache.get(key)
-  if not ts:
-    user = db.status.find_one({'user_id': long(user_id)}, 
-                              {'timestamp': True})
-    if user:
-      ts = user.get('timestamp')
-      cache.set(key, ts, 86400)
-    else:
-      ts = 0
-  return ts
-  
-
-def get_online_coworkers(session_id):
-  groups = get_groups(session_id)
-  if not groups:
-    return []
-  coworkers = []
-  for group in groups:
-    for member in group.members:
-      coworkers.append(member)
-  online = []
-  _ids = []
-  owner_id = get_user_id(session_id)
-  for user in set(coworkers):
-    if not user.id:
-      continue
-    if str(user.id) == str(owner_id):
-      continue
-    status = check_status(user.id)
-    if status in ['online', 'away']:
-      if user.id not in _ids:
-        user.status = status
-        online.append(user)
-        _ids.append(user.id)
-  online = sorted(online, key=lambda k: k.name)
-  return online
-
-def get_all_users(limit=1000, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  key = '%s:all_users' % db_name
-
-  users = cache.get(key)
-  if users is None:  
-    # registered user is owner that got email IS NOT NONE (exclude group) and name IS NOT NONE (exclude unregistered users)
-    users = db.owner.find({'email': {'$ne': None}, 'name' : {'$ne': None} })\
-                    .sort('timestamp', -1)\
-                    .limit(limit)
-    users = list(users)
-    for user in users:
-      if user.has_key('history'):
-        user.pop('history')
-      if user.has_key('facebook_friend_ids'):
-        user.pop('facebook_friend_ids')
-      if user.has_key('google_contacts'):
-        user.pop('google_contacts')
-      user['password'] = True
-    cache.set(key, users)
-  return [User(i, db_name=db_name) for i in users]
-
-def get_all_groups(limit=300):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  groups = db.owner.find({'members': {'$ne': None}}).limit(limit)
-  return [Group(i, db_name=db_name) for i in groups]
-  
-@line_profile
-def get_coworkers(session_id, limit=100):
-  if str(session_id).isdigit():
-    user_id = long(session_id)
-  else:
-    user_id = get_user_id(session_id)
-
-  key = '%s:coworkers' % user_id
-  coworkers = cache.get(key)
-  if coworkers:
-    return coworkers[:limit]
-  
-  groups = get_groups(session_id)
-  if not groups:
-    return []
-  coworkers = []
-  _ids = set()
-  for group in groups:
-    for member in group.members:
-      if member.id not in _ids:
-        coworkers.append(member)
-        _ids.add(member.id)
+      msg = request.form.get('msg')
+      if addrs:
+        for addr in addrs:
+          if addr.isdigit():
+            email = api.get_user_info(addr).email
+          else:
+            email = addr
+          api.invite(session_id, email, group_id=group_id, msg=msg)
         
-  coworkers = list(coworkers)
-  cache.set(key, coworkers, 86400)
-  
-  coworkers = sorted(coworkers[:limit], 
-                     key=lambda user: last_online(user.id), reverse=True)
-  return coworkers
-
-def get_friends(session_id):
-  """
-  coworkers, contacts, followers, following users
-  """
-  coworkers = get_coworkers(session_id)
-  user_id = get_user_id(session_id)
-  user_info = get_user_info(user_id)
-  coworkers.extend(user_info.contacts)
-  
-  following_users = [get_user_info(i) for i in user_info.following_users]
-  followers = [get_user_info(i) for i in user_info.followers]
-  
-  coworkers.extend(following_users)
-  coworkers.extend(followers)
-  
-  return coworkers
-
-
-def get_contacts(session_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return []
-  
-  info = db.owner.find_one({'_id': user_id}, {'contacts': True})
-  if not info:
-    return []
-  
-  contact_ids = info.get('contacts', [])
-  return [get_user_info(i) for i in contact_ids]
-
-
-def get_coworker_ids(user_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  groups = db.owner.find({"members": user_id}, {'members': True})
-  user_ids = set()
-  for group in groups:
-    for user_id in group.get('members'):
-      user_ids.add(user_id)
-  return user_ids
-  
-
-def is_group(_id, db_name=None):
-  # print "DEBUG - in is_group - caller is " + str(inspect.stack()[1][3])
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not is_snowflake_id(_id):
-    return None
-  
-  key = '%s:is_group' % _id
-  if cache.get(key) == 1:
-    return True
-  
-  if not _id:
-    return False
-  
-  if _id == 'public':
-    return True
-  
-  info = db.owner.find_one({'_id': long(_id)}, {'members': True})
-  if info and info.has_key('members'):
-    cache.set(key, 1)
-    return True
-  
-  cache.set(key, 0)
-  return False
-
-def update_network_info(network_id, info):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-
-  #user_id = get_user_id(session_id)
-  #if not user_id:
-  #  return False
-
-  if network_id != "0":
-    db.info.update({'_id': ObjectId(network_id)}, {'$set': info})
-    return True
-  else:
-    info['timestamp'] = utctime()
-    db.info.insert(info)
-    return False
-
-def update_user_info(session_id, info):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  db.owner.update({'_id': user_id}, {'$set': info})
-  
-  cache.delete('%s:info' % user_id)
-  
-#  if info.has_key('name') or info.has_key('avatar'):
-#    clear_html_cache(post_id)
-  return True
-
-def update_utcoffset(session_id, offset):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if str(session_id).isdigit():
-    user_id = long(session_id)
-  else:
-    user_id = get_user_id(session_id)
-    
-  if cache.get('utcoffset', namespace=user_id) != offset:
-    db.owner.update({'_id': user_id}, 
-                    {'$set': {'utcoffset': offset}})
-    
-    key = '%s:info' % user_id
-    cache.delete(key)
-    
-    cache.set('utcoffset', offset, namespace=user_id)
-  return True
-
-def get_utcoffset(user_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not str(user_id).isdigit():
-    return 0  
-  
-  offset = cache.get('utcoffset', namespace=user_id)
-  if not offset:
-    info = db.owner.find_one({'_id': long(user_id)}, {'utcoffset': True})
-    if info:
-      offset = info.get('utcoffset', 0)
-    else:
-      return 0
-  return offset
-
-def get_user_info(user_id=None, facebook_id=None, email=None, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if user_id and not is_snowflake_id(user_id):
-    return User({})
-    
-  if email and '@' not in email:
-    return User({})
-    
-  if not user_id and not facebook_id and not email:
-    return User({})
-  
-  if not user_id:
-    user_id = get_user_id(facebook_id=facebook_id, email=email, db_name=db_name)
-  
-  key = '%s:info' % (user_id if user_id else facebook_id if facebook_id else email)
-  info = cache.get(key)
-  if not info:  
-    if facebook_id:
-      info = db.owner.find_one({'facebook_id': facebook_id, 
-                                'password': {'$ne': None}})
-    elif email:
-      info = db.owner.find_one({'email': email.strip().lower(), 
-                                'password': {'$ne': None}})
-    elif '@' in str(user_id):
-      info = db.owner.find_one({'email': user_id})
-    elif str(user_id).isdigit():
-      info = db.owner.find_one({"_id": long(user_id)})
-    else:
-      info = None
-      
-    if info:
-      if info.has_key('history'):
-        info.pop('history')
-    
-      cache.set(key, info)
-
-  return User(info, db_name=db_name) if info else User({})
-
-
-def get_owner_info(session_id=None, uuid=None, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not session_id and not uuid:
-    return User({})
-  
-  elif session_id:
-    user_id = get_user_id(session_id, db_name=db_name)
-    key = '%s:info' % user_id
-    info = cache.get(key)
-    if not info:
-      info = db.owner.find_one({"_id": user_id})
-      if info:
-        cache.set(key, info)
-  
-  elif uuid == 'public': 
-    info = {'_id': 'public',
-            'name': 'Public',
-            'members': [] # get_followers(session_id)
-            }
-  else:
-    if '@' in str(uuid):
-      info = db.owner.find_one({'email': uuid})
-    else:
-      info = db.owner.find_one({"_id": long(uuid)})
-  if info and info.has_key('members'):
-    return Group(info, db_name=db_name)
-  return User(info, db_name=db_name)
-
-def get_owner_info_from_uuid(uuid, db_name=None):
-  if not db_name: 
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not uuid:
-    return User({})
-  key = '%s:info' % uuid
-  info = cache.get(key)
-  if not info: 
-    if uuid == 'public': 
-      info = {'_id': 'public',
-              'name': 'Public',
-              'members': [] # get_followers(session_id)
-              }
-    else:
-      if '@' in str(uuid):
-        info = db.owner.find_one({'email': uuid})
+        if group_id:
+          return redirect('/group/%s?message=Invitation sent!' % group_id)
+        else:
+          return redirect('/news_feed?message=Invitation sent!')
       else:
-        info = db.owner.find_one({"_id": long(uuid)})  
-    cache.set(key, info)
-  if info and info.has_key('members'):
-    return Group(info, db_name=db_name)
-  return User(info, db_name=db_name)
+        abort(400)
 
-def autocomplete(session_id, query):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return []
-  
-  if query.startswith('#'):
-    hashtags = db.hashtag.find({'name': re.compile('^' + query, 
-                                                   re.IGNORECASE)}).limit(5)
-    items = [{'name': i.get('name'), 
-              'id': str(i.get('_id'))} for i in hashtags]
+
+
+@app.route('/welcome', methods=['GET', 'OPTIONS'])
+def welcome():
+  if request.method == 'GET':
+    session_id = session.get("session_id")
+    return render_homepage(session_id, 'Getting Started', view='welcome')
   else:
-    contacts = get_user_info(user_id).contacts
-    groups = get_groups(session_id)
+    body = render_template('welcome.html', view='welcome')
+    return dumps({'body': body, 
+                  'title': 'Welcome to Jupo'})
     
-    owners = contacts
-    owners.extend(groups)
     
-    query = query.strip().lower()
-    items = []
-    for i in owners:
-      if i.name and \
-         query in unidecode(unicode(i.name.lower())) or \
-         query in i.name.lower():
-        info = {'name': i.name, 
-                'id': i.id, 
-                'type': 'group' if i.is_group() else 'user'}
-        items.append(info)
+@app.route('/notify_me', methods=['POST'])
+def notify_me():
+  email = request.form.get('email')
+  if not email:
+    abort(400, 'Missing email')
+  state = api.notify_me(email)
+  return 'Thank you!'
+
+
+@app.route('/jobs')
+def jobs():
+  return redirect('http://bit.ly/17J9aYk')
+
+@app.route("/<any(sign_in, sign_up, sign_out, forgot_password, reset_password):action>", methods=["GET", "OPTIONS", "POST"])
+def authentication(action=None):
+  hostname = request.headers.get('Host')
+  
+  db_name = hostname.replace('.', '_')
+  
+  primary_domain = '.'.join(settings.PRIMARY_DOMAIN.rsplit('.', 2)[-2:])
+  if hostname != settings.PRIMARY_DOMAIN:
+    network_info = api.get_network_info(db_name)
+  else:
+    network_info = {'name': 'Jupo'}
+  
+  if request.path.endswith('sign_in'):
     
-  if not items:
-    users = db.owner.find({'email': re.compile('^%s.*' % query, 
-                                               re.IGNORECASE)}, 
-                          {'name': True, 'email': True})\
-                    .limit(5)
-    items = [{'name': i.get('email'),
-              'id': str(i.get('_id'))} \
-             for i in users if i.get('_id') != user_id]
-  return items
+    
+    if request.method == 'OPTIONS':
+      data = dumps({'title': 'Sign in to Jupo',
+                    'body': render_template('sign_in.html', 
+                                            domain=hostname, 
+                                            PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN)})
+      resp = Response(data, mimetype='application/json')
+      return resp
+    
+    elif request.method == "GET":
+      email = request.args.get('email')
+      msg = request.args.get('msg')
+      if msg and email:
+        resp = Response(render_template('sign_in.html', 
+                                        msg=msg, email=email,
+                                        domain=hostname, 
+                                        PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                        network_info=network_info))
+      else:
+        resp = Response(render_template('sign_in.html', 
+                                        domain=hostname, 
+                                        PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                        network_info=network_info))
+      return resp
+      
+    
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    back_to = request.args.get('back_to', '')
+    user_agent = request.environ.get('HTTP_USER_AGENT')
+    app.logger.debug(user_agent)
+    remote_addr = request.environ.get('REMOTE_ADDR')
+
+    network = request.form.get("network")
+
+    user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network)
+
+    # validate email domain against whitelist
+    db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
+    current_network = api.get_current_network(db_name=db_name)
+
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network and current_network['auth_normal_whitelist'] != "":
+      # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
+    # default email domain
+    auth_whitelist.append(network)
+
+    # only validate if there is more than 1 item in auth_whitelist
+    # (meaning user keyed in something in the whitelist textbox)
+    if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
+      flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
+      user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
+      return redirect(user_url)
+    
+    session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+
+    if session_id is None: # new user
+      # sign up instantly (!)
+      # api.sign_up(email=email, password=password, name="", user_agent=user_agent, remote_addr=remote_addr)
+
+      # then sign in again
+      # session_id = api.sign_in(email, password, user_agent=user_agent, remote_addr=remote_addr)
+      flash('Please check your email/password.')
+      return redirect(user_url + '?error_type=auth_normal')
+    elif session_id == False: # existing user, wrong password
+      flash('Wrong password, please try again :)')
+      return redirect(user_url + '?error_type=auth_normal')
+    elif session_id == -1:
+      flash('You used this email address with Facebook login. Please try it again')
+      return redirect(user_url + '?error_type=auth_normal')
+    elif session_id == -2:
+      flash('You used this email address with Google login. Please try it again')
+      return redirect(user_url + '?error_type=auth_normal')
+
+    app.logger.debug(session_id)
+    if session_id:
+    
+      # Sign in for all networks
+      if db_name:
+        db_names = api.get_db_names(email)
+        if db_name not in db_names:
+          api.add_db_name(email, db_name)
+        
+        for db in db_names:
+          if db != db_name:
+            api.update_session_id(email, session_id, db)
+
+      session.permanent = True
+      session['session_id'] = session_id
+
+      # authenticate OK, now login
+      resp = redirect(user_url + '/news_feed')
+      resp.set_cookie('channel_id', api.get_channel_id(session_id))
+
+      # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
+      resp.set_cookie('network', network)
+      return resp
+    else:
+      if not email:
+        message = "The email field must not be empty"
+      elif not password:
+        message = "The password field must not be empty"
+      else:
+        if session_id is False:
+          message = "Incorrect password. <a href='/forgot_password'>Reset password</a>"
+        else:
+          message = """No account found for this email.
+          Retry, or <a href='/sign_up?email=%s'>Sign up for Jupo</a>""" % email
+      resp = Response(render_template('sign_in.html', 
+                                      domain=hostname,
+                                      email=email, 
+                                      password=password, 
+                                      message=message,
+                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                      network_info=network_info))
+      return resp
+        
+
+  elif request.path.endswith('sign_up'):
+    network = request.form.get("network")
+    back_to = request.args.get('back_to', '')
+
+    user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network)
+
+    if request.method == 'GET':
+      welcome = request.args.get('welcome')
+      email = request.args.get('email')
+      resp = Response(render_template('sign_up.html', 
+                                      welcome=welcome,
+                                      domain=hostname, 
+                                      email=email,
+                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                      network_info=network_info))
+      return resp
+        
+    email = request.form.get('email').strip()
+
+    # validate email domain against whitelist
+    db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
+    current_network = api.get_current_network(db_name=db_name)
+
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network and current_network['auth_normal_whitelist'] != "":
+      # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
+    # default email domain
+    auth_whitelist.append(network)
+
+    # only validate if there is more than 1 item in auth_whitelist
+    # (meaning user keyed in something in the whitelist textbox)
+    if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
+      flash('Your email is not allowed to sign up this network. Please contact network administrator for more info.')
+      user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
+      return redirect(user_url)
+
+    name = request.form.get('name')
+    password = request.form.get('password', '')
+    
+    alerts = {}
+    if email and api.is_exists(email):
+      # alerts['email'] = '"%s" is already in use.' % email
+      flash('Email is already in use')
+      return redirect(user_url + '?error_type=auth_normal')
+    if len(password) < 6:
+      # alerts['password'] = 'Your password must be at least 6 characters long.'
+      flash('Your password must be at least 6 characters long.')
+      return redirect(user_url + '?error_type=auth_normal')
+    
+    # input error, redirect to login page
+    if alerts.keys():
+      resp = Response(render_template('sign_up.html', 
+                                      alerts=alerts,
+                                      email=email,
+                                      password=password,
+                                      name=name,
+                                      domain=hostname, 
+                                      PRIMARY_DOMAIN=settings.PRIMARY_DOMAIN,
+                                      network_info=network_info))
+      return resp
+    # input OK, process to sign up
+    else:
+      session_id = api.sign_up(email, password, name)
+      if session_id:
+        
+        # Sign in for all networks
+        if db_name:
+          db_names = api.get_db_names(email)
+          if db_name not in db_names:
+            api.add_db_name(email, db_name)
+          
+          for db in db_names:
+            if db != db_name:
+              api.update_session_id(email, session_id, db)
+              
+        session['session_id'] = session_id
+        
+        user_id = api.get_user_id(session_id)
+        user_info = api.get_user_info(user_id)
+        user_domain = network if network else email.split('@', 1)[-1]
+          
+        if api.is_admin(user_id):
+          user_url = '/groups'
+        elif user_info.id:
+          user_url += '/news_feed'
+        else: # new user
+          user_url += '/everyone?getting_started=1&first_login=1'
+
+        resp = redirect(user_url)
+
+        # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
+        resp.set_cookie('network', network)
+
+        return resp
+      else:
+        flash('Please check your email/password.')
+        return redirect(user_url + '?error_type=auth_normal')
+      
+  elif request.path.endswith('sign_out'):
+    # token = session.get('oauth_google_token')
+    # token = 'ya29.AHES6ZQdZbhFaUO9Xgv8sIjmKipH7kQ56UxyavSSLyIg02Cq'
+    
+    session_id = session.get('session_id')
+
+    if session_id:
+      user_id = api.get_user_id(session_id)
+      email = api.get_user_info(user_id).email
+      
+      app.logger.debug('sign out: %s' % session_id)
+      api.set_status(session_id, 'offline')
+      api.sign_out(session_id)
+      session.pop('session_id')
+      
+      
+      # Sign out all networks
+      if db_name:
+        db_names = api.get_db_names(email)
+        if db_name not in db_names:
+          api.add_db_name(email, db_name)
+        
+        for db in db_names:
+          if db != db_name:
+            api.sign_out(session_id, db_name=db)
+
+    # return redirect('https://accounts.google.com/o/oauth2/revoke?token=' + str(token) + '&continue=http://jupo.localhost.com')
+
+    # clear user info in memcache
+    hostname = request.headers.get('Host', '').split(':')[0]
+    user_network = hostname.replace('.', '_')
+    key = '%s:%s:uid' % (user_network, session_id)
+
+    cache.delete(key)
+
+    network = api.get_network_by_current_hostname(hostname)
+    user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, network)
+
+    # this only clear cookie for subdomain, how 'bout cookie in main domain ?
+    resp = redirect(user_url)
+    resp.delete_cookie('network')
+    resp.delete_cookie('channel_id')
+    resp.delete_cookie('new_user')
+    return resp
+  
+  elif request.path.endswith('forgot_password'):
+    if request.method == 'GET':
+      return render_template('forgot_password.html')  
+    if request.method == 'OPTIONS':
+      data = dumps({'title': 'Jupo - Forgot your password?',
+                    'body': render_template('forgot_password.html')})
+      return Response(data, mimetype='application/json')
+    else:
+      email = request.form.get('email')
+      if not email:
+        message = 'The email field must not be empty'
+        ok = False
+      else:
+        r = api.forgot_password(email)
+        if r is True:
+          message = "We've sent you an email with instructions on how to reset your password. Please check your email."
+          ok = True
+        else:
+          message = 'No one with that email address was found'
+          ok = False
+      return render_template('forgot_password.html', 
+                             ok=ok,
+                             message=message)
+    
+  elif request.path.endswith('reset_password'):
+    if request.method == 'GET':
+      code = request.args.get('code')
+      return render_template('reset_password.html', code=code)
+        
+    else:
+      code = request.form.get('code')
+      email = api.FORGOT_PASSWORD.get(code)
+      if not email:
+        return render_template('reset_password.html', code=code,
+                               message='Please provide a valid reset code')
+        
+      new_password = request.form.get('password')
+      if not new_password:
+        return render_template('reset_password.html', code=code, 
+                               message='Please enter a new password for this account')
+      elif len(new_password) < 6:
+        return render_template('reset_password.html', code=code, 
+                               message='Your password must be at least 6 characters long.')
+        
+      confirm_password = request.form.get('confirm')
+      if new_password != confirm_password:
+        return render_template('reset_password.html', code=code,
+                               message='The two passwords you entered do not match')
+        
+      user_id = api.get_user_id_from_email_address(email)
+      api.reset_password(user_id, new_password)
+      api.FORGOT_PASSWORD.delete(code)
+      
+      return redirect('/sign_in?email=%s&msg=Your password has been reset' % email)
+      
+  
+
+
+@app.route('/oauth/google', methods=['POST', 'GET', 'OPTIONS'])
+def google_login():
+  email = None
+  if request.method == 'POST': #this is called from landing page
+    call_from = request.form['call_from']
+    email = request.form['email']
+    
+    # if call from landing page then clear session (to avoid auto authenticate)
+    if call_from == 'landing':
+      pass
+      # session.clear()
+
+    # validate email
+    if (email is None) or (not is_google_apps_email(email)):
+      # resp = Response(render_template('landing_page.html', 
+      #                                    msg='Email is blank or not provided by Google App. Please check again'))
+      flash('Email is blank or not provided by Google App. Please check again')
+      return redirect('/')
+  else:
+    email = request.args.get('email')
+
+  domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+  network = request.args.get('network', '')
+  
+  # return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&approval_prompt_1=auto&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
+  #                % (settings.GOOGLE_REDIRECT_URI, domain, settings.GOOGLE_CLIENT_ID, email, email))
+  return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&login_hint=%s&user_id_1=%s&prompt=select_account' \
+                  % (settings.GOOGLE_REDIRECT_URI, (domain + ";" + network), settings.GOOGLE_CLIENT_ID, email, email))
+  
+
+@app.route('/oauth/google/authorized')
+def google_authorized():
+  code = request.args.get('code')
+  domain, network = request.args.get('state').split(";")
+
+  # get access_token
+  url = 'https://accounts.google.com/o/oauth2/token'
+  resp = requests.post(url, data={'code': code,
+                                  'client_id': settings.GOOGLE_CLIENT_ID,
+                                  'client_secret': settings.GOOGLE_CLIENT_SECRET,
+                                  'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+                                  'grant_type': 'authorization_code'})
+  data = loads(resp.text)
+
+  # save token for later use
+  token = data.get('access_token')
+  session['oauth_google_token'] = token
+  
+  # fetch user info
+  url = 'https://www.googleapis.com/oauth2/v1/userinfo'
+  resp = requests.get(url, headers={'Authorization': '%s %s' \
+                                    % (data.get('token_type'),
+                                       data.get('access_token'))})
+  user = loads(resp.text)
+
+  if network != "": # sub-network, validate againts whitelist
+    # validate email against whitelist
+    db_name = (network + '.' + domain).replace('.', '_')
+    current_network = api.get_current_network(db_name=db_name)
+
+    auth_whitelist = []
+    if current_network is not None and 'auth_normal_whitelist' in current_network and current_network['auth_normal_whitelist'] != "":
+      # auth_whitelist = current_network['auth_normal_whitelist'].split(',')
+      auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
+
+    # default email domain
+    auth_whitelist.append(network)
+  
+  # generate user domain based on user email
+  user_email = user.get('email')
+  if not user_email or '@' not in user_email:
+    return redirect('/')
+
+  # with this, user network will be determined solely based on user email
+  user_domain = user_email.split('@')[1]
+
+  # only validate if there is more than 1 item in auth_whitelist
+  # (meaning user keyed in something in the whitelist textbox)
+  if network != "" and len(auth_whitelist) > 1 and (not user_domain in auth_whitelist):
+    flash('Your email is not allowed to login this network. Please contact network administrator for more info.')
+    user_url = 'http://%s/%s?error_type=auth_google' % (settings.PRIMARY_DOMAIN, network)
+    return redirect(user_url)
+
+  # if network = '', user logged in from homepage --> determine network based on user email address
+  # if network != '', user logged in from sub-network page --> let authenticate user with that sub-network
+  if network:
+    user_domain = network
+
+  url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
+  resp = requests.get(url, headers={'Authorization': '%s %s' \
+                                    % (data.get('token_type'),
+                                       data.get('access_token'))})
+  
+  contacts = api.re.findall("address='(.*?)'", resp.text)
+
+  if contacts:
+    contacts = list(set(contacts))  
+
+  db_name = '%s_%s' % (user_domain.replace('.', '_'), 
+                       settings.PRIMARY_DOMAIN.replace('.', '_'))
+
+  # create new network
+  api.new_network(db_name, db_name.split('_', 1)[0])
+
+  # sign in to this new network
+  user_info = api.get_user_info(email=user_email, db_name=db_name)
+  
+  session_id = api.sign_in_with_google(email=user.get('email'), 
+                                       name=user.get('name'), 
+                                       gender=user.get('gender'), 
+                                       avatar=user.get('picture'), 
+                                       link=user.get('link'), 
+                                       locale=user.get('locale'), 
+                                       verified=user.get('verified_email'),
+                                       google_contacts=contacts,
+                                       db_name=db_name)
+  
+  app.logger.debug(db_name)
+  app.logger.debug(user)
+  app.logger.debug(session_id)
+  
+  api.update_session_id(user_email, session_id, db_name)
+  session['session_id'] = session_id
+  session.permanent = True
+  
+  app.logger.debug(session.items())
+
+  # create standard groups (e.g. for Customer Support, Sales) for this new network
+  # print  str(api.new_group (session_id, "Sales", "Open", "Group for Sales teams"))
+  
+   
+  user_url = 'http://%s/%s' % (settings.PRIMARY_DOMAIN, user_domain)
+    
+  if user_info.id:
+    user_url += '/news_feed'
+  else: # new user
+    user_url += '/everyone?getting_started=1&first_login=1'
+    
+  resp = redirect(user_url)  
+  resp.set_cookie('network', user_domain)
+  return resp 
+
+@app.route('/oauth/facebook')
+def facebook_login():
+  # for normal sign up/sign in, action = 'authenticate'
+  # for import data, action = 'import_step_1'
+  action = request.args.get('action')
+  network = request.args.get('network')
+
+  domain = settings.PRIMARY_DOMAIN
+
+  if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
+    f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
+                  client_secret=settings.FACEBOOK_APP_SECRET)
+
+  if (action == 'import_step_1'):
+    f.redirect_uri = 'http://%s/oauth/facebook/authorized_import_step_1' % domain
+
+    auth_url = f.get_auth_url(scope=['email', 'user_groups'])
+  else:
+    f.redirect_uri = 'http://%s/oauth/facebook/authorized?domain=%s&network=%s' % (domain, domain, network)
+    #f.redirect_uri = url_for('facebook_authorized',
+    #                       domain=domain,
+    #                       network=network,
+    #                       _external=True)
+
+    auth_url = f.get_auth_url(scope=['email'])
+
+  app.logger.debug(auth_url)
+
+  return redirect_to(auth_url)
+
+@app.route('/import', methods=["GET"])
+@line_profile
+def import_data():
+  email = ""
+  domain = settings.PRIMARY_DOMAIN
+  network = request.cookies.get('network')
+  network_info = ""
+  network_exist = ""
+  message= ""
+
+  # initialize
+  #if 'source_facebook_groups' in session:
+  #  source_facebook_groups = session['source_facebook_groups']
+  #else:
+  #  source_facebook_groups = None
+
+  # check for logged in session
+  if 'session_id' not in session:
+    return redirect('http://%s/' % (settings.PRIMARY_DOMAIN))
+
+
+
+  # print "DEBUG - in /import - session['target_jupo_groups'] = " + str(session['target_jupo_groups'])
+  resp = Response(render_template('import.html',
+                                  email=email,
+                                  settings=settings,
+                                  domain=settings.PRIMARY_DOMAIN,
+                                  network=network,
+                                  network_info=network_info,
+                                  network_exist=network_exist,
+                                  # source_facebook_groups=source_facebook_groups,
+                                  # target_jupo_groups=target_jupo_groups,
+                                  message=message))
+
+  return resp
+
+@app.route('/oauth/facebook/authorized_import_step_1')
+def facebook_authorized_import_step_1():
+  domain = settings.PRIMARY_DOMAIN
+  network = request.cookies.get('network')
+
+  # fallback
+  if not network:
+    hostname = request.headers.get('Host', '').split(':')[0]
+    network = api.get_network_by_current_hostname(hostname)
+
+  if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
+    f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
+                  client_secret=settings.FACEBOOK_APP_SECRET,
+                  redirect_uri='http://%s/oauth/facebook/authorized_import_step_1' % domain)
+
+  # validate email domain against whitelist
+  db_name = (network + '.' + domain).replace('.', '_')
+
+  code = request.args['code']
+  access_token = f.get_access_token(code)
+  session['facebook_access_token'] = access_token['access_token']
+
+  facebook = GraphAPI(access_token['access_token'])
+  groups = facebook.get('/me/groups')
+
+  returned_facebook_groups = []
+
+  for group in groups['data']:
+    returned_facebook_groups.append({'id': group['id'], 'name': group['name']})
+
+  # get target Jupo groups of current user
+  session_id = session['session_id']
+  target_jupo_groups = api.get_groups(session_id=session_id)
+
+  # session['source_facebook_groups'] = returned_facebook_groups
+
+  # return redirect('/import')
+  # save Facebook contacts
+  me = facebook.get('/me')
+  print "DEBUG - in facebook_authorized_import_step_1 - my fb_id = " + str(me['id'])
+  friends = facebook.get('%s/friends' % me['id'])
+  friend_ids = [i['id'] for i in friends['data'] if isinstance(i, dict)]
+
+  user_update_info = {'facebook_friend_ids': friend_ids}
+  api.update_user_info(session_id=session_id, info=user_update_info)
+
+  resp = Response(render_template('import.html',
+                                  settings=settings,
+                                  domain=settings.PRIMARY_DOMAIN,
+                                  network=network,
+                                  source_facebook_groups=returned_facebook_groups,
+                                  target_jupo_groups=target_jupo_groups))
+
+  resp.set_cookie('network', network)
+  return resp
+
+@app.route('/oauth/facebook/authorized_import_step_2')
+def facebook_authorized_import_step_2():
+  domain = settings.PRIMARY_DOMAIN
+  network = request.cookies.get('network')
+
+  source_facebook_group_id = request.args.get('source_facebook_group_id')
+  target_jupo_group_id = request.args.get('target_jupo_group_id')
+  import_comment_likes = request.args.get('import_comment_likes')
+
+  group_that_already_imported_this_fb_group = api.check_exist_imported_facebook_group_id_in_all_group_info(source_facebook_group_id=source_facebook_group_id)
+  print "DEBUG - group_that_already_imported_this_fb_group = " + str(group_that_already_imported_this_fb_group)
+
+  if group_that_already_imported_this_fb_group:
+    resp = Response(render_template('import.html',
+                                  settings=settings,
+                                  domain=settings.PRIMARY_DOMAIN,
+                                  network=network,
+                                  error='network_already_got_this_fb_group',
+                                  imported_jupo_group_id=group_that_already_imported_this_fb_group['_id'],
+                                  imported_jupo_group_name=group_that_already_imported_this_fb_group['name']))
+
+    return resp
+
+  api.importer_queue.enqueue_call(func=api.import_facebook,
+                           args=(session['session_id'], domain, network, session['facebook_access_token'],
+                                 source_facebook_group_id, target_jupo_group_id, import_comment_likes),
+                           timeout=60000)
+
+  print "DEBUG - import_comment_likes = " + str(import_comment_likes)
+  # support subdir ( domain/network )
+
+  url = 'http://%s/%s/' % (domain, network)
+  resp = redirect(url)
+
+  return resp
+
+@csrf.exempt
+@app.route('/canvas', methods=['POST', 'GET'])
+@app.route('/canvas/', methods=['POST', 'GET'])
+def facebook_canvas():
+  # check if user authenticated our app or not
+  signed_request = request.form.get('signed_request')
+  decoded_signed_request = parse_signed_request(signed_request, settings.FACEBOOK_APP_SECRET)
+
+  request_id = None
+  invited_network = None
+  target_contacts = None
+  request_from = None
+
+  # fb_source = search or notification or jupo_importer
+  fb_source = request.args.get('fb_source')
+  invited_network = request.args.get('invited_network')
+
+  # authenticate with FB
+  if 'oauth_token' not in decoded_signed_request:
+    user_authorized = 'false'
+  else:
+    # authorized, get extra info
+    facebook = GraphAPI(decoded_signed_request['oauth_token'])
+    current_user = facebook.get('/me')
+    user_authorized = 'true'
+
+  if fb_source == 'jupo_importer':
+    imported_jupo_group_id = request.args.get('imported_jupo_group_id')
+
+    # get target contacts to invite
+    if session and 'session_id' in session:
+      session_id = session['session_id']
+      user_id = api.get_user_id(session_id=session_id)
+
+      db_name = (invited_network + "." + settings.PRIMARY_DOMAIN).replace('.', '_')
+
+      target_contacts = api.find_target_facebook_contacts_to_invite(user_id=user_id, group_id=imported_jupo_group_id, db_name=db_name)
+
+  # fb_source = Nil && request --> just sent invite
+  fb_request_param = request.args.get('request')
+  if not fb_source and fb_request_param:
+    fb_source = 'sent_invites'
+
+  # accept invitation
+  if fb_source == 'notification':
+    request_ids = request.args.get('request_ids').split(',')
+    print "DEBUG - in facebook_canvas - receive invite - request_ids = " + str(request_ids)
+
+    latest_request_id = request_ids[-1]
+
+    request_obj = facebook.get(latest_request_id + "_" + current_user['id'])
+    print "DEBUG - in facebook_canvas - receive invite - request_obj = " + str(request_obj)
+
+    request_from = request_obj['from']['name']
+    invited_network = request_obj['data']
+
+  facebook_canvas_url = 'https://apps.facebook.com/' + settings.FACEBOOK_APP_NAMESPACE + '/?invited_network=' + str(invited_network)
+
+  resp = Response(render_template('canvas_facebook.html',
+                                  fb_source=fb_source,
+                                  fb_app_id=settings.FACEBOOK_APP_ID,
+                                  fb_app_canvas_url=facebook_canvas_url,
+                                  request_id=request_id,
+                                  user_authorized=user_authorized,
+                                  current_user=current_user,
+                                  domain=settings.PRIMARY_DOMAIN,
+                                  target_contacts=target_contacts if target_contacts else None,
+                                  invited_network=invited_network,
+                                  request_from=request_from))
+
+  return resp
+
+@app.route('/import_invite', methods=['POST', 'GET'])
+def import_data_invite_friends():
+  email = ""
+  domain = settings.PRIMARY_DOMAIN
+  network = request.cookies.get('network')
+  network_info = ""
+  message= ""
+
+  # initialize
+  #if 'source_facebook_groups' in session:
+  #  source_facebook_groups = session['source_facebook_groups']
+  #else:
+  #  source_facebook_groups = None
+
+  # check for logged in session
+  if 'session_id' not in session:
+    return redirect('http://%s/' % (settings.PRIMARY_DOMAIN))
+
+  session_id = session['session_id']
+  user_id = api.get_user_id(session_id=session_id)
+
+  if request.method == "GET":
+    target_contacts = api.find_target_facebook_contacts_to_invite(user_id=user_id)
+
+    resp = Response(render_template('import_invite.html',
+                                    email=email,
+                                    settings=settings,
+                                    domain=settings.PRIMARY_DOMAIN,
+                                    network=network,
+                                    network_info=network_info,
+                                    target_contacts=target_contacts,
+                                    # source_facebook_groups=source_facebook_groups,
+                                    # target_jupo_groups=target_jupo_groups,
+                                    message=message))
+  elif request.method == "POST":
+    selected_contacts = request.form.get('selectedContacts')
+
+    for contact_fb_id in selected_contacts:
+      # send notification
+      # facebook = GraphAPI(session['facebook_access_token'])
+      # facebook.post('/' + contact_fb_id + '/notifications')
+      # contact_fb_id = '670679095' # for testing only
+      print "DEBUG - in import_data_invite_friends - access_token = " + str(session['facebook_access_token'])
+      response_noti = requests.post('https://graph.facebook.com/%s/notifications?access_token=%s&href=%s&template=%s' % (contact_fb_id, '1427208454172770|QwcKzFThxruAT11P6TQTlIeDz_s', 'http://jupo.localhost.com/jupo.com', 'Hello world from Jupo' ))
+      print "DEBUG - in import_data_invite_friends - response of post noti = " + str(vars(response_noti))
+
+
+    print "DEBUG - in import_data_invite_friends - selected contacts = " + str(selected_contacts)
+
+    resp = Response(render_template('import_invite.html',
+                                    email=email,
+                                    settings=settings,
+                                    domain=settings.PRIMARY_DOMAIN,
+                                    network=network,
+                                    network_info=network_info,
+                                    target_contacts=target_contacts,
+                                    # source_facebook_groups=source_facebook_groups,
+                                    # target_jupo_groups=target_jupo_groups,
+                                    message=message))
+
+
+  return resp
+
+@app.route('/oauth/facebook/authorized')
+def facebook_authorized():
+  domain = request.args.get('domain', settings.PRIMARY_DOMAIN)
+  network = request.args.get('network')
+
+  db_name = (network + '.' + settings.PRIMARY_DOMAIN).replace('.', '_')
+  current_network = api.get_current_network(db_name=db_name)
+
+  if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
+    f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
+                  client_secret=settings.FACEBOOK_APP_SECRET,
+                  redirect_uri='http://%s/oauth/facebook/authorized?domain=%s&network=%s' % (domain, domain, network))
+
+  code = request.args['code']
+  access_token = f.get_access_token(code)
+  session['facebook_access_token'] = access_token['access_token']
+
+  facebook = GraphAPI(access_token['access_token'])
+
+  if request.args.get('fb_source') == 'notification':
+    return redirect('/')
+
+  me = facebook.get('/me')
+  print "DEBUG - in facebook_authorized - me retrieved from Facebook API = " + str(me)
+  email = me['email']
+  facebook_id = me['id']
+
+  auth_whitelist = []
+  if current_network is not None and 'auth_normal_whitelist' in current_network and current_network['auth_normal_whitelist'] != "":
+    auth_whitelist = [x.strip() for x in current_network['auth_normal_whitelist'].split(',')]
+  # default email domain
+  auth_whitelist.append(network)
+
+  # only validate if there is more than 1 item in auth_whitelist
+  # (meaning user keyed in something in the whitelist textbox)
+  if len(auth_whitelist) > 1 and (not email.split('@')[1] in auth_whitelist):
+    flash('Your email is not allowed to sign in this network. Please contact network administrator for more info.')
+    user_url = 'http://%s/%s?error_type=auth_normal' % (settings.PRIMARY_DOMAIN, network)
+    return redirect(user_url)
+
+  friends = facebook.get('%s/friends' % facebook_id)
+  friend_ids = [i['id'] for i in friends['data'] if isinstance(i, dict)]
+
+  user_info = api.get_user_info(email=email, db_name=db_name)
+
+  session_id = api.sign_in_with_facebook(email=email,
+                                         name=me.get('name'),
+                                         gender=me.get('gender'),
+                                         avatar='https://graph.facebook.com/%s/picture' % facebook_id,
+                                         link=me.get('link'),
+                                         locale=me.get('locale'),
+                                         timezone=me.get('timezone'),
+                                         verified=me.get('verified'),
+                                         facebook_id=facebook_id,
+                                         facebook_friend_ids=friend_ids,
+                                         db_name=db_name)
+
+
+  db_names = api.get_db_names(email)
+  if db_name not in db_names:
+    api.add_db_name(email, db_name)
+
+  for db in db_names:
+    if db != db_name:
+      api.update_session_id(email, session_id, db)
+
+  # support subdir ( domain/network )
+  url = 'http://%s/%s/' % (domain, network)
+
+  session['session_id'] = session_id
+  session.permanent = True
+
+  # getting start for new user
+  if not user_info.id:
+    url = url + 'everyone?getting_started=1'
+
+  resp = redirect(url)
+  # set this so that home() knows which network user just signed up, same as in /oauth/google/authorized
+  resp.set_cookie('network', network)
+
+  return resp
+
+@app.route('/reminders', methods=['GET', 'OPTIONS', 'POST'])
+@app.route('/reminder/new', methods=["POST"])
+@app.route('/reminder/<int:reminder_id>/check', methods=["POST"])
+@app.route('/reminder/<int:reminder_id>/uncheck', methods=["POST"])
+@login_required
+@line_profile
+def reminders(reminder_id=None):
+  session_id = session.get("session_id")
+  message = request.form.get('message')
+  if request.path.endswith('/new'):
+    id = api.new_reminder(session_id, message)
+    return str(id)
+  elif request.path.endswith('/check'):
+    api.check(session_id, reminder_id)
+    return 'Done'
+  elif request.path.endswith('/uncheck'):
+    api.uncheck(session_id, reminder_id)
+    return 'Done'
+  else:
+    reminders_list = api.get_reminders(session_id)
+    if request.method == 'GET':
+      return render_homepage(session_id, 'Reminders',
+                             view='reminders',
+                             reminders=reminders_list)
+    else:
+      body = render_template('reminders.html', 
+                             view='reminders',
+                             reminders=reminders_list)
+      
+      json = dumps({"body": body,   
+                    "title": 'Reminders'})
+      return Response(json, mimetype='application/json') 
+  
+
+  
+@app.route("/notes", methods=['GET', 'OPTIONS'])
+@app.route("/notes/page<int:page>", methods=['OPTIONS'])
+@login_required
+@line_profile
+def notes(page=1):
+  view = 'notes'
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+  
+  title = "Notes"
+  notes = api.get_notes(session_id, page=page)
+  
+  if page == 1:
+    reference_notes = api.get_reference_notes(session_id, 10)
+  else:
+    reference_notes = []
+  
+  app.logger.debug(notes)
+      
+  
+  if request.method == "OPTIONS":
+    if page > 1:
+      stream = ''
+      posts = []
+      for note in notes:
+        posts.append(render(note, "note", owner, view, request=request))  
+      if len(notes) == 0:
+        posts.append(render_template('more.html', more_url=None))
+      else:
+        posts.append(render_template('more.html', 
+                                     more_url='/notes/page%d' % (page+1)))
+      return ''.join(posts)
+    else:
+      menu = render_template('menu.html', 
+                             view=view)
+      body = render_template('notes.html', 
+                             view=view,  
+                             title=title, 
+                             owner=owner,
+                             request=request,
+                             reference_notes=reference_notes,
+                             notes=notes)
+  
+      
+      json = dumps({"body": body, 
+                    "menu": menu, 
+                    "title": title})
+      return Response(json, mimetype='application/json') 
+  else:
+    return render_homepage(session_id, title,
+                           view=view,
+                           reference_notes=reference_notes,
+                           notes=notes)
+    
+
+@app.route("/note/new", methods=["GET", "OPTIONS", "POST"])
+@app.route("/note/<int:note_id>", methods=["GET", "OPTIONS"])
+@app.route("/note/<int:note_id>/edit", methods=["OPTIONS"])
+@app.route("/note/<int:note_id>/v<int:version>", methods=["OPTIONS", "POST"])
+@app.route("/note/<int:note_id>/<action>", methods=["GET", "OPTIONS", "POST"])
+@line_profile
+def note(note_id=None, action=None, version=None):  
+  session_id = session.get("session_id")
+  owner = api.get_owner_info(session_id)
+  content = info = group = None
+
+  group_id = request.args.get('group_id')
+  if group_id:
+    group = api.get_group_info(session_id, group_id)
+    
+  if request.path == '/note/new':
+    if request.method == 'GET':
+      
+      note = {}
+      title = 'New Note'
+      mode = 'edit'
+      view = 'notes'
+      
+      return render_homepage(session_id, title,
+                             view=view,
+                             group=group,
+                             note=note, mode=mode)
+    elif request.method == 'OPTIONS':
+      title = 'New Note'
+      mode = 'edit'
+      note = {}
+    else:
+      title = request.form.get('title', 'Untitled Note')
+      content = request.form.get('content')
+      note_id = request.form.get('note_id')
+          
+      viewers = request.form.get('viewers')
+      if viewers:
+        viewers = viewers.split(',')
+      else:
+        viewers = []
+      
+      attachments = request.form.get('attachments')
+      if attachments:
+        attachments = attachments.rstrip(',').split(',')
+      else:
+        attachments = []
+
+      note_id = api.new_note(session_id, title, content, attachments, viewers)
+      
+      return dumps({'redirect': '/note/%s' % note_id})
+
+  elif action and action == 'last_changes':
+    note = api.compare_with_previous_version(session_id, note_id, revision=0)
+    mode = 'view'
+    action = 'compare'
+    title = 'Notes - Track changes'
+    
+    
+  elif version is not None:
+    app.logger.debug(version)
+    note = api.get_note(session_id, note_id, version)
+    mode = 'view'
+    title = '%s v%s | Jupo Notes' % (note.title, version)
+    
+  elif request.path.endswith('/edit'):
+    note = api.get_note(session_id, note_id)
+    title = 'Notes - EditMode - %s' % note.title
+    mode = 'edit'
+    
+  elif action == 'update':    
+    title = request.form.get('title', 'Untitled Note')
+    content = request.form.get('content')
+    viewers = request.form.get('viewers')
+    if viewers:
+      viewers = viewers.split(',')
+    else:
+      viewers = []      
+    
+    attachments = request.form.get('attachments')
+    app.logger.debug(attachments)
+    if attachments:
+      attachments = attachments.rstrip(',').split(',')
+    else:
+      attachments = []
+    
+    if note_id:
+      api.update_note(session_id, note_id, title, content, attachments, viewers)
+    else:
+      note_id = api.new_note(session_id, title, content, attachments, viewers)
+      
+    return dumps({'redirect': '/note/%s' % note_id})
+    
+  elif action == 'remove':
+    session_id = session.get("session_id")
+    id = api.remove_note(session_id, note_id)
+    return id
+  
+  elif action == 'mark_official':
+    api.mark_official(session_id, note_id)
+    return 'Done'
+  
+  elif action == 'mark_unofficial':
+    api.mark_unofficial(session_id, note_id)
+    return 'Done'
+  
+  elif action == 'mark_as_read':
+    api.mark_as_read(session_id, note_id)
+    return ':)'
+  
+#  elif action and action.startswith('restore_from_'):
+#    revision = action.lstrip('restore_from_')
+#    if revision.isdigit():
+#      api.restore_note(session_id, note_id, int(revision))
+#      note = api.get_note(session_id, note_id)
+#      title = 'Notes - %s' % info.title
+#      mode = 'view'
+#    else:
+#      pass  #TODO: return an error page with code = 405 
+    
+  elif action == 'comment':
+    message = request.form.get('message')
+    comment = api.new_comment(session_id, message, note_id)
+    return render_template('comment.html', 
+                           comment=comment,
+                           owner=owner,
+                           prefix='note')
+  
+  else:
+    note = api.get_note(session_id, note_id)
+    
+    if not session_id and note is False:
+      return redirect('/?back_to=%s' % request.path)
+    
+    mode = 'view'
+    
+#   recents = api.get_notes(session_id, limit=5) 
+  if note is False or (note and not note.id):
+    abort(404)
+  
+  view = 'notes'
+  if version is None and info:
+    version = len(note.to_dict()['version'])
+  
+  if request.method in ["POST", "OPTIONS"]:
+    body = render_template('notes.html', 
+                           view='notes',
+                           mode=mode,
+                           action=action,
+                           version=version,
+                           note=note,
+                           group=group,
+                           owner=owner,
+                           content=content)
+    info = {'body': body}
+    if note:
+      info['title'] = note.title 
+    else:
+      info['title'] = 'Untitle Note'
+    return Response(dumps(info), mimetype='application/json')
+  else:
+    full = True if 'full' in request.query_string else False
+    if not owner.id or full is True:
+      title = note.title
+      description = note.content
+      return render_template('post.html',
+                             owner=owner,
+                             mode='view',
+                             full=True,
+                             title=title, description=description, 
+                             settings=settings,
+                             note=note)
+    else:
+      return render_homepage(session_id, note.title,
+                             version=version,
+                             group=group, note=note, view='notes', mode='view')
+
+@app.route('/u<key>')
+@app.route('/u/<int:note_id>')
+def share_to_anyone_with_the_link(note_id=None, key=None):
+  session_id = session.get("session_id")
+  if key:
+    doc = api.get_doc_by_key(key)            
+    return render_homepage(session_id, 'Note',
+                           view='discover', mode='view', doc=doc)
+    
+  else:
+    key = api.get_key(session_id, note_id)
+    if not key:
+      abort(404)
+    return redirect('/u' + key)
+  
+
+
+#===============================================================================
+# Files
+#===============================================================================
+
+@app.route("/public/<path:filename>")
+def public_files(filename):
+  filedata = cache.get('file:%s' % os.path.basename(filename)) \
+             if not settings.DEBUG else None
+  
+  if not filedata:
+    path = os.path.join(os.path.dirname(__file__), 'public', filename)
+    if not os.path.exists(path):
+      abort(404, 'File not found')
+    filedata = open(path).read()  
+      
+  response = make_response(filedata)
+  response.headers['Content-Length'] = len(filedata)
+  response.headers['Content-Type'] = guess_type(filename)[0]
+  response.headers['Cache-Control'] = 'public'
+  response.headers['Expires'] = '31 December 2037 23:59:59 GMT'
+  return response
+
+
+@app.route("/favicon.ico")
+@app.route("/<domain>/favicon.ico")
+def favicon():
+  path = os.path.join(os.path.dirname(__file__), 'public', 'favicon.ico')
+  filedata = open(path).read()
+  response = make_response(filedata)
+  response.headers['Content-Length'] = len(filedata)
+  response.headers['Content-Type'] = 'image/x-icon'
+  return response
+
+
+@app.route('/update_profile_picture', methods=['POST'])
+@app.route('/user/<int:user_id>', methods=['GET', 'OPTIONS'])
+@app.route('/user/<int:user_id>/page<int:page>', methods=['GET', 'OPTIONS'])
+@app.route('/user/<int:user_id>/update', methods=['POST'])
+@app.route('/user/<int:user_id>/complete_profile', methods=['POST'])
+@app.route('/user/<int:user_id>/follow', methods=['POST'])
+@app.route('/user/<int:user_id>/unfollow', methods=['POST'])
+@app.route('/user/<int:user_id>/<view>', methods=['GET', 'OPTIONS'])
+@login_required
+@line_profile
+def user(user_id=None, page=1, view=None):
+  session_id = session.get("session_id") 
+    
+  if request.path == '/update_profile_picture':
+    fid = request.args.get('fid')
+    api.update_user_info(session_id, {'avatar': long(fid)})
+    return 'OK'
+  
+  owner = api.get_owner_info(session_id)
+  user = api.get_user_info(user_id)
+  if not user.id:
+    abort(404)
+      
+  if view in ['edit', 'update_profile']:
+    if request.method == "OPTIONS":
+      resp = {'title': 'Update Profile',
+              'body': render_template('user.html',
+                                      mode='edit',
+                                      view='update_profile',
+                                      owner=owner)}
+      return Response(dumps(resp), mimetype='application/json')
+    else:
+      abort(400)
+
+  elif view == 'change_password':
+    resp = {'title': 'Change Password',
+            'body': render_template('user.html',
+                                    mode='change_password', 
+                                    owner=user)}
+    return Response(dumps(resp), mimetype='application/json')
+    
+  elif request.path.endswith('/complete_profile'):
+    name = request.form.get('name')
+    gender = request.form.get('gender')
+    password = request.form.get('password')
+    avatar = request.files.get('file')
+    
+    fid = api.new_attachment(session_id, avatar.filename, avatar.stream.read())
+    new_session_id = api.complete_profile(session_id, 
+                                          name, password, gender, fid)
+
+    resp = redirect('/everyone?getting_started=1&first_login=1')  
+    if new_session_id:
+      session['session_id'] = new_session_id
+    return resp
+    
+  elif request.path.endswith('/update'):
+#     old_password = request.form.get('current_password')
+#     new_password = request.form.get('new_password')
+#     confirm_new_password = request.form.get('confirm_new_password')
+#     
+#     if not new_password:
+#       return redirect('/?message=New password must not be empty')
+#       
+#     
+#     if old_password:
+#       if new_password != confirm_new_password:
+#         return redirect('/?message=New password does not match')
+#       else:
+#         ok = api.change_password(session_id, old_password, new_password)
+#         
+#         api.set_status(session_id, 'offline')
+#         api.sign_out(session_id)
+#         session.pop('session_id')
+#         
+#         return redirect('/?message=Password updated successfully.')
+#     
+#     if not old_password and new_password and new_password == confirm_new_password:
+#       if owner.has_password():
+#         return redirect('/?message=Please enter your current password.')
+#       else:
+#         user_id = api.get_user_id(session_id)
+#         api.reset_password(user_id, new_password)
+#         return redirect('/?message=New password updated successfully.')
+    
+    
+    name = request.form.get('name')
+    gender = request.form.get('gender')
+    
+      
+    intro = request.form.get('intro')
+    location = request.form.get('location')
+    
+    if location:
+      info = {'name': name,
+              'gender': gender,
+              'location': location,
+              'introduction': intro}
+    else:
+      info = {'name': name,
+              'gender': gender,
+              'introduction': intro}
+      
+    
+    disabled_notifications = []
+    if not request.form.get('comments'):
+      disabled_notifications.append('comments')
+    if not request.form.get('share_posts'):
+      disabled_notifications.append('share_posts')
+    if not request.form.get('mentions'):
+      disabled_notifications.append('mentions')  
+      
+    info['disabled_notifications'] = disabled_notifications
+    
+    birthday_day = request.form.get('birthday-day')
+    birthday_month = request.form.get('birthday-month')
+    birthday_year = request.form.get('birthday-year')
+    if birthday_day.isdigit() and birthday_month.isdigit() and birthday_year.isdigit():
+      info['birthday'] = '%s/%s/%s' % (birthday_day, birthday_month, birthday_year)
+      
+    
+    phone = request.form.get('phone')
+    if phone.replace('+', '').replace(' ', '').isdigit():
+      info['phone'] = phone
+    
+    fid = request.form.get('fid')
+    if fid:
+      info['avatar'] = long(fid)
+    api.update_user_info(session_id, info)
+    return redirect('/news_feed')
+        
+  elif request.path.endswith('/follow'):
+    api.add_to_contacts(session_id, user_id)
+#    api.follow(session_id, user_id)
+    return 'Done'
+  
+  elif request.path.endswith('/unfollow'):
+    api.remove_from_contacts(session_id, user_id)
+#    api.unfollow(session_id, user_id)
+    return 'Done'
+  
+  elif view == 'groups':
+    return dumps({'body': render_template('groups.html',
+                                          user=user,
+                                          owner=owner,
+                                          groups=user.groups)})
+  elif view == 'followers':
+    users = [api.get_user_info(user_id) for user_id in user.followers]
+    return dumps({'body': render_template('users.html', 
+                                          title='Followers',
+                                          users=users)})
+  
+  elif view == 'following':
+    users = [api.get_user_info(user_id) for user_id in user.following_users]
+    return dumps({'body': render_template('users.html', 
+                                          title='Following',
+                                          users=users)})
+    
+  elif view == 'starred':
+    posts = api.get_starred_posts(api.get_session_id(user_id))
+    body = render_template('user.html', 
+                           title='Starred', 
+                           category = 'starred',
+                           view='user',
+                           user=user,
+                           owner=owner,
+                           feeds=posts)
+    json = dumps({'body': body, 'title': 'Intelliview'})
+    return Response(json, mimetype='application/json')
+    
+
+  else:
+    
+    view = 'user'
+    title = user.name
+    
+    
+    if not session_id or owner.id == user.id:
+      feeds = api.get_public_posts(user_id=user.id, page=page)
+    else:
+      feeds = api.get_user_posts(session_id, user_id, page=page)
+
+    user.recent_files = api.get_user_files(session_id, user_id=user.id, limit=3)
+    user.recent_notes = api.get_user_notes(session_id, user_id=user.id, limit=3)
+    
+    coworkers = [user]
+    if request.method == "OPTIONS":   
+        
+      if page == 1:
+        body = render_template('user.html', 
+                               view=view, 
+                               user=user,
+                               owner=owner,
+                               title=title, 
+                               settings=settings,
+                               coworkers=coworkers,
+                               feeds=feeds)
+        
+        json = dumps({"body": body, 
+                      "title": title})
+        return Response(json, mimetype='application/json')
+      else:
+        posts = [render(feeds, 'feed', owner, 'user')]
+          
+        if len(feeds) == 0:
+          posts.append(render_template('more.html', more_url=None))
+        else:
+          posts.append(render_template('more.html', 
+                                       more_url='/user/%s/page%d' \
+                                       % (user_id, page+1)))
+        return ''.join(posts)
+      
+      
+      
+    else:
+      return render_homepage(session_id, title,
+                             coworkers=coworkers,
+                             user=user,
+                             feeds=feeds, view=view)
+  
+
+
+@app.route("/contacts", methods=["GET", "OPTIONS"])
+@login_required
+def contacts():
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+  
+  call_from = request.args.get('from')
+  
+  if call_from and call_from == 'posting':
+    tab = request.args.get('tab', 'contacts')
+
+    if tab == 'google-contacts':
+      if owner.google_contacts:
+        owner.google_contacts = [api.get_user_info(email=email)
+                                 for email in owner.google_contacts]
+    body = render_template('contacts_posting.html',
+                           tab=tab,
+                           owner=owner)
+  else:
+    body = render_template('contacts.html',
+                           owner=owner)
+  
+  return Response(dumps({'body': body,
+                         'title': 'Contacts'}), 
+                  mimetype='application/json')  
+  
+
+@app.route("/import_temp", methods=['OPTIONS', 'GET'])
+def import_data_temp():
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  owner = api.get_user_info(user_id)
+
+  # graph = facebook.GraphAPI(settings.FACEBOOK_APP_SECRET)
+  # profile = graph.get_object('me')
+  # print str(profile)
+
+  resp = {'body': render_template('import.html', owner=owner),
+          'title': 'Networks'}
+  return Response(dumps(resp), mimetype='application/json')
+
+
+@app.route("/networks", methods=['OPTIONS'])
+@app.route('/network/<string:network_id>/update', methods=['POST'])
+@app.route("/network/<string:network_id>/<view>", methods=['OPTIONS', 'GET'])
+@login_required
+@line_profile
+def networks(network_id=None, view=None):
+  session_id = session.get("session_id")
+  user_id = api.get_user_id(session_id)
+  if not user_id:
+    abort(400)
+    
+  owner = api.get_user_info(user_id)
+
+
+  if view in ['config']:
+    if request.method == "OPTIONS":
+      hostname = request.headers.get('Host', '').split(':')[0]
+      network_url = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+
+      if network_id != "0": # got network
+        network = api.get_network_by_id(network_id)
+      else:
+        # some old DB won't have info table (hence no network), init one with default value)
+        info = {'name': hostname.split('.')[0],
+                'domain'     : hostname,
+                'auth_google': True}
+
+        api.update_network_info(network_id, info)
+
+        network = api.get_network_by_hostname(hostname)
+
+      resp = {'title': 'Network Configuration',
+              'body': render_template('networks.html',
+                                      mode='edit',
+                                      view='config',
+                                      network=network,
+                                      network_url=network_url,
+                                      owner=owner)}
+      return Response(dumps(resp), mimetype='application/json')
+    else:
+      abort(400)
+  elif request.path.endswith('/update'):
+    # network_id = request.form.get('network_id')
+    name = request.form.get('name')
+    description = request.form.get('description')
+
+    auth_normal = True if request.form.get('auth_normal') else False
+    auth_normal_whitelist = request.form.get('auth_normal_whitelist')
+    auth_facebook = True if request.form.get('auth_facebook') else False
+
+
+    info = {'name': name,
+            'description': description,
+            'auth_normal': auth_normal,
+            'auth_normal_whitelist': auth_normal_whitelist,
+            'auth_google': True,
+            'auth_facebook': auth_facebook}
+
+    #fid = request.form.get('fid')
+    #if fid:
+    #  info['avatar'] = long(fid)
+
+    api.update_network_info(network_id, info)
+    return redirect('/news_feed')
+
+  resp = {'body': render_template('networks.html', owner=owner),
+          'title': 'Networks'}
+  return Response(dumps(resp), mimetype='application/json')
+
+
+@app.route("/network/new", methods=['GET', 'POST'])
+def network():
+  if request.path.endswith('/new'):
+    
+    domain = subdomain = organization_name = msg = None
+    
+    
+    if request.method == 'POST':
+      domain = request.form.get('domain')
+      organization_name = request.form.get('name')
+      
+        
+      if domain:
+        if  '.' not in domain:
+          msg = 'The domain you entered was invalid.'
+        elif not api.domain_is_ok(domain):
+          msg = '''\
+          Please make sure <strong>%s</strong> is mapped to <strong>play.jupo.com</strong>.<br>
+          If you already do it, please try again after few minutes. <br>
+          Normally it takes some time once you update your DNS records<br>
+          until the changes take effect around the world.''' % (domain)
+        
+      subdomain = request.form.get('subdomain')
+      
+      if subdomain and len(subdomain) > 50:
+        msg = 'Subdomain is too long.'
+        
+      if subdomain and not api.domain_is_ok(subdomain + '.jupo.com'):
+        msg = 'Subdomain already exists.'
+        
+      if not subdomain and not domain:
+        msg = 'Please enter a domain or choose a subdomain.'
+        
+      if not organization_name:
+        msg = 'Please enter your organization name.'
+        
+      
+      if not msg:
+          
+        # TODO: check subdomain is valid (a-Z0-9)
+        if subdomain:
+          db_name = subdomain.lower().strip() + '_jupo_com'
+          if api.is_exists(db_name=db_name):
+            msg = 'Subdomain already exists.'
+        elif domain:
+          db_name = domain.lower().strip().replace('.', '_')
+          if api.is_exists(db_name=db_name):
+            msg = 'Domain already exists.'
+        
+        if db_name and not msg:
+          api.new_network(db_name, organization_name)
+          if subdomain:
+            return redirect('http://%s.jupo.com/sign_up?welcome=1' % subdomain)
+          else:
+            return redirect('http://%s/sign_up?welcome=1' % domain)
+      
+        
+    return render_template('new_network.html', 
+                           ip=api.PRIMARY_IP,
+                           organization_name=organization_name,
+                           domain=domain,
+                           subdomain=subdomain,
+                           message=msg)
+
+
+
+@app.route("/everyone", methods=["GET", "OPTIONS"])
+@app.route("/everyone/page<int:page>", methods=["GET", "OPTIONS"])
+@app.route("/people", methods=["GET", "OPTIONS"])
+@app.route("/groups", methods=["GET", "OPTIONS"])
+@app.route("/group/new", methods=["GET", "OPTIONS", "POST"])
+@app.route("/group/<int:group_id>/update", methods=["POST"])
+@app.route("/group/<int:group_id>/follow", methods=["POST"])
+@app.route("/group/<int:group_id>/unfollow", methods=["POST"])
+@app.route("/group/<int:group_id>/highlight", methods=["POST"])
+@app.route("/group/<int:group_id>/unhighlight", methods=["POST"])
+@app.route("/group/<int:group_id>/add_member", methods=["POST"])
+@app.route("/group/<int:group_id>/remove_member", methods=["POST"])
+@app.route("/group/<group_id>/make_admin", methods=["POST"])
+@app.route("/group/<group_id>/remove_as_admin", methods=["POST"])
+@app.route("/group/<int:group_id>", methods=["GET", "OPTIONS"])
+@app.route("/group/<int:group_id>/page<int:page>", methods=["OPTIONS"])
+@app.route("/group/<int:group_id>/<view>", methods=["GET", "OPTIONS"])
+@login_required
+@line_profile
+def group(group_id=None, view='group', page=1):
+  hostname = request.headers.get('Host')
+  
+  session_id = session.get("session_id")    
+  user_id = api.get_user_id(session_id)
+  if not user_id:
+    return redirect('/?continue=%s' % request.path)
+  
+  owner = api.get_user_info(user_id)
+  
+  hashtag = request.args.get('hashtag')
+
+  first_login = request.args.get('first_login')
+
+    
+  if request.path.startswith('/everyone'):
+    group_id = 'public'
+  if request.path == '/people':
+    group_id = 'public'
+    view = 'members'
+  
+
+  
+  if request.path.endswith('/new'):
+    if request.method == 'GET':
+      name = request.args.get('name')
+      description = request.args.get('description')
+      return render_homepage(session_id, 'Groups',
+                             name=name,
+                             description=description,
+                             view='new-group')
+      
+    name = request.form.get('name')
+    if name:
+      privacy = request.form.get('privacy', 'closed')
+      about = request.form.get('about')
+      group_id = api.new_group(session_id, 
+                               name, privacy,
+                               about=about)
+
+      return str(group_id)
+    
+    else:     
+      name = request.args.get('name')
+      description = request.args.get('description')
+      body = render_template('new.html', 
+                             name=name,
+                             description=description,
+                             owner=owner,
+                             view='new-group')
+      return Response(dumps({'title': 'New Group',
+                             'body': body}), mimetype='application/json')
+    
+  if request.path.endswith('/follow'):
+    is_ok = api.join_group(session_id, group_id)
+    return 'Done'
+
+  elif request.path.endswith('/unfollow'):
+    api.leave_group(session_id, group_id)
+    return 'Done'
+
+  elif request.path.endswith('/highlight'):
+    note_id = request.args.get('note_id')
+    api.highlight(session_id, group_id, note_id)
+    return 'Done'
+
+  elif request.path.endswith('/unhighlight'):
+    note_id = request.args.get('note_id')
+    api.unhighlight(session_id, group_id, note_id)
+    return 'Done'
+    
+  elif request.path.endswith('/add_member'):
+    user_id = request.args.get('user_id')
+    api.add_member(session_id, group_id, user_id)
+    return 'Done' 
+  
+  elif request.path.endswith('/remove_member'):
+    user_id = request.args.get('user_id')
+    api.remove_member(session_id, group_id, user_id)
+    return 'Done' 
+  
+  elif request.path.endswith('/make_admin'):
+    user_id = request.args.get('user_id')
+    api.make_admin(session_id, group_id, user_id)
+    return 'Done' 
+  
+  elif request.path.endswith('/remove_as_admin'):
+    user_id = request.args.get('user_id')
+    api.remove_as_admin(session_id, group_id, user_id)
+    return 'Done' 
+  
+  
+      
+  elif request.path.endswith('/update'):
+    name = request.form.get('name')
+    about = request.form.get('about')
+    privacy = request.form.get('privacy', 'closed')
+    post_permission = request.form.get('post_permission', 'members')
+    
+    info = {'name': name,
+            'privacy': privacy,
+            'post_permission': post_permission,
+            'about': about}
+    
+    members = request.form.get('members')
+    if members:
+      members = [int(i) for i in members.split(',')]
+    else:
+      members = []
+  
+    if members:
+      info['members'] = members
+    
+    admins = request.form.get('administrators')
+    if admins:
+      admins = [int(i) for i in admins.split(',')]
+    else:
+      admins = []
+    if user_id not in admins:
+      admins.append(user_id)
+  
+    if admins:    
+      info['leaders'] = admins
+    
+    fid = request.form.get('fid')
+    if fid:
+      info['avatar'] = long(fid)
+    api.update_group_info(session_id, group_id, info)
+    return redirect('/group/%s' % group_id)
+    
+  if not group_id:
+    groups = api.get_groups(session_id)
+    
+    
+    featured_groups = default_groups = []
+    
+    _default_groups = [
+      {'name': 'Sales & Marketing', 
+       'description': 'Where the stories are made up and deals are closed'},
+      {'name': 'IT',
+       'description': 'We repeatedly fix what you repeatedly break'},
+      {'name': 'Test & QA',
+       'description': 'We make people feel bad about their work'},
+      {'name': 'R&D',
+       'description': 'Our favorite page is Google.com'},
+      {'name': 'Design',
+       'description': 'Design is now how it looks. Design is what the boss likes'},
+      {'name': 'Customer Services',
+       'description': 'Getting yelled at for things you can’t do anything about'}
+    ]
+    
+    if api.is_admin(user_id):
+      group_names = [group.name for group in groups]
+      default_groups = []
+      for group in _default_groups:
+        if group['name'] not in group_names:
+          default_groups.append(group)
+    else:
+      featured_groups = api.get_featured_groups(session_id)
+      if not groups and not featured_groups:
+        default_groups = _default_groups
+    
+    
+    if request.method == 'GET':
+      return render_homepage(session_id, 'Groups',
+                             groups=groups,
+                             featured_groups=featured_groups,
+                             default_groups=default_groups,
+                             view='groups')
+
+    else:
+      body = render_template('groups.html', 
+                             view='groups',
+                             owner=owner,
+                             featured_groups=featured_groups,
+                             default_groups=default_groups,
+                             groups=groups)
+      resp = Response(dumps({'body': body,
+                             'title': 'Groups'}))
+      return resp
+    
+  
+  group = api.get_group_info(session_id, group_id)  
+  if view == 'edit':
+    resp = {'title': 'Group Settings',
+            'body': render_template('group.html',
+                                    hostname=hostname,
+                                    mode='edit', 
+                                    group=group)}
+    return Response(dumps(resp), mimetype='application/json')
+    
+  
+  elif view == 'docs':  
+#    group.docs = api.get_docs_count(group_id)
+#    group.files = api.get_files_count(group_id)
+    
+    owner = api.get_owner_info(session_id)
+    docs = api.get_notes(session_id, group_id=group_id)
+    if request.method == 'OPTIONS':
+      body = render_template('group.html', 
+                             group=group,
+                             owner=owner,
+                             mode='docs', 
+                             docs=docs)
+      resp = Response(dumps({'body': body}), mimetype='application/json')
+      return resp
+    else:
+      return render_homepage(session_id, "%s's Notes" % group.name,
+                             view='group',
+                             mode='docs',
+                             group=group,
+                             docs=docs)
+  
+  elif view == 'files':
+    abort(404)
+    
+  elif view == 'events':
+    events = api.get_events(session_id, group_id, as_feeds=True)
+    body = render_template('events.html', events=events, owner=owner)
+    return dumps({'body': body, 'title': 'Events'})
+  
+  elif view == 'members':
+#     app.logger.debug('aaaaaaAAAAAAAAAAAAAAA')
+    
+#     group.docs = api.get_docs_count(group_id)
+#     group.files = api.get_files_count(group_id)
+    
+    owner = api.get_owner_info(session_id)
+#     body = render_template('group.html', 
+#                            view='members',
+#                            group=group, owner=owner)
+#     return dumps({'body': body})
+  
+    body = render_template('members.html', group=group, owner=owner)
+
+    
+    return Response(dumps({'body': body,
+                           'title': "%s's Members" % group.name}), 
+                    mimetype='application/json')  
+  
+  else:   
+    
+    if not group.id:
+      abort(404)
+    
+    if group_id == 'public':
+      feeds = api.get_public_posts(session_id, page=page)
+    else:
+      feeds = api.get_feeds(session_id, group_id, page=page)  
+      api.add_to_recently_viewed_list(session_id, group_id)
+  
+    if not group.highlight_ids:
+      group.recent_notes = api.get_notes(session_id, group_id=group_id, limit=3)
+    group.recent_files = api.get_attachments(session_id, 
+                                             group_id=group_id, limit=3)
+    
+    owner = api.get_owner_info(session_id)
+    
+    if request.method == 'OPTIONS':
+      if page > 1:
+        posts = [render(feeds, "feed", owner, view, group=group)]
+          
+        if len(feeds) == 0:
+          posts.append(render_template('more.html', more_url=None))
+        elif group_id == 'public':
+          posts.append(render_template('more.html', 
+                                       more_url='/everyone/page%d' % (page+1)))
+        else:
+          posts.append(render_template('more.html', 
+                                       more_url='/group/%s/page%d' \
+                                       % (group_id, page+1)))
+        return ''.join(posts)
+      else:
+#        upcoming_events = api.get_upcoming_events(session_id, group_id)
+      
+        
+        resp = {'title': group.name, 
+                'body': render_template('group.html', 
+                                        feeds=feeds, 
+                                        group=group,
+                                        owner=owner,
+                                        settings=settings,
+#                                        upcoming_events=upcoming_events,
+                                        view=view)}
+        
+        json = dumps(resp)
+        resp = Response(json, mimetype='application/json')
+        
+        return resp
+    else:
+      stats = {}
+      groups = api.get_groups(session_id)
+#      upcoming_events = api.get_upcoming_events(session_id, group_id)
+      
+      resp = render_homepage(session_id, 
+                             group.name,
+                             feeds=feeds, 
+                             view=view, 
+                             group=group,
+                             first_login=first_login,
+#                             upcoming_events=upcoming_events,
+                            )    
+#      resp.set_cookie('last_g%s' % group_id, api.utctime())
+      return resp
+
+
+@app.route('/chat/topic', methods=['GET', 'OPTIONS'])
+@app.route('/chat/user/<int:user_id>', methods=['GET', 'OPTIONS'])
+@app.route('/chat/user/<int:user_id>/<action>', methods=['POST'])
+@app.route('/chat/topic/<int:topic_id>', methods=['GET', 'OPTIONS'])
+@app.route('/chat/topic/<int:topic_id>/<action>', methods=['OPTIONS', 'POST'])
+@login_required
+def chat(topic_id=None, user_id=None, action=None):
+  session_id = session.get("session_id")
+  timestamp = request.args.get('ts')
+  
+  if action == 'new_message':    
+    msg = request.form.get('message')
+    codeblock = request.form.get('codeblock')
+    if '\n' in msg.strip() and codeblock:
+      codeblock = True
+    else:
+      codeblock = False
+    html = api.new_message(session_id, msg, 
+                           user_id=user_id, 
+                           topic_id=topic_id,
+                           is_codeblock=codeblock)
+    return html
+  
+  elif action == 'new_file':
+    if request.args.get('link'): # dropbox/google drive files
+      link = request.args.get('link')
+      name = request.args.get('name')
+      bytes = request.args.get('bytes')
+      type_ = request.args.get('type')
+      
+      if type_ == 'google-drive-file':
+        message = '@[%s](%s:%s)' % (name, type_, link)
+      else:
+        message = '@[%s (%s)](dropbox-file:%s)' % (name, 
+                                                   api.sizeof(int(bytes)),
+                                                   link)
+      html = api.new_message(session_id, message, 
+                             user_id=user_id, topic_id=topic_id,)
+      return html
+    
+    
+    
+    file = request.files.get('file')
+    filename = file.filename
+    attachment_id = api.new_attachment(session_id, 
+                                       file.filename, 
+                                       file.stream.read())
+    
+    html = api.new_message(session_id, attachment_id, 
+                           user_id=user_id, topic_id=topic_id)
+    return html
+  
+  elif action == 'mark_as_read':
+    owner_id = api.get_user_id(session_id)
+    if user_id:
+      api.update_last_viewed(owner_id, user_id=user_id)
+    else:
+      api.update_last_viewed(owner_id, topic_id=topic_id)
+      
+    return 'OK'
+  
+  elif action == 'update':
+    name = request.args.get('name')
+    api.update_topic(session_id, topic_id, name)
+    return 'OK'
+  
+  elif action == 'members':
+    topic = api.get_topic_info(topic_id)
+    owner = api.get_owner_info(session_id)
+    body = render_template('topic_members.html', topic=topic, owner=owner)
+
+    return Response(dumps({'body': body}), 
+                    mimetype='application/json')  
+    
+  else:
+    owner_id = api.get_user_id(session_id)
+    
+    user_ids = request.args.get('user_ids', '').split('/')[0]
+    user_ids = [int(i) \
+                for i in user_ids.split(',') \
+                if i.isdigit()]
+    if user_ids:
+      topic_id = api.new_topic(owner_id, user_ids)
+      return str(topic_id)
+    
+    if request.method == 'GET':
+      if user_id:
+        return redirect('/messages/user/%s' % user_id)
+      elif topic_id:
+        return redirect('/messages/topic/%s' % topic_id)
+      else:
+        abort(400)
+    
+    user = topic = seen_by = None
+    if user_id:
+      user = api.get_user_info(user_id)
+      messages = api.get_chat_history(session_id, 
+                                      user_id=user_id, 
+                                      timestamp=timestamp)
+      
+      if not timestamp:
+        last_viewed = api.get_last_viewed(user_id, owner_id) \
+                    + int(api.get_utcoffset(owner_id))
+                    
+        last_viewed_friendly_format = api.friendly_format(last_viewed, short=True)
+        if last_viewed_friendly_format.startswith('Today'):
+          last_viewed_friendly_format = last_viewed_friendly_format.split(' at ')[-1]
+        
+        
+        if messages and (messages[-1].sender.id == owner_id) and (messages[-1].timestamp < last_viewed):
+          seen_by = 'Seen %s' % last_viewed_friendly_format
+          
+    else:
+      last_viewed = last_viewed_friendly_format = 0
+      topic = api.get_topic_info(topic_id)
+      messages = api.get_chat_history(session_id, 
+                                      topic_id=topic_id, 
+                                      timestamp=timestamp)  
+      
+      if not timestamp:
+        if messages:
+          utcoffset = int(api.get_utcoffset(owner_id))
+          last_viewed = {}
+          seen_by = []
+          for i in topic.member_ids:
+            ts = api.get_last_viewed(i, topic_id=topic_id) + utcoffset
+            last_viewed[i] = ts
+            if messages[-1].timestamp < ts:
+              seen_by.append(i)
+        
+        if seen_by:
+          if len(seen_by) >= len(topic.member_ids):
+            seen_by = 'Seen by everyone.'
+          elif len(seen_by) == 1 and seen_by[0] == owner_id:
+            seen_by = None
+          else:
+            seen_by = 'Seen by %s' % ', '.join([api.get_user_info(i).name \
+                                                for i in seen_by \
+                                                if i != owner_id])
+            
+    
+    if timestamp:
+      return render_template('messages.html', 
+                             owner={'id': owner_id},
+                             timestamp=timestamp,
+                             messages=messages, user=user, topic=topic)
+    else:
+      return render_template('chatbox.html', 
+                             owner={'id': owner_id},
+                             seen_by=seen_by,
+                             timestamp=timestamp,
+                             messages=messages, user=user, topic=topic)
+    
+    
+
+@app.route("/messages", methods=['GET', 'OPTIONS'])
+@app.route("/messages/archived", methods=['GET', 'OPTIONS'])
+@app.route("/messages/user/<int:user_id>", methods=['GET', 'OPTIONS'])
+@app.route("/messages/topic/<int:topic_id>", methods=['GET', 'OPTIONS'])
+@app.route("/messages/topic/<int:topic_id>/<action>", methods=['POST'])
+@login_required
+@line_profile
+def messages(user_id=None, topic_id=None, action=None):
+  session_id = session.get("session_id")
+  
+  if topic_id and request.method == 'POST':
+    if action == 'archive':
+      api.archive_topic(session_id, topic_id)
+    elif action == 'unarchive':
+      api.unarchive_topic(session_id, topic_id)
+    elif action == 'leave':
+      api.leave_topic(session_id, topic_id)
+      
+    return 'OK'
+    
+  
+  owner = api.get_user_info(api.get_user_id(session_id))
+  suggested_friends = [] # api.get_friend_suggestions(owner.to_dict())
+  coworkers = [] # api.get_coworkers(session_id)
+  
+  archived = True if request.path.endswith('/archived') else False
+  
+  topics = api.get_messages(session_id, archived=archived)
+  
+  unread_messages = {}
+  for i in api.get_unread_messages(session_id, archived=archived):
+    if i and i.get('sender'):
+      unread_messages[i['sender'].id] = i['unread_count']
+    else:
+      unread_messages[i['topic'].id] = i['unread_count']
+      
+  for message in topics:
+    if message.topic_id:
+      _id = message.topic_id
+    elif message.sender.id == owner.id:
+      _id = message.receiver.id
+    else:
+      _id = message.sender.id
+    if unread_messages.has_key(_id):
+      message.unread_count = unread_messages[_id]
+    else:
+      message.unread_count = 0
+
+  if request.method == 'GET':
+    return render_homepage(session_id, 'Messages',
+                           suggested_friends=suggested_friends,
+                           coworkers=coworkers,
+                           topics=topics, 
+                           user_id=user_id, topic_id=topic_id,
+                           archived=archived,
+                           view='messages')
+  else:
+    body = render_template('expanded_chatbox.html',
+                           suggested_friends=suggested_friends,
+                           coworkers=coworkers,
+                           topics=topics, 
+                           user_id=user_id, topic_id=topic_id,
+                           archived=archived,
+                           owner=owner)
+    resp = Response(dumps({'body': body,
+                           'title': 'Messages'}))
+    return resp      
+
+@app.route("/", methods=["GET"])
+@line_profile
+def home():
+  hostname = request.headers.get('Host', '').split(':')[0]
+  db_name=hostname.replace('.', '_')
+
+  # for sub-network, network = mp3.com
+  # for homepage, network = ''
+  network = api.get_network_by_current_hostname(hostname)
+
+  network_exist = 1
+  
+  # get session_id with this priority
+  # check from GET parameter 'code', for invitation link
+  # check from GET parameter 'session_id', for in-app redirect
+  # check from session, for the rest
+  if request.args.get('code'):
+    session_id = request.args.get('code')
+  elif request.args.get('session_id'):
+    session_id = request.args.get('session_id')
+  else:
+    session_id = session.get("session_id")
+
+  ## save to session
+  #if session_id:
+  #  session.permanent = True
+  #  session['session_id'] = session_id
+
+  # get user info based on session_id
+  user_id = api.get_user_id(session_id)
+
+  # check invitation link (request that get 'code' parameter)
+  if request.args.get('code'):
+    # invalid invitation code ?
+    if not user_id:
+      flash('Invitation is invalid. Please check again')
+      return redirect('http://' + settings.PRIMARY_DOMAIN)
+    else:
+      session['session_id'] = code
+      owner = api.get_user_info(user_id)
+
+      resp = make_response(
+               render_template('profile_setup.html',
+                                 owner=owner, jupo_home=settings.PRIMARY_DOMAIN,
+                                 code=code, user_id=user_id)
+           )
+
+      # set the network here so that api.get_database_name() knows which network calls it
+      network = owner.email_domain
+  else:
+    # authentication OK, redirect to /news_feed
+    if user_id:
+      # network = request.cookies.get('network')
+      if network != "":
+        # used to 404 if network doesn't exist. now we switch to customized landing page for them (even if network doesn't exist yet)
+        if not api.is_exists(db_name):
+          network_exist = 0
+
+        # TODO: what's this ???
+        #if not api.is_domain_name(network):
+        #  network = hostname
+
+        resp = redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN, network))
+      else:
+        resp = redirect('http://%s/news_feed' % (settings.PRIMARY_DOMAIN))
+
+      session['session_id'] = session_id
+
+      # clear current network info (cookies, sessions), so that the routing to new network doesn't get mixed up
+      # resp.delete_cookie('redirect_to')
+      # session.pop('session_id')
+    else:
+      #pass
+      #try:
+      #  session.pop('session_id')
+      #except KeyError:
+      #  pass
+
+      email = request.args.get('email')
+      message = request.args.get('message')
+      error_type = request.args.get('error_type')
+      network_info = api.get_network_by_hostname(hostname)
+
+      # if session_id:
+      #   flash('Session is invalid. Please check again')
+      # print "DEBUG - in home() - about to render homepage - hostname = " + str(hostname)
+      # print "DEBUG - in home() - about to render homepage - network = " + str(network)
+      resp = Response(render_template('landing_page.html',
+                                      email=email,
+                                      settings=settings,
+                                      domain=settings.PRIMARY_DOMAIN,
+                                      network=network,
+                                      network_info=network_info,
+                                      network_exist=network_exist,
+                                      error_type=error_type,
+                                      message=message))
+
+      back_to = request.args.get('back_to', '')
+      if back_to:
+        resp.set_cookie('redirect_to', back_to)
+
+  resp.set_cookie('network', network)
+  return resp
+
+@app.route("/news_feed", methods=["GET", "OPTIONS"])
+@app.route("/news_feed/page<int:page>", methods=["GET", "OPTIONS"])
+@app.route('/archived', methods=['GET', 'OPTIONS'])
+@app.route('/archived/page<int:page>', methods=['GET', 'OPTIONS'])
+@app.route("/news_feed/archive_from_here", methods=["POST"])
+#@login_required
+@line_profile
+def news_feed(page=1):
+  # import pdb
+  # pdb.set_trace()
+
+  
+  
+  session_id = session.get("session_id")
+  print "DEBUG - just enter news_feed - session_id got from session = " + str(session_id)
+    
+  if request.path.endswith('archive_from_here'):
+    ts = float(request.args.get('ts', api.utctime()))
+    api.archive_posts(session_id, ts)
+    return 'Done'
+    
+  app.logger.debug(api.get_database_name())
+  app.logger.debug(session_id)
+
+  user_id = api.get_user_id(session_id=session_id)
+  app.logger.debug("user_id found = " + str(user_id))
+  if not user_id:
+    resp = Response(render_template('landing_page.html',
+                                    settings=settings,
+                                    domain=settings.PRIMARY_DOMAIN))
+    return resp
+  
+  #if user_id and request.cookies.get('redirect_to'):
+  #  print "DEBUG - in news_feed - invalid user_id - redirect to " + str(request.cookies.get('redirect_to'))
+  #  redirect_to = request.cookies.get('redirect_to')
+  #  if redirect_to != request.url:
+  #    resp = redirect(request.cookies.get('redirect_to'))
+  #    resp.delete_cookie('redirect_to')
+  #    print "DEBUG - in news_feed - redirect to last known place"
+  #    return resp
+  
+  
+  # Bắt user dùng facebook phải invite friends trước khi dùng ứng dụng
+#  
+#  if request.args.get('request') and request.args.get('to[0]'):
+#    api.update_user_info(session_id, {'fb_request_sent': True})
+#  
+#  else:
+#    user = api.get_user_info(user_id)
+#    if not user.fb_request_sent:
+#      return redirect('https://www.facebook.com/dialog/apprequests?app_id=%s' % settings.FACEBOOK_APP_ID \
+#                      + '&message=Qua%20%C4%91%C3%A2y%20th%E1%BB%AD%20c%C3%A1i%20n%C3%A0o%20:-)&redirect_uri=https://www.jupo.com/')
+#  
+  
+  #####
+  
+  
+  filter = request.args.get('filter', 'default')
+  app.logger.debug('session_id: %s' % session_id)
+  
+  
+  view = 'news_feed'
+  title = "Jupo"
+  hostname = request.headers.get('Host').split(':')[0]
+  network_url = hostname[:(len(hostname) - len(settings.PRIMARY_DOMAIN) - 1)]
+
+  if hostname != settings.PRIMARY_DOMAIN:
+    network_info = api.get_network_info(hostname.replace('.', '_'))
+    if network_info and network_info.has_key('name'):
+      title = network_info['name']
+  
+  if filter == 'archived':
+    feeds = api.get_archived_posts(session_id, page=page)
+    category = 'archived'
+  elif filter == 'email':
+    feeds = api.get_emails(session_id, page=page)
+    category = 'email'
+  elif filter == 'all':
+    feeds = api.get_feeds(session_id, page=page, 
+                          include_archived_posts=True)
+    category = None
+#  elif '@' in filter:
+#    feeds = api.get_emails(session_id, page)
+  else:
+    feeds = api.get_feeds(session_id, page=page, 
+                          include_archived_posts=False)
+    category = None
+    
+    
+  owner = api.get_user_info(user_id)
+  
+  if request.method == "OPTIONS":
+    if page > 1:
+      posts = []
+      for feed in feeds:
+        if feed.id not in owner.unfollow_posts:
+          posts.append(render(feed, "feed", owner, view)) 
+      if len(feeds) == 0:
+        posts.append(render_template('more.html', more_url=None))
+      elif filter:
+        posts.append(render_template('more.html', 
+                                     more_url='/news_feed/page%d?filter=%s' \
+                                     % (page+1, filter)))
+      else:
+        posts.append(render_template('more.html', 
+                                     more_url='/news_feed/page%d' % (page+1)))
+      
+      return ''.join(posts)
+    
+    else:
+      
+      pinned_posts = api.get_pinned_posts(session_id) \
+                     if filter == 'default' else None
+      suggested_friends = api.get_friend_suggestions(owner.to_dict())
+      coworkers = api.get_coworkers(session_id)
+      browser = api.Browser(request.headers.get('User-Agent'))
+      
+      body = render_template('news_feed.html',
+                             network_url=network_url,
+                             owner=owner,
+                             view=view, 
+                             title=title, 
+                             filter=filter,
+                             browser=browser,
+                             category=category,
+                             coworkers=coworkers,
+                             suggested_friends=suggested_friends,
+                             pinned_posts=pinned_posts,
+                             settings=settings,
+                             feeds=feeds)
+      
+      json = dumps({"body": body, 
+                    "title": title})
+            
+      resp = Response(json, mimetype='application/json')
+      
+      
+  else:  
+    pinned_posts = api.get_pinned_posts(session_id) \
+                   if filter == 'default' else None
+    suggested_friends = api.get_friend_suggestions(owner.to_dict())
+    coworkers = api.get_coworkers(user_id, limit=5)
+    browser = api.Browser(request.headers.get('User-Agent'))
+    
+    resp = render_homepage(session_id, title,
+                           view=view,
+                           coworkers=coworkers,
+                           filter=filter,
+                           browser=browser,
+                           category=category,
+                           pinned_posts=pinned_posts,
+                           suggested_friends=suggested_friends,
+                           feeds=feeds)
+    
+  resp.delete_cookie('redirect_to')
+  return resp
+
+
+@app.route("/feed/new", methods=['POST'])
+@app.route("/feed/<int:feed_id>", methods=['GET', 'OPTIONS'])
+@app.route("/post/<int:feed_id>", methods=['GET'])
+@app.route("/feed/<int:feed_id>/<action>", methods=["POST"])
+@app.route("/feed/<int:feed_id>/<int:comment_id>/<action>", methods=["POST"])
+@app.route("/feed/<int:feed_id>/starred", methods=["OPTIONS"])
+@app.route("/feed/<int:feed_id>/<message_id>@<domain>", methods=["GET", "OPTIONS"])
+@app.route("/feed/<int:feed_id>/likes", methods=["OPTIONS"])
+@app.route("/feed/<int:feed_id>/read_receipts", methods=["OPTIONS"])
+@app.route("/feed/<int:feed_id>/comments", methods=["OPTIONS"])
+@app.route("/feed/<int:feed_id>/viewers", methods=["GET", "POST"])
+@app.route("/feed/<int:feed_id>/reshare", methods=["GET", "POST"])
+@line_profile
+def feed_actions(feed_id=None, action=None, 
+                 message_id=None, domain=None, comment_id=None):
+  session_id = session.get("session_id")
+#  if message_id:
+#    message_id = '%s@%s' % (message_id, domain)
+#    
+#    # TODO: check permission
+#    message = api.DATABASE[api.get_database_name(request)].stream.find_one({'message_id': message_id})
+#    if not message:
+#      thread = api.DATABASE.stream.find_one({'comments.message_id': message_id})
+#      if thread:
+#        comments = thread['comments']
+#        for comment in comments:
+#          if comment.get('message_id') == message_id:
+#            message = comment
+#            message['subject'] = thread['subject']
+#            message['body'] = comment.get('html', comment.get('message'))
+#            break
+#      else:
+#        abort(404)
+#    else:
+#      message['body'] = message.get('html', message.get('body'))
+#      
+#  
+#    if request.method == 'OPTIONS':
+#      message['id'] = feed_id
+#      return dumps({'body': render_template('email.html', feed=message),
+#                    'title': message['subject']})
+#      return message
+#    else:
+#      return render_homepage(session_id, message['subject'],
+#                             view='email', mode='view', feed=message)
+  
+  user_id = api.get_user_id(session_id)
+  if not user_id:
+    if not request.path.startswith('/post/'):
+      # return redirect('/')
+      resp = redirect('http://' + settings.PRIMARY_DOMAIN)
+      hostname = request.headers.get('Host')
+      network = hostname[:-(len(settings.PRIMARY_DOMAIN)+1)]
+      url_redirect = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN, network, request.path)
+      resp.set_cookie('redirect_to', url_redirect)
+      return resp
+    
+  utcoffset = request.cookies.get('utcoffset')
+  if utcoffset:
+    api.update_utcoffset(user_id, utcoffset)
+  
+  owner = api.get_user_info(user_id)
+#  if not owner.id:
+#    return redirect('/sign_in?continue=%s' % request.path)
+  
+  if request.path.endswith('new'):
+    facebook_access_token = session.get('facebook_access_token', [None])[0]
+    message = request.form.get('message')
+    viewers = request.form.get('viewers')
+    if viewers:
+      viewers = viewers.split(',')
+    else:
+      viewers = []    
+    
+    attachments = request.form.get('attachments')
+    if attachments:
+      attachments = attachments.rstrip(',').split(',')
+      attachments = list(set(attachments))
+      app.logger.debug(attachments)
+    else:
+      attachments = []
+
+    feed_id = api.new_feed(session_id, 
+                           message, 
+                           viewers, 
+                           attachments,
+                           facebook_access_token=facebook_access_token)
+    feed = api.get_feed(session_id, feed_id)
+    return render_template('feed.html', 
+                           view=request.args.get('rel'),
+                           feed=feed, owner=owner, hide_comments=True)
+    
+  elif request.path.endswith('/viewers'):
+    if request.method == 'GET':
+      feed = api.get_feed(session_id, feed_id)
+      return render_template('viewers.html', feed=feed)
+    else:
+      viewers = request.form.get('viewers')
+      viewers = viewers.split(',')
+      
+      api.set_viewers(session_id, feed_id, viewers)
+      
+      feed = api.get_feed(session_id, feed_id)
+      return render_template('feed.html', 
+                             owner=owner,
+                             feed=feed)
+    
+  elif request.path.endswith('/reshare'):
+    if request.method == 'GET':
+      return render_template('reshare.html', feed_id=feed_id)
+    else:
+      viewers = request.form.get('to')
+      viewers = viewers.split(',')
+      app.logger.debug(viewers)
+      
+      api.reshare(session_id, feed_id, viewers)
+      
+      feed = api.get_feed(session_id, feed_id)
+      return render_template('feed.html', 
+                             view='discover',
+                             owner=owner,
+                             feed=feed)
+      
+  elif request.path.endswith('/starred'):
+    feed = api.get_feed(session_id, feed_id)
+    users = feed.starred_by    
+    body = render_template('users.html', title='Starred', users=users)
+    json = dumps({'body': body, 'title': 'Intelliview'})
+    return Response(json, mimetype='application/json')
+    
+  elif request.path.endswith('/likes'):
+    feed = api.get_feed(session_id, feed_id)
+    users = feed.liked_by
+    
+    body = render_template('people_who_like_this.html',
+                           owner=owner, users=users)
+    json = dumps({'body': body, 'title': 'People who like this'})
+    return Response(json, mimetype='application/json')  
+    
+  elif request.path.endswith('/read_receipts'):
+    feed = api.get_feed(session_id, feed_id)
+    read_receipts = feed.seen_by
+    
+    body = render_template('people_who_saw_this.html',
+                           owner=owner, read_receipts=read_receipts)
+    json = dumps({'body': body, 'title': 'People who saw this'})
+    return Response(json, mimetype='application/json')  
+    
+  
+  elif request.path.endswith('/comments'):
+    limit = int(request.args.get('limit', 5))
+    last_comment_id = int(request.args.get('last'))
+    
+    post = api.get_feed(session_id, feed_id)
+    if not post.id:
+      abort(400)
+    
+    comments = []
+    for comment in post.comments:
+      if comment.id == last_comment_id:
+        break
+      else:
+        comments.append(comment)
+    
+    if len(comments) > limit:
+      comments = comments[-limit:]
+      
+    html = render(comments, 'comment', 
+                  owner, None, None, 
+                  item=post, hidden=True)
+    resp = {'html': html,
+            'length': len(comments),
+            'comments_count': post.comments_count}
+    
+    if comments[0].id != post.comments[0].id:
+      resp['next_url'] = '/feed/%s/comments?last=%s' \
+                          % (feed_id, comments[0].id)
+      
+    return Response(dumps(resp), mimetype='application/json')
+  
+  
+  elif action == 'remove':
+    group_id = request.args.get('group_id')
+    api.remove_feed(session_id, feed_id, group_id=group_id)
+    
+  elif action == 'undo_remove':
+    feed_id = api.undo_remove(session_id, feed_id)
+    
+  elif action == 'star':
+    feed_id = api.star(session_id, feed_id)
+    
+  elif action == 'unstar':
+    feed_id = api.unstar(session_id, feed_id)  
+    
+  elif action == 'pin':
+    feed_id = api.pin(session_id, feed_id)  
+    
+  elif action == 'unpin':
+    feed_id = api.unpin(session_id, feed_id)  
+    
+  elif action == 'archive':
+    api.archive_post(session_id, feed_id)
+    
+  elif action == 'unarchive':
+    api.unarchive_post(session_id, feed_id)
+  
+  elif action == 'remove_comment':
+    api.remove_comment(session_id, comment_id, post_id=feed_id)
+  
+  elif action == 'update':
+    message = request.args.get('msg').strip()
+    api.update_post(session_id, feed_id, message)
+    return 'OK'
+    
+  elif action == 'update_comment':
+    message = request.form.get('message')
+    api.update_comment(session_id, comment_id, message, post_id=feed_id)
+    comment = '''{{ message | autolink | autoemoticon | nl2br | sanitize }}'''
+    message = api.filters.sanitize_html(\
+                  api.filters.nl2br(\
+                      api.filters.autoemoticon(\
+                          api.filters.autolink(message))))
+
+    return message
+      
+  elif action == 'unfollow':
+    feed_id = api.unfollow_post(session_id, feed_id)
+      
+  elif action == 'mark_as_task':
+    api.mark_as_task(session_id, feed_id)
+      
+  elif action == 'mark_unresolved':
+    api.mark_unresolved(session_id, feed_id)
+      
+  elif action == 'mark_as_read':
+    api.mark_as_read(session_id, feed_id)
+      
+  elif action == 'comment':
+    
+    message = request.form.get('message', '')
+    attachments = request.form.get('attachments')
+    reply_to = request.form.get('reply_to')
+    if reply_to.isdigit():
+      reply_to = int(reply_to)
+    else:
+      reply_to = None  
+    from_addr = request.form.get('from')
+    app.logger.debug(from_addr) 
+    
+    if not message and not attachments:
+      abort(403)
+    
+    app.logger.debug(attachments) 
+    if attachments:
+      attachments = attachments.rstrip(',').split(',')
+      attachments = list(set(attachments))
+    else:
+      attachments = []
+
+    info = api.new_comment(session_id, 
+                           message, feed_id, attachments, 
+                           reply_to=reply_to,
+                           from_addr=from_addr)
+    
+    if not info:
+      abort(400)
+    
+    item = {'id': feed_id}
+    html = render_template('comment.html', 
+                           comment=info,
+                           prefix='feed',
+                           item=item,
+                           owner=owner)
+    
+    return html
+    
+  else:
+    feed = api.get_feed(session_id, feed_id)
+    if request.method == 'OPTIONS':
+      body = render_template('news_feed.html',
+                             view='news_feed',
+                             mode='view',
+                             owner=owner,
+                             feed=feed)
+      msg = filters.clean(feed.message)
+      if not msg or \
+        (msg and str(msg).strip()[0] == '{' and str(msg).strip()[-1] == '}'):
+        title = ''
+      else:
+        title = msg if len(msg)<= 50 else msg[:50] + '...'
+        title = title.decode('utf-8', 'ignore').encode('utf-8')
+        
+      json = dumps({'body': body, 'title': title})
+      return Response(json, mimetype='application/json')
+    else:
+      if not session_id and feed is False:
+        return redirect('/?back_to=%s' % request.path)
+      
+      if session_id and not feed.id:
+        abort(404)
+      
+      image = description = None
+      if feed.is_note():
+        title = feed.details.title
+        description = feed.details.content
+        # TODO: insert image of post
+      elif feed.is_file():
+        title = feed.details.name
+        description = feed.details.size
+      else:
+        
+        msg = filters.clean(feed.message)
+        if not msg or \
+          (msg and str(msg).strip()[0] == '{' and str(msg).strip()[-1] == '}'):
+          title = ''
+        else:
+          title = msg if len(msg)<= 50 else msg[:50] + '...'
+          title = title.decode('utf-8', 'ignore').encode('utf-8')
+            
+
+        if feed.urls:
+          url = feed.urls[0]
+          description = feed.urls[0].description
+          if url.img_src:
+            image = url.img_src
+          else:
+            image = url.favicon
+      if request.path.startswith('/post/') or not owner.id:
+        return render_template('post.html',
+                               network=request.headers.get('Host')[:-(len(settings.PRIMARY_DOMAIN) + 1)],
+                               owner=owner,
+                               mode='view',
+                               settings=settings,
+                               title=title, 
+                               description=description, 
+                               image=image, 
+                               feed=feed)
+      else:
+        return render_homepage(session_id, 
+                               title=title, description=description, image=image,
+                               view='feed', mode='view', feed=feed)
+    
+  return str(feed_id)
+
+
+@csrf.exempt
+@app.route('/hooks/<service>/<key>', methods=['POST'])
+@app.route('/group/<int:group_id>/new_<service>_key')
+def service_hooks(service, key=None, group_id=None):
+  hostname = request.headers.get('Host')
+  
+  if group_id: # new key
+    session_id = session.get('session_id')
+    key = api.get_new_webhook_key(session_id, group_id, service)
+    return 'http://%s/hooks/%s/%s' % (hostname, service, key)
+  
+  if service == 'gitlab':
+    feed_id = api.new_hook_post(service, key, request.data)
+  elif service == 'github':
+    feed_id = api.new_hook_post(service, key, request.form.get('payload'))
+  return str(feed_id)  
+
+@app.route('/events', methods=['GET', 'OPTIONS'])
+def events():
+  session_id = session.get("session_id")
+  events = api.get_events(session_id, as_feeds=True)
+  if request.method == 'GET':
+    return render_homepage(session_id, 'Events',
+                           view='events',
+                           events=events)
+  else:
+    owner = api.get_owner_info(session_id)
+    body = render_template('events.html', events=events, owner=owner)
+    return dumps({'body': body, 'title': 'Events'})
+
+
+
+@app.route('/event/new', methods=['OPTIONS', 'POST'])
+@app.route('/event/<int:event_id>', methods=['GET', 'OPTIONS'])
+@app.route('/event/<int:event_id>/mark_as_read', methods=['GET', 'POST'])
+@app.route('/<int:group_id>/events', methods=['GET', 'POST'])
+def event(event_id=None, group_id=None):
+  session_id = session.get("session_id")
+  if request.path == '/event/new':
+    group_id = request.args.get('group_id')
+    name = request.form.get("name")
+    if not name:  # not submit
+      if group_id:
+        group = api.get_group_info(session_id, group_id)
+      else:
+        group = None
+      body = render_template('event.html', group=group)
+      return dumps({'body': body})
+    
+    when = request.form.get('when')
+    when = strptime(when, "%a %d, %B %Y - %I:%M%p")
+    when = mktime(when)
+    
+    where = request.form.get('where')
+    details = request.form.get('details')
+    viewers = request.form.get('viewers')
+    if viewers:
+      viewers = viewers.split(',')
+    event_id = api.new_event(session_id, name, when, where, None, details, viewers)
+    event = api.get_event(session_id, event_id)
+    body = render_template('event.html', 
+                           event=event)
+    return dumps({'body': body,
+                  'reload': True})
+  elif group_id:
+    events = api.get_events(session_id, group_id)
+    pass
+  elif event_id:
+    if request.path.endswith('mark_as_read'):
+      api.mark_as_read(session_id, event_id)
+      return 'Done'
+    event = api.get_event(session_id, event_id)
+    body = render_template('event.html', event=event)
+    return dumps({'body': body})
+    
+  else:
+    event = api.get_events(session_id)
+
+  
+@app.route("/files", methods=['GET', 'OPTIONS'])
+@login_required
+@line_profile
+def files():
+  session_id = session.get("session_id")
+  owner = api.get_owner_info(session_id)
+  title = "Files"
+  files = api.get_files(session_id) 
+  attachments = api.get_attachments(session_id)
+  group_id = request.args.get('group_id')
+  group = api.get_group_info(session_id, group_id)
+  
+  if request.method == 'OPTIONS':
+    body = render_template('files.html', 
+                           view='files', 
+                           owner=owner,
+                           files=files,
+                           attachments=attachments,
+                           group=group)
+    return dumps({'body': body, 
+                  'title': 'Files'})
+  else:
+    return render_homepage(session_id, title,
+                           view='files', 
+                           files=files, 
+                           attachments=attachments)
+    
+  
+
+@app.route("/attachment/new", methods=["POST"])
+@app.route("/attachment/<int:attachment_id>")
+@app.route("/attachment/<int:attachment_id>.png")
+@app.route("/attachment/<int:attachment_id>.jpg")
+@app.route("/attachment/<int:attachment_id>/<action>", methods=["POST"])
+def attachment(attachment_id=None, action=None):
+  session_id = session.get("session_id")
+  if request.path.endswith('new'):
+    
+    file = request.files.get('file')
+    filename = file.filename
+    attachment_id = api.new_attachment(session_id, 
+                                       file.filename, 
+                                       file.stream.read())
+    
+    info = api.get_attachment_info(attachment_id)
+    info = {'html': render_template('attachment.html', attachment=info),
+            'attachment_id': str(attachment_id)}
+    json = dumps(info)
+    return Response(json, mimetype='application/json')
+
+  elif action == 'remove':
+    api.remove_attachment(session_id, attachment_id)
+    return str(attachment_id)
+  
+  else:
+    attachment = api.get_attachment(attachment_id)
+    post_id = request.args.get('rel')
+    viewers = []
+    if post_id:
+      post = api.get_feed(session_id, int(post_id))
+      if (post and not post.id) or not post:
+        abort(400)
+      comments = post.to_dict().get('comments')
+      if attachment_id in post.attachment_ids:
+        viewers = post.viewer_ids
+      elif comments:
+        for comment in comments:
+          if attachment_id in comment.get('attachments', []):
+            viewers = post.viewer_ids
+            break
+      else:
+        abort(403, 'Permission Denied')
+    else:
+      viewers = [api.get_attachment_info(attachment_id).owner.id]
+
+      
+    if isinstance(attachment, unicode) or isinstance(attachment, str):
+      s3_url = attachment
+      return redirect(s3_url, code=301)
+    
+    
+    if not attachment:
+      abort(404, 'File not found')
+      
+    filedata = attachment.read()
+    filename = attachment._filename
+    
+    resp = Response(filedata)
+    
+    name = request.args.get('name', request.args.get('filename'))
+    content_type = attachment.content_type \
+                   if attachment.content_type \
+                   else 'application/octet-stream'
+    if not name and not content_type.startswith('image/'):
+      name = filename
+    if name:
+      resp.headers['Content-Disposition'] = str('attachment; filename="%s"' % name)
+      resp.headers['Content-Type'] = guess_type(name)[0]
+    else:
+      resp.headers['Content-Type'] = guess_type(filename)[0]
+    
+    return resp
+  
+
+@app.route("/img/<int:attachment_id>.png")
+@app.route("/img/<int:attachment_id>.jpg")
+@app.route("/img/<size>/<int:attachment_id>.png")
+@app.route("/img/<size>/<int:attachment_id>.jpg")
+def profile_pictures(attachment_id, size='60'):
+  try:
+    info = api.get_attachment_info(attachment_id)
+    if info.md5 and api.is_s3_file(info.md5 + '_%s.jpg' % size):
+      url = 'https://%s.s3.amazonaws.com/%s_%s.jpg' % (settings.S3_BUCKET_NAME, info.md5, size)
+      return redirect(url, code=301)
+    
+    data = api.get_file_data(attachment_id)
+    if not data:
+      return redirect('http://www.jupo.com/public/images/avatar.96.gif')
+    if size.isdigit():
+      size = int(size)
+      filedata = zoom(data, size, size)
+      # filedata = data
+    else:
+      width, height = size.split('_')
+      filedata = zoom(data, int(width), int(height))
+        
+    domain = request.headers.get('Host')
+    db_name = domain.lower().strip().replace('.', '_')
+    api.move_to_s3_queue.enqueue(api.move_to_s3, '%s_%s.jpg|%s|%s' \
+                                 % (api.hashlib.md5(data).hexdigest(), 
+                                    str(size), 'image/jpeg', filedata),
+                                 db_name)
+    return Response(filedata, mimetype='image/jpeg')
+  
+  except api.NoFile:  # 'NoneType' object has no attribute 'get'
+    return redirect('http://www.jupo.com/public/images/avatar.96.gif')
+#    abort(404, 'File not found')
+    
+
+
+@app.route("/file/new", methods=["POST"])
+@app.route("/file/<int:file_id>", methods=["GET", "POST", "OPTIONS"])
+@app.route("/file/<int:file_id>/<action>", methods=["POST"])
+def file(file_id=None, action=None, size=None):
+  session_id = session.get("session_id")
+  owner = api.get_owner_info(session_id)
+  if request.path == '/file/new':
+    attachments = request.form.get('attachments')
+    attachments = [i for i in attachments.split(',') if i]
+    
+    viewers = request.form.get('viewers')
+    if viewers:
+      viewers = viewers.split(',')
+    else:
+      viewers = []
+    
+    blocks = []
+    for attachment in attachments:
+      file_id = api.new_file(session_id, attachment, viewers)
+      file = api.get_file_info(session_id, file_id)
+      blocks.append(render_template('file.html', 
+                                    owner=owner,
+                                    file=file))
+  
+    return ''.join(blocks)
+  
+  elif action == 'mark_as_read':
+    api.mark_as_read(session_id, file_id)
+    return 'Done'
+    
+  elif action == 'comment':
+    message = request.form.get('message')
+    info = api.new_comment(session_id, message, file_id)
+          
+    return render_template('comment.html', 
+                           comment=info,
+                           prefix='stream',
+                           owner=owner)
+  elif action == 'update':
+    file = request.files.get('file')
+    filename = file.filename
+    attachment_id = api.new_attachment(session_id, 
+                                       file.filename, 
+                                       file.stream.read())
+    api.update_file(session_id, file_id, attachment_id)
+    info = api.get_file_info(session_id, file_id)
+    
+    info = {'html': render_template('file.html', 
+                                    owner=owner,
+                                    file=info)}
+    return Response(dumps(info), mimetype='application/json')
+  
+  elif action == 'rename':
+    new_name = request.form.get('name')
+    info = api.get_file_info(session_id, file_id)
+    if not new_name or (info.owner != owner.id):
+      abort(400)
+    api.rename_file(session_id, file_id, new_name)
+    
+    return render_template('file.html', owner=owner,file=info)
+    
+  
+  else:
+    file = api.get_file_info(session_id, file_id)
+    
+    if request.method == 'GET':
+      return render_homepage(session_id, file.name,
+                             mode='view', view='files', file=file)
+    else:
+      body = render_template('files.html',
+                             mode='view',
+                             view='files',
+                             owner=owner,
+                             file=file)
+        
+      return dumps({'body': body,
+                    'title': file.name})
+
+
+
+@app.route('/set', methods=["POST", "HEAD"])  # HEAD for websocket set status
+def change_status():
+  session_id = request.args.get('session_id')
+  if not session_id:
+    session_id = session.get("session_id")
+    if not session_id:
+      abort(401, 'Authentication credentials were missing')
+  status = request.args.get('status') 
+  is_success = api.set_status(session_id, status)
+  if is_success:
+    return 'OK'
+  else:
+    abort(401, 'Authentication credentials were incorrect.')  
+
+
 
 # Notifications ----------------------------------------------------------------
 
-def is_removed(feed_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
+@app.route('/notifications', methods=['GET', 'OPTIONS'])
+@login_required
+@line_profile
+def notifications():
+  session_id = session.get("session_id")
+    
+  notifications = api.get_notifications(session_id)
+  unread_messages = api.get_unread_messages(session_id)
+  unread_messages_count = len(unread_messages)
   
-  if db.stream.find_one({'_id': long(feed_id), 'is_removed': True}):
-    return False
-  return True
-
-def new_notification(session_id, receiver, type, 
-                     ref_id=None, ref_collection=None, comment_id=None, db_name=None, **kwargs):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-
-  print "DEBUG - in api.new_notification - network = " + str(kwargs.get('network'))
-
-  info = {'_id': new_id(),
-          'receiver': receiver,
-          'ref_id': ref_id,
-          'ref_collection': ref_collection,
-          'comment_id': comment_id,
-          'type': type,
-          'is_unread': True,
-          'timestamp': utctime(),
-          'network': kwargs.get('network') if kwargs.has_key('network') else None,
-          'imported_jupo_group_id': kwargs.get('imported_jupo_group_id') if kwargs.has_key('imported_jupo_group_id') else None}
-  
-  if session_id:
-    sender = get_user_id(session_id, db_name=db_name)
-    if sender:
-      info['sender'] = sender
-  
-  notification_id = db.notification.insert(info)
-  
-  key = '%s:networks' % get_email_addresses(receiver)
-  cache.delete(key)
-  
-  cache.delete('notifications', receiver)
-  cache.delete('unread_notifications', receiver)
-  cache.delete('unread_notifications_count', receiver)
-  
-  unread_notifications_count = get_unread_notifications_count(receiver, 
-                                                              db_name=db_name)
-  push_queue.enqueue(publish, receiver, 'unread-notifications', 
-                     unread_notifications_count, db_name=db_name)
-  push_queue.enqueue(push_notification_to_mobile, 
-                     sender_id=info.get('sender'), 
-                     receiver_id=receiver,
-                     info=info, db_name=db_name)
-  
-  return notification_id
-
-def get_unread_notifications(session_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if isinstance(session_id, int) or isinstance(session_id, long):
-    user_id = session_id
+  hostname = request.headers.get('Host')
+  network = api.get_network_info(hostname.replace('.', '_'))
+    
+  if request.method == 'OPTIONS':
+    owner = api.get_owner_info(session_id)
+    body = render_template('notifications.html',
+                           owner=owner, 
+                           network=network,
+                           unread_messages=unread_messages,
+                           fb_app_namespace=settings.FACEBOOK_APP_NAMESPACE,
+                           notifications=notifications)
+    resp = {'body': body,
+            'title': 'Notifications'}
+    
+    
+    unread_count = api.get_unread_notifications_count(session_id) \
+                 + unread_messages_count
+    
+#     if unread_count:
+#       #  mark as read luôn các notifications không quan trọng
+#       api.mark_notification_as_read(session_id, type='like')
+#       api.mark_notification_as_read(session_id, type='add_contact')
+#       api.mark_notification_as_read(session_id, type='google_friend_just_joined')
+#       api.mark_notification_as_read(session_id, type='facebook_friend_just_joined')
+#       api.mark_all_notifications_as_read(session_id)
+      
+    resp['unread_notifications_count'] = unread_count
+    return dumps(resp)
   else:
-    user_id = get_user_id(session_id, db_name=db_name)
+    return render_homepage(session_id, 'Notifications',
+                           notifications=notifications,
+                           network=network,
+                           unread_messages=unread_messages,
+                           view='notifications')
 
-  key = 'unread_notifications'
-  out = cache.get(key, namespace=user_id)
-  if out is not None:
-    return out
 
-  notifications = db.notification.find({'receiver': user_id,
-                                        'is_unread': True})\
-                                 .sort('timestamp', -1)
-
-  offset = get_utcoffset(user_id, db_name)
-  notifications = [Notification(i, offset, db_name) for i in notifications]
-      
-  results = odict()
-  for i in notifications:
-    if i.type in ['new_post', 'comment', 'mention', 
-                  'message', 'like', 'update'] and not i.details:
-      continue
-    
-    if not i.type:
-      continue
-    
-    if i.type == 'like':
-      id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
-    elif i.type == 'new_user' or i.ref_collection == 'owner':
-      id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
+@app.route('/notification', methods=['GET', 'POST'])
+@app.route('/notification/<int:ref_id>-comments', methods=['GET', 'POST'])
+@app.route('/notification/<int:id>', methods=['GET', 'POST'])
+@app.route('/notification/<int:id>/mark_as_read', methods=['GET', 'POST'])
+@app.route('/post/<int:post_id>/mark_as_read', methods=['GET', 'POST'])
+@app.route('/notifications/mark_as_read', methods=['GET', 'POST'])
+@login_required
+def notification(id=None, ref_id=None, post_id=None):
+  app.logger.debug(id)
+  session_id = session.get("session_id")
+  
+  
+  if request.path.endswith('mark_as_read'):
+    if id:
+      api.mark_notification_as_read(session_id, id)
+      return 'Done'
     else:
-      id = '%s:%s' % (i.type, i.ref_id)
-    
-    if not results.has_key(i.date):
-      results[i.date] = odict()
-      
-    
-    if not results[i.date].has_key(id):
-      results[i.date][id] = [i]
-      user_ids = [i.sender.id]
-    else:
-      # duplicate prevention 
-      if i.sender.id not in user_ids:
-        results[i.date][id].append(i)
-        user_ids.append(i.sender.id)
-        
-    
-  cache.set(key, results, namespace=user_id)
-  return results
+      api.mark_all_notifications_as_read(session_id)
   
-def get_notifications(session_id, limit=25, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-    
-  db = DATABASE[db_name]
+  if post_id:
+    ref_id = post_id
   
-  user_id = get_user_id(session_id, db_name=db_name)
-  
-  key = 'notifications'
-  out = cache.get(key, namespace=user_id)
-  if out is not None:
-    return out
-  
-  
-  notifications = db.notification.find({'receiver': user_id})\
-                                 .sort('timestamp', -1)\
-                                 .limit(limit)
-
-  offset = get_utcoffset(user_id, db_name)
-  notifications = [Notification(i, offset, db_name) for i in notifications]
-  results = odict()
-  
-  user_ids = {}
-  for i in notifications:
-    if i.type in ['new_post', 'comment', 'mention', 
-                  'message', 'like', 'update'] and not i.details:
-      continue
-    
-    if not i.type:
-      continue
-    
-    if i.type == 'like':
-      id = '%s:%s' % (i.type, i.comment_id if i.comment_id else i.ref_id)
-    elif i.type == 'new_user' or i.ref_collection == 'owner':
-      id = '%s:%s:%s' % (i.type, i.sender.id, i.ref_id)
-    else:
-      id = '%s:%s' % (i.type, i.ref_id)
-    
-    if not results.has_key(i.date):
-      results[i.date] = odict()
-      
-    
-    if not results[i.date].has_key(id):
-      results[i.date][id] = [i]
-      user_ids[id] = [i.sender.id]
-    else:
-      # prevent duplicate
-      if i.sender.id not in user_ids[id]:
-        results[i.date][id].append(i)
-        user_ids[id].append(i.sender.id)
-        
-  cache.set(key, results, namespace=user_id)
-  return results
-
-  
-def get_unread_notifications_count(session_id, db_name=None):
-  if isinstance(session_id, int) or isinstance(session_id, long):
-    user_id = session_id
-  else:
-    user_id = get_user_id(session_id, db_name=db_name)
-  key = 'unread_notifications_count'
-  out = cache.get(key, namespace=user_id)
-  if out is not None:
-    return out
-    
-  unread_notifications = get_unread_notifications(session_id, db_name)
-  count = 0
-  for k in unread_notifications.keys():
-    for id in unread_notifications[k].keys():
-      for n in unread_notifications[k][id]:
-        count += 1
-  
-  cache.set(key, count, namespace=user_id)
-  return count
-  
-    
-def get_record(_id, collection='stream', db_name=None):
-  if not collection \
-  or isinstance(collection, int) \
-  or isinstance(collection, long):
-    collection = 'stream'
-  
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if str(_id).isdigit():
-    return db[collection].find_one({'_id': long(_id)})
-
-def mark_all_notifications_as_read(session_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  
-  cache.delete('notifications', user_id)
-  cache.delete('unread_notifications', user_id)
-  cache.delete('unread_notifications_count', user_id)
-  
-  db.notification.update({'receiver': user_id}, 
-                         {'$unset': {'is_unread': 1}}, multi=True)
-  
-  return True
-
-def mark_notification_as_read(session_id, notification_id=None, 
-                              ref_id=None, type=None, ts=None, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not ts:
-    ts = utctime()
-    
-  user_id = get_user_id(session_id=session_id, db_name=db_name)
-  if notification_id:
-    db.notification.update({'receiver': user_id, 
-                            '_id': long(notification_id)},
-                           {'$unset': {'is_unread': 1}})
+  if id:
+    api.mark_notification_as_read(session_id, id)
   elif ref_id:
-    db.notification.update({'receiver': user_id, 
-                            'ref_id': long(ref_id)},
-                           {'$unset': {'is_unread': 1}}, multi=True)
+    api.mark_notification_as_read(session_id,
+                                  ref_id=ref_id)
   else:
-    db.notification.update({'receiver': user_id, 
-                            'type': type,
-                            'timestamp': {'$lt': float(ts)}},
-                           {'$unset': {'is_unread': 1}}, multi=True)
-    
-  cache.delete('notifications', user_id)
-  cache.delete('unread_notifications', user_id)
-  cache.delete('unread_notifications_count', user_id)
+    api.mark_notification_as_read(session_id, 
+                                  type='conversation',
+                                  ts=api.utctime())
   
-  return True
-
-# Feed/Stream/Focus Actions ----------------------------------------------------
-def mark_as_read(session_id, post_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
+  unread_notification_count = api.get_unread_notifications_count(session_id)
+  unread_messages = api.get_unread_messages(session_id)
   
-  post = get_feed(session_id, post_id)
-  if not post.id:
-    return False
+  return str(unread_notification_count + len(unread_messages))
+
+
+@app.route('/feeds/<int:user_id>')
+def atom_feeds(user_id):
+  owner = api.get_user_info(user_id)
+  feeds = api.get_feeds(owner.session_id, limit=100)
   
-  user_id = get_user_id(session_id)
-  if (post.last_action.owner.id != user_id and 
-      user_id not in post.read_receipt_ids):   # 1 user mở nhiều hơn 1 tab có thể dẫn đến gửi lặp nhiều lần
-    
-    ts = utctime()
-    record = db.stream.find_and_modify({'_id': long(post_id)},
-                                             {'$push': 
-                                              {'read_receipts': 
-                                               {'user_id': user_id,
-                                                'timestamp': ts}
-                                               }
-                                              })
-    if not record:
-      return False
-    
-    if not record.has_key('read_receipts'):
-      record['read_receipts'] = []
-    
-    record['read_receipts'].append({'user_id': user_id, 'timestamp': ts})
-  
-    viewers = record.get('viewers', [])
-    user_ids = set()
-    for i in viewers:
-      if i == 'public':
-        continue
-      if is_group(i, db_name):
-        member_ids = get_group_member_ids(i)
-        for id in member_ids:
-          user_ids.add(long(id))
-      else:
-        user_ids.add(long(i))
-        
-    for _id in user_ids:
-      cache.clear(_id)
-      push_queue.enqueue(publish, _id, 'read-receipts', record, db_name=db_name)
-    
-    # update notification
-    mark_notification_as_read(session_id=session_id, ref_id=post_id, db_name=db_name)
-    
-    unread_notifications_count = get_unread_notifications_count(user_id,
-                                                                db_name=db_name)
-    push_queue.enqueue(publish, user_id, 'unread-notifications', 
-                       unread_notifications_count, db_name=db_name)
-    
-    
-    clear_html_cache(post_id)
-    
-    return True
-  return False
+  resp = Response(render_template('news_feed.atom', owner=owner, feeds=feeds))
+  resp.headers['Content-Type'] = 'application/atom+xml'
+  return resp
 
-def star(session_id, feed_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  db.stream.update({"_id": long(feed_id)}, 
-                         {'$addToSet': {'starred': user_id}})
-  receiver = get_record(feed_id)['owner']
-  if user_id != receiver:
-    new_notification(session_id, receiver, type='star', ref_id=feed_id)
-  
-  clear_html_cache(feed_id)  
-  
-  return feed_id
 
-def unstar(session_id, feed_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  db.stream.update({"_id": long(feed_id)}, 
-                         {'$pull': {'starred': user_id}})
-  clear_html_cache(feed_id)  
-  return feed_id
-
-def pin(session_id, feed_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  db.stream.update({"_id": long(feed_id)}, 
-                         {'$addToSet': {'pinned': user_id}})
-  clear_html_cache(feed_id)  
-  return feed_id
-
-def unpin(session_id, feed_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  db.stream.update({"_id": long(feed_id)}, 
-                         {'$pull': {'pinned': user_id}})
-  clear_html_cache(feed_id)  
-  return feed_id
-
-def update_hashtag(tags, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not isinstance(tags, list):
-    tags = [tags]
-  for tag in tags:
-    db.hashtag.update({'_id': tag.get('id')},
-                            {'$set': {'name': tag.get('name'),
-                                      'last_updated': utctime()},
-                             '$inc': {'count': 1}}, upsert=True)
-  return True
-  
-
-def get_hashtags(raw_text):
-  hashtags = re.compile('(#\[.*?\))').findall(raw_text)
-  hashtag_list = []
-  if hashtags:
-    for hashtag in hashtags:
-      tag = re.compile('#\[(?P<name>.+)\]\((?P<id>.*)\)').match(hashtag)
-      if not tag:
-        continue
-      else:
-        tag = tag.groupdict()
-      tag['id'] = tag['id'].split(':', 1)[-1]
-      hashtag_list.append(tag)
-  return hashtag_list
-
-def get_mentions(raw_text):
-  users = re.compile('(@\[.*?]\(.*?\))').findall(raw_text)
-  user_list = []
-  if users:
-    for user in users:
-      tag = re.compile('@\[(?P<name>.+)\]\((?P<id>.*?)\)')\
-              .match(user)\
-              .groupdict()
-      tag['type'], tag['id'] = tag['id'].split(':', 1)
-      if tag['id'].isdigit():
-        tag['id'] = long(tag['id'])
-        user_list.append(tag)
-  return user_list
-
-def unfollow_post(session_id, feed_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  db.owner.update({'_id': user_id}, 
-                  {'$addToSet': {'unfollow_posts': long(feed_id)}})
-  return feed_id
-
-def new_email(owner_id, email, password):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  email = email.lower().strip()
-  if db.email.find_one({'email': email}):
-    return False
-      
-  db.email.insert({'email': email,
-                   'password': password,
-                   'owner': long(owner_id),
-                   'last_uid': 0,
-                   'timestamp': utctime(),
-                   'last_updated': utctime()})
-  return True
-
-def reset_mail_fetcher():
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  db.email.update({}, {'$set': {'last_uid': 0}}, multi=True)
-  db.stream.remove({'message_id': {'$ne': None}})
-  db.owner.remove({'password': None, 
-                   'privacy': None})
-
-  return True
-
-def get_member_email_addresses(db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-
-  # find all email addresses in network, watchout for group 
-  # (same table owner, got no email field)
-  member_email_addresses = [i['email'] \
-                            for i in db.owner.find({'email': {'$ne': None}, 'name' : {'$ne': None}}, 
-                                                   {'email': True}) if i.get('email').strip()]
-
-  return member_email_addresses
-
-def get_invited_addresses(db_name=None, user_id=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-
-  # find all email addresses that *NOT YET SIGNED UP BUT ALREADY SENT INVITATION* 
-  # in network, watchout for group (same table owner, got no email field)
-  # invited_address = owner that got name = NONE 
-  # (can't use password since new signup workflow doesn't require password)
-  invited_addresses = [i['email'] \
-                       for i in db.owner.find({'email': {'$ne': None}, 
-                                               'name': None, 
-                                               # 'ref': re.compile(str(user_id))}, 
-                                               'ref': user_id},
-                                              {'email': True})\
-                       if i.get('email').strip()]
-
-  return invited_addresses
-
-def get_email_addresses(session_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if (isinstance(session_id, int) or 
-      isinstance(session_id, long) or 
-      session_id.isdigit()):
-    user_id = int(session_id)
+@app.route('/like/<int:item_id>', methods=['GET', 'POST'])
+@app.route('/unlike/<int:item_id>', methods=['GET', 'POST'])
+@login_required
+def like(item_id):
+  session_id = session.get("session_id")
+  post_id = request.args.get('post_id')
+  if post_id:
+    post_id = int(post_id)
   else:
-    user_id = get_user_id(session_id)
-  
-  user_ids = [i['_id'] \
-              for i in db.owner.find({'owner': user_id}, {'_id': True})]
-  user_ids.append(user_id) 
-  query = [{'owner': i} for i in user_ids]
-  records = db.email.find({'$or': query})
-  return [i['email'].strip() for i in records]
-
-def get_user_id_from_email_address(email, db_name=None):
-  if not email:
-    return False
-  
-  if email and ('@' not in email or '.' not in email):
-    return False
-  
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  email = email.lower().strip()
-  
-  record = db.owner.find_one({'email': email.split('<')[-1].rstrip('>').strip()})
-  if record:
-    if record.has_key('owner'):
-      uid = record['owner']
-    else:
-      uid = record['_id']
-    return uid
-  else:
-    if '<' in email:
-      name = capwords(email.split('<')[0].strip('"'))
-      email = email.split('<')[1].rstrip('>').strip()
-    else:
-      name = email
-    info = db.email.find_one({'email': email})
-    if info:
-      owner = info['owner']
-      update_user(email, name=name, owner=owner)
-      return owner
-    else:
-      update_user(email, name=name)
-      return get_user_id_from_email_address(email)
-  return email
-
-def all_emails():
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  return db.email.find()
-
-def update_user_avatar(email, avatar=None):
-  if not email:
-    return False
-  
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  email = email.strip().lower()
-  if avatar:
-    if db.owner.find_one({'email': email}):
-      db.owner.update({'email': email}, {'$set': {'avatar': avatar}})
-  
-  cache.delete('%s:all_users' % db_name)
-  return True
-
-def update_user(email, name=None, owner=None, avatar=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  email = email.strip().lower()
-  if owner:
-    if db.owner.find_one({'email': email}):
-      db.owner.update({'email': email}, {'$set': {'name': name,
-                                                        'owner': owner}})
-    else:
-      db.owner.insert({'email': email,
-                       'name': name,
-                       'owner': owner,
-                       '_id': new_id()})
-  else:
-    if db.owner.find_one({'email': email}):
-      db.owner.update({'email': email}, {'$set': {'name': name}})
-    else:
-      db.owner.insert({'email': email, 'name': name, '_id': new_id()})
-  
-  cache.delete('%s:all_users' % db_name)
-  return True
-  
-def update_record(collection, query, info):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  db[collection].update(query, {'$set': info})
-  return True
-
-def archive_post(session_id, post_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  user_id = get_user_id(session_id)
-  db.stream.update({'_id': long(post_id)}, 
-                   {'$push': {'archived_by': user_id}})
-  clear_html_cache(user_id)
-  return True
-
-def unarchive_post(session_id, post_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  db.stream.update({'_id': long(post_id)}, 
-                   {'$pull': {'archived_by': user_id}})
-  clear_html_cache(user_id)  
-  return True
-
-def archive_posts(session_id, ts):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  viewers = get_group_ids(user_id)
-  viewers.append(user_id)
-  db.stream.update({'viewers': {'$in': viewers},
-                    'last_updated': {'$lte': ts}},  
-                   {'$push': {'archived_by': user_id}}, multi=True)
-  # TODO: clear cache?
-  return True
-
-def new_post_from_email(message_id, receivers, sender, 
-                        subject, text, html, attachments,
-                        date, ref=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id_from_email_address(sender)
-  session_id = get_session_id(user_id)
-  
-  viewers = [get_user_id_from_email_address(i) for i in receivers]
-  viewers.append(get_user_id_from_email_address(sender))
-  
-  ref_info = None
-  if ref:
-    ref_info = db.stream.find_one({'message_id': ref}, {'_id': True})
-    if not ref_info:
-      ref_info = db.stream.find_one({'comments.message_id': ref}, {'_id': True})
+    post_id = item_id
     
-  if ref_info:
-    message_ids = ref.split()
-    for id in message_ids:
-      info = db.stream.find_one({'comments.message_id': message_id})
-      if not info:
-        comment = {'_id': new_id(),
-                   'owner': get_user_id_from_email_address(sender),
-                   'message_id': message_id,
-                   'receivers': receivers,
-                   'sender': sender,
-                   'body': Binary(str(text)),
-                   'html': Binary(str(html)),
-                   'timestamp': date}   
-        if attachments:
-          comment['attachments'] = attachments
-        db.stream.update({'message_id': ref}, 
-                         {'$push': {'comments': comment},
-                          '$set': {'last_updated': utctime()},
-                          '$unset': {'archived_by': 1}})
-        
-        
-        parent = db.stream.find_one({'message_id': ref})
-        if parent:
-          clear_html_cache(parent['_id'])
-          index_queue.enqueue(update_index, parent['_id'], 
-                              text, viewers, is_comment=True, db_name=db_name)
-          info = parent
-          
-          for id in info['viewers']:
-            cache.clear(id)
-            if is_group(id):
-              push_queue.enqueue(publish, user_id, 
-                                 '%s|unread-feeds' % id, info, db_name=db_name)
-            else:
-              push_queue.enqueue(publish, id, 
-                                 'unread-feeds', info, db_name=db_name)
-          
+  if request.path.startswith('/like/'):
+    is_ok = api.like(session_id, item_id, post_id)
   else:
-    if not db.stream.find_one({'message_id': message_id}):
-      info = {'subject': Binary(str(subject)),
-              'message_id': message_id,
-              '_id': new_id(),
-              'owner': get_user_id_from_email_address(sender),
-              'viewers': viewers,
-              'receivers': receivers,
-              'sender': sender,
-              'timestamp': date,
-              'last_updated': date,
-              'body': Binary(str(text)),
-              'html': Binary(str(html))}
-      if attachments:
-        info['attachments'] = attachments
-      db.stream.insert(info)
-      text = '%s\n\n%s' % (subject, text)
-      
-      
-      index_queue.enqueue(add_index, info['_id'], 
-                          text, viewers, 'email', db_name)
-  
-      # send notification
-      for id in viewers:
-          cache.clear(id)
-#        if not is_group(id) and id != user_id:
-#          new_notification(session_id, id, 'message', info.get('_id'))
-#          publish(id, 'unread-feeds', info)
-#        else: # update last_updated
-          db.owner.update({'_id': id},
-                                {'$set': {'last_updated': utctime()}})
-          push_queue.enqueue(publish, user_id, 
-                             '%s|unread-feeds' % id, info, db_name=db_name)
-          
-  return True
-
-def new_feed(session_id, message, viewers, 
-             attachments=[], facebook_access_token=None, updated_time=None, created_time=None, db_name=None, is_import=None, fb_id=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if not message:
-    return False
-  
-  user_id = get_user_id(session_id=session_id, db_name=db_name)
-  if not user_id:
-    return False
-    
-  if 'public' in viewers:
-    _viewers = set(['public'])
-    viewers.remove('public')
+    is_ok = api.unlike(session_id, item_id, post_id)
+  if is_ok:  
+    return 'OK'
   else:
-    _viewers = set()
+    return 'Error'
+
+#===============================================================================
+# _Collaborate
+#===============================================================================
+@app.route('/_clear_cache')
+def _clear_cache():
+  filename = request.args.get('filename').lower().strip()
+  cache.delete('file:%s' % filename.lower().strip())
+  cache.delete('file:%s:last_updated' % filename)
+  return 'Done'
   
-  if isinstance(message, dict): # system message
-    mentions = []
+
+@app.route('/_update', methods=['GET', 'POST'])
+def _update():
+  ts = content = None
+  if request.method == 'GET':
+    key = None
+    filename = 'main.js'
   else:
-    mentions = get_mentions(message)
-  viewers.extend([i.get('id') for i in mentions])
-    
-  if isinstance(viewers, list):
-    for i in viewers:
-      if str(i).isdigit():
-        _viewers.add(long(i))
-      elif validate_email(i):
-        _viewers.add(get_user_id_from_email_address(i))
-        # TODO: send mail thông báo cho post owner nếu địa chỉ mail không tồn tại
-      else:
-        continue
-  else:
-    _viewers.add(long(viewers))
-  
-  viewers = set(_viewers)
-  viewers.add(user_id)
-  
-  files = []
-  if attachments:
-    if isinstance(attachments, list):
-      for i in attachments:
-        if i.isdigit():
-          files.append(long(i))
-        else: # dropbox files
-          files.append(loads(base64.b64decode(i)))
-          
-    else:
-      files.append(long(attachments) \
-                   if str(attachments).isdigit() 
-                   else loads(base64.b64decode(attachments)))
-  
-  if not isinstance(message, dict): # system message
-    hashtags = get_hashtags(message)
-    update_hashtag(hashtags, db_name)
-  else:
-    hashtags = []
-  
-  ts = utctime()
-  info = {'message': message,
-          '_id': new_id(),
-          'owner': user_id,
-          'viewers': list(viewers),
-          'hashtags': hashtags,
-          'fb_id': fb_id,
-          'timestamp': created_time if created_time else ts,
-          'last_updated': updated_time if updated_time else ts}
-  if files:
-    info['attachments'] = files
-  
-  #if not isinstance(message, dict): # system message
-  #  urls = extract_urls(message)
-  #  if urls:
-  #    info['urls'] = urls
-  #    for url in urls:
-  #      crawler_queue.enqueue(get_url_description, url, db_name=db_name)
+    key = request.form.get('key')
+    filename = request.form.get('filename')
+    if key == '3.' and filename.endswith('.js'):
+      ts = int(api.utctime())
+      content = request.form.get('content')
+      cache.set('file:%s' % filename.lower().strip(), content, None)
+      cache.set('file:%s:last_updated' % filename, ts, None)
       
-  db.stream.insert(info)
+  if not ts:
+    ts = cache.get('file:%s:last_updated' % filename)
+    ts = ts if ts else 0
   
-  index_queue.enqueue(add_index, info['_id'], message, viewers, 'post', db_name)
+  if not content:
+    content = cache.get('file:%s' % filename)
   
-  
-  # send notification
-  if not is_import:
-    for id in viewers:
-      if not is_group(id, db_name) and id != user_id:
-        notification_queue.enqueue(new_notification,
-                                   session_id, id, 'message',
-                                   ref_id=info.get('_id'), db_name=db_name)
-        push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
-
-        # send email
-        u = get_user_info(user_id=id, db_name=db_name)
-
-        if u.email and 'share_posts' not in u.disabled_notifications and '@' in u.email and (u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180)):
-          send_mail_queue.enqueue(send_mail, u.email, mail_type='new_post',
-                                  user_id=user_id, post=info, db_name=db_name)
-
-      elif id == user_id:
-        push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
-      else: # set group last_updated time
-        db.owner.update({'_id': id},
-                        {'$set': {'last_updated': utctime()}})
-        push_queue.enqueue(publish, user_id,
-                           '%s|unread-feeds' % id, info, db_name=db_name)
-
-      
-  # clear wsgimiddleware cache
-  user_ids = set()
-  for i in viewers:
-    if is_group(i, db_name):
-      member_ids = get_group_member_ids(i, db_name)
-      for id in member_ids:
-        user_ids.add(id)
-    else:
-      user_ids.add(i)
-  for user_id in user_ids:
-    cache.clear(user_id)
-  
-  return info['_id']
+  return render_template('_update.html', key=key, 
+                         ts=api.datetime.fromtimestamp(ts).isoformat(),
+                         content=content, filename=filename)
 
 
-def set_viewers(session_id, feed_id, viewers, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  viewers.append(str(user_id))
-  _viewers = set(viewers)
-  viewers = []
-  for _id in _viewers:
-    if _id == 'public' or isinstance(_id, int) or isinstance(_id, long):
-      viewers.append(_id)
-    elif _id.isdigit():
-      viewers.append(int(_id))  
-  
-  _id = long(feed_id)
-  feed = db.stream.find_and_modify({'_id': _id, 'owner': user_id},
-                                         {'$set': {'viewers': viewers}})
-  if not feed:
-    return False
-  new_users = [i for i in viewers if not is_group(i, db_name) and i not in feed['viewers']]
-  for i in new_users:
-    if i != user_id:
-      notification_queue.enqueue(new_notification, 
-                                 session_id, i, 'message', 
-                                 ref_id=_id, db_name=db_name)
 
-  
-  clear_html_cache(feed_id)
-  index_queue.enqueue(update_viewers, feed_id, viewers, db_name)
-  return True
+#===============================================================================
+# Run App
+#===============================================================================
+from werkzeug.wrappers import Request
 
-def reshare(session_id, feed_id, viewers):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  viewers.append(str(user_id))
-  viewers = set(viewers)
-  
-  print db_name
-  
-  _viewers = []
-  for i in viewers:
-    if str(i).isdigit():
-      _viewers.append(long(i))
-    elif validate_email(i) is True:
-      _viewers.append(get_user_id_from_email_address(i))
-    elif i == 'public':
-      _viewers.append(i)
-    else:
-      continue
-  
-  
-  viewers = _viewers
-
-  group_ids = get_group_ids(user_id)
-  group_ids.append(user_id)
-  group_ids.append('public')
-  
-  _id = long(feed_id)
-  ts = utctime()
-  feed = db.stream.find_and_modify({'_id': _id, 'viewers': {'$in': group_ids}}, 
-                                   {'$addToSet': {'viewers': {"$each": viewers}},
-                                    '$set': {'last_updated': ts},
-                                    '$push': {'history': {'owner': user_id,
-                                                          'ref': viewers,
-                                                          'action': 'forward',
-                                                          'timestamp': ts}}})
-  if not feed:
-    return False
-  new_users = [i for i in viewers if not is_group(i) and i not in feed['viewers']]
-  for i in new_users:
-    if i != user_id:
-      notification_queue.enqueue(new_notification, 
-                                 session_id, i, 'message', 
-                                 ref_id=_id, db_name=db_name)
-      
-      u = get_user_info(i)
-      send_mail_queue.enqueue(send_mail, 
-                              u.email, mail_type='new_post', 
-                              user_id=user_id, post=feed, db_name=db_name)
-      
-  index_queue.enqueue(update_viewers, feed_id, viewers, db_name)
-
-  clear_html_cache(feed_id) 
-
-  return True
-
-def remove_feed(session_id, feed_id, group_id=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  
-  post = get_feed(session_id, feed_id)
-  
-  if group_id:
-    if str(group_id).isdigit():
-      group_id = long(group_id)
-    if is_admin(user_id, group_id):
-      db.stream.update({'_id': long(feed_id)}, 
-                       {'$pull': {'viewers': group_id}})
-      
-      # clear cache
-      user_ids = set()
-      for i in post.viewer_ids:
-        if is_group(i):
-          member_ids = get_group_member_ids(i)
-          for id in member_ids:
-            user_ids.add(id)
-        else:
-          user_ids.add(i)
-      for user_id in user_ids:
-        cache.clear(user_id)
-      
-      return True
-  
-  elif not post.read_receipt_ids and user_id == post.owner.id:
-    db.stream.update({'_id': long(feed_id)}, 
-                     {'$set': {'is_removed': True}})
-    
-    for user_id in post.viewer_ids:
-      push_queue.enqueue(publish, user_id, 'remove', 
-                         {'post_id': str(feed_id)}, db_name=db_name)
-      
-    # clear cache
-    user_ids = set()
-    for i in post.viewer_ids:
-      if is_group(i):
-        member_ids = get_group_member_ids(i)
-        for id in member_ids:
-          user_ids.add(id)
-      else:
-        user_ids.add(i)
-    for user_id in user_ids:
-      cache.clear(user_id)
-      
-    return True
-  
-  return False
-
-def undo_remove(session_id, feed_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  db.stream.update({'_id': long(feed_id), 'owner': user_id}, 
-                         {'$unset': {'is_removed': 1}})
-  # TODO: chỉ cho xóa nếu chưa có ai đọc
-  return feed_id
-
-@line_profile
-def get_feed(session_id, feed_id, group_id=None, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  info = db.stream.find_one({'_id': long(feed_id),
-                             'is_removed': None})
-  if not info or info.has_key('is_removed'):
-    return Feed({})
-  
-  public = False
-  if 'public' in info['viewers']:
-    public = True
-  else:
-    for i in info.get('viewers'):
-      if is_public(i):
-        public = True
-        break
-  
-  if info and public is True:
-    return Feed(info, db_name=db_name)
-  elif info:
-    if group_id and group_id in info['viewers']:
-      return Feed(info, db_name=db_name)
-    else:
-      user_id = get_user_id(session_id, db_name=db_name)
-      viewers = get_group_ids(user_id, db_name=db_name)
-      viewers.append(user_id)
-      viewers.append('public')
-      for i in viewers:
-        if i in info['viewers']:
-          return Feed(info, db_name=db_name)
-  return Feed({})
-
-def unread_count(session_id, timestamp):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  groups = db.owner.find({'members': user_id})
-  group_ids = [i.get('_id') for i in groups]
-  feeds = db.stream.find({'$or': [{'viewers': {'$in': group_ids}},
-                                  {'owner': user_id}],
-                          'timestamp': {'$gt': timestamp}}).count()
-                                          
-  docs = db.stream.find({'$or': [{'viewers': {'$in': group_ids}},
-                                 {'owner': user_id}],
-                         'timestamp': {'$gt': timestamp}}).count()
-  return feeds + docs
-
-@line_profile
-def get_public_posts(session_id=None, user_id=None, page=1, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if user_id:
-    feeds = db.stream.find({'is_removed': None,
-                            'viewers': {'$all': [long(user_id), 'public']}})\
-                     .sort('last_updated', -1)\
-                     .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                     .limit(settings.ITEMS_PER_PAGE)
-  else:
-    query = {'is_removed': None,
-             'viewers': 'public'}
-    if session_id:
-      user_id = get_user_id(session_id)
-#      query['starred'] = {'$nin': [user_id]}
-#      query['archived_by'] = {'$nin': [user_id]}
-      
-    feeds = db.stream.find(query).sort('last_updated', -1)\
-                     .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                     .limit(settings.ITEMS_PER_PAGE)
-  return [Feed(i, db_name=db_name) for i in feeds if i]
-
-def get_shared_by_me_posts(session_id, page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  feeds = db.stream.find({'is_removed': None,
-                          'owner': user_id,
-                          'viewers': 'public'}).sort('last_updated', -1)\
-                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                   .limit(settings.ITEMS_PER_PAGE)
-  return [Feed(i, db_name=db_name) for i in feeds if i]
-  
-
-def get_starred_posts(session_id, page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  feeds = db.stream.find({'is_removed': None,
-                          'starred': user_id}).sort('last_updated', -1)\
-                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                   .limit(settings.ITEMS_PER_PAGE)
-  return [Feed(i, db_name=db_name) for i in feeds if i]
-
-def get_starred_posts_count(user_id, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  return db.stream.find({'is_removed': None,
-                         'starred': user_id}).count()
-  
-
-def get_archived_posts(session_id, page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  feeds = db.stream.find({'is_removed': None,
-                          'message_id': None,
-                          'archived_by': user_id})\
-                   .sort('last_updated', -1)\
-                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                   .limit(settings.ITEMS_PER_PAGE)
-  return [Feed(i, db_name=db_name) for i in feeds if i]
-
-def get_incoming_posts(session_id, page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  following_users = get_following_users(user_id)
-  starred_posts = db.stream.find({'starred': {'$in': following_users}})\
-                                 .sort('last_updated', -1)\
-                                 .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                                 .limit(settings.ITEMS_PER_PAGE)
-                                 
-  feeds = db.stream.find({'is_removed': None,
-                          'message_id': None,
-                          '$and': [{'viewers': 'public'},
-                                   {'owner': {'$ne': user_id}},
-                                   {'viewers': {'$in': following_users}}]
-                          })\
-                   .sort('last_updated', -1)\
-                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                   .limit(settings.ITEMS_PER_PAGE)
-  posts = list(feeds)
-  post_ids = [i.get('_id') for i in posts]
-  for post in starred_posts:
-    if post.get('_id') not in post_ids:
-      post_ids.append(post.get('_id'))
-      posts.append(post)
-  if posts:
-    posts.sort(key=lambda k: k['last_updated'], reverse=True)
-  return [Feed(i, db_name=db_name) for i in posts if i]
-
-def get_discover_posts(session_id, page=1):
+class NetworkNameDispatcher(object):
   """
-  latest posts from you & followers
+  Convert the first part of request PATH_INFO to hostname for backward
+  compatibility
+
+  Eg:
+
+     http://jupo.com/example.com/news_feed
+
+  -> http://example.com.jupo.com/news_feed
+
+
   """
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  following_users = get_following_users(user_id)
-  following_users.append(user_id)
-                                 
-  feeds = db.stream.find({'is_removed': None,
-                          'message_id': None,
-                          '$or': [{'$and': [{'viewers': 'public'},
-                                            {'viewers': {'$in': following_users}}]},
-                                  {'starred': {'$in': following_users}}]
-                          
-                          })\
-                   .sort('last_updated', -1)\
-                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                   .limit(settings.ITEMS_PER_PAGE)
-  return [Feed(i, db_name=db_name) for i in feeds]
-  
-  
-def get_hot_posts(page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  feeds = db.stream.find({'is_removed': None,
-                          'viewers': 'public'})\
-                   .sort('last_updated', -1)\
-                   .limit(100)
-  feeds = list(feeds)
-  feeds.sort(key=lambda k: get_score(k), reverse=True)
+  def __init__(self, app):
+    self.app = app
 
-  feeds = feeds[((page-1)*settings.ITEMS_PER_PAGE):(page*settings.ITEMS_PER_PAGE)]
-  return [Feed(i, db_name=db_name) for i in feeds if i]
+  def __call__(self, environ, start_response):
+    path = environ.get('PATH_INFO', '')
+    items = path.lstrip('/').split('/', 1)
 
-def get_focus_feeds(session_id, page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  feeds = db.stream.find({'is_removed': None,
-                          'viewers': user_id,
-                          'priority': {'$ne': None}})\
-                   .sort('last_updated', -1)\
-                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                   .limit(settings.ITEMS_PER_PAGE)
-  return [Feed(i, db_name=db_name) for i in feeds]
+    #if items[0] == 'favicon.ico':
+    #  return
 
-def get_user_posts(session_id, user_id, page=1, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = long(user_id)
-  owner_id = get_user_id(session_id)
-#  groups_list_1 = get_group_ids(owner_id)
-#  groups_list_2 = get_group_ids(user_id)
-#  viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
-#  viewers.append('public')
-#
-#  feeds = db.stream.find({'$or': [{'owner': user_id, 'viewers': {'$in': viewers}}, 
-#                                  {'$and': [{'viewers': user_id}, 
-#                                            {'viewers': owner_id}]}],
-#                          'is_removed': None})\
-#                         .sort('last_updated', -1)\
-#                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-#                         .limit(settings.ITEMS_PER_PAGE)
-                         
-                         
-  feeds = db.stream.find({'$or': [{'viewers': 'public', 'owner': user_id},
-                                  {'$and': [{'viewers': user_id}, 
-                                            {'viewers': owner_id}]}],
-                          'message.action': None,
-                          'is_removed': None})\
-                   .sort('last_updated', -1)\
-                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                   .limit(settings.ITEMS_PER_PAGE)
-                                        
-  return [Feed(i, db_name=db_name) for i in feeds if i]
+    if '.' in items[0] and api.is_domain_name(items[0]):  # is domain name
+      # save user network for later use
+      # session['subnetwork'] = items[0]
 
-def get_user_notes(session_id, user_id, limit=3, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = long(user_id)
-  owner_id = get_user_id(session_id, db_name=db_name)
-  if not owner_id:
-    return []
-  groups_list_1 = get_group_ids(owner_id, db_name=db_name)
-  groups_list_2 = get_group_ids(user_id, db_name=db_name)
-  viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
-  viewers.append('public')
+      environ['HTTP_HOST'] = items[0] + '.' + settings.PRIMARY_DOMAIN
 
-  notes = db.stream.find({'owner': user_id, 
-                          'viewers': {'$in': viewers},
-                          'version': {'$ne': None},
-                          'is_removed': None})\
-                   .sort('last_updated', -1)\
-                   .limit(limit)                    
-                                        
-  return [Note(i) for i in notes if i]
-
-
-def get_user_files(session_id, user_id, limit=3, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = long(user_id)
-  owner_id = get_user_id(session_id, db_name=db_name)
-  if not owner_id:
-    return []
-  groups_list_1 = get_group_ids(owner_id, db_name=db_name)
-  groups_list_2 = get_group_ids(user_id, db_name=db_name)
-  viewers = [i for i, j in zip(groups_list_1, groups_list_2) if i == j]
-  viewers.append('public')
-
-  files = db.stream.find({'owner': user_id, 
-                          'viewers': {'$in': viewers},
-                          'history.attachment_id': {'$ne': None},
-                          'is_removed': None})\
-                   .sort('last_updated', -1)\
-                   .limit(limit)
-                                        
-  return [File(i) for i in files if i]
-
-  
-  
-def get_emails(session_id, email_address=None, page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  viewers = get_group_ids(user_id)
-  viewers.append(user_id)
-  feeds = db.stream.find({'is_removed': None,
-                          'message_id': {'$ne': None},
-                          'viewers': {'$in': viewers}})\
-                   .sort('last_updated', -1)\
-                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                   .limit(settings.ITEMS_PER_PAGE)
-  return [Feed(i, db_name=db_name) for i in feeds if i]
-
-def get_pinned_posts(session_id, category='default', **kwargs):
-  if kwargs.has_key('db_name'):
-    db_name = kwargs.get('db_name')
-  else:
-    db_name = get_database_name()
-    
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id, db_name=db_name)
-  
-  key = '%s:pinned_post' % category
-  namespace = user_id
-  out = cache.get(key, namespace)
-  if out:
-    return out
-  
-  feeds = db.stream.find({'is_removed': None,
-                          'archived_by': {'$nin': [user_id]},
-                          'pinned': user_id})\
-                   .sort('last_updated', -1)
-                           
-  feeds = [Feed(i, db_name=db_name) for i in feeds if i]
-  cache.set(key, feeds, 3600, namespace)
-  return feeds
-
-
-def get_direct_messages(session_id, page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  query = {'$and': [{'viewers': user_id},
-                    {'viewers': {'$nin': ['public']}}],
-           'archived_by': {'$nin': [user_id]},
-           'is_removed': None}
-  feeds = db.stream.find(query)\
-                           .sort('last_updated', -1)\
-                           .skip((page - 1) * 5)\
-                           .limit(5)
-  return [Feed(i, db_name=db_name) for i in feeds]
-  
-  
-@line_profile
-def get_feeds(session_id, group_id=None, page=1, 
-              limit=settings.ITEMS_PER_PAGE, include_archived_posts=False, **kwargs):
-  if kwargs.has_key('db_name'):
-    db_name = kwargs.get('db_name')
-  else:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id, db_name=db_name)
-  key = '%s:%s:%s:%s' % (group_id, page, limit, include_archived_posts)
-  out = cache.get(key, user_id)
-  if out:
-    return out
-  
-  if not user_id:
-    if group_id:
-      group = get_record(group_id, 'owner')
-      if group.get('privacy') == 'open':
-        feeds = db.stream.find({'is_removed': None,
-                                'viewers': long(group_id)})\
-                         .sort('last_updated', -1)\
-                         .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                         .limit(limit)
-        feeds = [Feed(i, db_name=db_name) for i in feeds if i]
-        cache.set(key, feeds, 3600, user_id)
-        return feeds
-    return []
-
-  if group_id:
-    if str(group_id).isdigit():
-      group_id = long(group_id)
-    else:
-      group_id = 'public'
-    
-    feeds = db.stream.find({'is_removed': None,
-                            'viewers': group_id})\
-                            .sort('last_updated', -1)\
-                            .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                            .limit(limit)
-      
-  else:
-    viewers = get_group_ids(user_id)
-    viewers.append(user_id)
-    
-    query = {'viewers': {'$in': viewers},
-             '$or': [{'comments': {'$ne': None}, 
-                      'message.action': {'$ne': None}},                                 
-                     {'message.action': None}],
-             'is_removed': None}  
-    if not include_archived_posts:
-      query['archived_by'] = {'$nin': [user_id]}
-        
-    feeds = db.stream.find(query)\
-                     .sort('last_updated', -1)\
-                     .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                     .limit(limit)
-                                    
-  feeds = [Feed(i, db_name=db_name) for i in feeds if i]
-  cache.set(key, feeds, 3600, user_id)
-  return feeds
-
-
-@line_profile
-def get_unread_feeds(session_id, timestamp, group_id=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  if not group_id:
-    viewers = get_group_ids(user_id)
-    viewers.append(user_id)
-  else:
-    viewers = [group_id]
-  
-  feeds = db.stream.find({'viewers': {'$in': viewers},
-                          'last_updated': {'$gt': timestamp}})\
-                          .sort('last_updated', -1)
-                                        
-#  feeds = list(feeds)
-#  feeds.sort(key=lambda k: k.get('last_updated'), reverse=True)
-  return [Feed(i, db_name=db_name) for i in feeds]
-
-
-@line_profile
-def get_unread_posts_count(session_id, group_id, from_ts=None, db_name=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id, db_name=db_name)
-  if not user_id:
-    return 0
-  
-  group_id = long(group_id)
-  group = get_group_info(session_id, group_id)
-  if not group.id:
-    return 0
-  
-#   get last viewed timestamp
-  if from_ts:
-    last_ts = float(from_ts)
-  else:
-    last_ts = 0
-    records = group.to_dict().get('recently_viewed', [])
-    records.reverse()
-    for i in records:
-      if not i:
-        continue
-      if i['user_id'] == user_id:
-        last_ts = i['timestamp']
-        break
-#  
-#  return db.stream.find({'viewers': group_id,
-#                         'is_removed': {"$exists": False},
-#                         'last_updated': {'$gt': last_ts}}).count()
-  return db.stream.find({'viewers': group_id,
-                         'owner': {'$ne': user_id},
-                         'is_removed': None,
-                         'last_updated': {'$gt': last_ts},
-                         'message.action': None,
-                         'read_receipts.user_id': {'$ne': user_id}}).count()
-                  
-  
-
-# Task actions -----------------------------------------------------------------
-def mark_resolved(session_id, task_id):
-  """ Set status to 'resolved' """
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if user_id:    
-    viewers = get_group_ids(user_id)
-    viewers.append(user_id)
-    
-    ts = utctime()
-    
-    db.stream.update({"_id": task_id, "viewers": {'$in': viewers}}, 
-                           {"$push": {'history': {"action": "mark as resolved",
-                                                  "user_id": user_id,
-                                                  "timestamp": ts}},
-                            "$unset": {"archived_by": True},
-                            "$set": {"status": 'resolved',
-                                     "last_updated": ts}})
-    clear_html_cache(task_id)
-    return True
-  return False
-
-
-def mark_unresolved(session_id, task_id):
-  """ Set status to 'unresolved' (only owner) """
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if user_id:
-    ts = utctime()
-    
-    db.stream.update({"_id": task_id, "owner": user_id},
-                           {"$push": {'history': {"action": "mark as unresolved",
-                                                  "user_id": user_id,
-                                                  "timestamp": ts}},
-                            "$unset": {"archived_by": True},
-                            "$set": {"status": 'unresolved',
-                                     "last_updated": ts}})
-    clear_html_cache(task_id)
-    return True
-  return False
-
-
-def restore(session_id, task_id):
-  """ Set status to 'unresolved' (only owner) """
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if user_id:
-    ts = utctime()
-    
-    db.stream.update({"_id": task_id, "owner": user_id},
-                           {"$push": {'history': {"action": "restore",
-                                                  "user_id": user_id,
-                                                  "timestamp": ts}},
-                            "$unset": {"archived_by": True},
-                            "$set": {"status": 'unresolved',
-                                     "last_updated": ts}})
-    clear_html_cache(task_id)
-    return True
-  return False
-
-def mark_cancelled(session_id, task_id):
-  """ Set status to 'cancelled' (only owner) """
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if user_id:
-    ts = utctime()
-    
-    db.stream.update({"_id": task_id, "owner": user_id},
-                           {"$push": {'history': {"action": "mark as cancelled",
-                                                  "user_id": user_id,
-                                                  "timestamp": ts}},
-                            "$unset": {"archived_by": True},
-                            "$set": {"status": 'cancelled',
-                                     "last_updated": ts}})
-    clear_html_cache(task_id)
-    return True
-  return False
-  
-
-# Comment Actions --------------------------------------------------------------
-
-def new_comment(session_id, message, ref_id, 
-                attachments=None, reply_to=None, from_addr=None, db_name=None, updated_time=None, created_time=None, is_import=None, fb_id=None):
-  if not db_name:
-    db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-#  if not message:
-#    return False
-
-  user_id = get_user_id(session_id, db_name=db_name)
-  if not user_id:
-    return False
-  
-  ts = utctime()
-  comment = {'_id': new_id(),
-             'owner': user_id,
-             'message': message,
-             'fb_id': fb_id,
-             'timestamp': created_time if created_time else ts}
-  
-  files = []
-  if attachments:
-    if isinstance(attachments, list):
-      for i in attachments:
-        if str(i).isdigit():
-          files.append(long(i))
-        else: # dropbox/google drive files
-          file = loads(base64.b64decode(i))
-#           file.pop('exportLinks')
-#           file.pop('result')
-          files.append(file)
-    else:
-      files.append(long(attachments) \
-                   if str(attachments).isdigit() 
-                   else loads(base64.b64decode(attachments)))
-  if files:
-    comment['attachments'] = files
-    
-  if reply_to:
-    comment['reply_to'] = long(reply_to)
-  
-  mentions = get_mentions(message)
-  mentions = [long(i.get('id')) for i in mentions]
-  mentions.append(user_id)
-  mentions = list(set(mentions))
-  
-  # send notification
-  info = db.stream.find_one({'_id': long(ref_id)})
-  if not info:
-    return False
-
-  owner_id = info.get('owner')
-  viewers = info.get('viewers')
-
-  new_mentions = [i for i in mentions if i not in viewers and i != user_id]
-
-  if not is_import:
-    if user_id != owner_id:
-      notification_queue.enqueue(new_notification,
-                                 session_id, owner_id, 'comment',
-                                 ref_id=ref_id, comment_id=comment['_id'], db_name=db_name)
-
-  db.stream.update({"_id": long(ref_id)},
-                   {"$push": {"comments": comment},
-                    "$addToSet": {'viewers': {"$each": mentions}},
-                    "$set": {'last_updated': updated_time if is_import else ts},
-                    '$unset': {'archived_by': 1}})
-
-
-
-  info['last_updated'] = updated_time if updated_time else ts
-  info['archived_by'] = []
-  viewers.extend(mentions)
-  viewers.append(info['owner'])
-  info['viewers'] = set(viewers)
-  if info.has_key('comments'):
-    info['comments'].append(comment)
-  else:
-    info['comments'] = [comment]
-
-  # TODO: reply to notification?
-
-
-  if not is_import:
-    for uid in mentions:
-      if uid != user_id:
-        notification_queue.enqueue(new_notification,
-                                   session_id, uid, 'mention',
-                                   ref_id=ref_id, comment_id=comment['_id'], db_name=db_name)
-        u = get_user_info(user_id=uid, db_name=db_name)
-        if u.email and 'mentions' not in u.disabled_notifications:
-          send_mail_queue.enqueue(send_mail, u.email,
-                                  mail_type='mentions',
-                                  user_id=user_id, post=info,
-                                  db_name=db_name)
-
-  # TODO: user comment tren post vua share khong thay gui notification
-  receivers = [info.get('owner')]
-  if not is_import:
-    for i in viewers:
-      if i != user_id and i not in mentions and i not in receivers:
-        receivers.append(i)
-        notification_queue.enqueue(new_notification,
-                                   session_id,
-                                   i,
-                                   'comment',
-                                   ref_id=ref_id,
-                                   comment_id=comment['_id'],
-                                   db_name=db_name)
-
-  owner = get_user_info(user_id=user_id, db_name=db_name)
-  if not is_import:
-    if owner.email and '@' in owner.email and 'comments' not in owner.disabled_notifications and user_id not in mentions:
-      if owner.status == 'offline' or (owner.status == 'away' and utctime() - owner.last_online > 180):
-        send_mail_queue.enqueue(send_mail, owner.email,
-                                mail_type='new_comment',
-                                user_id=user_id, post=info,
-                                db_name=db_name)
-
-  if not is_import:
-    for id in info['viewers']:
-      cache.clear(id)
-      if is_group(id, db_name):
-        push_queue.enqueue(publish, user_id,
-                           '%s|unread-feeds' % id, info, db_name=db_name)
+      if len(items) > 1:
+        environ['PATH_INFO'] = '/%s' % items[1]
       else:
-        push_queue.enqueue(publish, id, 'unread-feeds', info, db_name=db_name)
+        environ['PATH_INFO'] = '/'
 
+      return self.app(environ, start_response)
 
-  #       if user_id != id and id not in mentions:
-  #         # send email notification
-  #         u = get_user_info(id)
-  #         if u.email and '@' in u.email and 'comments' not in u.disabled_notifications:
-  #           if u.status == 'offline' or (u.status == 'away' and utctime() - u.last_online > 180):
-  #             send_mail_queue.enqueue(send_mail, u.email,
-  #                                     mail_type='new_comment',
-  #                                     user_id=user_id, post=info,
-  #                                     db_name=db_name)
-  
-  #urls = extract_urls(message)
-  #if urls:
-  #  for url in urls:
-  #    crawler_queue.enqueue(get_url_description, url, db_name=db_name)
-      
-  index_queue.enqueue(update_index, ref_id, 
-                      message, viewers, is_comment=True, db_name=db_name)
-  
-  # upate unread notifications
-  if not is_import:
-    mark_notification_as_read(session_id=session_id, ref_id=ref_id, db_name=db_name)
-
-    unread_notifications_count = get_unread_notifications_count(user_id,
-                                                                db_name=db_name)
-    push_queue.enqueue(publish, user_id, 'unread-notifications',
-                       unread_notifications_count, db_name=db_name)
-  
-  
-  clear_html_cache(ref_id)
-  
-  comment['post_id'] = ref_id 
-  
-  r = Comment(comment, db_name=db_name)
-  for i in info['comments'][::-1]:
-    if i['_id'] == reply_to:
-      r.reply_src = Comment(i, db_name=db_name)
-      break
-  
-  return r
-
-def remove_comment(session_id, comment_id, post_id=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  
-  comment_id = long(comment_id)
-  
-  record = db.stream.find_and_modify({'$and': [{'comments.owner': user_id},
-                                               {'comments._id': comment_id}]},
-                                     {'$set': {'comments.$.is_removed': True}})
-  if not record:
-    record = db.stream.find_and_modify({'$and': [{'owner': user_id},
-                                                 {'comments._id': comment_id}]},
-                                       {'$set': {'comments.$.is_removed': True}})
-  
-  for _id in record.get('viewers'):
-    cache.clear(_id)
-    push_queue.enqueue(publish, _id, 'unread-notifications', 
-                       get_unread_notifications_count(user_id, db_name=db_name), 
-                       db_name=db_name)
-                  
-    # Note: phải ép comment_id về str vì javascript không xử lý được số int lớn 
-    # như số id của comment_id (id do snowflake sinh ra)
-    push_queue.enqueue(publish, _id, 'remove', 
-                       {'comment_id': str(comment_id)}, db_name=db_name)
-  clear_html_cache(record['_id'])
-    
-  return True
-
-def diff(text1, text2):
-  if isinstance(text1, basestring):
-    if not isinstance(text1, unicode):
-      text1 = unicode(text1, 'utf-8')
-  if isinstance(text2, basestring):
-    if not isinstance(text2, unicode):
-      text2 = unicode(text2, 'utf-8')
-  
-  diffs = dmp.diff_main(text1, text2)
-
-  html = ''
-  for i in diffs:
-    if i[0] == -1:
-      html += '<span class="diff x">%s</span>' % i[1]
-    elif i[0] == 1:
-      html += '<span class="diff i">%s</span>' % i[1]
     else:
-      html += '<span>%s</span>' % i[1]
-  return html.encode('utf-8')
+      request = Request(environ)
+      network = request.cookies.get('network')
+      if not network or not api.is_domain_name(network) or (network == 'favicon.ico'):
+        return self.app(environ, start_response)
+
+      if request.method == 'GET':
+        url = 'http://%s/%s%s' % (settings.PRIMARY_DOMAIN,
+                                  network, request.path)
+        if request.query_string:
+          url += '?' + request.query_string
+
+        response = redirect(url)
+        return response(environ, start_response)
+
+      else:
+        environ['HTTP_HOST'] = network + '.' + settings.PRIMARY_DOMAIN
+        return self.app(environ, start_response)
 
 
-def update_post(session_id, post_id, message):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  
-  record = db.stream.find_and_modify({'_id': long(post_id), 'owner': user_id},
-                                     {"$set": {"new_message": message,
-                                               "last_edited": utctime()}})
-  
-  if not record:
-    return False
-  
-  # TODO: push changes?
-  for _id in record.get('viewers', []):
-    cache.clear(_id)
-
-  clear_html_cache(record['_id'])
-    
-  return True
-  
-  
 
 
-def update_comment(session_id, comment_id, message, post_id=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-    
-  # TODO: lưu history các lần chỉnh sửa?
-  record = db.stream.find_and_modify({'$and': [{"comments.owner": user_id}, 
-                                               {"comments._id": long(comment_id)}]},
-                                     {"$set": {"comments.$.new_message": message,
-                                               "comments.$.last_edited": utctime()}})
-
-  if not record:
-    return False
-  
-  text = filters.sanitize_html(\
-                filters.nl2br(\
-                       filters.autoemoticon(\
-                              filters.autolink(message))))
-  
-  for comment in record['comments']:
-    if comment['_id'] == comment_id:
-      original_message = comment['message']
-      
-  for _id in record.get('viewers'):
-    cache.clear(_id)
-    
-    # Note: phải ép comment_id về str vì javascript không xử lý được số int lớn 
-    # như số id của comment_id (id do snowflake sinh ra)
-    push_queue.enqueue(publish, _id, 
-                       'update', {'comment_id': str(comment_id),
-                                  'text': text,
-                                  'changes': diff(original_message, message)}, 
-                       db_name=db_name)
-
-  clear_html_cache(record['_id'])
-  return True
+app.wsgi_app = NetworkNameDispatcher(app.wsgi_app)
 
 
-#def get_comment(session_id, comment_id):
-#  user_id = get_user_id(session_id)
-#  if not user_id:
-#    return False
-#  
-#  info = db.comment.find_one({'_id': long(comment_id)})
-#  return Comment(info)
-#
-#def get_comments(session_id, post_id, page=1, page_size=10):
-#  user_id = get_user_id(session_id)
-#  if not user_id:
-#    return False
-#  
-#  records = db.comment.find({'post_id': long(post_id), 'owner': user_id})\
-#                            .sort('timestamp', -1)\
-#                            .skip(page-1*page_size)\
-#                            .limit(page_size)
-#  return [Comment(i) for i in records]
-  
 
-def hide_as_spam(session_id, ref_id, comment_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
+if __name__ == "__main__":
   
-  collection, uuid = ref_id.split(':')
-  owner_id = get_user_id(session_id)
-  if not owner_id:
-    return False
-  
-  db[collection].update({"_id": uuid, 
-                               "owner": owner_id, 
-                               "comments._id": comment_id},
-                              {"$set": {"comments.$.is_spam": 1}})
-      
-  return True
+  @werkzeug.serving.run_with_reloader
+  def run_app(debug=True):
 
-def not_spam(session_id, ref_id, comment_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  collection, uuid = ref_id.split(':')
-  owner_id = get_user_id(session_id)
-  if not owner_id:
-    return False
-  
-  db[collection].update({"_id": uuid, 
-                               "owner": owner_id,
-                               "comments._id": comment_id},
-                              {"$unset": {"comments.$.is_spam": 1}})
-      
-  return True
+    from cherrypy import wsgiserver
+
+    app.debug = debug
+
+    # app.config['SERVER_NAME'] = settings.PRIMARY_DOMAIN
+
+    app.config['DEBUG_TB_PROFILER_ENABLED'] = False
+    app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
+    app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+    app.config['DEBUG_TB_PANELS'] = [
+        'flask_debugtoolbar.panels.versions.VersionDebugPanel',
+        'flask_debugtoolbar.panels.timer.TimerDebugPanel',
+        'flask_debugtoolbar.panels.headers.HeaderDebugPanel',
+        'flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel',
+        'flask_debugtoolbar.panels.template.TemplateDebugPanel',
+        'flask_debugtoolbar.panels.logger.LoggingPanel',
+        'flask_debugtoolbar_mongo.panel.MongoDebugPanel',
+        'flask_debugtoolbar.panels.profiler.ProfilerDebugPanel',
+        'flask_debugtoolbar_lineprofilerpanel.panels.LineProfilerPanel'
+    ]
+    app.config['DEBUG_TB_MONGO'] = {
+      'SHOW_STACKTRACES': True,
+      'HIDE_FLASK_FROM_STACKTRACES': True
+    }
+
+  #   toolbar = flask_debugtoolbar.DebugToolbarExtension(app)
 
 
-# Docs Actions -----------------------------------------------------------------
-
-def remove_html_tags(data):
-  data = data.replace('<br>', '\n')
-  p = re.compile(r'<.*?>')
-  out = p.sub('', data)
-  html_codes = (
-    ('&', '&amp;'),
-    ('<', '&lt;'),
-    ('>', '&gt;'),
-    ('"', '&quot;'),
-    ("'", '&#39;'),
-  )
-  
-  for code in html_codes:
-    out = out.replace(code[1], code[0])
-  return out
-
-def html_escape(text):
-  html_escape_table = {"&": "&amp;",
-                       '"': "&quot;",
-                       "'": "&apos;",
-                       ">": "&gt;",
-                       "<": "&lt;"}
-  return "".join(html_escape_table.get(c,c) for c in text)
-
-def compare_with_previous_version(session_id, doc_id, revision):
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  info = get_note(session_id, doc_id).to_dict()
-  if not info:
-    return False
-  
-  version = info.get('version')
-  version.reverse()
-  try:
-    prev_content = info.get('version')[revision + 1].get('content')
-  except IndexError:
-    prev_content = None
-  content = info.get('version')[revision].get('content')  
-  
-  def set_style(text, action):
-    if action == 'remove':
-      cls = 'x'
-    elif action == 'insert':
-      cls = 'i'
-    else:
-      return text
-    return '<span class="diff %s"><span>%s</span></span>' % (cls, text)
-      
-  if prev_content:
-    content = htmldiff(prev_content, content)
-  else:
-    content = set_style(content, 'insert')
-  
-  try:
-    prev_title = info.get('version')[revision+1].get('title', 'Untitled Noted')
-  except:
-    prev_title = None
-  title = info.get('version')[revision].get('title', 'Untitled Noted')
-  if prev_title:
-    title = htmldiff(prev_title, title)
-  else:
-    title = set_style(title, 'insert')
-      
-  doc = Note(info)
-  start = revision - 2
-  end = revision + 3
-  if start < 0:
-    start = 0
-    end = start + 5
-  while end > len(version):
-    end -= 1
-    start = end - 5
-  version = version[start:end]
-  doc.version = [Version(i) for i in version]
-  doc.content = content
-  doc.title = title
-  doc.timestamp = version[revision].get('timestamp')
-  doc.owner = get_user_info(version[revision].get('owner'))
-  doc.additions = doc.content.count('class="i"')
-  doc.deletions = doc.content.count('class="x"')
-  return doc
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 9000), app)
+    try:
+      print 'Serving HTTP on 0.0.0.0 port 9000...'
+      server.start()
+    except KeyboardInterrupt:
+      print '\nGoodbye.'
+      server.stop()
 
 
-def compare_with_current_version(session_id, doc_id, revision):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  info = db.stream.find_one({'$or': [{'viewers': user_id},
-                                        {'owner': user_id}], 
-                                 '_id': doc_id})
-  version = info.get('version')
-  version.reverse()
-  current_version = info.get('version')[0].get('content')
-  compare_version = info.get('version')[revision].get('content')
-  
-  def set_style(text, type):
-    if type == 'remove':
-      cls = 'x'
-    elif type == 'insert':
-      cls = 'i'
-    else:
-      return text
-    return '<span class="%s"><span>%s</span></span>' % (cls, text)
-  
-  diffs = dmp.diff_main(compare_version, current_version, checklines=True)
-
-  html = []
-  for diff in diffs:
-    state, text = diff
-    if state == -1:
-      html.append(set_style(text, 'remove'))
-    elif state == 1:
-      html.append(set_style(text, 'insert'))
-    else:
-      html.append(set_style(text, 'normal'))
-      
-  content = ''.join(html)
-  
-  title, content = content.split('\n', 1)
-  doc = Doc(info)
-  doc.version = [Version(i) for i in version[:5]]
-  doc.content = content
-  doc.title = title
-  doc.timestamp = isoformat(version[revision].get('timestamp'))
-  doc.datetime = datetime_string(version[revision].get('timestamp'))
-  owner_info = get_user_info(version[revision].get('owner'))
-  doc.owner_name = owner_info.name
-  doc.owner_avatar = owner_info.avatar
-  return doc
-
-def diff_stat(doc_id):  
-  info = get_record(doc_id)
-  version = info.get('version')
-  version.reverse()
-  try:
-    previous_version = info.get('version')[1].get('content')
-  except IndexError:
-    previous_version = None
-  compare_version = info.get('version')[0].get('content')  
-  
-  
-  if previous_version:     
-    
-    content = htmldiff(previous_version, compare_version)
-    additions = content.count('<ins>')
-    deletions = content.count('<del>')
-    
-#    diffs = dmp.diff_main(html_escape(previous_version), 
-#                          html_escape(compare_version), checklines=True)
-#  
-#    html = []
-#    for diff in diffs:
-#      state, text = diff
-#      if state == -1:
-#        deletions += 1
-#      elif state == 1:
-#        additions += 1
-        
-  else:
-    additions = compare_version.count('\n')
-    deletions = 0
-      
-  return {'additions': additions,
-          'deletions': deletions}
-
-def restore_doc(session_id, doc_id, revision):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not isinstance(revision, int):
-    return False
-  info = db.stream.find_one({'$or': [{'viewers': user_id},
-                                        {'owner': user_id}], 
-                                 '_id': doc_id})
-  version = info.get('version')
-  version.reverse()
-  doc = version[revision]
-
-  doc_id = update_note(session_id, doc_id, doc.get('content'), doc.get('tags'))
-  return doc_id
-
-def get_note(session_id, note_id, version=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  info = db.stream.find_one({'_id': long(note_id),
-                             'is_removed': None})
-  if not info or info.has_key('is_removed'):
-    return Note({})
-  
-  public = False
-  if 'public' in info['viewers']:
-    public = True
-  else:
-    for i in info.get('viewers'):
-      if is_public(i):
-        public = True
-        break
-  
-  if info and public is True:
-    return Note(info, db_name=db_name)
-  elif info:
-    user_id = get_user_id(session_id)
-    viewers = get_group_ids(user_id)
-    viewers.append(user_id)
-    viewers.append('public')
-    for i in viewers:
-      if i in info['viewers']:
-        if version:
-          version = version - 1 # python list index start from 0
-        else:
-          version = len(info['version']) - 1
-        return Note(info, version=version, db_name=db_name)
-  return Note({})
-
-
-def get_docs_count(group_id):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  if str(group_id).isdigit():
-    group_id = long(group_id)
-  else:
-    group_id = 'public'
-  return db.stream.find({'is_removed': None,
-                         'viewers': group_id,
-                         'version': {"$ne": None}}).count()
-
-
-def get_notes(session_id, group_id=None, limit=5, page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return []
-  
-  if group_id:
-    members = get_group_member_ids(group_id)
-    if user_id not in members:
-      return []
-    
-    if str(group_id).isdigit():
-      group_id = long(group_id)
-    else:
-      group_id = 'public'
-  
-    notes = db.stream.find({'is_removed': None,
-                            'viewers': group_id,
-                            'version': {'$ne': None}})\
-                     .sort('last_updated', -1)\
-                     .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                     .limit(limit)
-  else:    
-    notes = db.stream.find({'is_removed': None,
-                            'version.owner': user_id})\
-                     .sort('last_updated', -1)\
-                     .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                     .limit(limit)
-  return [Note(i) for i in notes]
-    
-
-def get_reference_notes(session_id, limit=10, page=1):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  
-  viewers = get_group_ids(user_id)
-  viewers.append(user_id)
-   
-  notes = db.stream.find({'is_removed': None,
-                          'viewers': {'$in': viewers},
-                          '$and': [{'version': {'$ne': None}}, 
-                                   {'version.owner': {'$ne': user_id}}]
-                          })\
-                   .sort('last_updated', -1)\
-                   .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                   .limit(limit)
-  return [Note(i) for i in notes]
-
-
-def get_drafts(session_id, page=1, limit=settings.ITEMS_PER_PAGE):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  docs = db.stream.find({'is_removed': None,
-                         'viewers': [user_id], 
-                         'version': {'$ne': None}})\
-                  .sort('last_updated', -1)\
-                  .skip((page - 1) * settings.ITEMS_PER_PAGE)\
-                  .limit(limit)
-  return [Doc(i) for i in docs]
-
-  
-def new_note(session_id, title, content, attachments=None, viewers=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  
-  viewers = [long(i) if str(i).isdigit() else 'public' for i in viewers]
-  
-  viewers.append(user_id)
-  viewers = list(set(viewers))
-  
-  info = {'_id': new_id(),
-          'version': [{'title': title,
-                       'content': content,
-                       'timestamp': utctime(),
-                       'owner': user_id}],
-          'viewers': viewers,
-          'owner': user_id,
-          'timestamp': utctime(),
-          'last_updated': utctime()}
-  
-  if attachments:
-    attachments = [long(attachment_id) for attachment_id in attachments]
-    info['attachments'] = attachments
-  
-  db.stream.insert(info)
-  
-  index_queue.enqueue(add_index, info['_id'], 
-                      '%s\n\n%s' % (title, content), 
-                      viewers, 'doc', db_name)
-  
-  # clear cache
-  user_ids = set()
-  for i in viewers:
-    if is_group(i):
-      member_ids = get_group_member_ids(i)
-      for id in member_ids:
-        user_ids.add(id)
-    else:
-      user_ids.add(i)
-  for user_id in user_ids:
-    cache.clear(user_id)
-  
-  return info['_id']
-
-def update_note(session_id, doc_id, title, content, attachments=None, viewers=None):
-  db_name = get_database_name()
-  db = DATABASE[db_name]
-  
-  user_id = get_user_id(session_id)
-  if not user_id:
-    return False
-  
-  
-  viewers = [long(u) if u != 'public' else 'public' for u in viewers if u]
-  viewers.append(user_id)
-  viewers = list(set(viewers))
-  
-  ts = utctime()
-  
-  info = {'timestamp': ts,
-          'last_updated': ts}
-  if attachments:
-    attachments = [long(attachment_id) for attachment_id in attachments]
-    info['attachments'] = attachments
-    
-  members = get_group_ids(user_id)
-  members.append(user_id)
-  
-  query = {"$set": info,
-           "$unset": {'archived_by': 1},
-           "$addToSet": {'viewers': {'$each': viewers}},
-           "$push": {'version': {'title': title,
-                                 'content': content,
-                                 'timestamp': utctime(),
-                                 'owner': user_id},
-                     'history': {'owner': user_id,
-                                 'action': 'updated',
-                                 'timestamp': utctime()}}}
-  if not attachments:
-    query['$unset'] = {'archived_by': 1, 'attachments': 1}
-  
-  db.stream.update({'_id': doc_id, 'viewers': {'$in':
+  run_app(debug=True)
