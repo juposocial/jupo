@@ -75,7 +75,82 @@
   </header>
 
   <div class="site-content">
-    {% if network and network != "" %}
+    {% if network and network != "" and network == "facebook.com" %}
+      <div class="jumbotron network-page">
+      <div class="inner">
+        <div class="container">
+
+          <div class="row">
+            <div class="col-md-6" data-pos="left">
+              <h1 class="network-welcome">Welcome to <span class="network-headline">{{ network }}!</span></h1>
+              {% if network_exist == 1 %}
+                <p>
+                  {% if network_info.description %}
+                    {{ network_info.description | nl2br | safe }}
+                  {% else %}
+                    This network is dedicated to your organization.<br/>
+                    Share files, discuss projects, and get work done faster<br/>
+                    Want to try it ? Just sign in :)
+                  {% endif %}
+                </p>
+              {% else %}
+                <p>
+                  This network is dedicated to your organization.<br/>
+                  Share files, discuss projects, and get work done faster<br/>
+                  Want to try it ? Just sign in :)
+                </p>
+              {% endif %}
+              <!--<p>Google Apps get social with Jupo, just one-click away!</p>-->
+            </div>
+
+            <div class="col-md-6" data-pos="right">
+              <form class="form-signup form-signup-vertical" role="form" id='sign-in' method='post' data-validate="parsley">
+                <!-- oAuth buttons | START -->
+                <div id="facebook-authentication">
+                  <h2>Getting Start</h2>
+                  <a href="/oauth/facebook?domain={{ domain }}&network={{ network }}" title="" class="btn btn-lg btn-social btn-google"><i class="icon-facebook"></i> Sign in with Facebook Account </a>
+
+                </div>
+                <!-- oAuth buttons | END -->
+
+                <div class='flash-message'></div>
+
+                <!--<input type="hidden" name="name" value="">-->
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="network" value="{{ network }}">
+
+                <!--<div class='flash-message'></div>-->
+                {% with messages = get_flashed_messages() %}
+                  {% if messages %}
+                    {% for message in messages %}
+                      <div class='flash-message'>
+                        {{ message | safe }}
+                      </div>
+                    {% endfor %}
+
+                    <script type="text/javascript">
+                      // if there is error, check error_type, if it's 'auth_normal' then toggle the login windows again
+                      if ('{{ error_type }}' == 'auth_normal') {
+                        $('#jupo-login').addClass('active');
+                        $('#jupo-login input:first').focus();
+                      }
+
+                      $( ".flash-message" ).effect( "shake" );
+                    </script>
+                  {% endif %}
+                {% endwith %}
+              </form>
+            </div>
+
+          </div>
+
+          <div class="screenshot"></div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% if network and network != "" and network != "facebook.com" %}
     <div class="jumbotron network-page">
     <div class="inner">
       <div class="container">
@@ -231,7 +306,8 @@
       </div>
     </div>
     </div>
-    {% else %}
+    {% endif %}
+    {% if (not network) or (network and network == '') %}
       <div class="jumbotron jumbotron-homepage">
       <div class="inner">
         <div class="container">
