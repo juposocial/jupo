@@ -1,87 +1,131 @@
-<!DOCTYPE html>
-<!--[if (IE 8)&!(IEMobile)]><html class="no-js lt-ie9" lang="en"><![endif]-->
-<!--[if (IE 9)]><html class="no-js ie9" lang="en"><![endif]-->
-<!--[if gt IE 8]><!--> <html lang="en-US"> <!--<![endif]-->
-<head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Jupo - Importer</title>
-  <link href="/public/assets/css/style.css" rel="stylesheet">
-  <link href="/public/assets/css/font-awesome.css" rel="stylesheet">
-  <!--[if (lt IE 9) & (!IEMobile)]>
-  <link href="/public/assets/css/ie8.css" rel="stylesheet">
-  <![endif]-->
+#! coding: utf-8
+# pylint: disable-msg=W0311, E0611, E1101
+# @PydevCodeAnalysisIgnore
 
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
-  <script src="/public/assets/js/modernizr.js"></script>
+import os
+import re
+import sys
+import smaz
+import fcntl
+import struct
+import socket
+import base64
+import hashlib
+import logging
+import calendar
+import requests
+import mimetypes
 
-</head>
-<body class="homepage">
-<div class="container">
+from os import urandom
+from urllib import quote
+from random import shuffle
+from goose import Goose
+from smtplib import SMTP
+from unidecode import unidecode
+from email.message import Message as EmailMsg
+from email.header import Header
+from email.MIMEText import MIMEText
+from base64 import b64encode, b64decode
+from lxml.html.diff import htmldiff
+from itertools import izip
+from uuid import uuid4, UUID
+from string import capwords
+from urllib2 import urlopen
+from simplejson import dumps, loads
+from time import mktime
+from datetime import datetime, timedelta
+from httplib import CannotSendRequest
+from pyelasticsearch import ElasticSearch, ElasticHttpNotFoundError
+from diff_match_patch import diff_match_patch
+from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 
-<div class="import">
-  <div class="rfloat">
-  </div>
-  <h3>Intro</h2>
-  <p>
-    We currently support importing data (posts, comments, users) from Facebook (with more to come)
-  </p>
-  <hr/>
-  <h3 class="text-info">Step 1 - Authenticate</h3>
-  <div class='social-login'>
-    <!--<a href='http://jupo.localhost.com/oauth/facebook?domain=jupo.localhost.com&network=mp3.com&is_import=true' class='facebook-button'> <i class='fb-icon'></i> <span> Import from Facebook </span></a>-->
-    <a href='http://{{ domain }}/oauth/facebook?domain={{ domain }}&network={{ network }}&action=import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Authenticate with Facebook </span> </a>
-  </div>
-  <form action="/oauth/facebook/authorized_import_step_2">
-  {% if source_facebook_groups %}
-    <h3 class="text-info">Step 2 - Select source Facebook group to import</h3>
-      <select name="source_facebook_group_id">
-      {% for facebook_group in source_facebook_groups %}
-        <option value="{{ facebook_group['id'] }}">{{ facebook_group['name'] }}</option>
-      {% endfor %}
-      </select>
-  {% endif %}
+from lib import cache
+from lib import encode_url
+from lib.url import extract_urls
+from lib.hot_ranking import get_score
+from lib.pbkdf2 import pbkdf2_bin # From https://github.com/mitsuhiko/python-pbkdf2
 
-  {% if source_facebook_groups and target_jupo_groups %}
-    <h3 class="text-info">Step 3 - Select target Jupo group to import</h3>
-      <select name="target_jupo_group_id">
-      {% for jupo_group in target_jupo_groups %}
-        <option value="{{ jupo_group.id }}">{{ jupo_group.name }}</option>
-      {% endfor %}
-      </select>
-  {% endif %}
+from gridfs import GridFS, NoFile
+from bson.binary import Binary
+from bson.objectid import ObjectId
+from gevent import spawn, joinall
+from pymongo import MongoClient as MongoDB
+from pymongo.son_manipulator import SON
 
-  {% if source_facebook_groups and not target_jupo_groups %}
-    <h3 class="text-info">Step 3 - Select target Jupo group to import</h3>
-    <p>
-      You haven't created any groups on Jupo. Please go back to your Jupo network, create a group and try to import again :)
-    </p>
-  {% endif %}
+from redis import Redis, ConnectionPool
+from memcache import Client as Memcached
+from jinja2 import Environment, FileSystemLoader
 
-  {% if source_facebook_groups and target_jupo_groups %}
-    <h3 class="text-info">Step 4 - Select import options</h3>
-    <div class="checkbox">
-      <label>
-        <input type="checkbox" name="import_comment_likes">Import likes of comments ? This will take more time
-      </label>
-    </div>
-    <br/>
+from boto.s3.key import Key
+from boto.s3.connection import S3Connection
+from rq import Queue, use_connection
+from validate_email import validate_email
+from apns import APNs, Payload
 
-    <input type="hidden" name="domain" value="{{ domain }}"/>
-    <input type="hidden" name="network" value="{{ network }}"/>
-    <button type="submit" class="btn btn-primary">Import</button>
-    <p>Please note that this task will be run in the background and we will notify you once it's finished :)</p>
+import dateutil.parser as dateparser
+from facebook import GraphAPI
+import urllib
+from urlparse import urlparse
+import inspect
 
-  {% endif %}
 
-  {% if error and (error == 'network_already_got_this_fb_group') %}
-    Another user already imported this network. You can check it out at ...
-  {% endif %}
-  </form>
+from flask import request
+from flask import session
 
-</div>
-</div>
-</body>
-</html>
+try:
+  from collections import OrderedDict as odict
+except ImportError:
+  from ordereddict import OrderedDict as odict
+
+
+from models import (User, Group, Browser,
+                    Comment, Feed, File, Note,
+                    Version, Notification, Attachment, Reminder,
+                    URL, Result, Event, Message, Topic)
+
+import app
+import filters
+import settings
+
+requests.adapters.DEFAULT_RETRIES = 3
+months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
+
+# switch from the default ASCII to UTF-8 encoding
+reload(sys)
+sys.setdefaultencoding("utf-8")
+
+
+DATABASE = MongoDB(settings.MONGOD_SERVERS, use_greenlets=True)
+DATABASE['global'].user.ensure_index('email', background=True)
+DATABASE['global'].spelling_suggestion.ensure_index('keyword', background=True)
+
+INDEX = ElasticSearch('http://%s/' % settings.ELASTICSEARCH_SERVER)
+
+host, port = settings.REDIS_SERVER.split(':')
+FORGOT_PASSWORD = Redis(host=host, port=int(port), db=1)
+
+
+if settings.AWS_KEY and settings.S3_BUCKET_NAME:
+  s3_conn = S3Connection(settings.AWS_KEY, settings.AWS_SECRET, is_secure=False)
+  BUCKET = s3_conn.get_bucket(settings.S3_BUCKET_NAME)
+else:
+  BUCKET = None
+
+goose = Goose()
+dmp = diff_match_patch()
+
+host, port = settings.REDIS_PINGPONG_SERVER.split(':')
+PINGPONG = Redis(host=host, port=int(port), db=0)
+
+host, port = settings.REDIS_PUBSUB_SERVER.split(':')
+pool = ConnectionPool(host=host, port=int(port), db=0)
+PUBSUB = Redis(connection_pool=pool)
+
+host, port = settings.REDIS_TASKQUEUE_SERVER.split(':')
+TASKQUEUE = Redis(host=host, port=int(port), db=0)
+
+use_connection(TASKQUEUE)
+push_queue = Queue('push')
+index_queue = Queue('index')
+crawler_queue = Queue('urls')
+invite_queue
