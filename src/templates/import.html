@@ -30,7 +30,7 @@
   </p>
   <hr/>
 
-  <!-- STEP 1 - AUTHENTICATE -->
+  <!-- STEP 1 - AUTHENTICATE FACEBOOK -->
   <div id="importer-step-{{ current_step }}">
     {% if not facebook_access_token %}
       <h3 class="text-info">Step 1 - Authenticate and retrieve source data</h3>
@@ -61,10 +61,10 @@
             <option value="{{ jupo_group.id }}">{{ jupo_group.name }}</option>
           {% endfor %}
         </select>
-      {% else %}
-        <input type="text" name="new_jupo_group_name"></input>
-        <p>You haven't created any groups on your Jupo network. Please choose a name and we will automatically create one for you</p>
       {% endif %}
+
+      <p>...or create new group named</p>
+      <input type="text" name="new_jupo_group_name"></input>
 
     <br/>
     <h4 class="text-info">Import options</h3>
