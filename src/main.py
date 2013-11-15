@@ -1286,6 +1286,20 @@ def facebook_authorized_import_step_2():
   target_jupo_group_id = request.args.get('target_jupo_group_id')
   import_comment_likes = request.args.get('import_comment_likes')
 
+  group_that_already_imported_this_fb_group = api.check_exist_imported_facebook_group_id_in_all_group_info(source_facebook_group_id=source_facebook_group_id)
+  print "DEBUG - group_that_already_imported_this_fb_group = " + str(group_that_already_imported_this_fb_group)
+
+  if group_that_already_imported_this_fb_group:
+    resp = Response(render_template('import.html',
+                                  settings=settings,
+                                  domain=settings.PRIMARY_DOMAIN,
+                                  network=network,
+                                  error='network_already_got_this_fb_group',
+                                  imported_jupo_group_id=group_that_already_imported_this_fb_group['_id'],
+                                  imported_jupo_group_name=group_that_already_imported_this_fb_group['name']))
+
+    return resp
+
   api.importer_queue.enqueue_call(func=api.import_facebook,
                            args=(session['session_id'], domain, network, session['facebook_access_token'],
                                  source_facebook_group_id, target_jupo_group_id, import_comment_likes),
