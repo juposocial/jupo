@@ -782,8 +782,9 @@ def s3write(filename, filedata, overwrite=True, content_type=None):
 def update_imported_facebook_group_id_in_group_info(target_jupo_group_id, source_facebook_group_id, db_name):
   db = DATABASE[db_name]
 
-  db.owner.update({'_id': long(target_jupo_group_id)},
-                    {'$addToSet': {'imported_facebook_group_ids': source_facebook_group_id}})
+  if target_jupo_group_id != 'public':
+    db.owner.update({'_id': long(target_jupo_group_id)},
+                      {'$addToSet': {'imported_facebook_group_ids': source_facebook_group_id}})
 
 def check_exist_imported_facebook_group_id_in_all_group_info(source_facebook_group_id, db_name=None):
   if not db_name:
@@ -860,7 +861,8 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
 
               poster_session_id = add_dummy_user(name=poster['name'], fb_id=user_fb_id, avatar=poster_avatar_url, db_name=db_name)
 
-            join_group(poster_session_id, target_jupo_group_id, db_name=db_name, is_import=True)
+            if target_jupo_group_id != 'public':
+              join_group(poster_session_id, target_jupo_group_id, db_name=db_name, is_import=True)
 
             new_feed_id = check_feed_exist_by_fb_id(fb_id=post["id"], group_id=target_jupo_group_id, db_name=db_name)
             if not new_feed_id:
@@ -917,7 +919,8 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
 
                   comment_poster_session_id = add_dummy_user(name=comment['from']['name'], fb_id=comment_user_fb_id, avatar=comment_poster_avatar_url, db_name=db_name)
 
-                join_group(comment_poster_session_id, target_jupo_group_id, db_name=db_name, is_import=True)
+                if target_jupo_group_id != 'public':
+                  join_group(comment_poster_session_id, target_jupo_group_id, db_name=db_name, is_import=True)
 
                 new_comment_obj = check_comment_exist_by_fb_id(feed_id=new_feed_id, fb_id=comment['id'], db_name=db_name)
 
@@ -4809,7 +4812,13 @@ def check_user_exist_by_fb_id(fb_id, db_name=None):
 
 def check_feed_exist_by_fb_id(fb_id, group_id, db_name=None):
   db = DATABASE[db_name]
-  existing_feed = db.stream.find_one({'fb_id': fb_id, 'viewers': long(group_id)})
+
+  if group_id == 'public':
+    viewers = group_id
+  else:
+    viewers = long(group_id)
+
+  existing_feed = db.stream.find_one({'fb_id': fb_id, 'viewers': viewers})
   if existing_feed:
     return existing_feed['_id']
   else:
