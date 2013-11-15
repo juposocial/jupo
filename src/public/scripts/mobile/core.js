@@ -203,10 +203,12 @@ $(document).ready(function() {
     
     var url = $(this).attr('href');
     var title = '';
-    if (url.indexOf('/user') == 0) {
+    if (url.indexOf('/user/') == 0) {
       title = 'User';
-    } else if (url.indexOf('/group') == 0 || url.indexOf('/everyone') == 0) {
+    } else if (url.indexOf('/group/') == 0) {
       title = 'Group';
+    } else if (url.indexOf('/everyone') == 0) {
+      title = 'Everyone';
     } else {
       title = 'Post';
     }
