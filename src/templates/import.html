@@ -29,11 +29,22 @@
     We currently support importing data (posts, comments, users) from Facebook (with more to come)
   </p>
   <hr/>
-  <h3 class="text-info">Step 1 - Authenticate</h3>
-  <div class='social-login'>
-    <!--<a href='http://jupo.localhost.com/oauth/facebook?domain=jupo.localhost.com&network=mp3.com&is_import=true' class='facebook-button'> <i class='fb-icon'></i> <span> Import from Facebook </span></a>-->
-    <a href='http://{{ domain }}/oauth/facebook?domain={{ domain }}&network={{ network }}&action=import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Authenticate with Facebook </span> </a>
+
+  <!-- STEP 1 -->
+  <div id="importer-step-{{ current_step }}">
+    {% if not facebook_access_token %}
+      <h3 class="text-info">Step 1 - Authenticate and retrieve source data</h3>
+      <div class='social-login'>
+        <a href='http://{{ domain }}/oauth/facebook?domain={{ domain }}&network={{ network }}&action=import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Authenticate with Facebook </span> </a>
+      </div>
+    {% else %}
+      <h3 class="text-info">Step 1 - Retrieve source data</h3>
+      <div class='social-login'>
+        <a href='/oauth/facebook/authorized_import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Retrieve data from Facebook </span> </a>
+      </div>
+    {% endif %}
   </div>
+
   <form action="/oauth/facebook/authorized_import_step_2">
   {% if source_facebook_groups %}
     <h3 class="text-info">Step 2 - Select source Facebook group to import</h3>
@@ -42,25 +53,19 @@
         <option value="{{ facebook_group['id'] }}">{{ facebook_group['name'] }}</option>
       {% endfor %}
       </select>
-  {% endif %}
 
-  {% if source_facebook_groups and target_jupo_groups %}
     <h3 class="text-info">Step 3 - Select target Jupo group to import</h3>
       <select name="target_jupo_group_id">
-      {% for jupo_group in target_jupo_groups %}
-        <option value="{{ jupo_group.id }}">{{ jupo_group.name }}</option>
-      {% endfor %}
+        <option value="public">Public</option>
+        {% for jupo_group in target_jupo_groups %}
+          <option value="{{ jupo_group.id }}">{{ jupo_group.name }}</option>
+        {% endfor %}
       </select>
-  {% endif %}
 
-  {% if source_facebook_groups and not target_jupo_groups %}
-    <h3 class="text-info">Step 3 - Select target Jupo group to import</h3>
-    <p class="text-danger">
-      You haven't created any groups on your Jupo network. Please create at least one group and try the importer again
-    </p>
-  {% endif %}
+      {% if not target_jupo_groups %}
+        <p>You haven't created any groups on your Jupo network. We will import to default public group</p>
+      {% endif %}
 
-  {% if source_facebook_groups and target_jupo_groups %}
     <h3 class="text-info">Step 4 - Select import options</h3>
     <div class="checkbox">
       <label>
@@ -73,7 +78,6 @@
     <input type="hidden" name="network" value="{{ network }}"/>
     <button type="submit" class="btn btn-primary">Import</button>
     <p>Please note that this task will be run in the background and we will notify you once it's finished :)</p>
-
   {% endif %}
 
   {% if error and (error == 'network_already_got_this_fb_group') %}

@@ -6963,3 +6963,15 @@ a.async {
 	color: #CCC;
 	font-size: 0.7em;
 }
+
+.red {
+    color: #e93a30;
+}
+
+#importer-step-1 {
+    opacity: 1;
+}
+
+#importer-step-2 {
+    opacity: 0.3;
+}

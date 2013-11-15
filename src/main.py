@@ -1189,7 +1189,6 @@ def facebook_login():
 @line_profile
 def import_data():
   email = ""
-  domain = settings.PRIMARY_DOMAIN
   network = request.cookies.get('network')
   network_info = ""
   network_exist = ""
@@ -1205,9 +1204,12 @@ def import_data():
   if 'session_id' not in session:
     return redirect('http://%s/' % (settings.PRIMARY_DOMAIN))
 
+  # get facebook access token if any
+  if 'facebook_access_token' in session:
+    facebook_access_token = session['facebook_access_token']
+  else:
+    facebook_access_token = None
 
-
-  # print "DEBUG - in /import - session['target_jupo_groups'] = " + str(session['target_jupo_groups'])
   resp = Response(render_template('import.html',
                                   email=email,
                                   settings=settings,
@@ -1217,6 +1219,8 @@ def import_data():
                                   network_exist=network_exist,
                                   # source_facebook_groups=source_facebook_groups,
                                   # target_jupo_groups=target_jupo_groups,
+                                  facebook_access_token=facebook_access_token,
+                                  current_step='1',
                                   message=message))
 
   return resp
@@ -1231,19 +1235,19 @@ def facebook_authorized_import_step_1():
     hostname = request.headers.get('Host', '').split(':')[0]
     network = api.get_network_by_current_hostname(hostname)
 
-  if settings.FACEBOOK_APP_ID and settings.FACEBOOK_APP_SECRET:
+  # validate email domain against whitelist
+  db_name = (network + '.' + domain).replace('.', '_')
+
+  if 'code' in request.args:
     f = FacebookAPI(client_id=settings.FACEBOOK_APP_ID,
                   client_secret=settings.FACEBOOK_APP_SECRET,
                   redirect_uri='http://%s/oauth/facebook/authorized_import_step_1' % domain)
 
-  # validate email domain against whitelist
-  db_name = (network + '.' + domain).replace('.', '_')
+    code = request.args['code']
+    access_token = f.get_access_token(code)
+    session['facebook_access_token'] = access_token['access_token']
 
-  code = request.args['code']
-  access_token = f.get_access_token(code)
-  session['facebook_access_token'] = access_token['access_token']
-
-  facebook = GraphAPI(access_token['access_token'])
+  facebook = GraphAPI(session['facebook_access_token'])
   groups = facebook.get('/me/groups')
 
   returned_facebook_groups = []
@@ -1260,7 +1264,7 @@ def facebook_authorized_import_step_1():
   # return redirect('/import')
   # save Facebook contacts
   me = facebook.get('/me')
-  print "DEBUG - in facebook_authorized_import_step_1 - my fb_id = " + str(me['id'])
+
   friends = facebook.get('%s/friends' % me['id'])
   friend_ids = [i['id'] for i in friends['data'] if isinstance(i, dict)]
 
@@ -1272,7 +1276,9 @@ def facebook_authorized_import_step_1():
                                   domain=settings.PRIMARY_DOMAIN,
                                   network=network,
                                   source_facebook_groups=returned_facebook_groups,
-                                  target_jupo_groups=target_jupo_groups))
+                                  target_jupo_groups=target_jupo_groups,
+                                  facebook_access_token=session['facebook_access_token'],
+                                  current_step='2'))
 
   resp.set_cookie('network', network)
   return resp
