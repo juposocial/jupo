@@ -53,6 +53,13 @@
       </select>
   {% endif %}
 
+  {% if source_facebook_groups and not target_jupo_groups %}
+    <h3 class="text-info">Step 3 - Select target Jupo group to import</h3>
+    <p>
+      You haven't created any groups on Jupo. Please go back to your Jupo network, create a group and try to import again :)
+    </p>
+  {% endif %}
+
   {% if source_facebook_groups and target_jupo_groups %}
     <h3 class="text-info">Step 4 - Select import options</h3>
     <div class="checkbox">
@@ -67,6 +74,10 @@
     <button type="submit" class="btn btn-primary">Import</button>
     <p>Please note that this task will be run in the background and we will notify you once it's finished :)</p>
 
+  {% endif %}
+
+  {% if error and (error == 'network_already_got_this_fb_group') %}
+    Another user already imported this network. You can check it out at ...
   {% endif %}
   </form>
 

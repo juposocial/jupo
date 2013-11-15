@@ -779,10 +779,30 @@ def s3write(filename, filedata, overwrite=True, content_type=None):
     except Exception:
       continue
 
+def update_imported_facebook_group_id_in_group_info(target_jupo_group_id, source_facebook_group_id, db_name):
+  db = DATABASE[db_name]
+
+  db.owner.update({'_id': long(target_jupo_group_id)},
+                    {'$addToSet': {'imported_facebook_group_ids': source_facebook_group_id}})
+
+def check_exist_imported_facebook_group_id_in_all_group_info(source_facebook_group_id, db_name=None):
+  if not db_name:
+    db_name = get_database_name()
+
+  db = DATABASE[db_name]
+
+  # find group (owner with email is None) that contains target_jupo_group_id
+  group = db.owner.find_one({'email': None, 'imported_facebook_group_ids': source_facebook_group_id})
+
+  return group
+
 def import_facebook(session_id, domain, network, facebook_token, source_facebook_group_id, target_jupo_group_id, import_comment_likes):
   facebook_import = GraphAPI(facebook_token)
 
   db_name = (network + '.' + domain).replace('.', '_')
+
+  # record this to avoid duplicate importing
+  update_imported_facebook_group_id_in_group_info(target_jupo_group_id, source_facebook_group_id, db_name)
 
   groups = facebook_import.get('/me/groups')
   # print "DEBUG - in import_facebook - groups = " + str(groups)
@@ -844,8 +864,7 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
 
             new_feed_id = check_feed_exist_by_fb_id(fb_id=post["id"], group_id=target_jupo_group_id, db_name=db_name)
             if not new_feed_id:
-              print "DEBUG - in api.import_facebook - post = " + str(post)
-
+              # print "DEBUG - in api.import_facebook - post = " + str(post)
               attachment = []
 
               if post['type'] == 'photo':
@@ -938,7 +957,6 @@ def import_facebook(session_id, domain, network, facebook_token, source_facebook
 
 
 def find_target_facebook_contacts_to_invite(group_id=None, user_id=None, db_name=None):
-  # db_name = 'jupo_com_jupo_localhost_com'
   if not db_name:
     db_name = get_database_name()
   db = DATABASE[db_name]
