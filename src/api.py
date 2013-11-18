@@ -974,6 +974,7 @@ def find_target_facebook_contacts_to_invite(group_id=None, user_id=None, db_name
   group_member_ids = get_group_member_ids(group_id=group_id, db_name=db_name)
 
   target_facebook_contacts = []
+  fb_ids = set()
 
   for member_id in group_member_ids:
     member = get_user_info(user_id=member_id, db_name=db_name).info
@@ -981,7 +982,11 @@ def find_target_facebook_contacts_to_invite(group_id=None, user_id=None, db_name
     # first check, is this an imported user or not
     # second check, is this in current_user contacts
     if ('fb_id' in member) and member['fb_id'] in current_user_facebook_friends:
-      target_facebook_contacts.append(member)
+      fb_id = member['fb_id']
+      if fb_id not in fb_ids:
+        fb_ids.add(fb_id)
+        target_facebook_contacts.append(member)
+
 
   # imported_facebook_contacts = db.owner.find({'fb_id': {'$ne': None}})
 

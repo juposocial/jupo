@@ -17,6 +17,93 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
   <script src="https://{{ domain }}/public/assets/js/modernizr.js"></script>
 
+  <style>
+    body {
+      font-family: 'lucida grande',tahoma,verdana,arial,sans-serif;
+      font-size: 12px;
+      color: #333;
+    }
+
+    a {
+      color: #3b5998;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    a.invite {
+      font-family: Helvetica,arial,freesans,clean,sans-serif;
+      padding: 7px 20px;
+      line-height: normal;
+      position: relative;
+      font-weight: bold;
+      font-size: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      cursor: pointer;
+      -webkit-border-radius: 2px;
+      border-radius: 2px;
+      background-color: #2b96f1;
+      border: solid 1px #2473b0;
+      border-bottom: 1px solid #20608f;
+      background: -webkit-gradient(linear,left top,left bottom,color-stop(0,#2a99ef),color-stop(1,#237bbd));
+      background: -webkit-linear-gradient(top,#2a99ef 0,#237bbd 100%);
+      background: -moz-linear-gradient(top,#2a99ef 0,#237bbd 100%);
+      background: -o-linear-gradient(top,#2a99ef 0,#237bbd 100%);
+      background: -ms-linear-gradient(top,#2a99ef 0,#237bbd 100%);
+      background: linear-gradient(top,#2a99ef 0,#237bbd 100%);
+      color: #fff;
+      text-shadow: 0 -1px 0 rgba(0,0,0,0.5);
+      margin: 10px 0 20px;
+    }
+
+    a.invite:active {
+      background: -webkit-gradient(linear,left top,left bottom,color-stop(0,#237bbd),color-stop(1,#2a99ef));
+      background: -webkit-linear-gradient(top,#237bbd 0,#2a99ef 100%);
+      background: -moz-linear-gradient(top,#237bbd 0,#2a99ef 100%);
+      background: -o-linear-gradient(top,#237bbd 0,#2a99ef 100%);
+      background: -ms-linear-gradient(top,#237bbd 0,#2a99ef 100%);
+      background: linear-gradient(top,#237bbd 0,#2a99ef 100%);
+      text-shadow: 0 1px rgba(0,0,0,0.6);
+      -webkit-box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+      -moz-box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+      box-shadow: 0 1px 7px 0 rgba(0,0,0,0.5) inset;
+    }
+    a.invite:hover {
+      text-shadow: 0 -1px 0 rgba(0,0,0,0.5),0 0 15px white;
+    }
+
+    .checkbox label {
+      display: block;
+      padding: 3px 0;
+    }
+
+    img.logo {
+      vertical-align: middle;
+      margin-left: 5px;
+    }
+
+    .select-all {
+      font-weight: bold;
+    }
+
+  </style>
+
+  <script type="text/javascript">
+
+    function toggle(source) {
+      var check_boxes = document.getElementsByName('selectedContacts[]');
+      for(var i=0, n=check_boxes.length; i<n; i++) {
+        check_boxes[i].checked = source.checked;
+      }
+    }
+
+  </script>
+
 </head>
 <body class="homepage">
 <div class="container">
@@ -24,7 +111,7 @@
 <div class="import">
   <div class="rfloat">
   </div>
-  <h3>Welcome to <img src="https://{{ domain }}/public/assets/img/logo_dark.png"></img></h3>
+  <h3>Welcome to <img class="logo" src="https://{{ domain }}/public/assets/img/logo_dark.png"></h3>
 
   <hr/>
 
@@ -38,6 +125,11 @@
 
     {% if target_contacts %}
       <div class="row container">
+        <div class="checkbox col-md-3">
+          <label class="select-all">
+            <input type="checkbox" onClick="toggle(this)"> Select All
+          </label>
+        </div>
       {% for target in target_contacts %}
         <div class="checkbox col-md-3">
           <label>
@@ -47,7 +139,7 @@
       {% endfor %}
       </div>
 
-      <a href="#" class="btn btn-primary" onclick="invite_direct_contacts()">Invite</a>
+      <a href="#" class="btn btn-primary invite" onclick="invite_direct_contacts()">Invite</a>
     {% endif %}
 
   {% elif fb_source == 'sent_invites' %}
@@ -61,7 +153,7 @@
       Hi <span class="text-info">{{ current_user['name'] }}</span>, thanks for accepting the request from <span class="text-info">{{ request_from }}</span> to join <span class="text-info">{{ invited_network }}</span> on Jupo :)
     </h3>
     <p>
-      Now you can visit <span class="text-info">http://{{ domain }}/{{ invited_network }}</span> to claim your account
+      Now you can visit <span class="text-info"><a href="http://{{ domain }}/{{ invited_network }}" target="_blank">http://{{ domain }}/{{ invited_network }}</a></span> to claim your account
     </p>
 
   {% endif %}
