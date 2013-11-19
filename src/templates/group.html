@@ -399,8 +399,7 @@
                   - Notes
               {% endif %}
 
-        </h2>    
-
+        </h2>
 
         <div class='info subtitle'>
 
@@ -412,8 +411,13 @@
             {% else %}
             {{ group.about }}
             {% endif %}
-          </div>    
+          </div>
+
+          {% if (group.imported_facebook_group_ids | length) > 0 %}
+            <a href="https://apps.facebook.com/{{ fb_app_namespace }}/?fb_source=jupo_importer&invited_network={{ network_url }}&imported_jupo_group_id= {{ group.id }}">Invite your Facebook contacts</a>
+          {% endif %}
         </div>
+
         
 </div>
 

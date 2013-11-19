@@ -1302,7 +1302,6 @@ def facebook_authorized_import_step_2():
     target_jupo_group_id = request.args.get('target_jupo_group_id')
 
   group_that_already_imported_this_fb_group = api.check_exist_imported_facebook_group_id_in_all_group_info(source_facebook_group_id=source_facebook_group_id)
-  print "DEBUG - group_that_already_imported_this_fb_group = " + str(group_that_already_imported_this_fb_group)
 
   if group_that_already_imported_this_fb_group:
     resp = Response(render_template('import.html',
@@ -2584,6 +2583,7 @@ def group(group_id=None, view='group', page=1):
                              view=view, 
                              group=group,
                              first_login=first_login,
+                             fb_app_namespace=settings.FACEBOOK_APP_NAMESPACE #hmm....
 #                             upcoming_events=upcoming_events,
                             )    
 #      resp.set_cookie('last_g%s' % group_id, api.utctime())

@@ -936,6 +936,11 @@ class Group(Model):
   @property
   def about(self):
     return self.info.get('about', '')
+
+  # store the ID of Facebook group imported to this group
+  @property
+  def imported_facebook_group_ids(self):
+    return self.info.get('imported_facebook_group_ids', '')
   
   @property
   def recently_viewed(self):
