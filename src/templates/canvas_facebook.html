@@ -153,7 +153,7 @@
       Hi <span class="text-info">{{ current_user['name'] }}</span>, thanks for accepting the request from <span class="text-info">{{ request_from }}</span> to join <span class="text-info">{{ invited_network }}</span> on Jupo :)
     </h3>
     <p>
-      Now you can visit <span class="text-info"><a href="http://{{ domain }}/{{ invited_network }}" target="_blank">http://{{ domain }}/{{ invited_network }}</a></span> to claim your account
+      Now you can visit <span class="text-info"><a href="http://{{ domain }}/oauth/facebook?domain={{ domain }}&network={{ invited_network }}" target="_blank">this JUPO link</a></span> to sign in and claim your account.
     </p>
 
   {% endif %}
