@@ -31,6 +31,19 @@ function reload() {
   
 }
 
+function new_comment(url, comments_list_id, message) {
+  $.ajax({
+    type: "POST",
+    url: url,
+    data: {message: message},
+    success: function(resp) {
+      $('#' + comments_list_id + ' div.comments-list').append(resp);
+    }
+  });
+  return false;
+}
+
+
 function refresh() {
   
   // Disable embeded youtube videos
@@ -209,5 +222,16 @@ $(document).ready(function() {
     
     return false;
   });
-
+  
+  
+  $('ul.stream').on('tap', 'form.new-comment textarea', function(e) {
+    var comments_list_id = $(this).parents('ul.comments').attr('id');
+    var url = $(this).parents('form.new-comment').attr('action');
+    var data = btoa(JSON.stringify({'comments_list_id': comments_list_id, 'url': url}));
+    open_custom_url_in_iframe('jupo://open_keyboard?data=' + data);
+    e.stopPropagation();
+    return false;
+  });
+  
+  
 });
