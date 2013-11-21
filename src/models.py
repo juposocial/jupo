@@ -19,6 +19,7 @@ from PIL import ImageFont
 
 import StringIO
 
+
 class Model:
   def __init__(self, info, db_name=None):
     self.info = info if info else dict()
@@ -90,8 +91,7 @@ class Model:
           user_ids.add(user_id)
     users.sort(key=lambda k: k.get('timestamp'), reverse=True)
     return users
-    
-        
+
   @property
   def read_receipt_ids(self):
     if self.info and self.info.get('read_receipts'):
@@ -124,8 +124,8 @@ class Model:
         if timestamp > self.last_updated:
           user_id = record.get('user_id')
             
-          if user_id not in user_ids \
-          and not api.is_group(user_id, db_name=self.db_name):
+          if user_id not in user_ids and \
+             not api.is_group(user_id, db_name=self.db_name):
             users.append({'user': api.get_user_info(user_id, 
                                                     db_name=self.db_name),
                           'timestamp': timestamp})
@@ -163,8 +163,7 @@ class Model:
             break
       comments_list.append(comment)
     return comments_list
-  
-  
+
   @property
   def last_comments(self):
     comments = self.info.get('comments')
@@ -200,8 +199,8 @@ class Model:
   def last_action(self):
     if not self.info:
       return History({})
-    if (self.info.get('comments') and 
-        self.last_updated <= self.info['comments'][-1]['timestamp']):
+    if self.info.get('comments') and \
+       self.last_updated <= self.info['comments'][-1]['timestamp']:
       info = {'action': 'commented',
               'owner': self.info['comments'][-1]['owner'],
               'timestamp': self.info['comments'][-1]['timestamp']}
@@ -234,7 +233,6 @@ class Model:
   @property
   def last_updated(self):
     return self.info.get('last_updated')
-    
   
   @property
   def hashtags(self):
@@ -296,7 +294,8 @@ class User(Model):
   def avatar(self):
     avatar = self.info.get('avatar')
 
-    # normal routine, if user already has an avatar (Google profile or uploaded photo)
+    # normal routine, if user already has an avatar
+    # (Google profile or uploaded photo)
     if avatar and isinstance(avatar, str) or isinstance(avatar, unicode):
       if 'googleusercontent' in avatar:
         avatar = avatar.replace('/photo.jpg', '/s60-c/photo.jpg')
@@ -305,11 +304,14 @@ class User(Model):
       attachment = api.get_attachment_info(avatar, db_name=self.db_name)
       attachment_size = attachment.size      
 
-      # even if user chose no file to upload, currently there is still a record for that in attachment with size = 0 bytes
+      # even if user chose no file to upload,
+      # currently there is still a record for that in attachment
+      # with size = 0 bytes
       if attachment_size != '0 bytes':
         filename = '%s_60.jpg' % attachment.md5
         if attachment.md5 and api.is_s3_file(filename, db_name=self.db_name):
-          return 'http://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME, filename)
+          return 'http://%s.s3.amazonaws.com/%s' % (settings.S3_BUCKET_NAME,
+                                                    filename)
         
         return '/img/' + str(avatar) + '.jpg'
     
@@ -326,7 +328,8 @@ class User(Model):
       
       email = self.email.strip().lower()
       width = height = 50
-      avatar_url = 'http://robohash.org/%s.png?set=set1&size=%sx%s&gravatar=yes'\
+      avatar_url = 'http://robohash.org/%s.png?' \
+                   'set=set1&size=%sx%s&gravatar=yes'\
                    % (email, width, height)
     elif avatar_renderer == 'initials':
       # render avatar, using initials from first and last word
@@ -389,8 +392,7 @@ class User(Model):
   @property
   def gender(self):
     return self.info.get('gender')
-  
-  
+
   @property
   def devices(self):
     return self.info.get('devices')
@@ -419,7 +421,6 @@ class User(Model):
   @property
   def location(self):
     return self.info.get('location')
-    
 
   @property
   def locale(self):
@@ -469,7 +470,6 @@ class User(Model):
   
   @property
   def followers(self):
-#    return [api.get_user_info(user_id) for user_id in self.info.get('followers', [])] 
     return self.info.get('followers', [])
   
   @property
@@ -486,14 +486,14 @@ class User(Model):
   
   @property
   def contacts(self):
-    users = [api.get_user_info(user_id, db_name=self.db_name) \
+    users = [api.get_user_info(user_id, db_name=self.db_name)
              for user_id in self.contact_ids]
     users.sort(key=lambda k: k.last_online, reverse=True)
     return users
   
   @property
   def following_details(self):
-    return [api.get_user_info(user_id, db_name=self.db_name) \
+    return [api.get_user_info(user_id, db_name=self.db_name)
             for user_id in api.get_following_users(self.info['_id'], 
                                                    db_name=self.db_name)]
   
@@ -553,14 +553,12 @@ class User(Model):
 
         # get session if any
         latest_session_id = api.get_session_id_by_email(email=self.email, db_name=db_name)
-        # print "DEBUG - in models - field networks - db_name = " + str(db_name) + " and user_id = " + str(self.id) + " -> session_id = " + str(latest_session_id)
 
         if latest_session_id and latest_session_id != False:
           network["latest_session_id"] = latest_session_id
 
     return out if out else []
-    
-    
+
   @property
   def disabled_notifications(self):
     return self.info.get('disabled_notifications', [])
@@ -582,7 +580,7 @@ class Comment(Model):
   
   @property
   def message(self):
-    if self.info.has_key('body'): # is email
+    if self.info.has_key('body'):   # is email
       return self.info.get('body')
     if self.info.has_key('new_message'):
       return self.info.get('new_message')
@@ -605,7 +603,6 @@ class Comment(Model):
   @property
   def last_edited_timestamp(self):
     return self.info.get('last_edited', 0)
-    
 
   @property
   def changes(self):
@@ -661,7 +658,6 @@ class Comment(Model):
   def attachment_ids(self):
     return self.info.get('attachments', [])
   
-  
 
 class Reminder(Model):
   def __init__(self, info):
@@ -675,8 +671,6 @@ class Reminder(Model):
   def is_checked(self):
     return self.info.get('checked')
 
-
-    
 
 class Attachment(Model):
   def __init__(self, info, db_name=None):
@@ -744,8 +738,7 @@ class Attachment(Model):
                                self.info.get('downloadUrl'))))
     else:
       return api.s3_url(self.md5, content_type=self.mimetype)
-  
-  
+
   @property
   def icon(self):
     if self.info.has_key('icon'):
@@ -758,7 +751,6 @@ class Attachment(Model):
         return 'https://s3.amazonaws.com/5works/icons/%s.png' % ext
     return 'https://s3.amazonaws.com/5works/icons/generic.png'
 
-  
   def is_dropbox_file(self):
     return True if self.info.has_key('link') and self.info.has_key('bytes') else False
 
@@ -849,7 +841,6 @@ class File(Model):
     else:
       return '/public/images/icons/generic.png'
 
-      
 
 class Group(Model):
   def __init__(self, info, db_name=None):
@@ -881,8 +872,7 @@ class Group(Model):
   def privacy(self):
     state = self.info.get('privacy', 'closed')
     return state
-  
-  
+
   @property
   def members_count(self):
     return len(self.info.get('members', []))
@@ -908,13 +898,11 @@ class Group(Model):
     pending_members = self.info.get('pending_members', [])
     return [api.get_user_info(user_id, db_name=self.db_name) \
             for user_id in pending_members]
-    
-  
+
   @property
   def pending_member_ids(self):
     return self.info.get('pending_members', [])
-    
-    
+
   @property
   def leaders(self):
     return [api.get_user_info(user_id, db_name=self.db_name) \
@@ -1025,7 +1013,8 @@ class Note(Model):
   
   @property
   def owner(self):
-    return api.get_user_info(self.info.get('version')[self.version_index].get('owner'), 
+    return api.get_user_info(self.info.get('version')
+                             [self.version_index].get('owner'),
                              db_name=self.db_name)
   
   @property
@@ -1034,7 +1023,7 @@ class Note(Model):
     
   @property
   def attachments(self):
-    return [api.get_attachment_info(attachment_id, db_name=self.db_name) \
+    return [api.get_attachment_info(attachment_id, db_name=self.db_name)
             for attachment_id in self.info.get('attachments', [])]
       
   @property
@@ -1057,7 +1046,6 @@ class Note(Model):
   
   def is_official(self):
     return self.info.get('is_official')
-  
   
 
 class Version(Model):
@@ -1118,8 +1106,7 @@ class Feed(Model):
   def owner(self):
     return api.get_owner_info_from_uuid(self.info.get('owner'), 
                                         db_name=self.db_name)
-  
-  
+
   @property
   def datetime(self):
     if self.info.get('version'):  # is doc
@@ -1286,7 +1273,6 @@ class Feed(Model):
     return out
     
 
-
 class History(Model):
   def __init__(self, info, db_name=None):
     self.info = info if info else dict()
@@ -1320,8 +1306,7 @@ class History(Model):
     if self.info.has_key('attachment_id'):
       return api.get_attachment_info(self.info['attachment_id'], 
                                      db_name=self.db_name)
-    
-  
+
   @property
   def timestamp(self):
     return self.info.get('timestamp')
@@ -1372,8 +1357,7 @@ class URL(Model, Feed):
                 'name': '#' + tag.strip()}
         hashtags.append(info)
     return hashtags
-      
-  
+
   @property
   def favicon(self):
     favicon = self.info.get('favicon')
@@ -1474,13 +1458,11 @@ class Result(Model):
           users.append(i)
       users.extend(groups)
       return users
-      
-    
+
   @property
   def timestamp(self):
     return int(self.info.get('last_updated'))
-      
-  
+
   @property
   def description(self):
     if self.info.has_key('urls'):
@@ -1821,9 +1803,6 @@ class Notification(Model):
     return self.info.get('imported_jupo_group_id')
   
 
-  
-          
-
 class Event(Model):
   def __init__(self, info):
     self.info = info if info else dict()
@@ -1855,8 +1834,7 @@ class Event(Model):
   @property
   def time(self):
     return api.datetime.fromtimestamp(self.when).strftime('%I:%M%p').replace(' 0', ' ').replace('AM', 'am').replace('PM', 'pm')
-    
-  
+
 
 class Browser(Model):
   def __init__(self, user_agent):
@@ -1874,11 +1852,3 @@ class Browser(Model):
   def is_firefox(self):
     if 'firefox' in self.browser.lower():
       return True
-  
-  
-  
-  
-  
-  
-  
-  

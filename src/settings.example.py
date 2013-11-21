@@ -51,7 +51,9 @@ S3_BUCKET_NAME = None
 # [Login with Google]
 # 1. Visit to Google Api Console https://code.google.com/apis/console/
 # 2. under "API Access", choose "Create an OAuth 2.0 Client ID"
-# 3. Edit the application settings, and list the Redirect URI(s) where you will run your application. For example: https://internalapp.yourcompany.com/oauth/google/authorized
+# 3. Edit the application settings, and list the Redirect URI(s) where you will
+# run your application.
+# For example: https://internalapp.yourcompany.com/oauth/google/authorized
 # 4. Make a note of the Client ID, and Client Secret
 GOOGLE_CLIENT_ID = None
 GOOGLE_CLIENT_SECRET = None
@@ -59,7 +61,8 @@ GOOGLE_REDIRECT_URI = 'https://www.jupo.com/oauth/google/authorized'
 GOOGLE_API_KEY = None
 
 # [Login with Facebook]
-# 1. Visit https://developers.facebook.com/apps and click the 'Create New App' button.
+# 1. Visit https://developers.facebook.com/apps
+# and click the 'Create New App' button.
 # 2. Fill in the App Display Name and leave the Namespace field blank.
 # 3. Note the App ID and App Secret. 
 FACEBOOK_APP_ID = None

@@ -13,7 +13,6 @@ from helpers import extensions
 from helpers.converters import (SnowflakeIDConverter, 
                                 RegexConverter, UUIDConverter)
 
-import api
 import sys
 import urllib
 import filters
@@ -36,15 +35,15 @@ CURRENT_APP.secret_key = settings.SECRET_KEY
 CURRENT_APP.permanent_session_lifetime = timedelta(days=365*10)
 
 
-
-
 #===============================================================================
 # Template settings
 #===============================================================================
 
 CURRENT_APP.jinja_env.add_extension(extensions.FragmentCacheExtension)
-CURRENT_APP.jinja_env.fragment_cache = MemcachedCache(servers=settings.MEMCACHED_SERVERS,
-                                    default_timeout=3600)
+CURRENT_APP.jinja_env.fragment_cache = MemcachedCache(
+  servers=settings.MEMCACHED_SERVERS,
+  default_timeout=3600
+)
 
 CURRENT_APP.jinja_env.filters['split'] = filters.split
 CURRENT_APP.jinja_env.filters['clean'] = filters.clean
@@ -94,10 +93,11 @@ FILE_TEMPLATE = CURRENT_APP.jinja_env.get_template('file.html')
 COMMENT_TEMPLATE = CURRENT_APP.jinja_env.get_template('comment.html')
 
 @line_profile
-def render(info, post_type, owner, viewport=None, mode=None, mobile=False, **kwargs): 
+def render(info, post_type, owner,
+           viewport=None, mode=None, mobile=False, **kwargs):
   if isinstance(info, list):
     return ''.join([_render(i, post_type, owner, 
-                            viewport, mode, mobile, **kwargs) \
+                            viewport, mode, mobile, **kwargs)
                     for i in info])
   else:
     return _render(info, post_type, owner, 
@@ -105,7 +105,8 @@ def render(info, post_type, owner, viewport=None, mode=None, mobile=False, **kwa
 
 
 @line_profile
-def _render(info, post_type, owner, viewport, mode=None, mobile=False, **kwargs):  
+def _render(info, post_type, owner,
+            viewport, mode=None, mobile=False, **kwargs):
   
   if post_type == 'comment':
     return COMMENT_TEMPLATE.render(comment=info, 
@@ -121,11 +122,11 @@ def _render(info, post_type, owner, viewport, mode=None, mobile=False, **kwargs)
     else:
       key = viewport
       
-    if (owner and 
-        owner.id and 
-        owner.id != info.last_action.owner.id and 
-        owner.id not in info.read_receipt_ids and 
-        viewport != "discover"):
+    if owner and \
+       owner.id and \
+       owner.id != info.last_action.owner.id and \
+       owner.id not in info.read_receipt_ids and \
+       viewport != "discover":
       status = 'unread'
     elif viewport == 'news_feed' and owner.id and owner.id in info.pinned_by:
       status = 'pinned'
@@ -136,8 +137,7 @@ def _render(info, post_type, owner, viewport, mode=None, mobile=False, **kwargs)
       
     if status:
       key = key + ':' + status
-      
-      
+
     key += ':%s:%s' % (post_type, owner_id)
     if kwargs.get('group'):
       key += ':%s' % kwargs.get('group').id
@@ -178,39 +178,16 @@ def _render(info, post_type, owner, viewport, mode=None, mobile=False, **kwargs)
   else:
     hit = True
 
-  html = html.replace('<li id="post', 
-                      '<li data-key="%s" data-namespace="%s" data-cache-status="%s" id="post' % (key, namespace, "HIT" if hit else "MISS"))
+  html = html.replace(
+    '<li id="post',
+    '<li data-key="%s" data-namespace="%s" data-cache-status="%s" id="post'
+    % (key, namespace, "HIT" if hit else "MISS")
+  )
     
   return html
 
 
-
-#def _render(info, post_type, owner, viewport, mode=None, **kwargs):    
-#  if post_type == 'note':
-#    html = NOTE_TEMPLATE.render(note=info, 
-#                                owner=owner, 
-#                                view=viewport, 
-#                                mode=mode, **kwargs)
-#  elif post_type == 'file':
-#    html = FILE_TEMPLATE.render(file=info, 
-#                                owner=owner, 
-#                                view=viewport, 
-#                                mode=mode, **kwargs)
-#  else:
-#    html = FEED_TEMPLATE.render(feed=info, 
-#                                owner=owner, 
-#                                view=viewport, 
-#                                mode=mode, **kwargs)
-#
-#  return html
-
-
-
 CURRENT_APP.jinja_env.filters['render'] = render
-
-
-
-
 
 
 #===============================================================================

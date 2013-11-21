@@ -43,6 +43,7 @@ def event_stream(channel):
   for message in pubsub.listen():
     yield 'retry: 1000\ndata: %s\n\n' % message['data']
 
+
 @app.route('/stream')
 def stream():
   if session and session.get('session_id'):
@@ -88,9 +89,9 @@ def public_files(filename):
   resp.headers['Content-Length'] = len(filedata)
   resp.headers['Content-Type'] = guess_type(filename)[0]
   resp.headers['Cache-Control'] = 'max-age=0'
-  resp.headers['Expires'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+  resp.headers['Expires'] = datetime.utcnow()\
+                                    .strftime('%a, %d %b %Y %H:%M:%S GMT')
   return resp
-
 
 
 @app.route('/oauth/google')
@@ -102,35 +103,47 @@ def google_login():
   if device_token == '(null)':
     device_token = device_os = '' 
   utcoffset = request.args.get('utcoffset', 0)
-  return redirect('https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.google.com/m8/feeds/&redirect_uri=%s&state=%s&client_id=%s&hl=en&from_login=1&pli=1&prompt=select_account' \
+  return redirect('https://accounts.google.com/o/oauth2/auth'
+                  '?response_type=code'
+                  '&scope=https://www.googleapis.com/auth/userinfo.email'
+                  '+https://www.googleapis.com/auth/userinfo.profile'
+                  '+https://www.google.com/m8/feeds/'
+                  '&redirect_uri=%s&state=%s&client_id=%s&hl=en'
+                  '&from_login=1&pli=1&prompt=select_account'
                   % (settings.GOOGLE_MOBILE_APP_REDIRECT_URI, 
-                     '%s|%s|%s|%s|%s' % (domain, network, utcoffset, device_token, device_os), 
+                     '%s|%s|%s|%s|%s' % (domain, network, utcoffset,
+                                         device_token, device_os),
                      settings.GOOGLE_CLIENT_ID))
 
 
 @app.route('/oauth/google/authorized')
 def google_authorized():
   code = request.args.get('code')
-  __, network, utcoffset, device_token, device_os = request.args.get('state').split("|")
+  state = request.args.get('state')
+  __, network, utcoffset, device_token, device_os = state.split("|")
   if device_token and device_os:
     device_id = ('%s %s' % (device_os, device_token)).strip()    
   else:
     device_id = None                    
  
   # get access_token
-  resp = requests.post('https://accounts.google.com/o/oauth2/token', 
-                       data={'code': code,
-                             'client_id': settings.GOOGLE_CLIENT_ID,
-                             'client_secret': settings.GOOGLE_CLIENT_SECRET,
-                             'redirect_uri': settings.GOOGLE_MOBILE_APP_REDIRECT_URI,
-                             'grant_type': 'authorization_code'})
+  resp = requests.post(
+    'https://accounts.google.com/o/oauth2/token',
+    data={
+      'code': code,
+      'client_id': settings.GOOGLE_CLIENT_ID,
+      'client_secret': settings.GOOGLE_CLIENT_SECRET,
+      'redirect_uri': settings.GOOGLE_MOBILE_APP_REDIRECT_URI,
+      'grant_type': 'authorization_code'
+    }
+  )
   data = loads(resp.text)
   token_type = data.get('token_type')
   access_token = data.get('access_token')
   
   # fetch user info
   resp = requests.get('https://www.googleapis.com/oauth2/v1/userinfo', 
-                      headers={'Authorization': '%s %s' \
+                      headers={'Authorization': '%s %s'
                                % (token_type, access_token)})
   user = loads(resp.text)
   if 'error' in user:   # Invalid Credentials
@@ -140,8 +153,9 @@ def google_authorized():
   if is_google_apps_email(email):
     network = email.split('@')[-1]
 
-  url = 'https://www.google.com/m8/feeds/contacts/default/full/?max-results=1000'
-  resp = requests.get(url, headers={'Authorization': '%s %s' \
+  url = 'https://www.google.com/m8/feeds/contacts/default/full/' \
+        '?max-results=1000'
+  resp = requests.get(url, headers={'Authorization': '%s %s'
                                     % (token_type, access_token)})
   
   contacts = api.re.findall("address='(.*?)'", resp.text)
@@ -175,8 +189,7 @@ def google_authorized():
   session.permanent = True
   if device_id:
     session['device_id'] = device_id
-  
-  
+
   # Get user info
   user_id = api.get_user_id(session_id, db_name=db_name)
   user = api.get_user_info(user_id, db_name=db_name)
@@ -264,6 +277,7 @@ def get_user_info():
   resp = Response(dumps(data), mimetype='application/json')
   return resp
 
+
 @app.route('/user/<int:user_id>', methods=['GET', 'OPTIONS'])
 @app.route('/user/<int:user_id>/page<int:page>', methods=['GET', 'OPTIONS'])
 @app.route('/user/<int:user_id>/<action>', methods=['GET'])
@@ -303,8 +317,7 @@ def user(user_id=None, page=1, action=None):
   elif action == 'unfollow':
     api.unfollow(session_id, user_id)
     return 'OK'
-  
-  
+
   view = 'view'
   mode = 'view'
   title = user.name
@@ -320,22 +333,26 @@ def user(user_id=None, page=1, action=None):
     feeds = api.get_user_posts(session_id, user_id, 
                                page=page, db_name=db_name)
   if page == 1:
-    return render_template('mobile/user.html', view=view, 
-                                               user=user,
-                                               owner=owner,
-                                               title=title, 
-                                               settings=settings,
-                                               feeds=feeds,
-                                               is_android=is_android)
+    return render_template('mobile/user.html',
+                           view=view,
+                           user=user,
+                           owner=owner,
+                           title=title,
+                           settings=settings,
+                           feeds=feeds,
+                           is_android=is_android)
   else:
     posts = [render(feeds, 'feed', owner,
                     viewport='view', mode=mode, mobile=True)]
     if len(feeds) != 5:
       posts.append(render_template('more.html', more_url=None))
     else:
-      posts.append(render_template('more.html',
-                                   more_url='/user/%s/page%d' \
-                                   % (user_id, page+1)))
+      posts.append(
+        render_template(
+          'more.html',
+          more_url='/user/%s/page%d' % (user_id, page + 1)
+        )
+      )
     return ''.join(posts)
 
 
@@ -410,14 +427,15 @@ def news_feed(page=1, feed_id=None):
     feeds = api.get_feeds(session_id, page=page, db_name=db_name)
   
   if request.method == 'GET':
-    return render_template('mobile/news_feed.html', owner=owner,
-                                                    mode=mode,
-                                                    title=title, 
-                                                    current_network=network,
-                                                    view='news_feed', 
-                                                    settings=settings,
-                                                    feeds=feeds,
-                                                    is_android=is_android)
+    return render_template('mobile/news_feed.html',
+                           owner=owner,
+                           mode=mode,
+                           title=title,
+                           current_network=network,
+                           view='news_feed',
+                           settings=settings,
+                           feeds=feeds,
+                           is_android=is_android)
   else:   
     posts = [render(feeds, "feed", owner, 
                     viewport='news_feed', mode=mode, mobile=True)]
@@ -425,13 +443,12 @@ def news_feed(page=1, feed_id=None):
       posts.append(render_template('more.html', more_url=None))
     else:
       posts.append(render_template('more.html', 
-                                   more_url='/news_feed/page%d' % (page+1)))
+                                   more_url='/news_feed/page%d' % (page + 1)))
     return ''.join(posts)
 
 
 @app.route("/feed/<int:feed_id>/<action>", methods=["GET", "POST"])
-def feed_actions(feed_id=None, action=None,
-                 message_id=None, domain=None, comment_id=None):
+def feed_actions(feed_id=None, action=None):
   if session and session.get('session_id'):
     data = session
   else:
@@ -478,7 +495,8 @@ def feed_actions(feed_id=None, action=None,
                            owner=owner)
 
     return html
-    
+
+
 @app.route("/everyone", methods=['GET', 'OPTIONS'])
 @app.route("/everyone/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route("/group/<int:group_id>", methods=['GET', 'OPTIONS'])
@@ -516,12 +534,12 @@ def group(group_id='public', action='group', page=1):
     
   if request.path.startswith('/groups'):
     groups = api.get_groups(session_id, db_name=db_name)
-    return render_template('mobile/groups.html', view='groups',
-                                                 owner=owner,
-                                                 groups=groups,
-                                                 is_android=is_android)
-    
-  
+    return render_template('mobile/groups.html',
+                           view='groups',
+                           owner=owner,
+                           groups=groups,
+                           is_android=is_android)
+
   group = api.get_group_info(session_id, group_id, db_name=db_name)
   
   if action == 'info':
@@ -542,13 +560,14 @@ def group(group_id='public', action='group', page=1):
     feeds = api.get_feeds(session_id, group_id,
                           page=page, db_name=db_name)
   
-  return render_template('mobile/group.html', 
-                          feeds=feeds, 
-                          group=group,
-                          owner=owner,
-                          settings=settings,
-                          request=request,
-                          view='group')
+  return render_template('mobile/group.html',
+                         feeds=feeds,
+                         group=group,
+                         owner=owner,
+                         settings=settings,
+                         request=request,
+                         view='group')
+
 
 @app.route('/networks', methods=['GET', 'POST'])
 @app.route('/network/<domain>', methods=['GET', 'POST'])
@@ -623,8 +642,7 @@ def network(domain=None):
           'access_token': session.serialize(),
           'token_type': 'session',
           'unread_notifications': unread_notifications}
-   
-   
+
   return api.b64encode(dumps(data))
 
   
@@ -645,15 +663,14 @@ def like(item_id):
      
   session_id = data.get('session_id')
   network = data.get('network')
-  utcoffset = data.get('utcoffset')
+  # utcoffset = data.get('utcoffset')
   db_name = '%s_%s' % (network.replace('.', '_'), 
                        settings.PRIMARY_DOMAIN.replace('.', '_'))
   
   user_id = api.get_user_id(session_id, db_name=db_name)
   if not user_id:
     abort(401)
-   
-  owner = api.get_user_info(user_id, db_name=db_name)
+
   post_id = item_id
     
   if request.path.startswith('/like/'):
@@ -720,8 +737,7 @@ def notification(notification_id=None, ref_id=None):
       abort(401)
     
   session_id = data.get('session_id')
-  
-  
+
   if notification_id:
     api.mark_notification_as_read(session_id, notification_id)
   elif ref_id:
@@ -774,8 +790,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
       print '\nGoodbye.'
       server.stop()
-  
-  
+
   run_app(debug=True)
 
 

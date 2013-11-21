@@ -32,7 +32,7 @@ class IDHandler(tornado.web.RequestHandler):
     max_time = int(time() * 1000)
     sequence = 0
     worker_id = False
-    epoch = 1259193600000 # 2012-06-23
+    epoch = 1259193600000   # 2012-06-23
     
     def get(self):
         curr_time = int(time() * 1000)

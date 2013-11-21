@@ -5,8 +5,10 @@
 from flask import redirect, request, session, Response
 from functools import wraps
 from lib import cache
+
 import api
 import settings
+
 
 def login_required(f):
   """
@@ -58,8 +60,8 @@ def cache_response(f):
                                 request.query_string)
       else:
         key = '%s: %s %s' % (user_id,
-                                request.method,
-                                request.path)
+                             request.method,
+                             request.path)
       
       rv = cache.get(key)
       if not rv:
@@ -71,8 +73,6 @@ def cache_response(f):
       cache.clear(key)
     return f(*args, **kwargs)
   return decorated_function
-  
-
 
 
 def admin_required(f):
@@ -83,6 +83,7 @@ def admin_required(f):
     return f(*args, **kwds)
 
   return wrapper
+
 
 def guest_or_login_required(f):
   @wraps(f)

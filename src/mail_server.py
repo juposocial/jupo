@@ -17,7 +17,6 @@ import smtpd
 import base64
 import asyncore
 from lib.email_parser import get_reply_text
-  
 
 
 class JupoSMTPServer(smtpd.SMTPServer):
@@ -48,7 +47,7 @@ class JupoSMTPServer(smtpd.SMTPServer):
     # Extract reply text from message
     message = get_reply_text(data)
     if not message:
-      return None # Can't parse reply text
+      return None   # Can't parse reply text
     
     item_id = rcpttos[0].split('@')[0]
     post_id = user_id = group_id = None
@@ -67,7 +66,7 @@ class JupoSMTPServer(smtpd.SMTPServer):
         try:
           post_id = smaz.decompress(base64.b64decode(post_id))
           break
-        except TypeError: # Incorrect padding
+        except TypeError:   # Incorrect padding
           post_id = post_id + '='
       post_id, db_name = post_id.split('-')
       if not post_id.isdigit():
@@ -90,6 +89,3 @@ class JupoSMTPServer(smtpd.SMTPServer):
 if __name__ == '__main__':
   server = JupoSMTPServer(('0.0.0.0', 25), None)
   asyncore.loop()
-  
-  
-  

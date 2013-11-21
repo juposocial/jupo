@@ -21,9 +21,7 @@ from flask_debugtoolbar_lineprofilerpanel.profile import line_profile
 
 from lib import emoji
 
-months = dict((k,v) for k,v in enumerate(calendar.month_abbr)) 
-
-
+months = dict((k, v) for k, v in enumerate(calendar.month_abbr))
 
 
 def b64encode(text):
@@ -35,6 +33,7 @@ def last_starred_user(following_users, starred_list):
   if user_ids:
     user_id = list(user_ids)[-1]
     return api.get_user_info(user_id)
+
 
 @line_profile
 def lines_truncate(text, lines_count=5):
@@ -75,9 +74,11 @@ def lines_truncate(text, lines_count=5):
     lines = [line for line in text.split('<br>') if line.strip()]
     
   # skip blank lines (and blank lines quote)
-  if len([line for line in lines if line.strip() and line.strip() != '>']) >= lines_count:
-    blank_lines = len([line for line in text.split('<br>') if line.strip() in ['', '>']])
-    out = '<br>'.join(lines[:lines_count+blank_lines])
+  if len([line for line in lines
+          if line.strip() and line.strip() != '>']) >= lines_count:
+    blank_lines = len([line for line in text.split('<br>')
+                       if line.strip() in ['', '>']])
+    out = '<br>'.join(lines[:lines_count + blank_lines])
   else:
     out = text
     
@@ -89,7 +90,7 @@ def lines_truncate(text, lines_count=5):
         
     is_truncated = True
     
-    if len(text) / float(len(raw)) > 0.7: # nếu còn 1 ít text thì hiện luôn, không cắt làm gì cho mệt
+    if len(text) / float(len(raw)) > 0.7:
       text = raw
       is_truncated = False
   
@@ -161,8 +162,10 @@ def parse_json(text):
   except Exception:
     return None
 
-EMAIL_RE = re.compile('^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,4})$')
+EMAIL_RE = re.compile('^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*'
+                      '@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,4})$')
 MENTIONS_RE = re.compile('(@\[.*?\]\(.*?\))')
+
 
 @line_profile
 def autolink(text):  
@@ -196,21 +199,35 @@ def autolink(text):
     hash_string = md5(url).hexdigest()
     info = api.get_url_info(url)
     if not url.startswith('http'):
-      s = s.replace(url, '<a href="http://%s/" target="_blank" title="%s">%s</a>' % (hash_string, info.title if info.title else hash_string, hash_string))
+      s = s.replace(url, '<a href="http://%s/" target="_blank" title="%s">%s</a>'
+                         % (hash_string,
+                            info.title if info.title else hash_string,
+                            hash_string))
     
     elif len(url) > 60:
       u = url[:60]
         
       for template in ['%s ', ' %s', '\n%s', '%s\n', '%s.', '%s,']:
         if template % url in s:
-          s = s.replace(template % url, 
-                        template % ('<a href="%s" target="_blank" title="%s">%s</a>' % (hash_string, info.title if info.title else hash_string, md5(u + '...').hexdigest())))
+          s = s.replace(
+            template % url,
+            template % (
+              '<a href="%s" target="_blank" title="%s">%s</a>'
+              % (hash_string,
+                 info.title if info.title else hash_string,
+                 md5(u + '...').hexdigest()))
+          )
           break
     else:
       for template in ['%s ', ' %s', '\n%s', '%s\n', '%s.', '%s,']:
         if template % url in s:
-          s = s.replace(template % url, 
-                        template % ('<a href="%s" target="_blank" title="%s">%s</a>' % (hash_string, info.title if info.title else hash_string, hash_string)))
+          s = s.replace(
+            template % url,
+            template % ('<a href="%s" target="_blank" title="%s">%s</a>'
+                        % (hash_string,
+                           info.title if info.title else hash_string,
+                           hash_string))
+          )
           break
         
   for url in urls:
@@ -228,24 +245,37 @@ def autolink(text):
         topic_name = parts[0][2:]
         
         #TODO: update topic name?
-        s = s.replace(mention, 
-             '<a href="/chat/topic/%s" class="chat">%s</a>' % (topic_id, topic_name))
+        s = s.replace(
+          mention,
+          '<a href="/chat/topic/%s" class="chat">%s</a>' % (topic_id,
+                                                            topic_name)
+        )
+
       elif '](user:' in mention:
         parts = mention.split("](user:")
         user_id = parts[1][:-1]
         username = parts[0][2:]
-        s = s.replace(mention, 
-             '<a href="/user/%s" class="async"><span class="tag">%s</span></a>' % (user_id, username))
+        s = s.replace(
+          mention,
+          '<a href="/user/%s" class="async"><span class="tag">%s</span></a>'
+          % (user_id, username)
+        )
+
       elif '](group:' in mention:
         parts = mention.split("](group:")
         group_id = parts[1][:-1]
         group_name = parts[0][2:]
-        s = s.replace(mention, 
-             '<a href="/group/%s" class="async"><span class="tag">%s</span></a>' % (group_id, group_name))
+        s = s.replace(
+          mention,
+          '<a href="/group/%s" class="async"><span class="tag">%s</span></a>'
+          % (group_id, group_name)
+        )
+
       elif '](dropbox-file:' in mention:
         
         parts = mention.split("](dropbox-file:")
-        link = parts[1][:-1].replace('www.dropbox.com', 'dl.dropboxusercontent.com', 1)
+        link = parts[1][:-1].replace('www.dropbox.com',
+                                     'dl.dropboxusercontent.com', 1)
         name = parts[0][2:]
         s = s.replace(mention,
                       '<a href="%s" target="_blank">%s</a>' % (link, name))
@@ -259,14 +289,6 @@ def autolink(text):
         
       else:
         continue
-        
-#  hashtags = re.compile('(#\[.*?\))').findall(s)
-#  if hashtags:
-#    for hashtag in hashtags:
-#      tag = re.compile('#\[(?P<name>.+)\]\((?P<id>.*)\)').match(hashtag).groupdict()
-#      tag['id'] = tag['id'].split(':', 1)[-1]
-#      s = s.replace(hashtag, 
-#           '<a href="?hashtag=%s" class="overlay"><span class="tag">%s</span></a>' % (tag.get('id'), tag.get('name')))
   
   cache.set(key, s, namespace="filters")
   return s
@@ -278,171 +300,18 @@ def unescape(s):
   s = s.replace("&amp;", "&") # last
   return s
 
+
 REFERENCE_URL_REGEX = re.compile(r"""\n(\[[a-zA-Z0-9_-]*\]: (?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])))""")
-  
-def flavored_markdown(text): 
-  key = '%s:flavored_markdown' % hash(text)
-  html = cache.get(key, namespace="filters")
-  if html:
-    return html
-   
-  text = ' ' + text + ' '
-  text = unescape(text)
-  
-  # extract Reference-style links
-  reference_urls = REFERENCE_URL_REGEX.findall(text)
-  reference_urls = [i[0] for i in reference_urls]
-  for i in reference_urls:
-    text = text.replace(i, md5(i).hexdigest())  
-  
-  # extract urls
-  urls = URL_REGEX.findall(text)
-  urls = [i[0] for i in urls if i]
-  urls.sort(key=len, reverse=True)
-  for url in urls:
-    for pattern in ['%s)', ' %s', '\n%s', '\r\n%s', '%s\n', '%s\r\n']:
-      if pattern % url in text:
-        text = text.replace(pattern % url, pattern % md5(url).hexdigest())
-        break
-      
-  # extract emoticons and symbols
-  symbols = EMOTICONS.keys()
-  symbols.extend(SYMBOLS.keys())
-  symbols.sort(key=len, reverse=True)
-  for symbol in symbols:
-    for pattern in [' %s', ' %s. ', ' %s.\n', ' %s.\r\n', '\n%s', '\r\n%s', '%s\n', '%s\r\n']:
-      if pattern % symbol in text:
-        text = text.replace(pattern % symbol, pattern % md5(symbol).hexdigest())
-        break
-  
-  # extract mentions
-  mentions = re.findall('(@\[.*?\))', text)
-  if mentions:
-    for mention in mentions:
-      text = text.replace(mention, md5(mention).hexdigest())
-  
-  # extract hashtags
-  hashtags = re.findall('(#\[.*?\))', text)
-  if hashtags:
-    for hashtag in hashtags:
-      text = text.replace(hashtag, md5(hashtag).hexdigest())
-            
-  # extract underscores words - prevent foo_bar_baz from ending up with an italic word in the middle
-  words_with_underscores = [w for w in \
-                            re.findall('((?! {4}|\t)\w+_\w+_\w[\w_]*)', text) \
-                            if not w.startswith('_')]
-  
-  for word in words_with_underscores:
-    text = text.replace(word, md5(word).hexdigest())
-  
-  # treats newlines in paragraph-like content as real line breaks
-  text = text.strip().replace('<br>', '8b0f0ea73162b7552dda3c149b6c045d')
-  text = text.strip().replace('\r\n', '<br>').replace('\n', '<br>') # normalize \r\n and \n to <br>
-  text = text.strip().replace('<br>', '  \n') # treats newlines
-  text = text.strip().replace('||  \n', '||\n') # undo if wiki-tables
-  text = text.strip().replace('8b0f0ea73162b7552dda3c149b6c045d', '<br>')
-  
-  # restore reference_urls
-  for i in reference_urls:
-    text = text.replace(md5(i).hexdigest(), i) 
-  
-  # convert text to html
-  html = markdown(text, extras=["wiki-tables",
-                                "cuddled-lists",
-                                "fenced-code-blocks",
-                                "header-ids",
-                                "code-friendly",
-                                "pyshell",
-                                "footnotes"])
-  
-#  print html
-  
-  # extract code-blocks
-  html = html.replace('\n', '<br/>') # convert multi-lines to single-lines for regex matching
-  code_blocks = re.findall('(<code>.*?</code>)', html)
-  for block in code_blocks:
-    html = html.replace(block, md5(block).hexdigest())
-    
-    
-  # Show emoticons and symbols
-  for symbol in symbols:
-    if SYMBOLS.has_key(symbol):
-      html = html.replace(md5(symbol).hexdigest(),
-                          SYMBOLS[symbol])
-    else:
-      html = html.replace(md5(symbol).hexdigest(),
-                          EMOTICONS[symbol].replace("<img src", 
-                                                    "<img class='emoticon' src"))
-  
-  # Autolinks urls, mentions, hashtags, turn youtube links to embed code
-  for url in urls: 
-    title = api.get_url_info(url).title
-    hash_string = md5(url).hexdigest()
-    if len(url) > 40:
-      html = html.replace(hash_string, 
-                          '<a href="%s" target="_blank" title="%s">%s</a>' % (url, title, url[:40] + '...'))
-    else:
-      html = html.replace(hash_string, 
-                          '<a href="%s" target="_blank" title="%s">%s</a>' % (url, title, url))
-  
-  for mention in mentions:
-        
-    hash_string = md5(mention).hexdigest()
-    
-    
-    parts = mention.split("](user:")
-    username = parts[0][2:]
-    user_id = parts[1][:-1]
-    html = html.replace(hash_string, 
-                        '<a href="/user/%s" class="async"><span class="tag">%s</span></a>' % (user_id, username))
-  
-#   for hashtag in hashtags:
-#     hash_string = md5(hashtag).hexdigest()
-#     tag = re.compile('#\[(?P<name>.+)\]\((?P<id>.*)\)').match(hashtag).groupdict()
-#     tag['id'] = tag['id'].split(':', 1)[-1]
-#     html = html.replace(hash_string, 
-#                         '<a href="?hashtag=%s" class="overlay"><span class="tag">%s</span></a>' % (tag.get('id'), tag.get('name')))  
-    
-  # Restore code blocks
-  for block in code_blocks:
-    html = html.replace(md5(block).hexdigest(), block)
-  
-  # restore urls, mentions, emoticons and hashtag in code blocks
-  for url in urls:
-    html = html.replace(md5(url).hexdigest(), url)
-  for mention in mentions:
-    html = html.replace(md5(mention).hexdigest(), mention)
-  for hashtag in hashtags:
-    html = html.replace(md5(hashtag).hexdigest(), hashtag)  
-  for symbol in symbols:
-    html = html.replace(md5(symbol).hexdigest(), symbol)  
-  
-  # restore words with underscores
-  for word in words_with_underscores:
-    html = html.replace(md5(word).hexdigest(), word)
-  
-  # restore \n
-  html = html.replace('<br/>', '\n') 
 
-  # xss protection
-  html = sanitize_html(html)
-
-  if not html or html.isspace():
-    return ''
-  
-  
-  # add target="_blank" to all a tags
-  html = PyQuery(html)
-  html('a:not(.overlay)').attr('target', '_blank')
-  html = str(html)
-  html = html.replace('<br/>', '<br>')
-  
-  cache.set(key, html, namespace="filters")
-  return html  
   
 @line_profile
 def to_embed_code(url, width=437, height=246): 
-  youtube_embed_code_template = '<iframe width="%s" height="%s" src="//www.youtube.com/embed/%s?wmode=opaque" frameborder="0" allowfullscreen></iframe>'
+  youtube_embed_code_template = '''
+  <iframe width="%s" height="%s"
+    src="//www.youtube.com/embed/%s?wmode=opaque"
+    frameborder="0" allowfullscreen>
+  </iframe>
+  '''
   if not url.startswith('http'):
     urls = api.extract_urls(url)
     if urls:
@@ -529,6 +398,7 @@ def friendly_format(ts, offset=None, short=False):
   
   return text.replace(' 0', ' ').replace('AM', 'am').replace('PM', 'pm')
 
+
 @line_profile
 def isoformat(ts, offset=None, last_hour=True):
   try:
@@ -581,9 +451,11 @@ def fix_unicode_error(text):
   except UnicodeDecodeError:
     return text.decode('latin-1').encode("utf-8")
 
+
 _newlines_re = api.re.compile(r'(\r\n|\r|\r)')
 def _normalize_newlines(string):
     return _newlines_re.sub('\n', string)
+
 
 def remove_signature(text):
   text = _normalize_newlines(text)
@@ -593,8 +465,7 @@ def remove_signature(text):
     parts = text.split('<br><br>--', 1)
     if len(parts) != 2:
       parts = text.split('\n\n__')
-      
-    
+
   if len(parts) == 2:
     text = parts[0].strip()
     
@@ -644,7 +515,9 @@ def remove_empty_lines(html):
 
 
 def exclude(users, user_id):
-  return [user for user in users if str(user.id) != str(user_id)] if users else []
+  return [user for user in users
+          if str(user.id) != str(user_id)] if users else []
+
 
 def title(text):
   return capwords(text.replace('_', ' '))
@@ -739,6 +612,7 @@ def to_text(html):
     cache.set(key, out, namespace="filters")
   return out
 
+
 def _convert_to_text(html):
   try:
     html = unicode(html)
@@ -798,9 +672,9 @@ def description(html):
   
 @line_profile
 def sanitize_html(value):
-  '''
+  """
   https://stackoverflow.com/questions/16861/sanitising-user-input-using-python
-  '''
+  """
   if '</' not in value: # không phải HTML
     return value
   
@@ -809,37 +683,36 @@ def sanitize_html(value):
   if out:
     return out
   
-  base_url=None
+  base_url = None
   rjs = r'[\s]*(&#x.{1,7})?'.join(list('javascript:'))
   rvb = r'[\s]*(&#x.{1,7})?'.join(list('vbscript:'))
   re_scripts = re.compile('(%s)|(%s)' % (rjs, rvb), re.IGNORECASE)
-#  validTags = 'p i strong b u a h1 h2 h3 h4 pre br img ul ol li blockquote em code hr'.split()
-  validTags = 'a abbr b blockquote code del ins dd dl dt em h2 h3 h4 i img kbd li ol p pre s small sup sub strong strike table tbody th tr td ul br hr div span'.split()
-  validAttrs = 'src width height alt title class href target'.split()
-  urlAttrs = 'href title'.split() # Attributes which should have a URL
+  valid_tags = 'a abbr b blockquote code del ins dd dl dt em h2 h3 h4 ' \
+               'i img kbd li ol p pre s small sup sub strong strike ' \
+               'table tbody th tr td ul br hr div span'.split()
+  valid_attrs = 'src width height alt title class href target'.split()
+  url_attrs = 'href title'.split()   # Attributes which should have a URL
   
   soup = BeautifulSoup(value.decode('utf-8'))
   for comment in soup.findAll(text=lambda text: isinstance(text, Comment)):
     # Get rid of comments
     comment.extract()
   for tag in soup.findAll(True):
-    if tag.name not in validTags:
+    if tag.name not in valid_tags:
       tag.hidden = True
     attrs = tag.attrs
     tag.attrs = []
     for attr, val in attrs:
-      if attr in validAttrs:
-        val = re_scripts.sub('', val) # Remove scripts (vbs & js)
-        if attr in urlAttrs:
-          val = urljoin(base_url, val) # Calculate the absolute url
+      if attr in valid_attrs:
+        val = re_scripts.sub('', val)   # Remove scripts (vbs & js)
+        if attr in url_attrs:
+          val = urljoin(base_url, val)  # Calculate the absolute url
         tag.attrs.append((attr, val))
 
   out = soup.renderContents().decode('utf8')
   cache.set(key, out, namespace="filters")
   return out  
 
-
-  
 
 SYMBOLS = {
   "->": "→", 
@@ -960,8 +833,7 @@ EMOTICONS = {
  ':-L': '<img src="http://jupo.s3.amazonaws.com/emoticons/62.gif" alt="frustrated">',
  
  '(y)': '<img src="http://jupo.s3.amazonaws.com/emoticons/thumbs-up.png" alt="thumbs up">'
- 
- }
+}
 
 
 if __name__ == "__main__":
