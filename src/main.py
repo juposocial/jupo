@@ -1155,6 +1155,7 @@ def google_authorized():
   resp.set_cookie('network', user_domain)
   return resp 
 
+
 @app.route('/oauth/facebook')
 def facebook_login():
   # for normal sign up/sign in, action = 'authenticate'
@@ -1184,6 +1185,7 @@ def facebook_login():
   app.logger.debug(auth_url)
 
   return redirect_to(auth_url)
+
 
 @app.route('/import', methods=["GET"])
 @line_profile
@@ -1224,6 +1226,7 @@ def import_data():
                                   message=message))
 
   return resp
+
 
 @app.route('/oauth/facebook/authorized_import_step_1')
 def facebook_authorized_import_step_1():
@@ -1283,6 +1286,7 @@ def facebook_authorized_import_step_1():
   resp.set_cookie('network', network)
   return resp
 
+
 @app.route('/oauth/facebook/authorized_import_step_2')
 def facebook_authorized_import_step_2():
   domain = settings.PRIMARY_DOMAIN
@@ -1328,6 +1332,7 @@ def facebook_authorized_import_step_2():
 
   return resp
 
+
 @csrf.exempt
 @app.route('/canvas', methods=['POST', 'GET'])
 @app.route('/canvas/', methods=['POST', 'GET'])
@@ -1348,6 +1353,7 @@ def facebook_canvas():
   # authenticate with FB
   if 'oauth_token' not in decoded_signed_request:
     user_authorized = 'false'
+    abort(401)
   else:
     # authorized, get extra info
     facebook = GraphAPI(decoded_signed_request['oauth_token'])
@@ -1379,7 +1385,6 @@ def facebook_canvas():
     latest_request_id = request_ids[-1]
 
     request_obj = facebook.get(latest_request_id + "_" + current_user['id'])
-    print "DEBUG - in facebook_canvas - receive invite - request_obj = " + str(request_obj)
 
     request_from = request_obj['from']['name']
     invited_network = request_obj['data']
@@ -1394,11 +1399,13 @@ def facebook_canvas():
                                   user_authorized=user_authorized,
                                   current_user=current_user,
                                   domain=settings.PRIMARY_DOMAIN,
-                                  target_contacts=target_contacts if target_contacts else None,
+                                  target_contacts=target_contacts
+                                  if target_contacts else None,
                                   invited_network=invited_network,
                                   request_from=request_from))
 
   return resp
+
 
 @app.route('/import_invite', methods=['POST', 'GET'])
 def import_data_invite_friends():
@@ -2817,7 +2824,7 @@ def messages(user_id=None, topic_id=None, action=None):
 @line_profile
 def home():
   hostname = request.headers.get('Host', '').split(':')[0]
-  db_name=hostname.replace('.', '_')
+  db_name = hostname.replace('.', '_')
 
   # for sub-network, network = mp3.com
   # for homepage, network = ''
@@ -2851,23 +2858,26 @@ def home():
       flash('Invitation is invalid. Please check again')
       return redirect('http://' + settings.PRIMARY_DOMAIN)
     else:
+      code = request.args.get('code')
       session['session_id'] = code
       owner = api.get_user_info(user_id)
 
       resp = make_response(
-               render_template('profile_setup.html',
-                                 owner=owner, jupo_home=settings.PRIMARY_DOMAIN,
-                                 code=code, user_id=user_id)
-           )
+        render_template('profile_setup.html',
+                        owner=owner, jupo_home=settings.PRIMARY_DOMAIN,
+                        code=code, user_id=user_id)
+      )
 
-      # set the network here so that api.get_database_name() knows which network calls it
+      # set the network here so that api.get_database_name() knows which
+      # network calls it
       network = owner.email_domain
   else:
     # authentication OK, redirect to /news_feed
     if user_id:
       # network = request.cookies.get('network')
       if network != "":
-        # used to 404 if network doesn't exist. now we switch to customized landing page for them (even if network doesn't exist yet)
+        # used to 404 if network doesn't exist. now we switch to customized
+        # landing page for them (even if network doesn't exist yet)
         if not api.is_exists(db_name):
           network_exist = 0
 
@@ -2875,31 +2885,24 @@ def home():
         #if not api.is_domain_name(network):
         #  network = hostname
 
-        resp = redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN, network))
+        resp = redirect('http://%s/%s/news_feed' % (settings.PRIMARY_DOMAIN,
+                                                    network))
       else:
         resp = redirect('http://%s/news_feed' % (settings.PRIMARY_DOMAIN))
 
       session['session_id'] = session_id
 
-      # clear current network info (cookies, sessions), so that the routing to new network doesn't get mixed up
+      # clear current network info (cookies, sessions), so that the routing to
+      # new network doesn't get mixed up
       # resp.delete_cookie('redirect_to')
       # session.pop('session_id')
     else:
-      #pass
-      #try:
-      #  session.pop('session_id')
-      #except KeyError:
-      #  pass
 
       email = request.args.get('email')
       message = request.args.get('message')
       error_type = request.args.get('error_type')
       network_info = api.get_network_by_hostname(hostname)
 
-      # if session_id:
-      #   flash('Session is invalid. Please check again')
-      # print "DEBUG - in home() - about to render homepage - hostname = " + str(hostname)
-      # print "DEBUG - in home() - about to render homepage - network = " + str(network)
       resp = Response(render_template('landing_page.html',
                                       email=email,
                                       settings=settings,
@@ -2917,6 +2920,7 @@ def home():
   resp.set_cookie('network', network)
   return resp
 
+
 @app.route("/news_feed", methods=["GET", "OPTIONS"])
 @app.route("/news_feed/page<int:page>", methods=["GET", "OPTIONS"])
 @app.route('/archived', methods=['GET', 'OPTIONS'])
@@ -2927,8 +2931,6 @@ def home():
 def news_feed(page=1):
   # import pdb
   # pdb.set_trace()
-
-  
   
   session_id = session.get("session_id")
   print "DEBUG - just enter news_feed - session_id got from session = " + str(session_id)
