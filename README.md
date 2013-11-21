@@ -56,3 +56,7 @@ May 04, 2013: Jupo v3.0.0 released
 May 09, 2013: Jupo v3.1.0 released  
   Some new small features, many bug fixes and performance improvements
   
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/juposocial/jupo/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
