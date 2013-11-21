@@ -32,17 +32,10 @@
 
   <!-- STEP 1 - AUTHENTICATE FACEBOOK -->
   <div id="importer-step-{{ current_step }}">
-    {% if not facebook_access_token %}
       <h3 class="text-info">Step 1 - Authenticate and retrieve source data</h3>
       <div class='social-login'>
         <a href='http://{{ domain }}/oauth/facebook?domain={{ domain }}&network={{ network }}&action=import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Authenticate with Facebook </span> </a>
       </div>
-    {% else %}
-      <h3 class="text-info">Step 1 - Retrieve source data</h3>
-      <div class='social-login'>
-        <a href='/oauth/facebook/authorized_import_step_1' class='facebook-button' target="_self"> <i class='fb-icon'></i> <span> Retrieve data from Facebook </span> </a>
-      </div>
-    {% endif %}
   </div>
 
   <form action="/oauth/facebook/authorized_import_step_2">

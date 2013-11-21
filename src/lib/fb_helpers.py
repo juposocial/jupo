@@ -7,7 +7,7 @@ import simplejson as json
 def base64_url_decode(inp):
     padding_factor = (4 - len(inp) % 4) % 4
     inp += "=" * padding_factor
-    return base64.b64decode(unicode(inp)
+    return base64.b64decode(unicode(inp)\
                             .translate(dict(zip(map(ord, u'-_'), u'+/'))))
 
 
@@ -22,8 +22,7 @@ def parse_signed_request(signed_request, secret):
     if data.get('algorithm').upper() != 'HMAC-SHA256':
         return None
     else:
-        expected_sig = hmac.new(secret, msg=payload,
-                                digestmod=hashlib.sha256).digest()
+        expected_sig = hmac.new(secret, msg=payload, digestmod=hashlib.sha256).digest()
 
     if sig != expected_sig:
         return None

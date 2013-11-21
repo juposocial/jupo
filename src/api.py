@@ -1470,7 +1470,8 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
   notify_list = []
   user = db.owner.find_one({'email': email})
   if not user:
-    user = db.owner.find_one({'fb_id': facebook_id})
+    user = db.owner.find_one({'$or': [{'fb_id': facebook_id},
+                                      {'facebook_id': facebook_id}]})
 
     # if we can find existing user using fb_id, flag it
     if user:
@@ -1478,8 +1479,8 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
 
   if user:
     if user.get('facebook_friend_ids'):
-      notify_list = [i for i in facebook_friend_ids \
-                     if i not in user.get('facebook_friend_ids')]
+      notify_list = [i for i in facebook_friend_ids
+                     if i not in user.get('facebook_friend_ids', [])]
     else:
       notify_list = facebook_friend_ids
 
@@ -1532,7 +1533,7 @@ def sign_in_with_facebook(email, name=None, gender=None, avatar=None,
                                  'new_user',
                                  None, None, db_name=db_name)
 
-  if merge_with_imported_fb_account == True:
+  if merge_with_imported_fb_account:
     notification_queue.enqueue(new_notification,
                                session_id, user['_id'],
                                'merged_facebook_account',

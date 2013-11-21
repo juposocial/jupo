@@ -513,7 +513,10 @@ $(document).ready(function(e) {
         url: '/notifications',
         dataType: "json",
         success: function(resp) {
-          
+
+          if (!resp) {
+            return false;
+          }
           
           $('header nav ul.notifications .updating').fadeOut();
       

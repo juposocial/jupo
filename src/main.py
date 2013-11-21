@@ -678,7 +678,7 @@ def jobs():
 @app.route(
   "/<any(sign_in, sign_up, sign_out, forgot_password, reset_password):action>",
   methods=["GET", "OPTIONS", "POST"])
-def authentication():
+def authentication(action=None):
   hostname = request.headers.get('Host')
 
   db_name = hostname.replace('.', '_')
@@ -1199,7 +1199,7 @@ def google_authorized():
 
   if user_info.id:
     user_url += '/news_feed'
-  else: # new user
+  else:   # new user
     user_url += '/everyone?getting_started=1&first_login=1'
 
   resp = redirect(user_url)
@@ -1259,12 +1259,6 @@ def import_data():
   if 'session_id' not in session:
     return redirect('http://%s/' % settings.PRIMARY_DOMAIN)
 
-  # get facebook access token if any
-  if 'facebook_access_token' in session:
-    facebook_access_token = session['facebook_access_token']
-  else:
-    facebook_access_token = None
-
   resp = Response(render_template('import.html',
                                   email=email,
                                   settings=settings,
@@ -1274,7 +1268,6 @@ def import_data():
                                   network_exist=network_exist,
                                   # source_facebook_groups=source_facebook_groups,
                                   # target_jupo_groups=target_jupo_groups,
-                                  facebook_access_token=facebook_access_token,
                                   current_step='1',
                                   message=message))
 
@@ -3835,8 +3828,8 @@ def notifications():
     resp = {'body': body,
             'title': 'Notifications'}
 
-    unread_count = api.get_unread_notifications_count(session_id) \
-                   + unread_messages_count
+    unread_count = api.get_unread_notifications_count(session_id) + \
+                   unread_messages_count
 
     #     if unread_count:
     #       #  mark as read luôn các notifications không quan trọng
