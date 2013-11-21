@@ -1420,7 +1420,7 @@ def facebook_canvas():
   # authenticate with FB
   if 'oauth_token' not in decoded_signed_request:
     user_authorized = 'false'
-    abort(401)
+    current_user = None
   else:
     # authorized, get extra info
     facebook = GraphAPI(decoded_signed_request['oauth_token'])
@@ -1446,17 +1446,6 @@ def facebook_canvas():
   if not fb_source and fb_request_param:
     fb_source = 'sent_invites'
 
-  # accept invitation
-  if fb_source == 'notification':
-    request_ids = request.args.get('request_ids').split(',')
-
-    latest_request_id = request_ids[-1]
-
-    request_obj = facebook.get(latest_request_id + "_" + current_user['id'])
-
-    request_from = request_obj['from']['name']
-    invited_network = request_obj['data']
-
   facebook_canvas_url = 'https://apps.facebook.com/' \
                         + settings.FACEBOOK_APP_NAMESPACE \
                         + '/?invited_network=' + str(invited_network)
@@ -1470,9 +1459,7 @@ def facebook_canvas():
                                   current_user=current_user,
                                   domain=settings.PRIMARY_DOMAIN,
                                   target_contacts=target_contacts
-                                  if target_contacts else None,
-                                  invited_network=invited_network,
-                                  request_from=request_from))
+                                  if target_contacts else None))
 
   return resp
 

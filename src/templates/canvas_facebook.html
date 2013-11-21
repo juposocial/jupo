@@ -148,12 +148,12 @@
     </h3>
     <p>Your invites has been sent. Now you can go back to <a href="http://{{ domain }}/{{ invited_network }}">Jupo</a> :)</p>
 
-  {% elif fb_source == 'search' or fb_source == 'notifications' or fb_source == 'notification' %}
+  {% else %}
     <h3>
       Hi <span class="text-info">{{ current_user['name'] }}</span>, thanks for accepting the request from <span class="text-info">{{ request_from }}</span> to join <span class="text-info">{{ invited_network }}</span> on Jupo :)
     </h3>
     <p>
-      Now you can visit <span class="text-info"><a href="http://{{ domain }}/oauth/facebook?domain={{ domain }}&network={{ invited_network }}" target="_blank">this JUPO link</a></span> to sign in and claim your account.
+      Now you can visit <a href="http://jupo.com/oauth/facebook?domain=jupo.com&network=facebook.com"  target="_blank">this link</a> to sign in and claim your account.
     </p>
 
   {% endif %}
