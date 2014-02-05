@@ -6209,7 +6209,7 @@ wysihtml5.quirks.cleanPastedHTML = (function() {
         offsetTop = _getCumulativeOffsetTop(tempElement);
         tempElement.parentNode.removeChild(tempElement);
         if (offsetTop > doc.body.scrollTop) {
-          doc.body.scrollTop = offsetTop;
+          doc.body.scrollTop = offsetTop - 100;
         }
       }
     },
