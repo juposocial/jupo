@@ -1,5 +1,5 @@
 
-## The open-source Facebook Groups for team
+## The open-source Facebook Groups for team ABC
 
 Jupo is publicly hosted at <http://play.jupo.com/>
 and is also available for [download](https://github.com/juposocial/jupo/tags) 
